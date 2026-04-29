@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -151,9 +151,9 @@ const AdminUsers = () => {
   };
 
   const getRoleBadgeStyle = (role) => {
-    if (role === 'superadmin') return { background: 'rgba(168, 85, 247, 0.2)', color: '#a855f7', border: '1px solid rgba(168, 85, 247, 0.3)' };
-    if (role === 'creator') return { background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' };
-    return { background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)' };
+    if (role === 'superadmin') return { background: 'var(--purple-bg)', color: 'var(--purple)', border: '1px solid var(--purple-border)' };
+    if (role === 'creator') return { background: 'var(--warning-bg-strong)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)' };
+    return { background: 'var(--info-bg)', color: 'var(--info)', border: '1px solid var(--info-border)' };
   };
 
   const addFormModal = showAddForm ? (
@@ -209,7 +209,7 @@ const AdminUsers = () => {
     cursor: 'pointer',
     fontSize: '15px',
     fontWeight: isActive ? '600' : '400',
-    color: isActive ? 'var(--primary)' : '#94a3b8',
+    color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
     borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
     transition: 'all 0.2s ease',
     background: 'none',
@@ -234,7 +234,7 @@ const AdminUsers = () => {
       </div>
 
       {error && <div className="error-message" style={{marginBottom: '15px'}}>{error}</div>}
-      {success && <div className="success-message" style={{marginBottom: '15px', padding: '10px', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '6px', color: '#22c55e'}}>{success}</div>}
+      {success && <div className="success-message" style={{marginBottom: '15px', padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{success}</div>}
 
       <div style={{display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '1px solid var(--border)'}}>
         <button style={tabStyle(activeTab === 'users')} onClick={() => setActiveTab('users')}>
@@ -246,10 +246,10 @@ const AdminUsers = () => {
       </div>
 
       {activeTab === 'users' && (
-        <div style={{background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
+        <div style={{background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
           <div style={{padding: '15px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <h3 style={{margin: 0}}>普通用户列表</h3>
-            <span style={{color: '#94a3b8', fontSize: '14px'}}>共 {filteredUsers.length} 个用户</span>
+            <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>共 {filteredUsers.length} 个用户</span>
           </div>
           <div style={{padding: '12px 20px', borderBottom: '1px solid var(--border)'}}>
             <SearchInput
@@ -261,13 +261,13 @@ const AdminUsers = () => {
               displayRender={(item) => (
                 <div>
                   <span style={{fontWeight: '500'}}>{item.username}</span>
-                  <span style={{fontSize: '12px', color: '#94a3b8', marginLeft: '10px'}}>{item.email}</span>
+                  <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px'}}>{item.email}</span>
                 </div>
               )}
             />
           </div>
           {filteredUsers.length === 0 ? (
-            <div style={{padding: '40px', textAlign: 'center', color: '#94a3b8'}}>
+            <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-secondary)'}}>
               {userSearch ? '没有匹配的用户' : '暂无普通用户'}
             </div>
           ) : (
@@ -275,10 +275,10 @@ const AdminUsers = () => {
               <table style={{width: '100%', borderCollapse: 'collapse'}}>
                 <thead>
                   <tr style={{borderBottom: '1px solid var(--border)'}}>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>用户名</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>邮箱</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>注册时间</th>
-                    <th style={{padding: '12px 20px', textAlign: 'right', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>操作</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>用户名</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>邮箱</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>注册时间</th>
+                    <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -288,19 +288,19 @@ const AdminUsers = () => {
                         <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                           <div style={{
                             width: '36px', height: '36px', borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            background: 'var(--btn-gradient-success)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#fff', fontWeight: '600', fontSize: '14px'
+                            color: 'var(--btn-text)', fontWeight: '600', fontSize: '14px'
                           }}>
                             {u.username.charAt(0).toUpperCase()}
                           </div>
                           <span style={{fontWeight: '500'}}>{u.username}</span>
                         </div>
                       </td>
-                      <td style={{padding: '12px 20px', color: '#94a3b8', fontSize: '14px'}}>
+                      <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
                         {u.email}
                       </td>
-                      <td style={{padding: '12px 20px', color: '#94a3b8', fontSize: '14px'}}>
+                      <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
                         {new Date(u.createdAt).toLocaleDateString('zh-CN')}
                       </td>
                       <td style={{padding: '12px 20px', textAlign: 'right'}}>
@@ -314,7 +314,7 @@ const AdminUsers = () => {
                           </button>
                           <button
                             className="btn btn-secondary"
-                            style={{padding: '6px 14px', fontSize: '13px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)'}}
+                            style={{padding: '6px 14px', fontSize: '13px', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}}
                             onClick={() => handleDeleteUser(u._id)}
                           >
                             删除
@@ -331,10 +331,10 @@ const AdminUsers = () => {
       )}
 
       {activeTab === 'admins' && (
-        <div style={{background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
+        <div style={{background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
           <div style={{padding: '15px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
             <h3 style={{margin: 0}}>管理员列表</h3>
-            <span style={{color: '#94a3b8', fontSize: '14px'}}>共 {filteredAdmins.length} 个账号</span>
+            <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>共 {filteredAdmins.length} 个账号</span>
           </div>
           <div style={{padding: '12px 20px', borderBottom: '1px solid var(--border)'}}>
             <SearchInput
@@ -346,13 +346,13 @@ const AdminUsers = () => {
               displayRender={(item) => (
                 <div>
                   <span style={{fontWeight: '500'}}>{item.username}</span>
-                  <span style={{fontSize: '12px', color: '#94a3b8', marginLeft: '10px'}}>{item.role === 'superadmin' ? '超级管理员' : '管理员'}</span>
+                  <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px'}}>{item.role === 'superadmin' ? '超级管理员' : '管理员'}</span>
                 </div>
               )}
             />
           </div>
           {filteredAdmins.length === 0 ? (
-            <div style={{padding: '40px', textAlign: 'center', color: '#94a3b8'}}>
+            <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-secondary)'}}>
               {adminSearch ? '没有匹配的管理员' : '暂无管理员账号'}
             </div>
           ) : (
@@ -360,10 +360,10 @@ const AdminUsers = () => {
               <table style={{width: '100%', borderCollapse: 'collapse'}}>
                 <thead>
                   <tr style={{borderBottom: '1px solid var(--border)'}}>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>用户名</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>角色</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>创建时间</th>
-                    <th style={{padding: '12px 20px', textAlign: 'right', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>操作</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>用户名</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>角色</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>创建时间</th>
+                    <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -373,15 +373,15 @@ const AdminUsers = () => {
                         <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                           <div style={{
                             width: '36px', height: '36px', borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                            background: 'var(--btn-gradient-purple)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#fff', fontWeight: '600', fontSize: '14px'
+                            color: 'var(--btn-text)', fontWeight: '600', fontSize: '14px'
                           }}>
                             {a.username.charAt(0).toUpperCase()}
                           </div>
                           <span style={{fontWeight: '500'}}>{a.username}</span>
                           {admin._id === a._id && (
-                            <span style={{fontSize: '12px', color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '2px 8px', borderRadius: '4px'}}>当前</span>
+                            <span style={{fontSize: '12px', color: 'var(--success-text)', background: 'var(--success-bg-subtle)', padding: '2px 8px', borderRadius: '4px'}}>当前</span>
                           )}
                         </div>
                       </td>
@@ -393,7 +393,7 @@ const AdminUsers = () => {
                           {getRoleLabel(a.role)}
                         </span>
                       </td>
-                      <td style={{padding: '12px 20px', color: '#94a3b8', fontSize: '14px'}}>
+                      <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
                         {new Date(a.createdAt).toLocaleDateString('zh-CN')}
                       </td>
                       <td style={{padding: '12px 20px', textAlign: 'right'}}>
@@ -426,7 +426,7 @@ const AdminUsers = () => {
                             </select>
                             <button
                               className="btn btn-secondary"
-                              style={{padding: '6px 14px', fontSize: '13px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)'}}
+                              style={{padding: '6px 14px', fontSize: '13px', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}}
                               onClick={() => handleDeleteAdmin(a._id)}
                             >
                               删除
@@ -482,10 +482,10 @@ const AdminUsers = () => {
 const InfoRow = ({ label, value, icon, isLong }) => (
   <div style={{
     display: 'flex', padding: '10px 0',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    borderBottom: '1px solid var(--border)',
     alignItems: isLong ? 'flex-start' : 'center'
   }}>
-    <span style={{color: '#94a3b8', fontSize: '14px', minWidth: '100px', flexShrink: 0}}>
+    <span style={{color: 'var(--text-secondary)', fontSize: '14px', minWidth: '100px', flexShrink: 0}}>
       {icon && <span style={{marginRight: '6px'}}>{icon}</span>}{label}
     </span>
     <span style={{color: 'var(--foreground)', fontSize: '14px', wordBreak: 'break-all', lineHeight: '1.5'}}>

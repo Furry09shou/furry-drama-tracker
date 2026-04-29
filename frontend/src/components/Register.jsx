@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿﻿﻿﻿﻿import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -58,8 +58,12 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.password.length < 6) {
-      setError('密码长度至少6位');
+    if (formData.password.length < 8) {
+      setError('密码长度至少8位，需包含字母和数字');
+      return;
+    }
+    if (!/[A-Za-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
+      setError('密码必须包含至少一个字母和一个数字');
       return;
     }
     try {
@@ -109,9 +113,9 @@ const Register = () => {
             value={formData.password}
             onChange={handleChange}
             required
-            minLength={6}
+            minLength={8}
           />
-          <span style={{fontSize: '12px', color: '#94a3b8', marginTop: '4px', display: 'block'}}>密码长度至少6位</span>
+          <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>密码长度至少8位，需包含字母和数字</span>
         </div>
         <div className="form-group">
           <button type="submit">注册</button>

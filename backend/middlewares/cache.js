@@ -1,7 +1,12 @@
 const cache = new Map();
-const CACHE_DURATION = 3600000; // 1小时
+const CACHE_DURATION = 3600000;
+const MAX_CACHE_SIZE = 200;
 
 const setCache = (key, value) => {
+  if (cache.size >= MAX_CACHE_SIZE) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
   cache.set(key, {
     value,
     timestamp: Date.now()
@@ -24,4 +29,12 @@ const clearCache = (key) => {
   cache.delete(key);
 };
 
-module.exports = { setCache, getCache, clearCache };
+const clearCacheByPrefix = (prefix) => {
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) {
+      cache.delete(key);
+    }
+  }
+};
+
+module.exports = { setCache, getCache, clearCache, clearCacheByPrefix };

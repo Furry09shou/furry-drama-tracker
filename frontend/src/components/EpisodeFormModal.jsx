@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿﻿﻿﻿﻿import React, { useState } from 'react';
 import { useEpisodeForm } from '../hooks/useEpisodeForm';
 import { useCategories } from '../hooks/useCategories';
 import ImageUploader from './ImageUploader';
@@ -31,7 +31,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'var(--overlay-bg-strong)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -42,7 +42,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
         className="modal-content" 
         onClick={e => e.stopPropagation()}
         style={{
-          backgroundColor: '#1e293b',
+          backgroundColor: 'var(--bg-secondary)',
           borderRadius: '12px',
           padding: '24px',
           width: '90%',
@@ -67,7 +67,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
               borderRadius: '6px',
               border: '1px solid var(--border)',
               backgroundColor: 'transparent',
-              color: '#e2e8f0',
+              color: 'var(--text-light)',
               cursor: 'pointer',
               fontSize: '14px'
             }}
@@ -77,7 +77,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
         </div>
 
         {!episode && (
-          <p style={{color: '#94a3b8', fontSize: '14px', marginBottom: '15px'}}>
+          <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>
             添加剧集后将自动打开单集管理，您可以为每一集设置独立的跳转链接
           </p>
         )}
@@ -95,12 +95,12 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 padding: '8px 12px',
                 borderRadius: '6px',
                 border: errors.title ? '1px solid rgb(239, 68, 68)' : '1px solid var(--border)',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                color: '#e2e8f0',
+                backgroundColor: 'var(--hover-bg-strong)',
+                color: 'var(--text-light)',
                 fontSize: '14px'
               }}
             />
-            {errors.title && <span style={{ color: 'rgb(239, 68, 68)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.title}</span>}
+            {errors.title && <span style={{ color: 'var(--destructive-text)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.title}</span>}
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -115,13 +115,13 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 padding: '8px 12px',
                 borderRadius: '6px',
                 border: errors.description ? '1px solid rgb(239, 68, 68)' : '1px solid var(--border)',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                color: '#e2e8f0',
+                backgroundColor: 'var(--hover-bg-strong)',
+                color: 'var(--text-light)',
                 fontSize: '14px',
                 resize: 'vertical'
               }}
             />
-            {errors.description && <span style={{ color: 'rgb(239, 68, 68)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.description}</span>}
+            {errors.description && <span style={{ color: 'var(--destructive-text)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.description}</span>}
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -135,7 +135,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
               outputHeight={600}
               uploadEndpoint="/api/episodes/upload"
             />
-            {errors.coverImage && <span style={{ color: 'rgb(239, 68, 68)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.coverImage}</span>}
+            {errors.coverImage && <span style={{ color: 'var(--destructive-text)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.coverImage}</span>}
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -150,12 +150,12 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 padding: '8px 12px',
                 borderRadius: '6px',
                 border: errors.totalEpisodes ? '1px solid rgb(239, 68, 68)' : '1px solid var(--border)',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                color: '#e2e8f0',
+                backgroundColor: 'var(--hover-bg-strong)',
+                color: 'var(--text-light)',
                 fontSize: '14px'
               }}
             />
-            {errors.totalEpisodes && <span style={{ color: 'rgb(239, 68, 68)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.totalEpisodes}</span>}
+            {errors.totalEpisodes && <span style={{ color: 'var(--destructive-text)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.totalEpisodes}</span>}
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -173,7 +173,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 </label>
               ))}
             </div>
-            <p style={{fontSize: '14px', color: '#94a3b8', marginTop: '12px'}}>
+            <p style={{fontSize: '14px', color: 'var(--text-secondary)', marginTop: '12px'}}>
               已选择: {formData.categories.join(', ') || '无'}
             </p>
           </div>
@@ -200,7 +200,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 borderRadius: '6px',
                 border: '1px solid var(--primary)',
                 backgroundColor: 'var(--primary)',
-                color: 'white',
+                color: 'var(--btn-text)',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}
@@ -215,7 +215,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 borderRadius: '6px',
                 border: '1px solid var(--border)',
                 backgroundColor: 'transparent',
-                color: '#e2e8f0',
+                color: 'var(--text-light)',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}

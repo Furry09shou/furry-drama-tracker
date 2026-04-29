@@ -1,32 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import ReportModal from './ReportModal';
 
 const EpisodeDetail = ({ user }) => {
   const [episode, setEpisode] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [watchedEpisodes, setWatchedEpisodes] = useState([]);
   const [watchModal, setWatchModal] = useState(null);
   const [followedAtEpisodes, setFollowedAtEpisodes] = useState(null);
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [recommendations, setRecommendations] = useState([]);
+  const [showReport, setShowReport] = useState(false);
   const navigate = useNavigate();
-  
-  const episodeId = window.location.pathname.split('/').pop();
-  
+  const { id: episodeId } = useParams();
+
   useEffect(() => {
     const fetchEpisode = async () => {
       try {
         const response = await axios.get(`/api/episodes/${episodeId}`);
         setEpisode(response.data);
-        await axios.put(`/api/episodes/${episodeId}/view`);
         setLoading(false);
+        try {
+          await axios.put(`/api/episodes/${episodeId}/view`);
+        } catch (viewErr) {}
       } catch (error) {
         console.error('Error fetching episode:', error);
         setLoading(false);
       }
     };
     fetchEpisode();
+    axios.get(`/api/stats/recommendations/${episodeId}`)
+      .then(res => setRecommendations(res.data))
+      .catch(() => {});
   }, [episodeId]);
 
   useEffect(() => {
@@ -45,14 +55,18 @@ const EpisodeDetail = ({ user }) => {
     axios.get(`/api/histories/check/${episodeId}`, config)
       .then(res => setWatchedEpisodes(res.data.watchedEpisodes || []))
       .catch(() => {});
+    axios.get(`/api/ratings/check/${episodeId}`, config)
+      .then(res => setUserRating(res.data.score))
+      .catch(() => {});
+    axios.get(`/api/favorites/check/${episodeId}`, config)
+      .then(res => setIsFavorite(res.data.isFavorite))
+      .catch(() => {});
   }, [user, episodeId]);
-  
+
   const handleWatch = async (singleEpisode) => {
     try {
       await axios.put(`/api/episodes/single/${singleEpisode._id}/view`);
-    } catch (error) {
-      console.error('Error updating view count:', error);
-    }
+    } catch (error) {}
     setWatchModal(singleEpisode);
   };
 
@@ -94,7 +108,7 @@ const EpisodeDetail = ({ user }) => {
     if (typeof platformLinks === 'object' && !(platformLinks instanceof Map)) return platformLinks;
     try { return Object.fromEntries(platformLinks); } catch (e) { return {}; }
   };
-  
+
   const handleFollow = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -107,6 +121,41 @@ const EpisodeDetail = ({ user }) => {
       setIsFollowing(!isFollowing);
     } catch (error) {
       console.error('Error toggling follow:', error);
+    }
+  };
+
+  const handleFavorite = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      if (isFavorite) {
+        await axios.post('/api/favorites/remove', { episodeId }, config);
+      } else {
+        await axios.post('/api/favorites/add', { episodeId }, config);
+      }
+      setIsFavorite(!isFavorite);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const handleRate = async (score) => {
+    if (!user) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post('/api/ratings', { episodeId, score }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserRating(score);
+      if (episode) {
+        setEpisode({
+          ...episode,
+          averageRating: res.data.averageRating,
+          ratingCount: res.data.ratingCount
+        });
+      }
+    } catch (error) {
+      console.error('Error rating:', error);
     }
   };
 
@@ -124,15 +173,15 @@ const EpisodeDetail = ({ user }) => {
       console.error('Error recording progress:', error);
     }
   };
-  
+
   if (loading) {
     return <div className="container"><h2>加载中...</h2></div>;
   }
-  
+
   if (!episode) {
     return <div className="container"><h2>剧集不存在</h2></div>;
   }
-  
+
   return (
     <div className="episode-detail">
       <div style={{marginBottom: '20px'}}>
@@ -148,8 +197,26 @@ const EpisodeDetail = ({ user }) => {
           <div className="meta-info">
             <p><strong>状态：</strong>{episode.status === 'ongoing' ? '连载中' : episode.status === 'completed' ? '已完结' : '即将上映'}</p>
             <p><strong>集数：</strong>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</p>
-            <p><strong>分类：</strong>{episode.category.join(', ')}</p>
+            <p><strong>分类：</strong>{episode.category?.join(', ') || '无'}</p>
+            {episode.tags && episode.tags.length > 0 && (
+              <p><strong>标签：</strong>{episode.tags.map((tag, i) => (
+                <Link key={i} to={`/?tag=${encodeURIComponent(tag)}`} style={{
+                  display: 'inline-block', padding: '2px 10px', marginRight: '6px',
+                  background: 'var(--primary-bg)', color: 'var(--primary-light)',
+                  borderRadius: '12px', fontSize: '13px', textDecoration: 'none',
+                  border: '1px solid var(--primary-border)'
+                }}>{tag}</Link>
+              ))}</p>
+            )}
             <p><strong>热度：</strong>{episode.views} 次浏览</p>
+            {episode.averageRating > 0 && (
+              <p><strong>评分：</strong>
+                <span style={{color: 'var(--warning-text)'}}>⭐ {episode.averageRating}</span>
+                <span style={{color: 'var(--text-tertiary)', fontSize: '13px', marginLeft: '6px'}}>
+                  ({episode.ratingCount}人评分)
+                </span>
+              </p>
+            )}
             {(episode.createdBy || (episode.allowedEditors && episode.allowedEditors.length > 0)) && (
               <p><strong>作者：</strong>
                 {episode.createdBy && (
@@ -177,17 +244,56 @@ const EpisodeDetail = ({ user }) => {
               <p><strong>观看进度：</strong>已看 {watchedEpisodes.length}/{episode.totalEpisodes} 集</p>
             )}
           </div>
-          {user && (
-            <button 
-              className={`btn ${isFollowing ? 'btn-secondary' : ''}`}
-              onClick={handleFollow}
-            >
-              {isFollowing ? '取消追番' : '追番'}
-            </button>
-          )}
+          <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center'}}>
+            {user && (
+              <button
+                className={`btn ${isFollowing ? 'btn-secondary' : ''}`}
+                onClick={handleFollow}
+              >
+                {isFollowing ? '取消追番' : '追番'}
+              </button>
+            )}
+            {user && (
+              <button
+                className={`btn ${isFavorite ? 'btn-secondary' : ''}`}
+                onClick={handleFavorite}
+                style={isFavorite ? {borderColor: 'var(--warning-text)', color: 'var(--warning-text)'} : {}}
+              >
+                {isFavorite ? '⭐ 已收藏' : '☆ 收藏'}
+              </button>
+            )}
+            {user && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowReport(true)}
+                style={{fontSize: '13px', padding: '8px 14px'}}
+              >
+                🚨 举报
+              </button>
+            )}
+            {user && (
+              <div style={{display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px'}}>
+                <span style={{fontSize: '14px', color: 'var(--text-secondary)', marginRight: '4px'}}>评分：</span>
+                {[1,2,3,4,5].map(star => (
+                  <button key={star} onClick={() => handleRate(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: '22px', padding: '0 1px', lineHeight: 1,
+                      filter: star <= (hoverRating || userRating) ? 'none' : 'grayscale(1) opacity(0.4)',
+                      transition: 'filter 0.15s'
+                    }}>⭐</button>
+                ))}
+                {userRating > 0 && (
+                  <span style={{fontSize: '13px', color: 'var(--warning-text)', marginLeft: '4px'}}>{userRating}分</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      
+
       <div className="episodes-list">
         <h3>剧集列表</h3>
         {episode.episodes && episode.episodes.map(singleEpisode => (
@@ -200,25 +306,25 @@ const EpisodeDetail = ({ user }) => {
               {singleEpisode.duration && <span> ({singleEpisode.duration})</span>}
               {watchedEpisodes.includes(singleEpisode.episodeNumber) ? (
                 <span style={{
-                  fontSize: '12px', color: '#22c55e', marginLeft: '8px',
-                  background: 'rgba(34,197,94,0.15)', padding: '2px 8px',
-                  borderRadius: '4px', border: '1px solid rgba(34,197,94,0.3)'
+                  fontSize: '12px', color: 'var(--success-text)', marginLeft: '8px',
+                  background: 'var(--success-bg)', padding: '2px 8px',
+                  borderRadius: '4px', border: '1px solid var(--success-border)'
                 }}>已看</span>
               ) : isFollowing && followedAtEpisodes !== null && singleEpisode.episodeNumber > followedAtEpisodes ? (
                 <span style={{
-                  fontSize: '12px', color: '#ef4444', marginLeft: '8px',
-                  background: 'rgba(239,68,68,0.15)', padding: '2px 8px',
-                  borderRadius: '4px', border: '1px solid rgba(239,68,68,0.3)'
+                  fontSize: '12px', color: 'var(--destructive-text)', marginLeft: '8px',
+                  background: 'var(--destructive-bg)', padding: '2px 8px',
+                  borderRadius: '4px', border: '1px solid var(--destructive-border)'
                 }}>新更新</span>
               ) : user && watchedEpisodes.length > 0 && (
                 <span style={{
-                  fontSize: '12px', color: '#f59e0b', marginLeft: '8px',
-                  background: 'rgba(245,158,11,0.15)', padding: '2px 8px',
-                  borderRadius: '4px', border: '1px solid rgba(245,158,11,0.3)'
+                  fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
+                  background: 'var(--warning-bg)', padding: '2px 8px',
+                  borderRadius: '4px', border: '1px solid var(--warning-border)'
                 }}>未看</span>
               )}
             </div>
-            <button 
+            <button
               className="btn"
               onClick={() => handleWatch(singleEpisode)}
             >
@@ -228,10 +334,50 @@ const EpisodeDetail = ({ user }) => {
         ))}
       </div>
 
+      {recommendations.length > 0 && (
+        <div style={{marginTop: '32px'}}>
+          <h3 style={{marginBottom: '16px'}}>🎯 相关推荐</h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+            gap: '16px'
+          }}>
+            {recommendations.map(rec => (
+              <Link key={rec._id} to={`/episode/${rec._id}`} style={{
+                textDecoration: 'none', color: 'var(--foreground)',
+                background: 'var(--card)', border: '1px solid var(--border)',
+                borderRadius: '12px', overflow: 'hidden',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-modal)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                <img src={rec.coverImage} alt="" style={{width: '100%', aspectRatio: '3/4', objectFit: 'cover'}} />
+                <div style={{padding: '10px 12px'}}>
+                  <div style={{fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{rec.title}</div>
+                  <div style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px'}}>
+                    第{rec.currentEpisodes}/{rec.totalEpisodes}集
+                    {rec.averageRating > 0 && <span style={{color: 'var(--warning-text)', marginLeft: '6px'}}>⭐{rec.averageRating}</span>}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <ReportModal
+        show={showReport}
+        onClose={() => setShowReport(false)}
+        targetType="episode"
+        targetId={episodeId}
+        targetName={episode.title}
+      />
+
       {watchModal && createPortal(
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.7)', zIndex: 9999,
+          background: 'var(--overlay-bg)', zIndex: 9999,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '20px'
         }} onClick={() => setWatchModal(null)}>
@@ -239,7 +385,7 @@ const EpisodeDetail = ({ user }) => {
             background: 'var(--card)', borderRadius: '16px',
             maxWidth: '800px', width: '100%', maxHeight: '90vh',
             overflow: 'auto', border: '1px solid var(--border)',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
+            boxShadow: '0 25px 50px var(--shadow-strong)'
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -253,7 +399,6 @@ const EpisodeDetail = ({ user }) => {
                 fontSize: '24px', cursor: 'pointer', padding: '0 4px', lineHeight: 1
               }}>✕</button>
             </div>
-
             <div style={{padding: '20px 24px'}}>
               {(() => {
                 const links = (() => {
@@ -263,14 +408,12 @@ const EpisodeDetail = ({ user }) => {
                   );
                 })();
                 const firstLink = Object.values(links)[0];
-                const firstPlatform = Object.keys(links)[0];
-                const embedUrl = firstLink ? getEmbedUrl(firstLink, firstPlatform) : null;
-
+                const embedUrl = firstLink ? getEmbedUrl(firstLink) : null;
                 return (
                   <>
                     <div style={{
                       width: '100%', aspectRatio: '16/9', borderRadius: '12px',
-                      overflow: 'hidden', background: '#000', marginBottom: '20px',
+                      overflow: 'hidden', background: 'var(--video-bg)', marginBottom: '20px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                       {embedUrl ? (
@@ -281,14 +424,13 @@ const EpisodeDetail = ({ user }) => {
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         />
                       ) : (
-                        <div style={{textAlign: 'center', color: '#94a3b8'}}>
+                        <div style={{textAlign: 'center', color: 'var(--text-secondary)'}}>
                           <div style={{fontSize: '48px', marginBottom: '12px'}}>🎬</div>
                           <p>该集暂无可嵌入的预览视频</p>
                           <p style={{fontSize: '13px'}}>请通过下方平台链接观看</p>
                         </div>
                       )}
                     </div>
-
                     <div>
                       <h4 style={{color: 'var(--foreground)', marginBottom: '12px', fontSize: '15px'}}>
                         选择播放平台
@@ -314,7 +456,7 @@ const EpisodeDetail = ({ user }) => {
                               e.currentTarget.style.borderColor = 'var(--primary)';
                               e.currentTarget.style.color = 'var(--primary)';
                               e.currentTarget.style.transform = 'translateY(-2px)';
-                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(99,102,241,0.3)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px var(--primary-border)';
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.borderColor = 'var(--border)';
@@ -327,7 +469,7 @@ const EpisodeDetail = ({ user }) => {
                             <span>{platform}</span>
                           </a>
                         )) : (
-                          <div style={{color: '#94a3b8', padding: '20px', textAlign: 'center', width: '100%'}}>
+                          <div style={{color: 'var(--text-secondary)', padding: '20px', textAlign: 'center', width: '100%'}}>
                             暂无可用播放平台
                           </div>
                         )}

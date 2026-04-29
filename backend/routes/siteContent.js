@@ -107,7 +107,7 @@ router.put('/:key', superAdminProtect, async (req, res) => {
     res.json(updated);
   } catch (error) {
     console.error('Update site content error:', error);
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

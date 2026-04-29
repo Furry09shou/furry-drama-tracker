@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
 const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outputHeight, uploadEndpoint }) => {
@@ -267,8 +267,8 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
       <div style={{ marginBottom: '16px' }}>
         {label && <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--foreground)' }}>{label} - 裁剪编辑</label>}
         <div style={{
-          background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)',
-          borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '13px', color: '#a5b4fc'
+          background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)',
+          borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '13px', color: 'var(--primary-light)'
         }}>
           <div style={{ marginBottom: '4px' }}>📌 在图片上拖动鼠标选择裁剪区域</div>
           {aspectRatio && <div>📐 固定比例 {outputWidth}:{outputHeight}，点击已选区域可拖动移动</div>}
@@ -276,7 +276,7 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
         </div>
         <div
           ref={containerRef}
-          style={{ position: 'relative', maxWidth: '600px', cursor: 'crosshair', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', userSelect: 'none', touchAction: 'none', background: '#000' }}
+          style={{ position: 'relative', maxWidth: '600px', cursor: 'crosshair', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', userSelect: 'none', touchAction: 'none', background: 'var(--video-bg)' }}
           onMouseDown={handlePointerDown}
           onTouchStart={handlePointerDown}
         >
@@ -295,7 +295,7 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
                 <div key={i} style={{ position: 'absolute', width: '10px', height: '10px', background: '#fff', borderRadius: '2px', ...pos }} />
               ))}
               {outputWidth && outputHeight && (
-                <div style={{ position: 'absolute', bottom: '-24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                <div style={{ position: 'absolute', bottom: '-24px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.75)', color: 'var(--btn-text)', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
                   {outputWidth}×{outputHeight}
                 </div>
               )}
@@ -303,7 +303,7 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
           )}
         </div>
         {cropError && (
-          <div style={{ padding: '8px 12px', marginTop: '8px', borderRadius: '6px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontSize: '13px' }}>{cropError}</div>
+          <div style={{ padding: '8px 12px', marginTop: '8px', borderRadius: '6px', background: 'var(--destructive-bg)', color: 'var(--destructive-text)', border: '1px solid var(--destructive-border)', fontSize: '13px' }}>{cropError}</div>
         )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
           <button className="btn" onClick={handleCropConfirm} disabled={cropLoading}>{cropLoading ? '处理中...' : '✓ 确认裁剪'}</button>
@@ -334,7 +334,7 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
           <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
             {uploading ? '上传中...' : '📁 选择图片文件'}
           </button>
-          <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '8px' }}>支持 JPEG、PNG、GIF、WebP，最大5MB</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>支持 JPEG、PNG、GIF、WebP，最大5MB</span>
         </div>
       )}
       {value && (
@@ -342,9 +342,9 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
           <img src={value} alt="预览" style={{ maxWidth: '200px', maxHeight: '120px', borderRadius: '8px', border: '1px solid var(--border)', objectFit: 'cover' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {aspectRatio && (
-              <button type="button" onClick={handleStartCrop} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px' }}>✂️ 裁剪</button>
+              <button type="button" onClick={handleStartCrop} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary-light)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px' }}>✂️ 裁剪</button>
             )}
-            <button type="button" onClick={handleRemove} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px' }}>🗑️ 移除</button>
+            <button type="button" onClick={handleRemove} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px' }}>🗑️ 移除</button>
           </div>
         </div>
       )}

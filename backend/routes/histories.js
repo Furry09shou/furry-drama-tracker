@@ -6,17 +6,21 @@ const protect = require('../middlewares/auth');
 router.post('/record', protect, async (req, res) => {
   const { episodeId, episodeNumber } = req.body;
   try {
+    const epNum = parseInt(episodeNumber, 10);
+    if (isNaN(epNum)) {
+      return res.status(400).json({ message: 'Invalid episode number' });
+    }
     let history = await History.findOne({ userId: req.user._id, episodeId });
     if (!history) {
       history = await History.create({
         userId: req.user._id,
         episodeId,
-        watchedEpisodes: [episodeNumber],
+        watchedEpisodes: [epNum],
         lastWatched: Date.now()
       });
     } else {
-      if (!history.watchedEpisodes.includes(episodeNumber)) {
-        history.watchedEpisodes.push(episodeNumber);
+      if (!history.watchedEpisodes.includes(epNum)) {
+        history.watchedEpisodes.push(epNum);
       }
       history.lastWatched = Date.now();
       await history.save();

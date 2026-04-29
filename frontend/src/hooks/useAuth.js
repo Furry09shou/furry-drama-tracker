@@ -9,7 +9,13 @@ export const useAuth = () => {
       const token = localStorage.getItem('adminToken');
       const adminData = localStorage.getItem('adminData');
       if (token && adminData) {
-        setAdmin(JSON.parse(adminData));
+        try {
+          setAdmin(JSON.parse(adminData));
+        } catch (e) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminData');
+          setAdmin(null);
+        }
       } else {
         setAdmin(null);
       }

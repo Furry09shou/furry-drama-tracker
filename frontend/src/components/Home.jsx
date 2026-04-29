@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
 
 const Home = () => {
@@ -12,6 +11,8 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [sort, setSort] = useState('latest');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
   const [banners, setBanners] = useState([]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
@@ -104,9 +105,20 @@ const Home = () => {
   }, [showWelcome, banners.length, nextBanner]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tagParam = params.get('tag');
+    if (tagParam) setTagFilter(tagParam);
+  }, []);
+
+  useEffect(() => {
     const fetchEpisodes = async () => {
       try {
-        const response = await axios.get(`/api/episodes?category=${category}&sort=${sort}`);
+        const params = new URLSearchParams();
+        if (category) params.set('category', category);
+        if (sort) params.set('sort', sort);
+        if (statusFilter) params.set('status', statusFilter);
+        if (tagFilter) params.set('tag', tagFilter);
+        const response = await axios.get(`/api/episodes?${params.toString()}`);
         setEpisodes(response.data);
         setLoading(false);
       } catch (error) {
@@ -115,7 +127,7 @@ const Home = () => {
       }
     };
     fetchEpisodes();
-  }, [category, sort]);
+  }, [category, sort, statusFilter, tagFilter]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -192,13 +204,13 @@ const Home = () => {
               <div style={{
                 position: 'absolute', bottom: 0, left: 0, right: 0,
                 padding: '40px 30px 30px',
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                background: 'linear-gradient(transparent, var(--banner-overlay))',
                 pointerEvents: 'none',
                 transition: 'opacity 0.5s ease',
                 opacity: isTransitioning ? 1 : 0
               }}>
-                <h2 style={{color: '#fff', marginBottom: '8px', fontSize: '24px'}}>{previousBanner.title}</h2>
-                {previousBanner.subtitle && <p style={{color: 'rgba(255,255,255,0.8)', fontSize: '15px'}}>{previousBanner.subtitle}</p>}
+                <h2 style={{color: 'var(--banner-text)', marginBottom: '8px', fontSize: '24px'}}>{previousBanner.title}</h2>
+                {previousBanner.subtitle && <p style={{color: 'var(--banner-text-secondary)', fontSize: '15px'}}>{previousBanner.subtitle}</p>}
               </div>
             </BannerWrapper>
           </div>
@@ -225,13 +237,13 @@ const Home = () => {
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
               padding: '40px 30px 30px',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+              background: 'linear-gradient(transparent, var(--banner-overlay))',
               pointerEvents: 'none',
               transition: 'opacity 0.5s ease',
               opacity: isTransitioning ? 0 : 1
             }}>
-              <h2 style={{color: '#fff', marginBottom: '8px', fontSize: '24px'}}>{banner.title}</h2>
-              {banner.subtitle && <p style={{color: 'rgba(255,255,255,0.8)', fontSize: '15px'}}>{banner.subtitle}</p>}
+              <h2 style={{color: 'var(--banner-text)', marginBottom: '8px', fontSize: '24px'}}>{banner.title}</h2>
+              {banner.subtitle && <p style={{color: 'var(--banner-text-secondary)', fontSize: '15px'}}>{banner.subtitle}</p>}
             </div>
           </BannerWrapper>
         </div>
@@ -241,23 +253,23 @@ const Home = () => {
             <button onClick={prevBanner} style={{
               position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
               width: '40px', height: '40px', borderRadius: '50%',
-              background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff',
+              background: 'var(--banner-overlay-hover)', border: 'none', color: 'var(--banner-text)',
               fontSize: '18px', cursor: 'pointer', display: 'flex',
               alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.3s',
               zIndex: 3
-            }} onMouseEnter={(e) => e.target.style.background = 'rgba(0,0,0,0.7)'} onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.5)'}>
+            }} onMouseEnter={(e) => e.target.style.background = 'var(--banner-overlay)'} onMouseLeave={(e) => e.target.style.background = 'var(--banner-overlay-hover)'}>
               ‹
             </button>
             <button onClick={nextBanner} style={{
               position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
               width: '40px', height: '40px', borderRadius: '50%',
-              background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff',
+              background: 'var(--banner-overlay-hover)', border: 'none', color: 'var(--banner-text)',
               fontSize: '18px', cursor: 'pointer', display: 'flex',
               alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.3s',
               zIndex: 3
-            }} onMouseEnter={(e) => e.target.style.background = 'rgba(0,0,0,0.7)'} onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.5)'}>
+            }} onMouseEnter={(e) => e.target.style.background = 'var(--banner-overlay)'} onMouseLeave={(e) => e.target.style.background = 'var(--banner-overlay-hover)'}>
               ›
             </button>
             <div style={{
@@ -269,7 +281,7 @@ const Home = () => {
                 <span key={idx} onClick={() => { setPreviousBanner(banners[currentBanner]); setIsTransitioning(true); setTimeout(() => { setCurrentBanner(idx); setIsTransitioning(false); setPreviousBanner(null); }, 500); }} style={{
                   width: idx === currentBanner ? '24px' : '8px',
                   height: '8px', borderRadius: '4px',
-                  background: idx === currentBanner ? '#fff' : 'rgba(255,255,255,0.4)',
+                  background: idx === currentBanner ? 'var(--indicator-active)' : 'var(--indicator-inactive)',
                   cursor: 'pointer', transition: 'all 0.3s ease'
                 }} />
               ))}
@@ -286,7 +298,7 @@ const Home = () => {
 
       <div className="filter-section">
         <h3>筛选剧集</h3>
-        <div className="filters">
+        <div style={{marginBottom: '16px'}}>
           <SearchInput
             data={episodes}
             searchKey={['title', 'description']}
@@ -300,38 +312,123 @@ const Home = () => {
                 )}
                 <div>
                   <div style={{fontWeight: '500'}}>{item.title}</div>
-                  <div style={{fontSize: '12px', color: '#94a3b8'}}>{item.category?.join(', ')}</div>
+                  <div style={{fontSize: '12px', color: 'var(--text-secondary)'}}>{item.category?.join(', ')}</div>
                 </div>
               </div>
             )}
-            style={{flex: 1}}
           />
-          <CustomSelect
-            options={[
-              { value: '', label: '全部分类' },
-              ...categories.map(c => ({ value: c.name, label: c.name }))
-            ]}
-            value={category}
-            onChange={setCategory}
-            placeholder="选择分类"
-          />
-          <CustomSelect
-            options={[
-              { value: 'latest', label: '最新更新' },
-              { value: 'views', label: '热门推荐' },
-              { value: 'premiere', label: '最新首播' }
-            ]}
-            value={sort}
-            onChange={setSort}
-            placeholder="排序方式"
-          />
+        </div>
+        <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
+          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>分类：</span>
+          <button
+            onClick={() => setCategory('')}
+            style={{
+              padding: '8px 20px',
+              borderRadius: '20px',
+              border: category === '' ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+              background: category === '' ? 'var(--primary-bg)' : 'var(--hover-bg)',
+              color: category === '' ? 'var(--primary)' : 'var(--foreground)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: category === '' ? '600' : '400',
+              transition: 'all 0.2s ease',
+              opacity: category === '' ? 1 : 0.85
+            }}
+          >全部</button>
+          {categories.map(c => (
+            <button
+              key={c.name}
+              onClick={() => setCategory(c.name === category ? '' : c.name)}
+              style={{
+                padding: '8px 20px',
+                borderRadius: '20px',
+                border: category === c.name ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                background: category === c.name ? 'var(--primary-bg)' : 'var(--hover-bg)',
+                color: category === c.name ? 'var(--primary)' : 'var(--foreground)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: category === c.name ? '600' : '400',
+                transition: 'all 0.2s ease',
+                opacity: category === c.name ? 1 : 0.85
+              }}
+            >{c.name}</button>
+          ))}
+        </div>
+        <div style={{display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
+          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>状态：</span>
+          {[
+            { value: '', label: '全部' },
+            { value: 'ongoing', label: '连载中' },
+            { value: 'completed', label: '已完结' },
+            { value: 'upcoming', label: '即将上映' }
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              style={{
+                padding: '8px 20px',
+                borderRadius: '20px',
+                border: statusFilter === opt.value ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                background: statusFilter === opt.value ? 'var(--primary-bg)' : 'var(--hover-bg)',
+                color: statusFilter === opt.value ? 'var(--primary)' : 'var(--foreground)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: statusFilter === opt.value ? '600' : '400',
+                transition: 'all 0.2s ease',
+                opacity: statusFilter === opt.value ? 1 : 0.85
+              }}
+            >{opt.label}</button>
+          ))}
+        </div>
+        <div style={{display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
+          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>排序：</span>
+          {[
+            { value: 'latest', label: '最新更新' },
+            { value: 'views', label: '热门推荐' },
+            { value: 'premiere', label: '最新首播' },
+            { value: 'rating', label: '最高评分' }
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setSort(opt.value)}
+              style={{
+                padding: '8px 20px',
+                borderRadius: '20px',
+                border: sort === opt.value ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                background: sort === opt.value ? 'var(--primary-bg)' : 'var(--hover-bg)',
+                color: sort === opt.value ? 'var(--primary)' : 'var(--foreground)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: sort === opt.value ? '600' : '400',
+                transition: 'all 0.2s ease',
+                opacity: sort === opt.value ? 1 : 0.85
+              }}
+            >{opt.label}</button>
+          ))}
         </div>
       </div>
 
       <h2>{searchQuery ? `搜索结果 (${filteredEpisodes.length})` : '剧集列表'}</h2>
+      {tagFilter && (
+        <div style={{marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>标签筛选：</span>
+          <span style={{
+            padding: '4px 12px', borderRadius: '12px', fontSize: '13px',
+            background: 'var(--primary-bg)', color: 'var(--primary-light)',
+            border: '1px solid var(--primary-border)', display: 'inline-flex',
+            alignItems: 'center', gap: '6px'
+          }}>
+            {tagFilter}
+            <button onClick={() => setTagFilter('')} style={{
+              background: 'none', border: 'none', color: 'var(--primary-light)',
+              cursor: 'pointer', fontSize: '14px', padding: 0, lineHeight: 1
+            }}>✕</button>
+          </span>
+        </div>
+      )}
       <div className="episode-grid">
         {filteredEpisodes.length === 0 ? (
-          <div style={{textAlign: 'center', padding: '60px', color: '#94a3b8', gridColumn: '1 / -1'}}>
+          <div style={{textAlign: 'center', padding: '60px', color: 'var(--text-secondary)', gridColumn: '1 / -1'}}>
             {searchQuery ? '没有找到匹配的剧集' : '暂无剧集'}
           </div>
         ) : (
@@ -340,7 +437,7 @@ const Home = () => {
               <img src={episode.coverImage} alt={episode.title} />
               <div className="card-content">
                 <h3>{episode.title}</h3>
-                <p>{episode.description.substring(0, 120)}...</p>
+                <p>{episode.description.length > 120 ? episode.description.substring(0, 120) + '...' : episode.description}</p>
                 <div className="episode-meta">
                   <span>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</span>
                   <span className={`status ${episode.status}`}>
@@ -349,18 +446,30 @@ const Home = () => {
                 </div>
                 <div className="episode-meta">
                   <span>热度: {episode.views || 0}</span>
+                  <span style={{color: 'var(--warning-text)'}}>⭐ {episode.averageRating > 0 ? episode.averageRating.toFixed(1) : '暂无'}</span>
                   <span>{episode.category?.join(', ')}</span>
                 </div>
+                {episode.tags && episode.tags.length > 0 && (
+                  <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px'}}>
+                    {episode.tags.slice(0, 3).map((tag, i) => (
+                      <span key={i} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTagFilter(tag); }}
+                        style={{
+                          padding: '1px 8px', borderRadius: '10px', fontSize: '11px',
+                          background: 'var(--primary-bg)', color: 'var(--primary-light)',
+                          cursor: 'pointer', border: '1px solid var(--primary-border-subtle)'
+                        }}>{tag}</span>
+                    ))}
+                  </div>
+                )}
                 {episode.createdBy && (
-                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <span>作者:</span>
-                    <Link
-                      to={`/creator/${episode.createdBy._id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ color: '#818cf8', textDecoration: 'none' }}
+                    <span
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/creator/${episode.createdBy._id}`; }}
+                      style={{ color: 'var(--primary-light)', textDecoration: 'none', cursor: 'pointer' }}
                     >
                       {episode.createdBy.username}
-                    </Link>
+                    </span>
                   </div>
                 )}
                 <div className="btn-container">

@@ -5,6 +5,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const superAdminProtect = require('../middlewares/superAdminAuth');
 const adminProtect = require('../middlewares/adminAuth');
+const { validatePassword } = require('../middlewares/security');
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -48,6 +49,10 @@ router.post('/register', superAdminProtect, async (req, res) => {
   const { username, password, role = 'admin' } = req.body;
   
   try {
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
     const adminExists = await Admin.findOne({ username });
     if (adminExists) {
       return res.status(400).json({ message: 'Admin already exists' });
@@ -106,6 +111,12 @@ router.delete('/users/:id', adminProtect, async (req, res) => {
       return res.status(404).json({ message: '用户不存在' });
     }
     await User.findByIdAndDelete(req.params.id);
+    const Follow = require('../models/Follow');
+    const History = require('../models/History');
+    const Notification = require('../models/Notification');
+    await Follow.deleteMany({ userId: req.params.id });
+    await History.deleteMany({ userId: req.params.id });
+    await Notification.deleteMany({ userId: req.params.id });
     res.json({ message: '用户已删除' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -118,14 +129,27 @@ router.put('/role/:id', superAdminProtect, async (req, res) => {
     if (!['superadmin', 'admin', 'creator'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
+    if (req.admin._id.toString() === req.params.id) {
+      return res.status(400).json({ message: '不能修改自己的角色' });
+    }
+    if (role === 'superadmin') {
+      return res.status(400).json({ message: '不能通过此接口设置超级管理员' });
+    }
+    const targetAdmin = await Admin.findById(req.params.id);
+    if (!targetAdmin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+    if (targetAdmin.role === 'superadmin') {
+      const superAdminCount = await Admin.countDocuments({ role: 'superadmin' });
+      if (superAdminCount <= 1) {
+        return res.status(400).json({ message: '不能降级最后一个超级管理员' });
+      }
+    }
     const admin = await Admin.findByIdAndUpdate(
       req.params.id,
       { role },
       { new: true }
     ).select('-password');
-    if (!admin) {
-      return res.status(404).json({ message: 'Admin not found' });
-    }
     res.json(admin);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

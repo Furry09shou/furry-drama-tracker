@@ -13,7 +13,7 @@ const EpisodeSearch = ({ value, onChange, totalCount, filteredCount }) => {
         <div style={{ 
           marginTop: '8px', 
           fontSize: '13px', 
-          color: '#94a3b8' 
+          color: 'var(--text-secondary)' 
         }}>
           显示 {filteredCount} 个结果，共 {totalCount} 个剧集
         </div>

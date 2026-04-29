@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
@@ -55,7 +55,7 @@ const CreatorPage = () => {
             width: '100px', height: '100px', borderRadius: '50%',
             background: 'linear-gradient(135deg, var(--primary), #8b5cf6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '40px', color: '#fff', fontWeight: 'bold',
+            fontSize: '40px', color: 'var(--btn-text)', fontWeight: 'bold',
             border: '3px solid var(--border)'
           }}>
             {profile.displayName.charAt(0).toUpperCase()}
@@ -64,7 +64,7 @@ const CreatorPage = () => {
         <div style={{flex: 1, minWidth: '200px'}}>
           <h2 style={{margin: '0 0 8px 0', color: 'var(--foreground)'}}>{profile.displayName}</h2>
           {profile.bio && (
-            <p style={{color: '#94a3b8', margin: '0 0 12px 0', lineHeight: 1.6}}>{profile.bio}</p>
+            <p style={{color: 'var(--text-secondary)', margin: '0 0 12px 0', lineHeight: 1.6}}>{profile.bio}</p>
           )}
           {Object.keys(socialLinks).length > 0 && (
             <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
@@ -77,16 +77,16 @@ const CreatorPage = () => {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                     padding: '6px 14px', borderRadius: '8px', fontSize: '13px',
-                    background: 'rgba(99,102,241,0.1)', color: 'var(--primary)',
-                    border: '1px solid rgba(99,102,241,0.2)', textDecoration: 'none',
+                    background: 'var(--primary-bg-subtle)', color: 'var(--primary)',
+                    border: '1px solid var(--primary-border-subtle)', textDecoration: 'none',
                     transition: 'all 0.2s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(99,102,241,0.2)';
+                    e.currentTarget.style.background = 'var(--primary-bg-strong)';
                     e.currentTarget.style.transform = 'translateY(-1px)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(99,102,241,0.1)';
+                    e.currentTarget.style.background = 'var(--primary-bg-subtle)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
@@ -101,7 +101,7 @@ const CreatorPage = () => {
       <div>
         <h3 style={{marginBottom: '16px', color: 'var(--foreground)'}}>作品列表</h3>
         {episodes.length === 0 ? (
-          <p style={{color: '#94a3b8', textAlign: 'center', padding: '40px'}}>暂无作品</p>
+          <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '40px'}}>暂无作品</p>
         ) : (
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
@@ -119,7 +119,7 @@ const CreatorPage = () => {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-modal)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
@@ -133,7 +133,7 @@ const CreatorPage = () => {
                 />
                 <div style={{padding: '12px'}}>
                   <h4 style={{margin: '0 0 6px 0', fontSize: '15px'}}>{ep.title}</h4>
-                  <p style={{margin: 0, fontSize: '13px', color: '#94a3b8'}}>
+                  <p style={{margin: 0, fontSize: '13px', color: 'var(--text-secondary)'}}>
                     更新至第{ep.currentEpisodes}集，共{ep.totalEpisodes}集
                     <span style={{marginLeft: '8px'}}>
                       {ep.status === 'ongoing' ? '连载中' : ep.status === 'completed' ? '已完结' : '即将上映'}

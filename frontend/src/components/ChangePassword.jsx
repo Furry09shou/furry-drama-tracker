@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿﻿﻿﻿﻿import React, { useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -18,8 +18,12 @@ const ChangePassword = () => {
     setError('');
     setSuccess('');
 
-    if (newPassword.length < 6) {
-      setError('新密码长度不能少于6位');
+    if (newPassword.length < 8) {
+      setError('新密码长度至少8位，需包含字母和数字');
+      return;
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      setError('新密码必须包含至少一个字母和一个数字');
       return;
     }
 
@@ -66,7 +70,7 @@ const ChangePassword = () => {
     <div className="auth-form" style={{maxWidth: '480px', margin: '0 auto'}}>
       <h2>修改密码</h2>
       {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message" style={{padding: '10px', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '6px', color: '#22c55e'}}>{success}</div>}
+      {success && <div className="success-message" style={{padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{success}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>当前密码</label>
@@ -84,9 +88,9 @@ const ChangePassword = () => {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
           />
-          <span style={{fontSize: '12px', color: '#94a3b8', marginTop: '4px', display: 'block'}}>密码长度至少6位</span>
+          <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>密码长度至少8位，需包含字母和数字</span>
         </div>
         <div className="form-group">
           <label>确认新密码</label>
@@ -95,7 +99,7 @@ const ChangePassword = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
           />
         </div>
         <div className="form-group" style={{display: 'flex', gap: '10px'}}>

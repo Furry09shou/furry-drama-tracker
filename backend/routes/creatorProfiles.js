@@ -37,7 +37,7 @@ router.put('/my-profile', creatorProtect, async (req, res) => {
     res.json(profile);
   } catch (error) {
     console.error('Update creator profile error:', error);
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

@@ -120,17 +120,17 @@ const AdminCreatorProfile = () => {
           <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
             {socialLinks.map((item, index) => (
               <div key={index} style={{
-                background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+                background: 'var(--hover-bg)', border: '1px solid var(--border)',
                 borderRadius: '8px', padding: '12px'
               }}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
-                  <span style={{fontSize: '13px', color: '#94a3b8'}}>链接 {index + 1}</span>
+                  <span style={{fontSize: '13px', color: 'var(--text-secondary)'}}>链接 {index + 1}</span>
                   <button
                     type="button"
                     onClick={() => setSocialLinks(socialLinks.filter((_, i) => i !== index))}
                     style={{
-                      background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-                      color: '#ef4444', borderRadius: '6px', padding: '4px 10px',
+                      background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
+                      color: 'var(--destructive-text)', borderRadius: '6px', padding: '4px 10px',
                       cursor: 'pointer', fontSize: '12px', lineHeight: 1
                     }}
                   >删除</button>
@@ -165,7 +165,7 @@ const AdminCreatorProfile = () => {
               type="button"
               onClick={() => setSocialLinks([...socialLinks, { name: '', url: '' }])}
               style={{
-                background: 'rgba(99,102,241,0.1)', border: '1px dashed var(--primary)',
+                background: 'var(--primary-bg-subtle)', border: '1px dashed var(--primary)',
                 color: 'var(--primary)', borderRadius: '8px', padding: '10px',
                 cursor: 'pointer', fontSize: '14px'
               }}
@@ -176,9 +176,9 @@ const AdminCreatorProfile = () => {
         {message && (
           <div style={{
             padding: '10px 16px', borderRadius: '8px', marginBottom: '16px',
-            background: message.includes('成功') ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
-            color: message.includes('成功') ? '#22c55e' : '#ef4444',
-            border: `1px solid ${message.includes('成功') ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`
+            background: message.includes('成功') ? 'var(--success-bg)' : 'var(--destructive-bg)',
+            color: message.includes('成功') ? 'var(--success-text)' : 'var(--destructive-text)',
+            border: `1px solid ${message.includes('成功') ? 'var(--success-border)' : 'var(--destructive-border)'}`
           }}>{message}</div>
         )}
 
@@ -187,7 +187,7 @@ const AdminCreatorProfile = () => {
         </button>
 
         {profile && (
-          <div style={{marginTop: '20px', padding: '16px', background: 'rgba(99,102,241,0.1)', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.2)'}}>
+          <div style={{marginTop: '20px', padding: '16px', background: 'var(--primary-bg-subtle)', borderRadius: '8px', border: '1px solid var(--primary-border-subtle)'}}>
             <p style={{margin: '0 0 8px 0', fontSize: '14px', color: 'var(--foreground)'}}>
               <strong>主页链接：</strong>
               <Link

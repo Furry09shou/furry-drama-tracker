@@ -39,12 +39,12 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
                 padding: '2px 8px', 
                 borderRadius: '10px', 
                 fontSize: '12px',
-                backgroundColor: episode.status === 'ongoing' ? 'rgba(16, 185, 129, 0.15)' : 
-                                episode.status === 'completed' ? 'rgba(59, 130, 246, 0.15)' : 
-                                'rgba(245, 158, 11, 0.15)',
-                color: episode.status === 'ongoing' ? 'rgb(16, 185, 129)' : 
-                       episode.status === 'completed' ? 'rgb(59, 130, 246)' : 
-                       'rgb(245, 158, 11)'
+                backgroundColor: episode.status === 'ongoing' ? 'var(--success-bg)' : 
+                                episode.status === 'completed' ? 'var(--info-bg)' : 
+                                'var(--warning-bg)',
+                color: episode.status === 'ongoing' ? 'var(--secondary)' : 
+                       episode.status === 'completed' ? 'var(--info)' : 
+                       'var(--warning-text)'
               }}>
                 {episode.status === 'ongoing' ? '连载中' : 
                  episode.status === 'completed' ? '已完结' : '即将上映'}
@@ -57,8 +57,8 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
                     padding: '4px 12px',
                     borderRadius: '12px',
                     fontSize: '12px',
-                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                    color: 'rgb(99, 102, 241)'
+                    backgroundColor: 'var(--primary-bg)',
+                    color: 'var(--primary)'
                   }}>
                     {cat}
                   </span>
@@ -73,7 +73,7 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
                 borderRadius: '6px',
                 border: '1px solid var(--border)',
                 backgroundColor: 'transparent',
-                color: '#e2e8f0',
+                color: 'var(--text-light)',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}
@@ -85,9 +85,9 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
               style={{
                 padding: '8px 16px',
                 borderRadius: '6px',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                color: 'rgb(239, 68, 68)',
+                border: '1px solid var(--destructive-border)',
+                backgroundColor: 'var(--destructive-bg)',
+                color: 'var(--destructive-text)',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}

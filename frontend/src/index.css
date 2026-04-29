@@ -9,36 +9,15 @@ a {
   color: inherit;
 }
 
-:root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --secondary: #10b981;
-  --accent: #f59e0b;
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --card: rgba(15, 23, 42, 0.8);
-  --card-foreground: #f8fafc;
-  --popover: rgba(15, 23, 42, 0.9);
-  --popover-foreground: #f8fafc;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.05);
-  --ring: #6366f1;
-  --muted: rgba(148, 163, 184, 0.1);
-  --muted-foreground: #94a3b8;
-  --destructive: #ef4444;
-  --glass-bg: rgba(15, 23, 42, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-backdrop: blur(10px);
-}
-
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--background);
   color: var(--foreground);
   min-height: 100vh;
-  background-image: 
-    radial-gradient(circle at 25% 25%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+  background-image:
+    radial-gradient(circle at 25% 25%, var(--gradient-bg1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, var(--gradient-bg2) 0%, transparent 50%);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
@@ -55,6 +34,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 nav {
@@ -98,7 +78,7 @@ nav ul li a {
 }
 
 nav ul li a:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
   color: var(--primary);
 }
 
@@ -117,6 +97,7 @@ nav ul li a:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .hero::before {
@@ -126,17 +107,13 @@ nav ul li a:hover {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--gradient-bg1) 0%, transparent 70%);
   animation: float 6s ease-in-out infinite;
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-20px) rotate(180deg);
-  }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
 }
 
 .hero h2 {
@@ -183,7 +160,7 @@ nav ul li a:hover {
 
 .episode-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px var(--shadow-color);
   border-color: rgba(99, 102, 241, 0.5);
 }
 
@@ -209,7 +186,7 @@ nav ul li a:hover {
 
 .episode-card .btn-container {
   margin-top: auto;
-  margin-top: 16px;
+  padding-top: 8px;
 }
 
 .episode-card h3 {
@@ -297,14 +274,14 @@ nav ul li a:hover {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hover-bg-stronger);
   color: var(--foreground);
   border: 1px solid var(--glass-border);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  background: var(--hover-bg-stronger);
+  box-shadow: 0 10px 25px -5px var(--shadow-color);
 }
 
 .episode-detail {
@@ -316,6 +293,7 @@ nav ul li a:hover {
   margin-top: 30px;
   position: relative;
   overflow: hidden;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .episode-detail::before {
@@ -341,7 +319,7 @@ nav ul li a:hover {
   height: 375px;
   object-fit: cover;
   border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 25px -5px var(--shadow-color);
 }
 
 .episode-details {
@@ -367,9 +345,10 @@ nav ul li a:hover {
 .episode-details .meta-info {
   margin: 20px 0;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
   border-radius: 8px;
   border: 1px solid var(--glass-border);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .episode-details .meta-info p {
@@ -413,7 +392,7 @@ nav ul li a:hover {
 }
 
 .episode-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
   transform: translateX(8px);
 }
 
@@ -459,6 +438,7 @@ nav ul li a:hover {
   padding: 40px;
   position: relative;
   overflow: hidden;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .auth-form::before {
@@ -468,7 +448,7 @@ nav ul li a:hover {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--gradient-bg1) 0%, transparent 70%);
   animation: float 8s ease-in-out infinite;
 }
 
@@ -561,6 +541,7 @@ nav ul li a:hover {
   margin-top: 30px;
   position: relative;
   overflow: hidden;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .user-profile::before {
@@ -586,9 +567,10 @@ nav ul li a:hover {
 .user-info {
   margin-bottom: 40px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
   border-radius: 8px;
   border: 1px solid var(--glass-border);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .user-info p {
@@ -624,11 +606,11 @@ nav ul li a:hover {
   transition: all 0.3s ease;
   border-radius: 8px;
   margin-bottom: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--hover-bg);
 }
 
 .followed-episode-card:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg-strong);
   transform: translateX(8px);
 }
 
@@ -637,7 +619,7 @@ nav ul li a:hover {
   height: 150px;
   object-fit: cover;
   border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 15px -3px var(--shadow-color);
 }
 
 .followed-episode-info {
@@ -661,7 +643,7 @@ nav ul li a:hover {
 .progress-bar {
   width: 100%;
   height: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hover-bg-stronger);
   border-radius: 5px;
   overflow: hidden;
   margin-top: 8px;
@@ -683,6 +665,7 @@ nav ul li a:hover {
   padding: 30px;
   margin-top: 30px;
   position: relative;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .admin-panel::before {
@@ -732,9 +715,10 @@ nav ul li a:hover {
 .form-container {
   margin-bottom: 20px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .form-container h4 {
@@ -745,7 +729,7 @@ nav ul li a:hover {
   text-align: center;
   padding: 30px;
   color: var(--muted-foreground);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--hover-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   margin: 20px 0;
@@ -754,7 +738,7 @@ nav ul li a:hover {
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--hover-bg);
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--glass-border);
@@ -762,7 +746,7 @@ nav ul li a:hover {
 }
 
 .admin-table th {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg-strong);
   padding: 16px;
   text-align: left;
   font-weight: 600;
@@ -777,7 +761,7 @@ nav ul li a:hover {
 }
 
 .admin-table tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--hover-bg);
 }
 
 .admin-table tr:last-child td {
@@ -799,7 +783,6 @@ nav ul li a:hover {
   transform: translateY(-1px);
 }
 
-/* 管理后台控制台样式 */
 .dashboard-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -817,12 +800,12 @@ nav ul li a:hover {
   transition: all 0.3s ease;
   text-decoration: none;
   color: var(--foreground);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 25px -5px var(--shadow-color);
 }
 
 .dashboard-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 15px 30px -10px var(--shadow-strong);
   border-color: var(--primary);
 }
 
@@ -841,7 +824,6 @@ nav ul li a:hover {
   font-size: 14px;
 }
 
-/* 模态框样式 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -857,7 +839,7 @@ nav ul li a:hover {
 }
 
 .modal-content {
-  background: var(--glass-bg);
+  background: var(--popover);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
@@ -866,7 +848,9 @@ nav ul li a:hover {
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 40px -10px var(--shadow-strong);
+  color: var(--popover-foreground);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .modal-header {
@@ -883,30 +867,28 @@ nav ul li a:hover {
   color: var(--primary);
 }
 
-/* 响应式调整 */
 @media (max-width: 768px) {
   .dashboard-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .modal-content {
     width: 95%;
     padding: 20px;
   }
-  
+
   .admin-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
+
   .action-buttons {
     flex-direction: column;
     gap: 5px;
   }
 }
 
-/* 自定义下拉框样式 */
 .custom-select {
   position: relative;
   width: 100%;
@@ -948,25 +930,26 @@ nav ul li a:hover {
 }
 
 .select-dropdown {
-  background: var(--glass-bg);
+  background: var(--popover);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   max-height: 200px;
   overflow-y: auto;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 25px -5px var(--shadow-color);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .select-option {
   padding: 10px 16px;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: var(--foreground);
+  color: var(--popover-foreground);
   font-size: 14px;
 }
 
 .select-option:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
   color: var(--primary);
 }
 
@@ -976,23 +959,22 @@ nav ul li a:hover {
   font-weight: 500;
 }
 
-/* 自定义下拉框滚动条 */
 .select-dropdown::-webkit-scrollbar {
   width: 6px;
 }
 
 .select-dropdown::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--scrollbar-track);
   border-radius: 3px;
 }
 
 .select-dropdown::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 .select-dropdown::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--scrollbar-thumb-hover);
 }
 
 .checkbox-group {
@@ -1011,11 +993,11 @@ nav ul li a:hover {
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--hover-bg);
 }
 
 .checkbox-group label:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--hover-bg-strong);
   border-color: var(--primary);
 }
 
@@ -1079,9 +1061,10 @@ nav ul li a:hover {
 .filter-section {
   margin: 30px 0;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
   border-radius: 8px;
   border: 1px solid var(--glass-border);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .filters {
@@ -1112,15 +1095,15 @@ nav ul li a:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 16px 0;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  margin: 6px 0;
+  padding: 8px 12px;
+  background: var(--hover-bg);
   border-radius: 6px;
 }
 
 .episode-meta span {
   color: var(--muted-foreground);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .episode-meta span:last-child {
@@ -1131,14 +1114,14 @@ nav ul li a:hover {
 table {
   width: 100%;
   border-collapse: collapse;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--hover-bg);
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--glass-border);
 }
 
 table th {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg-strong);
   padding: 16px;
   text-align: left;
   font-weight: 600;
@@ -1153,7 +1136,7 @@ table td {
 }
 
 table tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--hover-bg);
 }
 
 table tr:last-child td {
@@ -1164,72 +1147,72 @@ table tr:last-child td {
   .container {
     padding: 16px;
   }
-  
+
   nav {
     flex-direction: column;
     gap: 16px;
     padding: 16px;
   }
-  
+
   nav ul {
     flex-wrap: wrap;
     justify-content: center;
   }
-  
+
   .hero {
     padding: 0;
     margin: 0 0 30px 0;
     height: 200px;
   }
-  
+
   .hero h2 {
     font-size: 2rem;
   }
-  
+
   .episode-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 16px;
   }
-  
+
   .episode-info {
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
-  
+
   .episode-info img {
     width: 100%;
     max-width: 300px;
     height: auto;
   }
-  
+
   .auth-form {
     margin: 40px auto;
     padding: 30px;
   }
-  
+
   .followed-episode-card {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .followed-episode-card img {
     width: 150px;
     height: 225px;
   }
-  
+
   .filters {
     flex-direction: column;
   }
-  
+
   .filters select {
     width: 100%;
   }
-  
+
   table {
     font-size: 14px;
   }
-  
+
   table th,
   table td {
     padding: 12px;
@@ -1244,19 +1227,19 @@ table tr:last-child td {
   .episode-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .hero h2 {
     font-size: 1.6rem;
   }
-  
+
   .hero p {
     font-size: 1rem;
   }
-  
+
   .auth-form {
     padding: 24px;
   }
-  
+
   .admin-panel {
     padding: 20px;
   }
@@ -1268,19 +1251,19 @@ table tr:last-child td {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--scrollbar-thumb-hover);
 }
 
 ::selection {
-  background: rgba(99, 102, 241, 0.3);
+  background: var(--selection-bg);
   color: var(--foreground);
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -194,15 +194,15 @@ const AdminCategories = () => {
       </div>
 
       {error && <div className="error-message" style={{marginBottom: '15px'}}>{error}</div>}
-      {success && <div className="success-message" style={{marginBottom: '15px', padding: '10px', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '6px', color: '#22c55e'}}>{success}</div>}
+      {success && <div className="success-message" style={{marginBottom: '15px', padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{success}</div>}
 
-      <div style={{background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
+      <div style={{background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
         <div style={{padding: '15px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <h3 style={{margin: 0}}>分类列表</h3>
-          <span style={{color: '#94a3b8', fontSize: '14px'}}>共 {categories.length} 个分类</span>
+          <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>共 {categories.length} 个分类</span>
         </div>
         {categories.length === 0 ? (
-          <div style={{padding: '40px', textAlign: 'center', color: '#94a3b8'}}>
+          <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-secondary)'}}>
             暂无分类，请添加
           </div>
         ) : (
@@ -210,9 +210,9 @@ const AdminCategories = () => {
             <table style={{width: '100%', borderCollapse: 'collapse'}}>
               <thead>
                 <tr style={{borderBottom: '1px solid var(--border)'}}>
-                  <th style={{padding: '12px 20px', textAlign: 'left', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>分类名称</th>
-                  <th style={{padding: '12px 20px', textAlign: 'center', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>排序</th>
-                  <th style={{padding: '12px 20px', textAlign: 'right', color: '#94a3b8', fontWeight: '500', fontSize: '14px'}}>操作</th>
+                  <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>分类名称</th>
+                  <th style={{padding: '12px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>排序</th>
+                  <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,14 +222,14 @@ const AdminCategories = () => {
                       <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                         <div style={{
                           padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '500',
-                          background: 'rgba(99, 102, 241, 0.15)', color: 'var(--primary)',
-                          border: '1px solid rgba(99, 102, 241, 0.3)'
+                          background: 'var(--primary-bg)', color: 'var(--primary)',
+                          border: '1px solid var(--primary-border)'
                         }}>
                           {cat.name}
                         </div>
                       </div>
                     </td>
-                    <td style={{padding: '12px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '14px'}}>
+                    <td style={{padding: '12px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px'}}>
                       {cat.order || 0}
                     </td>
                     <td style={{padding: '12px 20px', textAlign: 'right'}}>
@@ -243,7 +243,7 @@ const AdminCategories = () => {
                         </button>
                         <button
                           className="btn btn-secondary"
-                          style={{padding: '6px 14px', fontSize: '13px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)'}}
+                          style={{padding: '6px 14px', fontSize: '13px', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}}
                           onClick={() => handleDelete(cat._id)}
                         >
                           删除

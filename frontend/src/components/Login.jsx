@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿﻿﻿﻿﻿import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -81,10 +81,9 @@ const Login = ({ login }) => {
     setError('');
     setSuccessMsg('');
     try {
-      const res = await axios.post('/api/auth/forgot-password', { email: forgotEmail });
-      setResetToken(res.data.resetToken);
+      await axios.post('/api/auth/forgot-password', { email: forgotEmail });
+      setSuccessMsg('如果该邮箱已注册，重置链接已发送至邮箱');
       setShowForgot(false);
-      setShowReset(true);
     } catch (err) {
       setError(err.response?.data?.message || '找回密码失败');
     }
@@ -93,8 +92,12 @@ const Login = ({ login }) => {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError('');
-    if (newPassword.length < 6) {
-      setError('密码长度不能少于6位');
+    if (newPassword.length < 8) {
+      setError('密码长度不能少于8位');
+      return;
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      setError('密码必须包含至少一个字母和一个数字');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -120,7 +123,7 @@ const Login = ({ login }) => {
     return (
       <div className="auth-form">
         <h2>重置密码</h2>
-        <p style={{color: '#94a3b8', fontSize: '14px', marginBottom: '20px'}}>邮箱验证通过，请设置新密码</p>
+        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px'}}>邮箱验证通过，请设置新密码</p>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleResetPassword}>
           <div className="form-group">
@@ -130,8 +133,8 @@ const Login = ({ login }) => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              minLength={6}
-              placeholder="请输入新密码（至少6位）"
+              minLength={8}
+              placeholder="请输入新密码（至少8位，含字母和数字）"
             />
           </div>
           <div className="form-group">
@@ -141,7 +144,7 @@ const Login = ({ login }) => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               placeholder="请再次输入新密码"
             />
           </div>
@@ -165,7 +168,7 @@ const Login = ({ login }) => {
     return (
       <div className="auth-form">
         <h2>找回密码</h2>
-        <p style={{color: '#94a3b8', fontSize: '14px', marginBottom: '20px'}}>输入注册时使用的邮箱，验证后可直接重置密码</p>
+        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px'}}>输入注册时使用的邮箱，验证后可直接重置密码</p>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleForgotPassword}>
           <div className="form-group">
@@ -198,7 +201,7 @@ const Login = ({ login }) => {
     <div className="auth-form">
       <h2>登录</h2>
       {error && <div className="error-message">{error}</div>}
-      {successMsg && <div className="success-message" style={{padding: '10px', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '6px', color: '#22c55e'}}>{successMsg}</div>}
+      {successMsg && <div className="success-message" style={{padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{successMsg}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="email">邮箱</label>

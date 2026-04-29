@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 const https = require('https');
 const protect = require('../middlewares/auth');
 const adminProtect = require('../middlewares/adminAuth');
+const { validatePassword } = require('../middlewares/security');
+const { sendPasswordResetEmail } = require('../utils/email');
 
 const getIpRegion = (ip) => {
   return new Promise((resolve) => {
@@ -92,12 +94,18 @@ router.post('/register', async (req, res) => {
   const parsed = parseUserAgent(ua);
   
   try {
-    if (!password || password.length < 6) {
-      return res.status(400).json({ message: '密码长度至少6位' });
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
     }
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
+    }
+    
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      return res.status(400).json({ message: 'Username already taken' });
     }
     
     const user = await User.create({
@@ -200,6 +208,10 @@ router.post('/login', async (req, res) => {
 router.put('/change-password', protect, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   try {
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
@@ -219,6 +231,10 @@ router.put('/change-password', protect, async (req, res) => {
 router.put('/admin/change-password', adminProtect, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   try {
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
     const admin = await Admin.findById(req.admin._id);
     if (!admin) {
       return res.status(404).json({ message: '管理员不存在' });
@@ -240,22 +256,27 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: '该邮箱未注册' });
+      return res.json({ message: '如果该邮箱已注册，重置链接已发送至邮箱' });
     }
     const resetToken = jwt.sign(
       { id: user._id, purpose: 'reset-password' },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    res.json({ message: '重置令牌已生成', resetToken, email: user.email });
+    await sendPasswordResetEmail(email, resetToken);
+    res.json({ message: '如果该邮箱已注册，重置链接已发送至邮箱' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.json({ message: '如果该邮箱已注册，重置链接已发送至邮箱' });
   }
 });
 
 router.post('/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
   try {
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== 'reset-password') {
       return res.status(400).json({ message: '无效的重置令牌' });

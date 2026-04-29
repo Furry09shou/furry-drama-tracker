@@ -30,6 +30,10 @@ const EpisodeSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  tags: {
+    type: [String],
+    default: []
+  },
   platformLinks: {
     type: Map,
     of: String
@@ -37,6 +41,19 @@ const EpisodeSchema = new mongoose.Schema({
   views: {
     type: Number,
     default: 0
+  },
+  averageRating: {
+    type: Number,
+    default: 0
+  },
+  ratingCount: {
+    type: Number,
+    default: 0
+  },
+  updateDay: {
+    type: String,
+    enum: ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+    default: ''
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -64,5 +81,8 @@ const EpisodeSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+EpisodeSchema.index({ reviewStatus: 1, updatedAt: -1 });
+EpisodeSchema.index({ tags: 1 });
 
 module.exports = mongoose.model('Episode', EpisodeSchema);

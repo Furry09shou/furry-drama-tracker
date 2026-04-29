@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -65,21 +65,21 @@ const SitePage = ({ pageKey }) => {
                 style={{
                   width: '80px', height: '80px', borderRadius: '16px',
                   objectFit: 'cover', marginBottom: '16px',
-                  border: '3px solid var(--card)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                  border: '3px solid var(--card)', boxShadow: '0 4px 12px var(--shadow-modal)'
                 }}
               />
             )}
             <h1 style={{ margin: '0 0 8px 0', color: 'var(--foreground)' }}>{content.title}</h1>
             {aboutData.description && (
               <p style={{
-                color: '#94a3b8', fontSize: '15px', lineHeight: 1.7,
+                color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7,
                 margin: '8px auto 0', maxWidth: '500px'
               }}>
                 {aboutData.description}
               </p>
             )}
             {aboutData.version && (
-              <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '24px', marginTop: '12px' }}>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '24px', marginTop: '12px' }}>
                 版本 {aboutData.version}
               </p>
             )}
@@ -91,14 +91,14 @@ const SitePage = ({ pageKey }) => {
                     <div key={i} style={{
                       display: 'flex', alignItems: 'flex-start', gap: '10px',
                       padding: '10px 14px', borderRadius: '8px',
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)'
+                      background: 'var(--hover-bg)', border: '1px solid var(--border)'
                     }}>
                       <span style={{
-                        color: '#818cf8', fontSize: '12px', fontWeight: 600,
-                        background: 'rgba(99,102,241,0.15)', borderRadius: '4px',
+                        color: 'var(--primary-light)', fontSize: '12px', fontWeight: 600,
+                        background: 'var(--primary-bg)', borderRadius: '4px',
                         padding: '2px 8px', flexShrink: 0, marginTop: '1px'
                       }}>{i + 1}</span>
-                      <span style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: 1.5 }}>{item}</span>
+                      <span style={{ color: 'var(--text-lighter)', fontSize: '14px', lineHeight: 1.5 }}>{item}</span>
                     </div>
                   ))}
                 </div>
@@ -106,12 +106,12 @@ const SitePage = ({ pageKey }) => {
             )}
             <div style={{
               borderTop: '1px solid var(--border)', paddingTop: '20px',
-              color: '#94a3b8', fontSize: '13px', lineHeight: 2
+              color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 2
             }}>
               {aboutData.copyright && <p style={{ margin: '4px 0' }}>{aboutData.copyright}</p>}
-            {aboutData.icp && <p style={{ margin: '4px 0' }}>{aboutData.icp}</p>}
-            {aboutData.policeRecord && <p style={{ margin: '4px 0' }}>{aboutData.policeRecord}</p>}
-            {aboutData.aiDisclaimer && <p style={{ margin: '4px 0', fontStyle: 'italic', color: '#64748b' }}>{aboutData.aiDisclaimer}</p>}
+              {aboutData.icp && <p style={{ margin: '4px 0' }}>{aboutData.icp}</p>}
+              {aboutData.policeRecord && <p style={{ margin: '4px 0' }}>{aboutData.policeRecord}</p>}
+              {aboutData.aiDisclaimer && <p style={{ margin: '4px 0', fontStyle: 'italic', color: 'var(--text-tertiary)' }}>{aboutData.aiDisclaimer}</p>}
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ const SitePage = ({ pageKey }) => {
         border: '1px solid var(--border)'
       }}>
         <h1 style={{ margin: '0 0 24px 0', color: 'var(--foreground)' }}>{content ? content.title : '加载中...'}</h1>
-        <div style={{ color: '#94a3b8', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+        <div style={{ color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
           {content ? content.content : ''}
         </div>
       </div>

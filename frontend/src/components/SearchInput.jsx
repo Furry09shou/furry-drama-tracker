@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
 const SearchInput = ({ data, searchKey, placeholder, onSelect, onSearch, displayRender, style }) => {
@@ -114,7 +114,7 @@ const SearchInput = ({ data, searchKey, placeholder, onSelect, onSearch, display
         />
         <span style={{
           position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-          color: '#94a3b8', fontSize: '16px', pointerEvents: 'none'
+          color: 'var(--text-secondary)', fontSize: '16px', pointerEvents: 'none'
         }}>
           🔍
         </span>
@@ -123,7 +123,7 @@ const SearchInput = ({ data, searchKey, placeholder, onSelect, onSearch, display
             onClick={() => { setQuery(''); setShowSuggestions(false); }}
             style={{
               position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-              color: '#94a3b8', fontSize: '16px', cursor: 'pointer'
+              color: 'var(--text-secondary)', fontSize: '16px', cursor: 'pointer'
             }}
           >
             ✕
@@ -145,7 +145,7 @@ const SearchInput = ({ data, searchKey, placeholder, onSelect, onSearch, display
             maxHeight: '240px',
             overflowY: 'auto',
             zIndex: 2000,
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 10px 25px -5px var(--shadow-modal)'
           }}
         >
           {filtered.map((item, idx) => (
@@ -160,7 +160,7 @@ const SearchInput = ({ data, searchKey, placeholder, onSelect, onSearch, display
                 borderBottom: idx < filtered.length - 1 ? '1px solid var(--border)' : 'none',
                 transition: 'background 0.2s ease'
               }}
-              onMouseEnter={(e) => e.target.style.background = 'rgba(99, 102, 241, 0.1)'}
+              onMouseEnter={(e) => e.target.style.background = 'var(--primary-bg-subtle)'}
               onMouseLeave={(e) => e.target.style.background = 'transparent'}
             >
               {renderDisplay(item)}

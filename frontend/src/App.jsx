@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import Home from './components/Home';
 import EpisodeDetail from './components/EpisodeDetail';
 import Login from './components/Login';
@@ -16,9 +17,14 @@ import AdminBanners from './components/AdminBanners';
 import AdminReview from './components/AdminReview';
 import AdminCreatorProfile from './components/AdminCreatorProfile';
 import AdminSiteContent from './components/AdminSiteContent';
+import AdminReports from './components/AdminReports';
+import AdminStats from './components/AdminStats';
 import CreatorPage from './components/CreatorPage';
+import UpdateCalendar from './components/UpdateCalendar';
+import NotFound from './components/NotFound';
 import { PrivacyPage, TermsPage, AboutPage } from './components/SitePage';
 import ChangePassword from './components/ChangePassword';
+import ResetPassword from './components/ResetPassword';
 
 const NavBar = ({ user, logout }) => {
   const navigate = useNavigate();
@@ -30,6 +36,7 @@ const NavBar = ({ user, logout }) => {
   const notifRef = useRef(null);
   const notifPanelRef = useRef(null);
   const moreRef = useRef(null);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     axios.get('/api/site-content/settings')
@@ -45,7 +52,6 @@ const NavBar = ({ user, logout }) => {
   const handleHomeClick = (e) => {
     e.preventDefault();
     navigate('/');
-    window.location.reload();
   };
 
   useEffect(() => {
@@ -114,19 +120,27 @@ const NavBar = ({ user, logout }) => {
     return `${Math.floor(diff / 86400000)}天前`;
   };
 
+  const moreMenuItems = [
+    ...(user ? [{ to: '/admin/dashboard', label: '管理后台' }] : []),
+    { to: '/privacy', label: '隐私政策' },
+    { to: '/terms', label: '用户协议' },
+    { to: '/about', label: '关于我们' },
+  ];
+
   return (
     <header>
       <nav>
         <div className="logo">
-          <a href="/" onClick={handleHomeClick} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Link to="/" onClick={handleHomeClick} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {siteSettings.navLogo && (
               <img src={siteSettings.navLogo} alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
             )}
             <h1>{siteSettings.siteName}</h1>
-          </a>
+          </Link>
         </div>
         <ul>
-          <li><a href="/" onClick={handleHomeClick}>首页</a></li>
+          <li><a href="/" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}>首页</a></li>
+          <li><Link to="/calendar">日历</Link></li>
           {user ? (
             <>
               <li><Link to="/profile">个人中心</Link></li>
@@ -143,7 +157,7 @@ const NavBar = ({ user, logout }) => {
                   {unreadCount > 0 && (
                     <span style={{
                       position: 'absolute', top: '-2px', right: '0',
-                      background: '#ef4444', color: '#fff', fontSize: '11px',
+                      background: 'var(--badge-bg)', color: 'var(--badge-text)', fontSize: '11px',
                       borderRadius: '10px', padding: '1px 5px', minWidth: '16px',
                       textAlign: 'center', lineHeight: '14px'
                     }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
@@ -152,9 +166,9 @@ const NavBar = ({ user, logout }) => {
                 {showNotifPanel && createPortal(
                   <div ref={notifPanelRef} style={{
                     position: 'fixed', top: '60px', right: '20px',
-                    width: '360px', maxHeight: '480px', overflow: 'auto',
+                    width: 'min(360px, calc(100vw - 40px))', maxHeight: '480px', overflow: 'auto',
                     background: 'var(--card)', border: '1px solid var(--border)',
-                    borderRadius: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    borderRadius: '12px', boxShadow: '0 8px 32px var(--shadow-modal)',
                     zIndex: 10000, backdropFilter: 'blur(20px)'
                   }}>
                     <div style={{
@@ -171,7 +185,7 @@ const NavBar = ({ user, logout }) => {
                         )}
                         {notifications.some(n => n.isRead) && (
                           <button onClick={clearReadNotifications} style={{
-                            background: 'none', border: 'none', color: '#94a3b8',
+                            background: 'none', border: 'none', color: 'var(--text-secondary)',
                             cursor: 'pointer', fontSize: '13px'
                           }}>清除已读</button>
                         )}
@@ -179,7 +193,7 @@ const NavBar = ({ user, logout }) => {
                     </div>
                     <div>
                       {notifications.length === 0 ? (
-                        <div style={{padding: '30px', textAlign: 'center', color: '#94a3b8'}}>
+                        <div style={{padding: '30px', textAlign: 'center', color: 'var(--text-secondary)'}}>
                           暂无通知
                         </div>
                       ) : (
@@ -194,13 +208,13 @@ const NavBar = ({ user, logout }) => {
                             style={{
                               display: 'block', padding: '14px 16px',
                               borderBottom: '1px solid var(--border)',
-                              background: n.isRead ? 'transparent' : 'rgba(99,102,241,0.08)',
+                              background: n.isRead ? 'transparent' : 'var(--primary-bg-subtle)',
                               color: 'var(--foreground)',
                               transition: 'background 0.2s',
                               cursor: 'pointer'
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = n.isRead ? 'transparent' : 'rgba(99,102,241,0.08)'}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = n.isRead ? 'transparent' : 'var(--primary-bg-subtle)'}
                           >
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                               <span style={{fontSize: '14px', fontWeight: n.isRead ? 400 : 600}}>
@@ -210,7 +224,7 @@ const NavBar = ({ user, logout }) => {
                                 <span style={{width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginLeft: '8px'}}></span>
                               )}
                             </div>
-                            <span style={{fontSize: '12px', color: '#94a3b8', marginTop: '4px', display: 'block'}}>
+                            <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>
                               {formatTime(n.createdAt)}
                             </span>
                           </div>
@@ -221,7 +235,14 @@ const NavBar = ({ user, logout }) => {
                   document.body
                 )}
               </li>
-              <li><button className="btn btn-secondary" onClick={logout}>退出</button></li>
+              <li>
+                <button onClick={toggleTheme} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
+                }} title={theme === 'dark' ? '切换亮色' : '切换暗色'}>
+                  {theme === 'dark' ? '☀️' : '🌙'}
+                </button>
+              </li>
               <li style={{position: 'relative'}} ref={moreRef}>
                 <button
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
@@ -237,38 +258,30 @@ const NavBar = ({ user, logout }) => {
                   <div style={{
                     position: 'absolute', top: '100%', right: 0,
                     background: 'var(--card)', border: '1px solid var(--border)',
-                    borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    borderRadius: '10px', boxShadow: '0 8px 32px var(--shadow-modal)',
                     minWidth: '160px', zIndex: 10000, overflow: 'hidden',
                     backdropFilter: 'blur(20px)'
                   }}>
-                    <Link to="/admin/dashboard" onClick={() => setShowMoreMenu(false)} style={{
-                      display: 'block', padding: '12px 16px', color: 'var(--foreground)',
-                      textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid var(--border)',
-                      transition: 'background 0.2s'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >管理后台</Link>
-                    <Link to="/privacy" onClick={() => setShowMoreMenu(false)} style={{
-                      display: 'block', padding: '12px 16px', color: 'var(--foreground)',
-                      textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid var(--border)',
-                      transition: 'background 0.2s'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >隐私政策</Link>
-                    <Link to="/terms" onClick={() => setShowMoreMenu(false)} style={{
-                      display: 'block', padding: '12px 16px', color: 'var(--foreground)',
-                      textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid var(--border)',
-                      transition: 'background 0.2s'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >用户协议</Link>
-                    <Link to="/about" onClick={() => setShowMoreMenu(false)} style={{
-                      display: 'block', padding: '12px 16px', color: 'var(--foreground)',
-                      textDecoration: 'none', fontSize: '14px',
-                      transition: 'background 0.2s'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >关于我们</Link>
+                    {moreMenuItems.map((item, i) => (
+                      <Link key={item.to} to={item.to} onClick={() => setShowMoreMenu(false)} style={{
+                        display: 'block', padding: '12px 16px', color: 'var(--foreground)',
+                        textDecoration: 'none', fontSize: '14px',
+                        borderBottom: '1px solid var(--border)',
+                        transition: 'background 0.2s'
+                      }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >{item.label}</Link>
+                    ))}
+                    <div style={{borderTop: '1px solid var(--border)'}}>
+                      <button onClick={() => { setShowMoreMenu(false); logout(); }} style={{
+                        display: 'block', width: '100%', padding: '12px 16px',
+                        color: 'var(--destructive-text)', background: 'none', border: 'none',
+                        fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+                        transition: 'background 0.2s'
+                      }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--destructive-bg-subtle)'}
+                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >退出登录</button>
+                    </div>
                   </div>
                 )}
               </li>
@@ -277,6 +290,14 @@ const NavBar = ({ user, logout }) => {
             <>
               <li><Link to="/login">登录</Link></li>
               <li><Link to="/register">注册</Link></li>
+              <li>
+                <button onClick={toggleTheme} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
+                }} title={theme === 'dark' ? '切换亮色' : '切换暗色'}>
+                  {theme === 'dark' ? '☀️' : '🌙'}
+                </button>
+              </li>
               <li style={{position: 'relative'}} ref={moreRef}>
                 <button
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
@@ -292,31 +313,20 @@ const NavBar = ({ user, logout }) => {
                   <div style={{
                     position: 'absolute', top: '100%', right: 0,
                     background: 'var(--card)', border: '1px solid var(--border)',
-                    borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    borderRadius: '10px', boxShadow: '0 8px 32px var(--shadow-modal)',
                     minWidth: '160px', zIndex: 10000, overflow: 'hidden',
                     backdropFilter: 'blur(20px)'
                   }}>
-                    <Link to="/privacy" onClick={() => setShowMoreMenu(false)} style={{
-                      display: 'block', padding: '12px 16px', color: 'var(--foreground)',
-                      textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid var(--border)',
-                      transition: 'background 0.2s'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >隐私政策</Link>
-                    <Link to="/terms" onClick={() => setShowMoreMenu(false)} style={{
-                      display: 'block', padding: '12px 16px', color: 'var(--foreground)',
-                      textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid var(--border)',
-                      transition: 'background 0.2s'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >用户协议</Link>
-                    <Link to="/about" onClick={() => setShowMoreMenu(false)} style={{
-                      display: 'block', padding: '12px 16px', color: 'var(--foreground)',
-                      textDecoration: 'none', fontSize: '14px',
-                      transition: 'background 0.2s'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >关于我们</Link>
+                    {moreMenuItems.map((item, i) => (
+                      <Link key={item.to} to={item.to} onClick={() => setShowMoreMenu(false)} style={{
+                        display: 'block', padding: '12px 16px', color: 'var(--foreground)',
+                        textDecoration: 'none', fontSize: '14px',
+                        borderBottom: i < moreMenuItems.length - 1 ? '1px solid var(--border)' : 'none',
+                        transition: 'background 0.2s'
+                      }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >{item.label}</Link>
+                    ))}
                   </div>
                 )}
               </li>
@@ -328,7 +338,7 @@ const NavBar = ({ user, logout }) => {
   );
 };
 
-function App() {
+function AppContent() {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
   
@@ -336,7 +346,12 @@ function App() {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     if (token && userData) {
-      setUser(JSON.parse(userData));
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setInitializing(false);
   }, []);
@@ -355,16 +370,14 @@ function App() {
   
   if (initializing) {
     return (
-      <Router>
-        <div className="container" style={{textAlign: 'center', paddingTop: '100px'}}>
-          <h2>加载中...</h2>
-        </div>
-      </Router>
+      <div className="container" style={{textAlign: 'center', paddingTop: '100px'}}>
+        <h2>加载中...</h2>
+      </div>
     );
   }
   
   return (
-    <Router>
+    <>
       <NavBar user={user} logout={logout} />
       <div className="container">
         <Routes>
@@ -372,8 +385,10 @@ function App() {
           <Route path="/episode/:id" element={<EpisodeDetail user={user} />} />
           <Route path="/login" element={<Login login={login} />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={user ? <Profile user={user} /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={user ? <Profile user={user} setUser={setUser} logout={logout} /> : <Navigate to="/login" />} />
           <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/calendar" element={<UpdateCalendar />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/episodes" element={<AdminEpisodes />} />
@@ -381,6 +396,8 @@ function App() {
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/banners" element={<AdminBanners />} />
           <Route path="/admin/review" element={<AdminReview />} />
+          <Route path="/admin/reports" element={<AdminReports />} />
+          <Route path="/admin/stats" element={<AdminStats />} />
           <Route path="/admin/creator-profile" element={<AdminCreatorProfile />} />
           <Route path="/admin/site-content" element={<AdminSiteContent />} />
           <Route path="/admin/change-password" element={<ChangePassword />} />
@@ -388,8 +405,19 @@ function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </Router>
   );
 }

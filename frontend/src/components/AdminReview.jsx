@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -163,7 +163,7 @@ const AdminReview = () => {
       {activeTab === 'pending' && (
         <div>
           {pendingEpisodes.length === 0 ? (
-            <p style={{color: '#94a3b8', textAlign: 'center', padding: '40px'}}>暂无待审核剧集</p>
+            <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '40px'}}>暂无待审核剧集</p>
           ) : (
             <table className="admin-table">
               <thead>
@@ -192,8 +192,8 @@ const AdminReview = () => {
                     <td>
                       <span style={{
                         fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                        background: 'rgba(245,158,11,0.15)', color: '#f59e0b',
-                        border: '1px solid rgba(245,158,11,0.3)'
+                        background: 'var(--warning-bg)', color: 'var(--warning-text)',
+                        border: '1px solid var(--warning-border)'
                       }}>待审核</span>
                     </td>
                     <td>{new Date(ep.updatedAt).toLocaleDateString()}</td>
@@ -208,7 +208,7 @@ const AdminReview = () => {
                         />
                         <div style={{display: 'flex', gap: '8px'}}>
                           <button className="btn" style={{fontSize: '13px', padding: '6px 14px'}} onClick={() => handleApprove(ep._id)}>通过</button>
-                          <button className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 14px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)'}} onClick={() => handleReject(ep._id)}>拒绝</button>
+                          <button className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 14px', background: 'var(--destructive-bg)', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}} onClick={() => handleReject(ep._id)}>拒绝</button>
                         </div>
                       </div>
                     </td>
@@ -247,17 +247,17 @@ const AdminReview = () => {
                   <td>
                     <span style={{
                       fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                      background: ep.reviewStatus === 'approved' ? 'rgba(34,197,94,0.15)' :
-                                  ep.reviewStatus === 'rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                      color: ep.reviewStatus === 'approved' ? '#22c55e' :
-                             ep.reviewStatus === 'rejected' ? '#ef4444' : '#f59e0b',
-                      border: `1px solid ${ep.reviewStatus === 'approved' ? 'rgba(34,197,94,0.3)' :
-                                        ep.reviewStatus === 'rejected' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`
+                      background: ep.reviewStatus === 'approved' ? 'var(--success-bg)' :
+                                  ep.reviewStatus === 'rejected' ? 'var(--destructive-bg)' : 'var(--warning-bg)',
+                      color: ep.reviewStatus === 'approved' ? 'var(--success-text)' :
+                             ep.reviewStatus === 'rejected' ? 'var(--destructive-text)' : 'var(--warning-text)',
+                      border: `1px solid ${ep.reviewStatus === 'approved' ? 'var(--success-border)' :
+                                        ep.reviewStatus === 'rejected' ? 'var(--destructive-border)' : 'var(--warning-border)'}`
                     }}>
                       {ep.reviewStatus === 'approved' ? '已通过' :
                        ep.reviewStatus === 'rejected' ? '已拒绝' : '待审核'}
                     </span>
-                    {ep.reviewNote && <span style={{fontSize: '11px', color: '#94a3b8', marginLeft: '4px'}}>({ep.reviewNote})</span>}
+                    {ep.reviewNote && <span style={{fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px'}}>({ep.reviewNote})</span>}
                   </td>
                   <td>
                     {ep.allowedEditors && ep.allowedEditors.length > 0 ? (
@@ -265,20 +265,20 @@ const AdminReview = () => {
                         {ep.allowedEditors.map(editor => (
                           <span key={editor._id} style={{
                             fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                            background: 'rgba(99,102,241,0.1)', color: 'var(--primary)',
-                            border: '1px solid rgba(99,102,241,0.3)',
+                            background: 'var(--primary-bg-subtle)', color: 'var(--primary)',
+                            border: '1px solid var(--primary-border)',
                             display: 'flex', alignItems: 'center', gap: '4px'
                           }}>
                             {editor.username}
                             <button
                               onClick={() => handleRemoveEditor(ep._id, editor._id)}
-                              style={{background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px', padding: '0 2px'}}
+                              style={{background: 'none', border: 'none', color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px', padding: '0 2px'}}
                             >×</button>
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <span style={{color: '#94a3b8', fontSize: '13px'}}>无</span>
+                      <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>无</span>
                     )}
                   </td>
                   <td>
@@ -299,7 +299,7 @@ const AdminReview = () => {
       {activeTab === 'assign' && (
         <div className="form-container" style={{maxWidth: '600px'}}>
           <h3 style={{marginBottom: '15px'}}>分配剧集编辑权限</h3>
-          <p style={{color: '#94a3b8', fontSize: '14px', marginBottom: '15px'}}>选择剧集和创作者，授予该创作者编辑此剧集的权限</p>
+          <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>选择剧集和创作者，授予该创作者编辑此剧集的权限</p>
           <div className="form-group">
             <label>选择剧集</label>
             <select
@@ -333,14 +333,14 @@ const AdminReview = () => {
       {detailEpisode && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.6)', zIndex: 9999,
+          background: 'var(--overlay-bg-subtle)', zIndex: 9999,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
         }} onClick={() => setDetailEpisode(null)}>
           <div style={{
             background: 'var(--card)', borderRadius: '16px',
             maxWidth: '600px', width: '100%', maxHeight: '80vh',
             overflow: 'auto', border: '1px solid var(--border)',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
+            boxShadow: '0 25px 50px var(--shadow-strong)'
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -356,7 +356,7 @@ const AdminReview = () => {
               {detailEpisode.coverImage && (
                 <img src={detailEpisode.coverImage} alt={detailEpisode.title} style={{width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px'}} />
               )}
-              <p style={{color: '#94a3b8', lineHeight: 1.6, marginBottom: '16px'}}>{detailEpisode.description || '暂无描述'}</p>
+              <p style={{color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px'}}>{detailEpisode.description || '暂无描述'}</p>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px'}}>
                 <p><strong>集数：</strong>{detailEpisode.currentEpisodes}/{detailEpisode.totalEpisodes}</p>
                 <p><strong>状态：</strong>{detailEpisode.status === 'ongoing' ? '连载中' : detailEpisode.status === 'completed' ? '已完结' : '即将上映'}</p>
@@ -366,10 +366,10 @@ const AdminReview = () => {
                 <p><strong>审核：</strong>
                   <span style={{
                     fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                    background: detailEpisode.reviewStatus === 'approved' ? 'rgba(34,197,94,0.15)' :
-                                detailEpisode.reviewStatus === 'rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                    color: detailEpisode.reviewStatus === 'approved' ? '#22c55e' :
-                           detailEpisode.reviewStatus === 'rejected' ? '#ef4444' : '#f59e0b'
+                    background: detailEpisode.reviewStatus === 'approved' ? 'var(--success-bg)' :
+                                detailEpisode.reviewStatus === 'rejected' ? 'var(--destructive-bg)' : 'var(--warning-bg)',
+                    color: detailEpisode.reviewStatus === 'approved' ? 'var(--success-text)' :
+                           detailEpisode.reviewStatus === 'rejected' ? 'var(--destructive-text)' : 'var(--warning-text)'
                   }}>
                     {detailEpisode.reviewStatus === 'approved' ? '已通过' :
                      detailEpisode.reviewStatus === 'rejected' ? '已拒绝' : '待审核'}
@@ -377,10 +377,10 @@ const AdminReview = () => {
                 </p>
               </div>
               {detailEpisode.reviewNote && (
-                <p style={{fontSize: '13px', color: '#94a3b8', marginTop: '12px'}}><strong>审核备注：</strong>{detailEpisode.reviewNote}</p>
+                <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '12px'}}><strong>审核备注：</strong>{detailEpisode.reviewNote}</p>
               )}
               {detailEpisode.allowedEditors && detailEpisode.allowedEditors.length > 0 && (
-                <p style={{fontSize: '13px', color: '#94a3b8', marginTop: '8px'}}><strong>授权编辑：</strong>{detailEpisode.allowedEditors.map(e => e.username).join('、')}</p>
+                <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px'}}><strong>授权编辑：</strong>{detailEpisode.allowedEditors.map(e => e.username).join('、')}</p>
               )}
             </div>
           </div>

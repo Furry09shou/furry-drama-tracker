@@ -9,7 +9,13 @@ const AdminDashboard = () => {
     const token = localStorage.getItem('adminToken');
     const adminData = localStorage.getItem('adminData');
     if (token && adminData) {
-      setAdmin(JSON.parse(adminData));
+      try {
+        setAdmin(JSON.parse(adminData));
+      } catch (e) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminData');
+        navigate('/admin', { replace: true });
+      }
     } else {
       navigate('/admin', { replace: true });
     }
@@ -90,6 +96,20 @@ const AdminDashboard = () => {
             <p>审核创作者提交的剧集</p>
           </Link>
         )}
+
+        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+          <Link to="/admin/reports" className="dashboard-card">
+            <div className="card-icon">🚨</div>
+            <h3>举报管理</h3>
+            <p>处理用户举报</p>
+          </Link>
+        )}
+
+        <Link to="/admin/stats" className="dashboard-card">
+          <div className="card-icon">📊</div>
+          <h3>数据统计</h3>
+          <p>查看平台运营数据</p>
+        </Link>
 
         <Link to="/admin/change-password" className="dashboard-card">
           <div className="card-icon">🔐</div>

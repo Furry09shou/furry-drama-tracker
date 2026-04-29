@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
@@ -134,16 +134,16 @@ const AdminSiteContent = () => {
 
   const renderSettingsEditor = () => (
     <div>
-      <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+      <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🏷️ 导航栏Logo</h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#94a3b8' }}>显示在导航栏左上角，建议使用正方形小图标</p>
+        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>显示在导航栏左上角，建议使用正方形小图标</p>
         <ImageUploader label="导航栏Logo" value={settingsData.navLogo} onChange={(url) => setSettingsData(prev => ({ ...prev, navLogo: url }))} aspectRatio={1} outputWidth={64} outputHeight={64} />
       </div>
 
       <div className="form-group">
         <label>📝 网站名称</label>
         <input type="text" value={settingsData.siteName} onChange={(e) => setSettingsData(prev => ({ ...prev, siteName: e.target.value }))} placeholder="如：兽剧聚合平台" />
-        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>显示在导航栏左上角和浏览器标签页</p>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>显示在导航栏左上角和浏览器标签页</p>
       </div>
 
       <div className="form-group">
@@ -156,7 +156,7 @@ const AdminSiteContent = () => {
         <input type="text" value={settingsData.welcomeSubtitle} onChange={(e) => setSettingsData(prev => ({ ...prev, welcomeSubtitle: e.target.value }))} placeholder="如：发现和追踪你喜爱的兽剧内容" />
       </div>
 
-      <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
+      <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
         <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ 效果预览</h4>
         <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
@@ -165,7 +165,7 @@ const AdminSiteContent = () => {
           </div>
           <div style={{ textAlign: 'center', padding: '24px 16px' }}>
             <h3 style={{ margin: '0 0 6px 0', color: 'var(--foreground)', fontSize: '16px' }}>{settingsData.welcomeTitle || '欢迎标题'}</h3>
-            <p style={{ color: '#94a3b8', fontSize: '12px', margin: 0 }}>{settingsData.welcomeSubtitle || '欢迎副标题'}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>{settingsData.welcomeSubtitle || '欢迎副标题'}</p>
           </div>
         </div>
       </div>
@@ -174,15 +174,15 @@ const AdminSiteContent = () => {
 
   const renderAboutEditor = () => (
     <div>
-      <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+      <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🖼️ 横幅图片</h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#94a3b8' }}>显示在关于我们页面顶部，建议使用宽幅图片</p>
+        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>显示在关于我们页面顶部，建议使用宽幅图片</p>
         <ImageUploader label="横幅图片" value={aboutData.banner} onChange={(url) => setAboutData(prev => ({ ...prev, banner: url }))} aspectRatio={3} outputWidth={1200} outputHeight={400} />
       </div>
 
-      <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+      <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🏷️ 网站Logo</h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#94a3b8' }}>网站标志图标，建议使用正方形图片</p>
+        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>网站标志图标，建议使用正方形图片</p>
         <ImageUploader label="网站Logo" value={aboutData.logo} onChange={(url) => setAboutData(prev => ({ ...prev, logo: url }))} aspectRatio={1} outputWidth={200} outputHeight={200} />
       </div>
 
@@ -205,15 +205,15 @@ const AdminSiteContent = () => {
         {aboutData.updates.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {aboutData.updates.map((item, index) => (
-              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}>
+              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--hover-bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-                  <span style={{ color: '#64748b', fontSize: '12px', flexShrink: 0 }}>{index + 1}.</span>
+                  <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', flexShrink: 0 }}>{index + 1}.</span>
                   <span style={{ fontSize: '14px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexShrink: 0, marginLeft: '8px' }}>
-                  <button type="button" onClick={() => moveUpdate(index, -1)} disabled={index === 0} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: index === 0 ? '#475569' : '#94a3b8', borderRadius: '4px', padding: '2px 6px', cursor: index === 0 ? 'default' : 'pointer', fontSize: '12px' }}>↑</button>
-                  <button type="button" onClick={() => moveUpdate(index, 1)} disabled={index === aboutData.updates.length - 1} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: index === aboutData.updates.length - 1 ? '#475569' : '#94a3b8', borderRadius: '4px', padding: '2px 6px', cursor: index === aboutData.updates.length - 1 ? 'default' : 'pointer', fontSize: '12px' }}>↓</button>
-                  <button type="button" onClick={() => removeUpdate(index)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '12px' }}>删除</button>
+                  <button type="button" onClick={() => moveUpdate(index, -1)} disabled={index === 0} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: index === 0 ? 'var(--text-lighter)' : 'var(--text-secondary)', borderRadius: '4px', padding: '2px 6px', cursor: index === 0 ? 'default' : 'pointer', fontSize: '12px' }}>↑</button>
+                  <button type="button" onClick={() => moveUpdate(index, 1)} disabled={index === aboutData.updates.length - 1} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: index === aboutData.updates.length - 1 ? 'var(--text-lighter)' : 'var(--text-secondary)', borderRadius: '4px', padding: '2px 6px', cursor: index === aboutData.updates.length - 1 ? 'default' : 'pointer', fontSize: '12px' }}>↓</button>
+                  <button type="button" onClick={() => removeUpdate(index)} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '12px' }}>删除</button>
                 </div>
               </div>
             ))}
@@ -241,7 +241,7 @@ const AdminSiteContent = () => {
         <input type="text" value={aboutData.copyright} onChange={(e) => setAboutData(prev => ({ ...prev, copyright: e.target.value }))} placeholder="如：© 2026 09兽" />
       </div>
 
-      <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
+      <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
         <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ 页面预览</h4>
         <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
           {aboutData.banner && (
@@ -252,17 +252,17 @@ const AdminSiteContent = () => {
           <div style={{ textAlign: 'center', padding: '20px 16px' }}>
             {aboutData.logo && (<img src={aboutData.logo} alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', marginBottom: '10px' }} />)}
             <h3 style={{ margin: '0 0 4px 0', color: 'var(--foreground)', fontSize: '15px' }}>关于我们</h3>
-            {aboutData.description && (<p style={{ color: '#94a3b8', fontSize: '12px', margin: '6px 0 0 0', lineHeight: 1.5 }}>{aboutData.description}</p>)}
-            {aboutData.version && <p style={{ color: '#64748b', fontSize: '11px', margin: '6px 0 0 0' }}>版本 {aboutData.version}</p>}
+            {aboutData.description && (<p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: '6px 0 0 0', lineHeight: 1.5 }}>{aboutData.description}</p>)}
+            {aboutData.version && <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', margin: '6px 0 0 0' }}>版本 {aboutData.version}</p>}
             {aboutData.updates.length > 0 && (
               <div style={{ textAlign: 'left', marginTop: '10px' }}>
                 <p style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 600, margin: '0 0 4px 0' }}>更新日志</p>
-                <ul style={{ color: '#94a3b8', fontSize: '11px', lineHeight: 1.7, paddingLeft: '14px', margin: 0 }}>
+                <ul style={{ color: 'var(--text-secondary)', fontSize: '11px', lineHeight: 1.7, paddingLeft: '14px', margin: 0 }}>
                   {aboutData.updates.map((item, i) => <li key={i}>{item}</li>)}
                 </ul>
               </div>
             )}
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '10px', fontSize: '10px', color: '#64748b' }}>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '10px', fontSize: '10px', color: 'var(--text-tertiary)' }}>
               {aboutData.copyright && <p style={{ margin: '1px 0' }}>{aboutData.copyright}</p>}
               {aboutData.icp && <p style={{ margin: '1px 0' }}>{aboutData.icp}</p>}
               {aboutData.policeRecord && <p style={{ margin: '1px 0' }}>{aboutData.policeRecord}</p>}
@@ -287,14 +287,14 @@ const AdminSiteContent = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
           {contents.map(item => (
             <div key={item.key} style={{ background: 'var(--card)', borderRadius: '12px', padding: '24px', border: '1px solid var(--border)', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }} onClick={() => startEdit(item)}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-modal)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
             >
               <h3 style={{ margin: '0 0 8px 0', color: 'var(--foreground)' }}>{item.title}</h3>
-              <p style={{ color: '#94a3b8', fontSize: '13px', margin: '0 0 12px 0' }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 12px 0' }}>
                 {item.key === 'about' ? '网站横幅、Logo、版本、更新日志、备案等' : item.key === 'settings' ? '网站名称、导航栏Logo、欢迎页文字' : item.key === 'privacy' ? '网站隐私政策内容' : '网站用户协议内容'}
               </p>
-              <p style={{ color: '#64748b', fontSize: '12px', margin: 0 }}>最后更新：{new Date(item.updatedAt).toLocaleDateString()}</p>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '12px', margin: 0 }}>最后更新：{new Date(item.updatedAt).toLocaleDateString()}</p>
             </div>
           ))}
         </div>
@@ -312,7 +312,7 @@ const AdminSiteContent = () => {
             </div>
           )}
           {message && (
-            <div style={{ padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', background: message.includes('成功') ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: message.includes('成功') ? '#22c55e' : '#ef4444', border: `1px solid ${message.includes('成功') ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}` }}>{message}</div>
+            <div style={{ padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', background: message.includes('成功') ? 'var(--success-bg)' : 'var(--destructive-bg)', color: message.includes('成功') ? 'var(--success-text)' : 'var(--destructive-text)', border: `1px solid ${message.includes('成功') ? 'var(--success-border)' : 'var(--destructive-border)'}` }}>{message}</div>
           )}
           <button className="btn" onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '💾 保存'}</button>
         </div>

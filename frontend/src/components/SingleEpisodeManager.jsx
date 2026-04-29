@@ -145,7 +145,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
             borderRadius: '6px',
             border: '1px solid var(--border)',
             backgroundColor: 'transparent',
-            color: '#e2e8f0',
+            color: 'var(--text-light)',
             cursor: 'pointer',
             fontSize: '14px'
           }}
@@ -166,7 +166,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       {showAddForm && (
         <div style={{ 
           marginBottom: '15px', 
-          background: 'rgba(255,255,255,0.03)', 
+          background: 'var(--hover-bg)', 
           padding: '15px', 
           borderRadius: '8px', 
           border: '1px solid var(--border)' 
@@ -185,8 +185,8 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   padding: '8px 12px',
                   borderRadius: '6px',
                   border: '1px solid var(--border)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  color: '#e2e8f0',
+                  backgroundColor: 'var(--hover-bg-strong)',
+                  color: 'var(--text-light)',
                   fontSize: '14px'
                 }}
               />
@@ -203,8 +203,8 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   padding: '8px 12px',
                   borderRadius: '6px',
                   border: '1px solid var(--border)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  color: '#e2e8f0',
+                  backgroundColor: 'var(--hover-bg-strong)',
+                  color: 'var(--text-light)',
                   fontSize: '14px'
                 }}
               />
@@ -221,8 +221,8 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   padding: '8px 12px',
                   borderRadius: '6px',
                   border: '1px solid var(--border)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  color: '#e2e8f0',
+                  backgroundColor: 'var(--hover-bg-strong)',
+                  color: 'var(--text-light)',
                   fontSize: '14px'
                 }}
               />
@@ -232,7 +232,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {newSingleEpisode.platformLinksList.map((item, index) => (
                   <div key={index} style={{
-                    background: 'rgba(255,255,255,0.03)', 
+                    background: 'var(--hover-bg)', 
                     border: '1px solid var(--border)',
                     borderRadius: '8px', 
                     padding: '12px', 
@@ -245,9 +245,9 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                         position: 'absolute', 
                         top: '8px', 
                         right: '8px',
-                        background: 'rgba(239,68,68,0.15)', 
-                        border: '1px solid rgba(239,68,68,0.3)',
-                        color: 'rgb(239,68,68)',
+                        background: 'var(--destructive-bg)', 
+                        border: '1px solid var(--destructive-border)',
+                        color: 'var(--destructive-text)',
                         borderRadius: '4px',
                         padding: '2px 6px',
                         fontSize: '12px',
@@ -268,8 +268,8 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                           padding: '6px 10px',
                           borderRadius: '4px',
                           border: '1px solid var(--border)',
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          color: '#e2e8f0',
+                          backgroundColor: 'var(--hover-bg-strong)',
+                          color: 'var(--text-light)',
                           fontSize: '13px'
                         }}
                       />
@@ -286,8 +286,8 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                           padding: '6px 10px',
                           borderRadius: '4px',
                           border: '1px solid var(--border)',
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          color: '#e2e8f0',
+                          backgroundColor: 'var(--hover-bg-strong)',
+                          color: 'var(--text-light)',
                           fontSize: '13px'
                         }}
                       />
@@ -302,7 +302,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                     borderRadius: '6px',
                     border: '1px dashed var(--border)',
                     backgroundColor: 'transparent',
-                    color: '#94a3b8',
+                    color: 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontSize: '13px'
                   }}
@@ -313,7 +313,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
             </div>
             {error && (
               <div style={{ 
-                color: 'rgb(239, 68, 68)', 
+                color: 'var(--destructive-text)', 
                 fontSize: '13px', 
                 marginBottom: '12px' 
               }}>
@@ -328,7 +328,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   borderRadius: '6px',
                   border: '1px solid var(--primary)',
                   backgroundColor: 'var(--primary)',
-                  color: 'white',
+                  color: 'var(--btn-text)',
                   cursor: 'pointer',
                   fontSize: '14px'
                 }}
@@ -347,7 +347,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   borderRadius: '6px',
                   border: '1px solid var(--border)',
                   backgroundColor: 'transparent',
-                  color: '#e2e8f0',
+                  color: 'var(--text-light)',
                   cursor: 'pointer',
                   fontSize: '14px'
                 }}
@@ -361,12 +361,12 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
 
       <div className="single-episodes-list">
         {singleEpisodes.length === 0 ? (
-          <p style={{ color: '#94a3b8', fontSize: '14px' }}>暂无单集，点击"添加单集"按钮开始添加</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>暂无单集，点击"添加单集"按钮开始添加</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
             {singleEpisodes.map(singleEpisode => (
               <div key={singleEpisode._id} style={{
-                background: 'rgba(255,255,255,0.03)',
+                background: 'var(--hover-bg)',
                 border: '1px solid var(--border)',
                 borderRadius: '8px',
                 padding: '15px'
@@ -381,7 +381,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                         borderRadius: '4px',
                         border: '1px solid var(--border)',
                         backgroundColor: 'transparent',
-                        color: '#e2e8f0',
+                        color: 'var(--text-light)',
                         cursor: 'pointer',
                         fontSize: '12px'
                       }}
@@ -393,9 +393,9 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                       style={{
                         padding: '4px 8px',
                         borderRadius: '4px',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                        color: 'rgb(239, 68, 68)',
+                        border: '1px solid var(--destructive-border)',
+                        backgroundColor: 'var(--destructive-bg)',
+                        color: 'var(--destructive-text)',
                         cursor: 'pointer',
                         fontSize: '12px'
                       }}
@@ -406,11 +406,11 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 </div>
                 <p style={{ margin: '8px 0', fontSize: '14px' }}>{singleEpisode.title}</p>
                 {singleEpisode.duration && (
-                  <p style={{ margin: '8px 0', fontSize: '13px', color: '#94a3b8' }}>时长: {singleEpisode.duration}</p>
+                  <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>时长: {singleEpisode.duration}</p>
                 )}
                 {singleEpisode.platformLinks && Object.keys(singleEpisode.platformLinks).length > 0 && (
                   <div style={{ marginTop: '10px' }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#94a3b8' }}>跳转链接:</p>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>跳转链接:</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {Object.entries(singleEpisode.platformLinks).map(([name, url]) => (
                         <a 
@@ -422,8 +422,8 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                             padding: '4px 12px',
                             borderRadius: '12px',
                             fontSize: '12px',
-                            backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                            color: 'rgb(99, 102, 241)',
+                            backgroundColor: 'var(--primary-bg)',
+                            color: 'var(--primary)',
                             textDecoration: 'none'
                           }}
                         >

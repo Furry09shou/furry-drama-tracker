@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -201,32 +201,32 @@ const AdminBanners = () => {
       </div>
 
       {error && <div className="error-message" style={{marginBottom: '15px'}}>{error}</div>}
-      {success && <div style={{marginBottom: '15px', padding: '10px', background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px', color: '#22c55e'}}>{success}</div>}
+      {success && <div style={{marginBottom: '15px', padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{success}</div>}
 
       {banners.length === 0 ? (
-        <div style={{padding: '60px', textAlign: 'center', color: '#94a3b8', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border)'}}>暂无轮播图，请添加</div>
+        <div style={{padding: '60px', textAlign: 'center', color: 'var(--text-secondary)', background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)'}}>暂无轮播图，请添加</div>
       ) : (
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px'}}>
           {banners.map(banner => (
-            <div key={banner._id} style={{background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', opacity: banner.active ? 1 : 0.5}}>
+            <div key={banner._id} style={{background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', opacity: banner.active ? 1 : 0.5}}>
               <div style={{width: '100%', height: '160px', overflow: 'hidden'}}>
                 <img src={banner.image} alt={banner.title} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
               </div>
               <div style={{padding: '16px'}}>
                 <h4 style={{marginBottom: '4px'}}>{banner.title}</h4>
-                {banner.subtitle && <p style={{color: '#94a3b8', fontSize: '13px', marginBottom: '8px'}}>{banner.subtitle}</p>}
+                {banner.subtitle && <p style={{color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px'}}>{banner.subtitle}</p>}
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
-                  <span style={{fontSize: '12px', padding: '2px 8px', borderRadius: '4px', background: banner.active ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: banner.active ? '#22c55e' : '#ef4444'}}>
+                  <span style={{fontSize: '12px', padding: '2px 8px', borderRadius: '4px', background: banner.active ? 'var(--success-bg)' : 'var(--destructive-bg)', color: banner.active ? 'var(--success-text)' : 'var(--destructive-text)'}}>
                     {banner.active ? '已启用' : '已禁用'}
                   </span>
-                  <span style={{fontSize: '12px', color: '#94a3b8'}}>排序: {banner.order}</span>
+                  <span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>排序: {banner.order}</span>
                 </div>
                 <div style={{display: 'flex', gap: '8px'}}>
                   <button className="btn" style={{padding: '6px 14px', fontSize: '13px', flex: 1}} onClick={() => openEdit(banner)}>编辑</button>
                   <button className="btn btn-secondary" style={{padding: '6px 14px', fontSize: '13px', flex: 1}} onClick={() => handleToggleActive(banner)}>
                     {banner.active ? '禁用' : '启用'}
                   </button>
-                  <button className="btn btn-secondary" style={{padding: '6px 14px', fontSize: '13px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)'}} onClick={() => handleDelete(banner._id)}>删除</button>
+                  <button className="btn btn-secondary" style={{padding: '6px 14px', fontSize: '13px', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}} onClick={() => handleDelete(banner._id)}>删除</button>
                 </div>
               </div>
             </div>

@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Episode = require('../models/Episode');
+const Admin = require('../models/Admin');
 const adminProtect = require('../middlewares/adminAuth');
+const { clearCache, clearCacheByPrefix } = require('../middlewares/cache');
 
 router.get('/pending', adminProtect, async (req, res) => {
   try {
@@ -38,6 +40,8 @@ router.put('/approve/:id', adminProtect, async (req, res) => {
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
+    clearCache(`episode_${req.params.id}`);
+    clearCacheByPrefix('episodes_');
     res.json(episode);
   } catch (error) {
     console.error('Approve episode error:', error);
@@ -55,6 +59,8 @@ router.put('/reject/:id', adminProtect, async (req, res) => {
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
+    clearCache(`episode_${req.params.id}`);
+    clearCacheByPrefix('episodes_');
     res.json(episode);
   } catch (error) {
     console.error('Reject episode error:', error);
@@ -65,6 +71,10 @@ router.put('/reject/:id', adminProtect, async (req, res) => {
 router.put('/assign-editor/:episodeId', adminProtect, async (req, res) => {
   try {
     const { editorId } = req.body;
+    const editor = await Admin.findById(editorId);
+    if (!editor) {
+      return res.status(404).json({ message: 'Editor not found' });
+    }
     const episode = await Episode.findById(req.params.episodeId);
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
@@ -72,13 +82,14 @@ router.put('/assign-editor/:episodeId', adminProtect, async (req, res) => {
     if (!episode.allowedEditors) {
       episode.allowedEditors = [];
     }
-    if (!episode.allowedEditors.includes(editorId)) {
+    if (!episode.allowedEditors.some(e => e.toString() === editorId)) {
       episode.allowedEditors.push(editorId);
       await episode.save();
     }
+    clearCache(`episode_${req.params.episodeId}`);
     const updated = await Episode.findById(req.params.episodeId)
-      .populate('createdBy', 'username email')
-      .populate('allowedEditors', 'username email');
+      .populate('createdBy', 'username')
+      .populate('allowedEditors', 'username');
     res.json(updated);
   } catch (error) {
     console.error('Assign editor error:', error);

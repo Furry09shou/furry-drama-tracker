@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿﻿﻿﻿﻿import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -27,7 +27,9 @@ const AdminEpisodes = () => {
     coverImage: '',
     totalEpisodes: 0,
     status: 'ongoing',
-    categories: []
+    categories: [],
+    tags: [],
+    updateDay: ''
   });
   const [newSingleEpisode, setNewSingleEpisode] = useState({
     episodeNumber: 1,
@@ -103,7 +105,9 @@ const AdminEpisodes = () => {
         totalEpisodes: newEpisode.totalEpisodes,
         currentEpisodes: 0,
         status: newEpisode.status,
-        category: newEpisode.categories
+        category: newEpisode.categories,
+        tags: newEpisode.tags,
+        updateDay: newEpisode.updateDay
       };
       
       const response = await axios.post('/api/episodes', episodeData, {
@@ -147,7 +151,9 @@ const AdminEpisodes = () => {
       coverImage: episode.coverImage,
       totalEpisodes: episode.totalEpisodes,
       status: episode.status,
-      categories: episode.category || []
+      categories: episode.category || [],
+      tags: episode.tags || [],
+      updateDay: episode.updateDay || ''
     });
     setShowEditForm(true);
     fetchSingleEpisodes(episode._id);
@@ -163,7 +169,9 @@ const AdminEpisodes = () => {
         coverImage: newEpisode.coverImage,
         totalEpisodes: newEpisode.totalEpisodes,
         status: newEpisode.status,
-        category: newEpisode.categories
+        category: newEpisode.categories,
+        tags: newEpisode.tags,
+        updateDay: newEpisode.updateDay
       };
       
       await axios.put(`/api/episodes/${editingEpisode._id}`, episodeData, {
@@ -221,7 +229,7 @@ const AdminEpisodes = () => {
       }
       
       setEditingSingleEpisode(null);
-      const nextNum = singleEpisodes.length + 2;
+      const nextNum = singleEpisodes.length + 1;
       setNewSingleEpisode({
         episodeNumber: nextNum,
         title: `第${nextNum}集`,
@@ -275,7 +283,9 @@ const AdminEpisodes = () => {
       coverImage: '',
       totalEpisodes: 0,
       status: 'ongoing',
-      categories: []
+      categories: [],
+      tags: [],
+      updateDay: ''
     });
   };
 
@@ -406,7 +416,7 @@ const AdminEpisodes = () => {
             </label>
           ))}
         </div>
-        <p style={{fontSize: '14px', color: '#94a3b8', marginTop: '12px'}}>已选择: {newEpisode.categories.join(', ')}</p>
+        <p style={{fontSize: '14px', color: 'var(--text-secondary)', marginTop: '12px'}}>已选择: {newEpisode.categories.join(', ')}</p>
       </div>
       <div className="form-group">
         <label>状态</label>
@@ -419,6 +429,33 @@ const AdminEpisodes = () => {
           value={newEpisode.status}
           onChange={(status) => setNewEpisode({...newEpisode, status})}
           placeholder="选择状态"
+        />
+      </div>
+      <div className="form-group">
+        <label>标签（逗号分隔）</label>
+        <input
+          type="text"
+          value={newEpisode.tags.join(', ')}
+          onChange={(e) => setNewEpisode({...newEpisode, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)})}
+          placeholder="如：3D, 系列, 风格"
+        />
+      </div>
+      <div className="form-group">
+        <label>更新日</label>
+        <CustomSelect
+          options={[
+            { value: '', label: '不定期' },
+            { value: '周一', label: '周一' },
+            { value: '周二', label: '周二' },
+            { value: '周三', label: '周三' },
+            { value: '周四', label: '周四' },
+            { value: '周五', label: '周五' },
+            { value: '周六', label: '周六' },
+            { value: '周日', label: '周日' }
+          ]}
+          value={newEpisode.updateDay}
+          onChange={(updateDay) => setNewEpisode({...newEpisode, updateDay})}
+          placeholder="选择更新日"
         />
       </div>
       {error && <div className="error-message">{error}</div>}
@@ -435,7 +472,7 @@ const AdminEpisodes = () => {
           <h3>添加新剧集</h3>
           <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>关闭</button>
         </div>
-        <p style={{color: '#94a3b8', fontSize: '14px', marginBottom: '15px'}}>添加剧集后将自动打开单集管理，您可以为每一集设置独立的跳转链接</p>
+        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>添加剧集后将自动打开单集管理，您可以为每一集设置独立的跳转链接</p>
         {renderEpisodeForm(false)}
       </div>
     </div>
@@ -473,7 +510,7 @@ const AdminEpisodes = () => {
           </div>
 
           {showSingleEpisodeForm && (
-            <div className="form-container" style={{marginBottom: '15px', background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border)'}}>
+            <div className="form-container" style={{marginBottom: '15px', background: 'var(--hover-bg)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border)'}}>
               <h4>{editingSingleEpisode ? `编辑第${editingSingleEpisode.episodeNumber}集` : '添加单集'}</h4>
               <form onSubmit={handleAddSingleEpisode}>
                 <div className="form-group">
@@ -508,11 +545,11 @@ const AdminEpisodes = () => {
                   <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                     {newSingleEpisode.platformLinksList.map((item, index) => (
                       <div key={index} style={{
-                        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+                        background: 'var(--hover-bg)', border: '1px solid var(--border)',
                         borderRadius: '8px', padding: '12px'
                       }}>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
-                          <span style={{fontSize: '13px', color: '#94a3b8'}}>平台 {index + 1}</span>
+                          <span style={{fontSize: '13px', color: 'var(--text-secondary)'}}>平台 {index + 1}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -520,8 +557,8 @@ const AdminEpisodes = () => {
                               setNewSingleEpisode({...newSingleEpisode, platformLinksList: newList});
                             }}
                             style={{
-                              background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-                              color: '#ef4444', borderRadius: '6px', padding: '4px 10px',
+                              background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
+                              color: 'var(--destructive-text)', borderRadius: '6px', padding: '4px 10px',
                               cursor: 'pointer', fontSize: '12px', lineHeight: 1
                             }}
                           >删除</button>
@@ -561,13 +598,13 @@ const AdminEpisodes = () => {
                         });
                       }}
                       style={{
-                        background: 'rgba(99,102,241,0.1)', border: '1px dashed var(--primary)',
+                        background: 'var(--primary-bg-subtle)', border: '1px dashed var(--primary)',
                         color: 'var(--primary)', borderRadius: '8px', padding: '10px',
                         cursor: 'pointer', fontSize: '14px'
                       }}
                     >+ 添加平台链接</button>
                   </div>
-                  <p style={{fontSize: '12px', color: '#94a3b8', marginTop: '6px'}}>支持添加多个平台，如：B站、YouTube、网盘等</p>
+                  <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px'}}>支持添加多个平台，如：B站、YouTube、网盘等</p>
                 </div>
                 <div className="form-group" style={{display: 'flex', gap: '10px'}}>
                   <button type="submit">{editingSingleEpisode ? '更新' : '添加'}</button>
@@ -589,7 +626,7 @@ const AdminEpisodes = () => {
           )}
 
           {singleEpisodes.length === 0 ? (
-            <p style={{color: '#94a3b8', textAlign: 'center', padding: '20px'}}>暂无单集，点击上方"添加单集"按钮为每一集设置跳转链接</p>
+            <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '20px'}}>暂无单集，点击上方"添加单集"按钮为每一集设置跳转链接</p>
           ) : (
             <table className="admin-table">
               <thead>
@@ -614,7 +651,7 @@ const AdminEpisodes = () => {
                           {Object.entries(toPlainObject(se.platformLinks)).map(([platform, url]) => (
                             <a key={platform} href={url} target="_blank" rel="noreferrer" style={{
                               color: 'var(--primary)', fontSize: '12px',
-                              background: 'rgba(99,102,241,0.1)', padding: '2px 8px',
+                              background: 'var(--primary-bg-subtle)', padding: '2px 8px',
                               borderRadius: '4px', textDecoration: 'none'
                             }}>
                               {platform}
@@ -622,7 +659,7 @@ const AdminEpisodes = () => {
                           ))}
                         </div>
                       ) : (
-                        <span style={{color: '#94a3b8'}}>-</span>
+                        <span style={{color: 'var(--text-secondary)'}}>-</span>
                       )}
                     </td>
                     <td>{se.views}</td>
@@ -665,7 +702,7 @@ const AdminEpisodes = () => {
           displayRender={(item) => (
             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
               <span style={{fontWeight: '500'}}>{item.title}</span>
-              <span style={{fontSize: '12px', color: '#94a3b8'}}>{item.currentEpisodes}/{item.totalEpisodes}集</span>
+              <span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>{item.currentEpisodes}/{item.totalEpisodes}集</span>
             </div>
           )}
         />
@@ -711,18 +748,18 @@ const AdminEpisodes = () => {
                   <td>
                     <span style={{
                       fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                      background: episode.reviewStatus === 'approved' ? 'rgba(34,197,94,0.15)' :
-                                  episode.reviewStatus === 'rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                      color: episode.reviewStatus === 'approved' ? '#22c55e' :
-                             episode.reviewStatus === 'rejected' ? '#ef4444' : '#f59e0b',
-                      border: `1px solid ${episode.reviewStatus === 'approved' ? 'rgba(34,197,94,0.3)' :
-                                        episode.reviewStatus === 'rejected' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`
+                      background: episode.reviewStatus === 'approved' ? 'var(--success-bg)' :
+                                  episode.reviewStatus === 'rejected' ? 'var(--destructive-bg)' : 'var(--warning-bg)',
+                      color: episode.reviewStatus === 'approved' ? 'var(--success-text)' :
+                             episode.reviewStatus === 'rejected' ? 'var(--destructive-text)' : 'var(--warning-text)',
+                      border: `1px solid ${episode.reviewStatus === 'approved' ? 'var(--success-border)' :
+                                        episode.reviewStatus === 'rejected' ? 'var(--destructive-border)' : 'var(--warning-border)'}`
                     }}>
                       {episode.reviewStatus === 'approved' ? '已通过' :
                        episode.reviewStatus === 'rejected' ? '已拒绝' : '待审核'}
                     </span>
                     {episode.reviewNote && (
-                      <span style={{fontSize: '11px', color: '#94a3b8', marginLeft: '4px'}}>({episode.reviewNote})</span>
+                      <span style={{fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px'}}>({episode.reviewNote})</span>
                     )}
                   </td>
                 )}

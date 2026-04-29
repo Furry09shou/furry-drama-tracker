@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
-const Profile = ({ user, setUser }) => {
+const Profile = ({ user, setUser, logout }) => {
   const [followedEpisodes, setFollowedEpisodes] = useState([]);
   const [historyEpisodes, setHistoryEpisodes] = useState([]);
+  const [favoriteEpisodes, setFavoriteEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletionStatus, setDeletionStatus] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -13,9 +14,10 @@ const Profile = ({ user, setUser }) => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('follows');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,6 +35,10 @@ const Profile = ({ user, setUser }) => {
           const historyRes = await axios.get('/api/histories/list', config);
           historyData = historyRes.data || [];
         } catch (e) { console.error('获取历史失败:', e.response?.data || e.message); }
+        try {
+          const favRes = await axios.get('/api/favorites/list', config);
+          setFavoriteEpisodes(favRes.data || []);
+        } catch (e) {}
         setFollowedEpisodes(followData);
         setHistoryEpisodes(historyData);
         try {
@@ -99,6 +105,41 @@ const Profile = ({ user, setUser }) => {
     return `${minutes}分钟`;
   };
 
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const res = await axios.post('/api/users/avatar', formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      });
+      if (setUser && user) {
+        const updatedUser = { ...user, avatar: res.data.url };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleUnfavorite = async (episodeId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/favorites/remove', { episodeId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFavoriteEpisodes(prev => prev.filter(f => f.episodeId && String(f.episodeId._id) !== String(episodeId)));
+    } catch (err) {
+      console.error('Unfavorite failed:', err);
+    }
+  };
+
   if (loading) {
     return <div className="container"><h2>加载中...</h2></div>;
   }
@@ -125,16 +166,16 @@ const Profile = ({ user, setUser }) => {
             {episode.title}
             {hasNewUpdate && (
               <span style={{
-                fontSize: '12px', color: '#ef4444', marginLeft: '8px',
-                background: 'rgba(239,68,68,0.15)', padding: '2px 8px',
-                borderRadius: '4px', border: '1px solid rgba(239,68,68,0.3)'
+                fontSize: '12px', color: 'var(--destructive-text)', marginLeft: '8px',
+                background: 'var(--destructive-bg)', padding: '2px 8px',
+                borderRadius: '4px', border: '1px solid var(--destructive-border)'
               }}>有更新 +{newUnwatchedCount}集</span>
             )}
             {hasUpdate && (
               <span style={{
-                fontSize: '12px', color: '#f59e0b', marginLeft: '8px',
-                background: 'rgba(245,158,11,0.15)', padding: '2px 8px',
-                borderRadius: '4px', border: '1px solid rgba(245,158,11,0.3)'
+                fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
+                background: 'var(--warning-bg)', padding: '2px 8px',
+                borderRadius: '4px', border: '1px solid var(--warning-border)'
               }}>{unwatchedCount}集未看</span>
             )}
           </h4>
@@ -145,8 +186,8 @@ const Profile = ({ user, setUser }) => {
                 <div className="progress-fill" style={{ width: `${progress}%` }}></div>
               </div>
               <p>已观看 {watchedEps.length} 集</p>
-              <p style={{fontSize: '13px', color: '#94a3b8', marginTop: '4px'}}>
-                已看：第{watchedEps.sort((a, b) => a - b).join('、')}集
+              <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>
+                已看：第{[...watchedEps].sort((a, b) => a - b).join('、')}集
               </p>
             </>
           )}
@@ -189,8 +230,8 @@ const Profile = ({ user, setUser }) => {
           </div>
           <p>已观看 {history.watchedEpisodes.length} 集</p>
           {history.watchedEpisodes.length > 0 && (
-            <p style={{fontSize: '13px', color: '#94a3b8', marginTop: '4px'}}>
-              已看：第{history.watchedEpisodes.sort((a, b) => a - b).join('、')}集
+            <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>
+              已看：第{[...history.watchedEpisodes].sort((a, b) => a - b).join('、')}集
             </p>
           )}
           <div style={{display: 'flex', gap: '8px', marginTop: '8px'}}>
@@ -237,21 +278,21 @@ const Profile = ({ user, setUser }) => {
       return (
         <div style={{
           marginTop: '30px', padding: '20px', borderRadius: '12px',
-          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)'
+          background: 'var(--destructive-bg-subtle)', border: '1px solid var(--destructive-border-subtle)'
         }}>
-          <h3 style={{ color: '#ef4444', marginBottom: '12px', fontSize: '16px' }}>⚠️ 账号注销中</h3>
-          <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: 1.7, marginBottom: '12px' }}>
-            您已提交注销申请，账号将在 <strong style={{ color: '#ef4444' }}>{formatCountdown(deletionStatus.deleteAt)}</strong> 后被永久删除。
+          <h3 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '16px' }}>⚠️ 账号注销中</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7, marginBottom: '12px' }}>
+            您已提交注销申请，账号将在 <strong style={{ color: 'var(--destructive-text)' }}>{formatCountdown(deletionStatus.deleteAt)}</strong> 后被永久删除。
           </p>
-          <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
             预计删除时间：{new Date(deletionStatus.deleteAt).toLocaleString('zh-CN')}
           </p>
-          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '16px' }}>
             在反悔期内，您可以随时取消注销申请，恢复账号正常使用。
           </p>
           <button
             className="btn"
-            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', fontSize: '14px' }}
+            style={{ background: 'var(--btn-gradient-success)', fontSize: '14px' }}
             onClick={handleCancelDeletion}
             disabled={cancelLoading}
           >
@@ -264,17 +305,17 @@ const Profile = ({ user, setUser }) => {
     return (
       <div style={{
         marginTop: '30px', padding: '20px', borderRadius: '12px',
-        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)'
+        background: 'var(--hover-bg)', border: '1px solid var(--border)'
       }}>
-        <h3 style={{ color: '#94a3b8', marginBottom: '8px', fontSize: '16px' }}>危险区域</h3>
-        <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>
+        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '16px' }}>危险区域</h3>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '16px' }}>
           注销账号后，您的所有数据将被永久删除，且无法恢复。
         </p>
         {!showDeleteConfirm ? (
           <button
             style={{
-              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-              color: '#ef4444', borderRadius: '8px', padding: '8px 16px',
+              background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
+              color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px',
               cursor: 'pointer', fontSize: '13px'
             }}
             onClick={() => { setShowDeleteConfirm(true); setDeleteStep(0); setDeletePassword(''); setDeleteError(''); }}
@@ -283,13 +324,13 @@ const Profile = ({ user, setUser }) => {
           </button>
         ) : (
           <div style={{
-            background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)',
+            background: 'var(--destructive-bg-subtle)', border: '1px solid var(--destructive-border-subtle)',
             borderRadius: '8px', padding: '16px'
           }}>
             {deleteStep === 0 && (
               <>
-                <h4 style={{ color: '#ef4444', marginBottom: '12px', fontSize: '14px' }}>确认注销账号</h4>
-                <div style={{ background: 'rgba(239,68,68,0.08)', borderRadius: '6px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: '#f87171', lineHeight: 1.7 }}>
+                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>确认注销账号</h4>
+                <div style={{ background: 'var(--destructive-bg-subtle)', borderRadius: '6px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--destructive-text-light)', lineHeight: 1.7 }}>
                   <p style={{ margin: '0 0 8px 0' }}>⚠️ 请仔细阅读以下内容：</p>
                   <ul style={{ margin: 0, paddingLeft: '16px' }}>
                     <li>注销申请提交后有 <strong>7天反悔期</strong></li>
@@ -300,14 +341,14 @@ const Profile = ({ user, setUser }) => {
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => setShowDeleteConfirm(false)}>我再想想</button>
-                  <button style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }} onClick={() => setDeleteStep(1)}>我已了解，继续</button>
+                  <button style={{ background: 'var(--destructive-bg-strong)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }} onClick={() => setDeleteStep(1)}>我已了解，继续</button>
                 </div>
               </>
             )}
             {deleteStep === 1 && (
               <>
-                <h4 style={{ color: '#ef4444', marginBottom: '12px', fontSize: '14px' }}>输入密码确认</h4>
-                <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '12px' }}>请输入您的登录密码以确认身份</p>
+                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>输入密码确认</h4>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>请输入您的登录密码以确认身份</p>
                 <input
                   type="password"
                   value={deletePassword}
@@ -319,11 +360,11 @@ const Profile = ({ user, setUser }) => {
                     color: 'var(--foreground)', fontSize: '14px', marginBottom: '12px'
                   }}
                 />
-                {deleteError && <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '8px' }}>{deleteError}</p>}
+                {deleteError && <p style={{ color: 'var(--destructive-text)', fontSize: '13px', marginBottom: '8px' }}>{deleteError}</p>}
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setDeleteStep(0); setDeletePassword(''); setDeleteError(''); }}>返回</button>
                   <button
-                    style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }}
+                    style={{ background: 'var(--destructive-bg-strong)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }}
                     disabled={!deletePassword || deleteLoading}
                     onClick={async () => {
                       try {
@@ -343,14 +384,14 @@ const Profile = ({ user, setUser }) => {
             )}
             {deleteStep === 2 && (
               <>
-                <h4 style={{ color: '#ef4444', marginBottom: '12px', fontSize: '14px' }}>最后确认</h4>
-                <p style={{ color: '#f87171', fontSize: '14px', marginBottom: '16px', fontWeight: 500 }}>
+                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>最后确认</h4>
+                <p style={{ color: 'var(--destructive-text-light)', fontSize: '14px', marginBottom: '16px', fontWeight: 500 }}>
                   确定要提交注销申请吗？提交后有7天反悔期。
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); }}>取消</button>
                   <button
-                    style={{ background: '#ef4444', border: 'none', color: '#fff', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
+                    style={{ background: 'var(--destructive)', border: 'none', color: 'var(--btn-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
                     disabled={deleteLoading}
                     onClick={handleRequestDeletion}
                   >
@@ -370,29 +411,119 @@ const Profile = ({ user, setUser }) => {
       <h2>个人中心</h2>
 
       <div className="user-info">
-        <h3>用户信息</h3>
-        <p><strong>用户名：</strong>{user.username}</p>
-        <p><strong>邮箱：</strong>{user.email}</p>
-        <Link to="/change-password" className="btn" style={{marginTop: '10px', display: 'inline-block'}}>修改密码</Link>
+        <div style={{display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '16px'}}>
+          <div style={{position: 'relative'}}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              background: user.avatar ? 'transparent' : 'var(--btn-gradient)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '24px', fontWeight: 700, color: 'var(--btn-text)', overflow: 'hidden'
+            }}>
+              {user.avatar ? (
+                <img src={user.avatar} alt="" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+              ) : (
+                user.username?.charAt(0)?.toUpperCase()
+              )}
+            </div>
+            <label style={{
+              position: 'absolute', bottom: '-2px', right: '-2px',
+              width: '22px', height: '22px', borderRadius: '50%',
+              background: 'var(--primary)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', fontSize: '12px', border: '2px solid var(--card)'
+            }}>
+              📷
+              <input type="file" accept="image/*" onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+                style={{display: 'none'}} />
+            </label>
+          </div>
+          <div>
+            <h3 style={{margin: '0 0 4px 0'}}>{user.username}</h3>
+            <p style={{margin: 0, color: 'var(--text-secondary)', fontSize: '14px'}}>{user.email}</p>
+          </div>
+        </div>
+        <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
+          <Link to="/change-password" className="btn" style={{display: 'inline-block'}}>修改密码</Link>
+          <button onClick={logout} style={{
+            padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--destructive-border)',
+            background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
+            cursor: 'pointer', fontSize: '14px', fontWeight: 500, transition: 'all 0.2s'
+          }}>退出登录</button>
+        </div>
       </div>
 
-      <div className="followed-episodes">
-        <h3>我的追番</h3>
-        {followedEpisodes.length === 0 ? (
-          <p>还没有追番，去首页发现感兴趣的内容吧！</p>
-        ) : (
-          followedEpisodes.map(follow => renderFollowCard(follow))
-        )}
+      <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap'}}>
+        {[
+          { key: 'follows', label: '我的追番', count: followedEpisodes.length },
+          { key: 'favorites', label: '我的收藏', count: favoriteEpisodes.length },
+          { key: 'history', label: '观看历史', count: historyEpisodes.length },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            style={{
+              background: activeTab === tab.key ? 'var(--primary)' : 'var(--hover-bg-strong)',
+              color: activeTab === tab.key ? '#fff' : 'var(--foreground)',
+              border: activeTab === tab.key ? '1px solid var(--primary)' : '1px solid var(--border)',
+              padding: '8px 20px', borderRadius: '20px',
+              cursor: 'pointer', fontSize: '14px', fontWeight: activeTab === tab.key ? 600 : 500,
+              transition: 'all 0.2s',
+              opacity: activeTab === tab.key ? 1 : 0.85
+            }}>
+            {tab.label} ({tab.count})
+          </button>
+        ))}
       </div>
 
-      <div className="followed-episodes" style={{marginTop: '30px'}}>
-        <h3>观看历史</h3>
-        {historyEpisodes.length === 0 ? (
-          <p>暂无观看记录</p>
-        ) : (
-          historyEpisodes.map(history => renderHistoryCard(history))
-        )}
-      </div>
+      {activeTab === 'follows' && (
+        <div className="followed-episodes">
+          {followedEpisodes.length === 0 ? (
+            <p>还没有追番，去首页发现感兴趣的内容吧！</p>
+          ) : (
+            followedEpisodes.map(follow => renderFollowCard(follow))
+          )}
+        </div>
+      )}
+
+      {activeTab === 'favorites' && (
+        <div className="followed-episodes">
+          {favoriteEpisodes.length === 0 ? (
+            <p>还没有收藏，在剧集详情页点击收藏按钮吧！</p>
+          ) : (
+            favoriteEpisodes.map(fav => {
+              const episode = fav.episodeId;
+              if (!episode) return null;
+              return (
+                <div key={fav._id} className="followed-episode-card">
+                  <Link to={`/episode/${episode._id}`}>
+                    <img src={episode.coverImage} alt={episode.title} />
+                  </Link>
+                  <div className="followed-episode-info">
+                    <h4>{episode.title}</h4>
+                    <p>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</p>
+                    {episode.averageRating > 0 && (
+                      <p style={{fontSize: '13px', color: 'var(--warning-text)'}}>⭐ {episode.averageRating} ({episode.ratingCount}人评分)</p>
+                    )}
+                    <button className="btn btn-secondary" onClick={() => handleUnfavorite(episode._id)}
+                      style={{marginTop: '8px', fontSize: '13px'}}>
+                      取消收藏
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <div className="followed-episodes">
+          {historyEpisodes.length === 0 ? (
+            <p>暂无观看记录</p>
+          ) : (
+            historyEpisodes.map(history => renderHistoryCard(history))
+          )}
+        </div>
+      )}
 
       {renderDeleteSection()}
     </div>
