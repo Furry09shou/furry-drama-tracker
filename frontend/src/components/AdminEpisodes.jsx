@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -29,13 +29,16 @@ const AdminEpisodes = () => {
     status: 'ongoing',
     categories: [],
     tags: [],
-    updateDay: ''
+    updateDay: '',
+    premiereDate: ''
   });
   const [newSingleEpisode, setNewSingleEpisode] = useState({
     episodeNumber: 1,
     title: '',
     duration: '',
-    platformLinksList: []
+    platformLinksList: [],
+    scheduledDate: '',
+    isScheduled: false
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -96,6 +99,23 @@ const AdminEpisodes = () => {
 
   const handleAddEpisode = async (e) => {
     e.preventDefault();
+    setError('');
+    if (!newEpisode.coverImage.trim()) {
+      setError('请上传或输入封面图片');
+      return;
+    }
+    if (!newEpisode.title.trim()) {
+      setError('请输入标题');
+      return;
+    }
+    if (!newEpisode.description.trim()) {
+      setError('请输入描述');
+      return;
+    }
+    if (newEpisode.totalEpisodes <= 0) {
+      setError('总集数必须大于0');
+      return;
+    }
     try {
       const token = localStorage.getItem('adminToken');
       const episodeData = {
@@ -107,7 +127,10 @@ const AdminEpisodes = () => {
         status: newEpisode.status,
         category: newEpisode.categories,
         tags: newEpisode.tags,
-        updateDay: newEpisode.updateDay
+        updateDay: newEpisode.updateDay,
+        premiereDate: newEpisode.status === 'upcoming' && newEpisode.premiereDate
+          ? new Date(newEpisode.premiereDate).toISOString()
+          : null
       };
       
       const response = await axios.post('/api/episodes', episodeData, {
@@ -135,7 +158,9 @@ const AdminEpisodes = () => {
           episodeNumber: 1,
           title: '第1集',
           duration: '',
-          platformLinksList: []
+          platformLinksList: [],
+          scheduledDate: '',
+          isScheduled: false
         });
       }
     } catch (error) {
@@ -153,7 +178,10 @@ const AdminEpisodes = () => {
       status: episode.status,
       categories: episode.category || [],
       tags: episode.tags || [],
-      updateDay: episode.updateDay || ''
+      updateDay: episode.updateDay || '',
+      premiereDate: episode.premiereDate
+        ? new Date(episode.premiereDate).toISOString().slice(0, 16)
+        : ''
     });
     setShowEditForm(true);
     fetchSingleEpisodes(episode._id);
@@ -161,6 +189,11 @@ const AdminEpisodes = () => {
 
   const handleUpdateEpisode = async (e) => {
     e.preventDefault();
+    setError('');
+    if (!newEpisode.coverImage.trim()) {
+      setError('请上传或输入封面图片');
+      return;
+    }
     try {
       const token = localStorage.getItem('adminToken');
       const episodeData = {
@@ -171,7 +204,10 @@ const AdminEpisodes = () => {
         status: newEpisode.status,
         category: newEpisode.categories,
         tags: newEpisode.tags,
-        updateDay: newEpisode.updateDay
+        updateDay: newEpisode.updateDay,
+        premiereDate: newEpisode.status === 'upcoming' && newEpisode.premiereDate
+          ? new Date(newEpisode.premiereDate).toISOString()
+          : null
       };
       
       await axios.put(`/api/episodes/${editingEpisode._id}`, episodeData, {
@@ -214,7 +250,11 @@ const AdminEpisodes = () => {
       const episodeId = editingEpisode._id;
       const submitData = {
         ...newSingleEpisode,
-        platformLinks: linksListToObj(newSingleEpisode.platformLinksList)
+        platformLinks: linksListToObj(newSingleEpisode.platformLinksList),
+        scheduledDate: newSingleEpisode.isScheduled && newSingleEpisode.scheduledDate
+          ? new Date(newSingleEpisode.scheduledDate).toISOString()
+          : null,
+        isScheduled: newSingleEpisode.isScheduled
       };
       delete submitData.platformLinksList;
       
@@ -234,7 +274,9 @@ const AdminEpisodes = () => {
         episodeNumber: nextNum,
         title: `第${nextNum}集`,
         duration: '',
-        platformLinksList: []
+        platformLinksList: [],
+        scheduledDate: '',
+        isScheduled: false
       });
       fetchSingleEpisodes(episodeId);
       fetchEpisodes();
@@ -249,7 +291,11 @@ const AdminEpisodes = () => {
       episodeNumber: singleEpisode.episodeNumber,
       title: singleEpisode.title,
       duration: singleEpisode.duration,
-      platformLinksList: toLinksList(singleEpisode.platformLinks)
+      platformLinksList: toLinksList(singleEpisode.platformLinks),
+      scheduledDate: singleEpisode.scheduledDate
+        ? new Date(singleEpisode.scheduledDate).toISOString().slice(0, 16)
+        : '',
+      isScheduled: singleEpisode.isScheduled || false
     });
     setShowSingleEpisodeForm(true);
   };
@@ -285,7 +331,8 @@ const AdminEpisodes = () => {
       status: 'ongoing',
       categories: [],
       tags: [],
-      updateDay: ''
+      updateDay: '',
+      premiereDate: ''
     });
   };
 
@@ -344,7 +391,7 @@ const AdminEpisodes = () => {
     try {
       const token = localStorage.getItem('adminToken');
       const formData = new FormData();
-      formData.append('coverImage', file);
+      formData.append('image', file);
       const response = await axios.post('/api/episodes/upload', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -440,24 +487,22 @@ const AdminEpisodes = () => {
           placeholder="如：3D, 系列, 风格"
         />
       </div>
-      <div className="form-group">
-        <label>更新日</label>
-        <CustomSelect
-          options={[
-            { value: '', label: '不定期' },
-            { value: '周一', label: '周一' },
-            { value: '周二', label: '周二' },
-            { value: '周三', label: '周三' },
-            { value: '周四', label: '周四' },
-            { value: '周五', label: '周五' },
-            { value: '周六', label: '周六' },
-            { value: '周日', label: '周日' }
-          ]}
-          value={newEpisode.updateDay}
-          onChange={(updateDay) => setNewEpisode({...newEpisode, updateDay})}
-          placeholder="选择更新日"
-        />
-      </div>
+      {newEpisode.status === 'upcoming' && (
+        <div className="form-group">
+          <label>🎬 首播日期</label>
+          <input
+            type="datetime-local"
+            value={newEpisode.premiereDate}
+            onChange={(e) => setNewEpisode({...newEpisode, premiereDate: e.target.value})}
+            style={{
+              width: '100%', padding: '8px 12px', borderRadius: '6px',
+              border: '1px solid var(--border)', backgroundColor: 'var(--hover-bg-strong)',
+              color: 'var(--text-light)', fontSize: '14px'
+            }}
+          />
+          <p style={{fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px'}}>设置后将在更新日历中显示为首播预告</p>
+        </div>
+      )}
       {error && <div className="error-message">{error}</div>}
       <div className="form-group">
         <button type="submit">{isEdit ? '更新剧集信息' : '添加并管理单集'}</button>
@@ -501,7 +546,9 @@ const AdminEpisodes = () => {
                   episodeNumber: nextNum,
                   title: `第${nextNum}集`,
                   duration: '',
-                  platformLinksList: []
+                  platformLinksList: [],
+                  scheduledDate: '',
+                  isScheduled: false
                 });
               }
             }}>
@@ -539,6 +586,33 @@ const AdminEpisodes = () => {
                     onChange={(e) => setNewSingleEpisode({...newSingleEpisode, duration: e.target.value})}
                     placeholder="例如：24分钟"
                   />
+                </div>
+                <div className="form-group" style={{ padding: '12px', background: 'var(--hover-bg-strong)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={newSingleEpisode.isScheduled}
+                      onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isScheduled: e.target.checked, scheduledDate: e.target.checked ? newSingleEpisode.scheduledDate || '' : ''})}
+                      style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+                    />
+                    <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>设置为预告更新</label>
+                  </div>
+                  {newSingleEpisode.isScheduled && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>预告更新日期</label>
+                      <input
+                        type="datetime-local"
+                        value={newSingleEpisode.scheduledDate}
+                        onChange={(e) => setNewSingleEpisode({...newSingleEpisode, scheduledDate: e.target.value})}
+                        style={{
+                          width: '100%', padding: '8px 12px', borderRadius: '6px',
+                          border: '1px solid var(--border)', backgroundColor: 'var(--hover-bg)',
+                          color: 'var(--text-light)', fontSize: '14px'
+                        }}
+                      />
+                      <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>设置后将在更新日历中显示为预告</p>
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>跳转链接</label>
@@ -616,7 +690,9 @@ const AdminEpisodes = () => {
                         episodeNumber: nextNum,
                         title: `第${nextNum}集`,
                         duration: '',
-                        platformLinksList: []
+                        platformLinksList: [],
+                        scheduledDate: '',
+                        isScheduled: false
                       });
                     }}>取消编辑</button>
                   )}
@@ -644,7 +720,14 @@ const AdminEpisodes = () => {
                   <tr key={se._id}>
                     <td>{se.episodeNumber}</td>
                     <td>{se.title}</td>
-                    <td>{se.duration || '-'}</td>
+                    <td>
+                      {se.duration || '-'}
+                      {se.isScheduled && se.scheduledDate && (
+                        <div style={{ fontSize: '12px', color: 'var(--warning-text)', marginTop: '2px' }}>
+                          🔔 {new Date(se.scheduledDate).toLocaleString('zh-CN')}
+                        </div>
+                      )}
+                    </td>
                     <td style={{maxWidth: '250px'}}>
                       {se.platformLinks && Object.keys(toPlainObject(se.platformLinks)).length > 0 ? (
                         <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px'}}>

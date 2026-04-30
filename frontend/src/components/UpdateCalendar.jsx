@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 
@@ -72,6 +72,11 @@ const UpdateCalendar = () => {
         items.push({ ...ep, type: 'scheduled' });
       });
     }
+    if (dayData.premieres && dayData.premieres.length > 0) {
+      dayData.premieres.forEach(ep => {
+        items.push({ ...ep, type: 'premiere' });
+      });
+    }
 
     return items;
   };
@@ -123,6 +128,10 @@ const UpdateCalendar = () => {
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--warning)' }}></span>
           <span style={{ color: 'var(--text-secondary)' }}>预告</span>
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)' }}></span>
+          <span style={{ color: 'var(--text-secondary)' }}>首播</span>
         </span>
       </div>
 
@@ -183,28 +192,41 @@ const UpdateCalendar = () => {
                   ...(isToday ? { color: '#fff' } : {})
                 }}>{day}</div>
 
-                {items && items.slice(0, 3).map((item, idx) => (
+                {items && items.slice(0, 3).map((item, idx) => {
+                  const isPremiere = item.type === 'premiere';
+                  const bgMap = {
+                    released: 'var(--success-bg-subtle)',
+                    scheduled: 'var(--warning-bg-subtle)',
+                    premiere: 'var(--primary-bg-subtle)'
+                  };
+                  const colorMap = {
+                    released: 'var(--success-text)',
+                    scheduled: 'var(--warning-text)',
+                    premiere: 'var(--primary)'
+                  };
+                  const borderMap = {
+                    released: 'var(--success-border, rgba(34,197,94,0.2))',
+                    scheduled: 'var(--warning-border, rgba(245,158,11,0.2))',
+                    premiere: 'var(--primary-border, rgba(59,130,246,0.2))'
+                  };
+                  return (
                   <Link key={idx} to={`/episode/${item._id}`} style={{
                     display: 'block', textDecoration: 'none',
                     padding: '1px 4px', borderRadius: '3px',
                     fontSize: '11px', lineHeight: 1.4,
                     marginBottom: '1px',
-                    background: item.type === 'released'
-                      ? 'var(--success-bg-subtle)'
-                      : 'var(--warning-bg-subtle)',
-                    color: item.type === 'released'
-                      ? 'var(--success-text)'
-                      : 'var(--warning-text)',
-                    border: `1px solid ${item.type === 'released'
-                      ? 'var(--success-border, rgba(34,197,94,0.2))'
-                      : 'var(--warning-border, rgba(245,158,11,0.2))'}`,
+                    background: bgMap[item.type],
+                    color: colorMap[item.type],
+                    border: `1px solid ${borderMap[item.type]}`,
                     overflow: 'hidden', textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
                   }}>
                     {item.type === 'scheduled' && '🔔 '}
-                    {item.title} 第{item.episodeNumber}集
+                    {item.type === 'premiere' && '🎬 '}
+                    {item.title}{item.episodeNumber ? ` 第${item.episodeNumber}集` : ''}
                   </Link>
-                ))}
+                  );
+                })}
                 {items && items.length > 3 && (
                   <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', paddingLeft: '4px' }}>
                     +{items.length - 3}更多
@@ -244,7 +266,8 @@ const UpdateCalendar = () => {
               .map(([dateKey, dayData]) => {
                 const allItems = [
                   ...(dayData.released || []).map(ep => ({ ...ep, type: 'released' })),
-                  ...(dayData.scheduled || []).map(ep => ({ ...ep, type: 'scheduled' }))
+                  ...(dayData.scheduled || []).map(ep => ({ ...ep, type: 'scheduled' })),
+                  ...(dayData.premieres || []).map(ep => ({ ...ep, type: 'premiere' }))
                 ];
                 if (allItems.length === 0) return null;
                 const dateObj = new Date(dateKey + 'T00:00:00');
@@ -280,6 +303,13 @@ const UpdateCalendar = () => {
                             border: '1px solid var(--warning-border, rgba(245,158,11,0.2))'
                           }}>预告 {dayData.scheduled.length}</span>
                         )}
+                        {dayData.premieres && dayData.premieres.length > 0 && (
+                          <span style={{
+                            fontSize: '12px', padding: '2px 8px', borderRadius: '10px',
+                            background: 'var(--primary-bg)', color: 'var(--primary)',
+                            border: '1px solid var(--primary-border, rgba(59,130,246,0.2))'
+                          }}>首播 {dayData.premieres.length}</span>
+                        )}
                       </div>
                     </div>
                     <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -304,28 +334,36 @@ const UpdateCalendar = () => {
                               whiteSpace: 'nowrap'
                             }}>{item.title}</div>
                             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                              {item.type === 'scheduled' ? '🔔 预告: ' : '✅ '}
-                              第{item.episodeNumber}集
-                              {item.singleTitle && item.singleTitle !== `第${item.episodeNumber}集` ? ` - ${item.singleTitle}` : ''}
+                              {item.type === 'scheduled' && '🔔 预告: '}
+                              {item.type === 'premiere' && '🎬 首播'}
+                              {item.type === 'released' && '✅ '}
+                              {item.episodeNumber ? `第${item.episodeNumber}集` : ''}
+                              {item.singleTitle && item.episodeNumber && item.singleTitle !== `第${item.episodeNumber}集` ? ` - ${item.singleTitle}` : ''}
                             </div>
                             <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                              更新至第{item.currentEpisodes}集，共{item.totalEpisodes}集
+                              {item.currentEpisodes !== undefined ? `更新至第${item.currentEpisodes}集，` : ''}共{item.totalEpisodes}集
                             </div>
                           </div>
                           <span style={{
                             fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
                             background: item.type === 'released'
                               ? 'var(--success-bg-subtle)'
-                              : 'var(--warning-bg-subtle)',
+                              : item.type === 'premiere'
+                                ? 'var(--primary-bg-subtle)'
+                                : 'var(--warning-bg-subtle)',
                             color: item.type === 'released'
                               ? 'var(--success-text)'
-                              : 'var(--warning-text)',
+                              : item.type === 'premiere'
+                                ? 'var(--primary)'
+                                : 'var(--warning-text)',
                             border: `1px solid ${item.type === 'released'
                               ? 'var(--success-border, rgba(34,197,94,0.2))'
-                              : 'var(--warning-border, rgba(245,158,11,0.2))'}`,
+                              : item.type === 'premiere'
+                                ? 'var(--primary-border, rgba(59,130,246,0.2))'
+                                : 'var(--warning-border, rgba(245,158,11,0.2))'}`,
                             flexShrink: 0, whiteSpace: 'nowrap'
                           }}>
-                            {item.type === 'released' ? '已更新' : '预告'}
+                            {item.type === 'released' ? '已更新' : item.type === 'premiere' ? '首播' : '预告'}
                           </span>
                         </Link>
                       ))}

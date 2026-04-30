@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿﻿﻿﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
 const SearchInput = ({ data, searchKey, placeholder, onSelect, onSearch, displayRender, style }) => {

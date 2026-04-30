@@ -86,12 +86,17 @@ router.get('/calendar', async (req, res) => {
       .populate('episodeId', 'title coverImage currentEpisodes totalEpisodes status')
       .sort({ scheduledDate: 1 });
 
+    const premieres = await Episode.find({
+      status: 'upcoming',
+      premiereDate: { $gte: startDate, $lt: endDate }
+    }).sort({ premiereDate: 1 });
+
     const calendar = {};
 
     released.forEach(se => {
       if (!se.episodeId) return;
       const dateKey = new Date(se.releaseDate).toISOString().split('T')[0];
-      if (!calendar[dateKey]) calendar[dateKey] = { released: [], scheduled: [] };
+      if (!calendar[dateKey]) calendar[dateKey] = { released: [], scheduled: [], premieres: [] };
       calendar[dateKey].released.push({
         _id: se.episodeId._id,
         title: se.episodeId.title,
@@ -107,7 +112,7 @@ router.get('/calendar', async (req, res) => {
     scheduled.forEach(se => {
       if (!se.episodeId) return;
       const dateKey = new Date(se.scheduledDate).toISOString().split('T')[0];
-      if (!calendar[dateKey]) calendar[dateKey] = { released: [], scheduled: [] };
+      if (!calendar[dateKey]) calendar[dateKey] = { released: [], scheduled: [], premieres: [] };
       calendar[dateKey].scheduled.push({
         _id: se.episodeId._id,
         title: se.episodeId.title,
@@ -118,6 +123,18 @@ router.get('/calendar', async (req, res) => {
         totalEpisodes: se.episodeId.totalEpisodes,
         status: se.episodeId.status,
         scheduledId: se._id
+      });
+    });
+
+    premieres.forEach(ep => {
+      const dateKey = new Date(ep.premiereDate).toISOString().split('T')[0];
+      if (!calendar[dateKey]) calendar[dateKey] = { released: [], scheduled: [], premieres: [] };
+      calendar[dateKey].premieres.push({
+        _id: ep._id,
+        title: ep.title,
+        coverImage: ep.coverImage,
+        totalEpisodes: ep.totalEpisodes,
+        status: ep.status
       });
     });
 

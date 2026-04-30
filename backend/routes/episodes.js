@@ -38,7 +38,7 @@ const upload = multer({
   }
 });
 
-router.post('/upload', creatorProtect, upload.single('coverImage'), async (req, res) => {
+router.post('/upload', creatorProtect, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: '请选择要上传的图片' });
@@ -242,6 +242,7 @@ router.post('/', creatorProtect, async (req, res) => {
       category: req.body.category || [],
       tags: req.body.tags || [],
       updateDay: req.body.updateDay || '',
+      premiereDate: req.body.premiereDate || null,
       platformLinks: req.body.platformLinks || {},
       createdBy: req.admin._id,
       reviewStatus: isCreator ? 'pending' : 'approved'
@@ -252,7 +253,11 @@ router.post('/', creatorProtect, async (req, res) => {
     res.status(201).json(episode);
   } catch (error) {
     console.error('Create episode error:', error);
-    res.status(500).json({ message: 'Server error' });
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 });
 
@@ -331,7 +336,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
     }
     
     const oldCurrentEpisodes = episode.currentEpisodes;
-    const allowedFields = ['title', 'description', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'platformLinks'];
+    const allowedFields = ['title', 'description', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks'];
     const updateData = { updatedAt: Date.now() };
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {

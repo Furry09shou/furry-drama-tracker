@@ -52,8 +52,11 @@ const EpisodeSchema = new mongoose.Schema({
   },
   updateDay: {
     type: String,
-    enum: ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     default: ''
+  },
+  premiereDate: {
+    type: Date,
+    default: null
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
