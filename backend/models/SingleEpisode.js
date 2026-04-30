@@ -29,6 +29,14 @@ const SingleEpisodeSchema = new mongoose.Schema({
   releaseDate: {
     type: Date,
     default: Date.now
+  },
+  scheduledDate: {
+    type: Date,
+    default: null
+  },
+  isScheduled: {
+    type: Boolean,
+    default: false
   }
 });
 

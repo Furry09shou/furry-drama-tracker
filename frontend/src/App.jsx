@@ -49,11 +49,6 @@ const NavBar = ({ user, logout }) => {
       .catch(() => {});
   }, []);
 
-  const handleHomeClick = (e) => {
-    e.preventDefault();
-    navigate('/');
-  };
-
   useEffect(() => {
     if (!user) return;
     const token = localStorage.getItem('token');
@@ -131,12 +126,12 @@ const NavBar = ({ user, logout }) => {
     <header>
       <nav>
         <div className="logo">
-          <Link to="/" onClick={handleHomeClick} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {siteSettings.navLogo && (
               <img src={siteSettings.navLogo} alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
             )}
             <h1>{siteSettings.siteName}</h1>
-          </Link>
+          </a>
         </div>
         <ul>
           <li><a href="/" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}>首页</a></li>
@@ -338,6 +333,69 @@ const NavBar = ({ user, logout }) => {
   );
 };
 
+const FooterBeian = () => {
+  const [beianInfo, setBeianInfo] = useState({ icp: '', policeRecord: '', copyright: '', aiDisclaimer: '' });
+
+  useEffect(() => {
+    axios.get('/api/site-content/about')
+      .then(res => {
+        try {
+          const data = JSON.parse(res.data.content);
+          setBeianInfo({
+            icp: data.icp || '', policeRecord: data.policeRecord || '',
+            copyright: data.copyright || '', aiDisclaimer: data.aiDisclaimer || ''
+          });
+        } catch (e) {}
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!beianInfo.icp && !beianInfo.policeRecord && !beianInfo.copyright && !beianInfo.aiDisclaimer) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: '12px', right: '16px', zIndex: 50,
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px',
+      opacity: 0.5, transition: 'opacity 0.3s',
+      fontSize: '12px', lineHeight: 1.6
+    }}
+    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.5'}
+    >
+      {beianInfo.copyright && (
+        <span style={{ color: 'var(--text-secondary)' }}>{beianInfo.copyright}</span>
+      )}
+      {beianInfo.aiDisclaimer && (
+        <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>{beianInfo.aiDisclaimer}</span>
+      )}
+      {beianInfo.icp && (
+        <a
+          href={`https://beian.miit.gov.cn/#/Integrated/index`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}
+          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+        >{beianInfo.icp}</a>
+      )}
+      {beianInfo.policeRecord && (
+        <a
+          href={`https://beian.mps.gov.cn/#/query/webSearch`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+        >
+          <img src="https://www.beian.gov.cn/img/ghs.png"
+            alt="" style={{ width: '14px', height: '14px' }} />
+          {beianInfo.policeRecord}
+        </a>
+      )}
+    </div>
+  );
+};
+
 function AppContent() {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
@@ -408,6 +466,7 @@ function AppContent() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
+      <FooterBeian />
     </>
   );
 }

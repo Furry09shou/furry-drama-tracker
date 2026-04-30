@@ -65,16 +65,67 @@ router.get('/overview', adminProtect, async (req, res) => {
 
 router.get('/calendar', async (req, res) => {
   try {
-    const episodes = await Episode.find({
-      reviewStatus: 'approved',
-      updateDay: { $ne: '' }
-    }).select('title updateDay currentEpisodes totalEpisodes status coverImage');
+    const { month, year } = req.query;
+    const now = new Date();
+    const targetYear = year ? parseInt(year) : now.getFullYear();
+    const targetMonth = month ? parseInt(month) : now.getMonth() + 1;
+
+    const startDate = new Date(targetYear, targetMonth - 1, 1);
+    const endDate = new Date(targetYear, targetMonth, 1);
+
+    const released = await SingleEpisode.find({
+      releaseDate: { $gte: startDate, $lt: endDate }
+    })
+      .populate('episodeId', 'title coverImage currentEpisodes totalEpisodes status')
+      .sort({ releaseDate: 1 });
+
+    const scheduled = await SingleEpisode.find({
+      scheduledDate: { $gte: startDate, $lt: endDate },
+      isScheduled: true
+    })
+      .populate('episodeId', 'title coverImage currentEpisodes totalEpisodes status')
+      .sort({ scheduledDate: 1 });
+
     const calendar = {};
-    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    for (const day of days) {
-      calendar[day] = episodes.filter(ep => ep.updateDay === day);
-    }
-    res.json(calendar);
+
+    released.forEach(se => {
+      if (!se.episodeId) return;
+      const dateKey = new Date(se.releaseDate).toISOString().split('T')[0];
+      if (!calendar[dateKey]) calendar[dateKey] = { released: [], scheduled: [] };
+      calendar[dateKey].released.push({
+        _id: se.episodeId._id,
+        title: se.episodeId.title,
+        coverImage: se.episodeId.coverImage,
+        episodeNumber: se.episodeNumber,
+        singleTitle: se.title,
+        currentEpisodes: se.episodeId.currentEpisodes,
+        totalEpisodes: se.episodeId.totalEpisodes,
+        status: se.episodeId.status
+      });
+    });
+
+    scheduled.forEach(se => {
+      if (!se.episodeId) return;
+      const dateKey = new Date(se.scheduledDate).toISOString().split('T')[0];
+      if (!calendar[dateKey]) calendar[dateKey] = { released: [], scheduled: [] };
+      calendar[dateKey].scheduled.push({
+        _id: se.episodeId._id,
+        title: se.episodeId.title,
+        coverImage: se.episodeId.coverImage,
+        episodeNumber: se.episodeNumber,
+        singleTitle: se.title,
+        currentEpisodes: se.episodeId.currentEpisodes,
+        totalEpisodes: se.episodeId.totalEpisodes,
+        status: se.episodeId.status,
+        scheduledId: se._id
+      });
+    });
+
+    res.json({
+      year: targetYear,
+      month: targetMonth,
+      calendar
+    });
   } catch (error) {
     console.error('Calendar error:', error);
     res.status(500).json({ message: 'Server error' });

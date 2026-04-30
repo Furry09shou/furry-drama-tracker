@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -109,8 +109,27 @@ const SitePage = ({ pageKey }) => {
               color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 2
             }}>
               {aboutData.copyright && <p style={{ margin: '4px 0' }}>{aboutData.copyright}</p>}
-              {aboutData.icp && <p style={{ margin: '4px 0' }}>{aboutData.icp}</p>}
-              {aboutData.policeRecord && <p style={{ margin: '4px 0' }}>{aboutData.policeRecord}</p>}
+              {aboutData.icp && (
+                <p style={{ margin: '4px 0' }}>
+                  <a href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank" rel="noopener noreferrer"
+                    style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}
+                    onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                  >{aboutData.icp}</a>
+                </p>
+              )}
+              {aboutData.policeRecord && (
+                <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <a href="https://beian.mps.gov.cn/#/query/webSearch" target="_blank" rel="noopener noreferrer"
+                    style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                  >
+                    <img src="https://www.beian.gov.cn/img/ghs.png" alt="" style={{ width: '14px', height: '14px' }} />
+                    {aboutData.policeRecord}
+                  </a>
+                </p>
+              )}
               {aboutData.aiDisclaimer && <p style={{ margin: '4px 0', fontStyle: 'italic', color: 'var(--text-tertiary)' }}>{aboutData.aiDisclaimer}</p>}
             </div>
           </div>

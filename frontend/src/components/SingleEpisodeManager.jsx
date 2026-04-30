@@ -16,7 +16,9 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
     episodeNumber: 1,
     title: '',
     duration: '',
-    platformLinksList: []
+    platformLinksList: [],
+    scheduledDate: '',
+    isScheduled: false
   });
   const [error, setError] = useState('');
 
@@ -36,7 +38,11 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
     try {
       const submitData = {
         ...newSingleEpisode,
-        platformLinks: linksListToObj(newSingleEpisode.platformLinksList)
+        platformLinks: linksListToObj(newSingleEpisode.platformLinksList),
+        scheduledDate: newSingleEpisode.isScheduled && newSingleEpisode.scheduledDate
+          ? new Date(newSingleEpisode.scheduledDate).toISOString()
+          : null,
+        isScheduled: newSingleEpisode.isScheduled
       };
       
       if (editingSingleEpisode) {
@@ -61,7 +67,11 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       episodeNumber: singleEpisode.episodeNumber,
       title: singleEpisode.title,
       duration: singleEpisode.duration,
-      platformLinksList: toLinksList(singleEpisode.platformLinks)
+      platformLinksList: toLinksList(singleEpisode.platformLinks),
+      scheduledDate: singleEpisode.scheduledDate
+        ? new Date(singleEpisode.scheduledDate).toISOString().slice(0, 16)
+        : '',
+      isScheduled: singleEpisode.isScheduled || false
     });
     setShowAddForm(true);
   };
@@ -83,7 +93,9 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       episodeNumber: nextNum,
       title: `第${nextNum}集`,
       duration: '',
-      platformLinksList: []
+      platformLinksList: [],
+      scheduledDate: '',
+      isScheduled: false
     });
   };
 
@@ -226,6 +238,39 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   fontSize: '14px'
                 }}
               />
+            </div>
+            <div style={{ marginBottom: '12px', padding: '12px', background: 'var(--hover-bg-strong)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={newSingleEpisode.isScheduled}
+                  onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isScheduled: e.target.checked, scheduledDate: e.target.checked ? newSingleEpisode.scheduledDate || '' : ''})}
+                  style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>设置为预告更新</label>
+              </div>
+              {newSingleEpisode.isScheduled && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>预告更新日期</label>
+                  <input
+                    type="datetime-local"
+                    value={newSingleEpisode.scheduledDate}
+                    onChange={(e) => setNewSingleEpisode({...newSingleEpisode, scheduledDate: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--hover-bg)',
+                      color: 'var(--text-light)',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                    设置后将在更新日历中显示为预告
+                  </p>
+                </div>
+              )}
             </div>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>跳转链接</label>
@@ -405,6 +450,11 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   </div>
                 </div>
                 <p style={{ margin: '8px 0', fontSize: '14px' }}>{singleEpisode.title}</p>
+                {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
+                  <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    🔔 预告: {new Date(singleEpisode.scheduledDate).toLocaleString('zh-CN')}
+                  </p>
+                )}
                 {singleEpisode.duration && (
                   <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>时长: {singleEpisode.duration}</p>
                 )}
