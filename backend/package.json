@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "兽剧内容聚合平台后端服务",
   "main": "src/index.js",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
@@ -31,6 +32,5 @@
     "drama",
     "backend"
   ],
-  "author": "",
-  "license": "ISC"
+  "author": ""
 }
