@@ -1,4 +1,4 @@
-﻿﻿﻿﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿﻿﻿﻿﻿﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
 const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outputHeight, uploadEndpoint }) => {
@@ -322,8 +322,8 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
         <button type="button" className={mode === 'upload' ? 'btn' : 'btn btn-secondary'} onClick={() => setMode('upload')} style={{ fontSize: '13px', padding: '6px 14px' }}>本地上传</button>
       </div>
       {mode === 'url' ? (
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="输入图片URL地址" style={{ flex: 1 }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUrlConfirm(); } }} />
+        <div>
+          <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="输入图片URL地址" style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px', marginBottom: '8px' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUrlConfirm(); } }} />
           <button type="button" className="btn" style={{ fontSize: '13px', padding: '6px 14px', whiteSpace: 'nowrap' }} onClick={handleUrlConfirm}>
             {aspectRatio ? '裁剪' : '确认'}
           </button>

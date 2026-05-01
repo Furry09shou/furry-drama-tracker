@@ -135,7 +135,7 @@ const AdminCreatorProfile = () => {
                     }}
                   >删除</button>
                 </div>
-                <div style={{display: 'flex', gap: '8px'}}>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '6px'}}>
                   <input
                     type="text"
                     value={item.name}
@@ -145,7 +145,7 @@ const AdminCreatorProfile = () => {
                       setSocialLinks(newList);
                     }}
                     placeholder="平台名称，如：Twitter、B站"
-                    style={{flex: 1}}
+                    style={{width: '100%'}}
                   />
                   <input
                     type="text"
@@ -156,7 +156,7 @@ const AdminCreatorProfile = () => {
                       setSocialLinks(newList);
                     }}
                     placeholder="链接地址"
-                    style={{flex: 2}}
+                    style={{width: '100%'}}
                   />
                 </div>
               </div>

@@ -192,6 +192,8 @@ router.put('/single/:id', adminProtect, async (req, res) => {
     if (req.body.platformLinks !== undefined) updateData.platformLinks = req.body.platformLinks;
     if (req.body.scheduledDate !== undefined) updateData.scheduledDate = req.body.scheduledDate;
     if (req.body.isScheduled !== undefined) updateData.isScheduled = req.body.isScheduled;
+    if (req.body.premiereDate !== undefined) updateData.premiereDate = req.body.premiereDate;
+    if (req.body.isUpcoming !== undefined) updateData.isUpcoming = req.body.isUpcoming;
     
     const singleEpisode = await SingleEpisode.findByIdAndUpdate(
       req.params.id,
@@ -284,7 +286,9 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
       duration: req.body.duration || '',
       platformLinks: req.body.platformLinks || {},
       scheduledDate: req.body.scheduledDate || null,
-      isScheduled: req.body.isScheduled || false
+      isScheduled: req.body.isScheduled || false,
+      premiereDate: req.body.premiereDate || null,
+      isUpcoming: req.body.isUpcoming || false
     };
     
     const singleEpisode = await SingleEpisode.create(singleEpisodeData);

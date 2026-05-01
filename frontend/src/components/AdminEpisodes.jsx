@@ -38,7 +38,9 @@ const AdminEpisodes = () => {
     duration: '',
     platformLinksList: [],
     scheduledDate: '',
-    isScheduled: false
+    isScheduled: false,
+    premiereDate: '',
+    isUpcoming: false
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -160,7 +162,9 @@ const AdminEpisodes = () => {
           duration: '',
           platformLinksList: [],
           scheduledDate: '',
-          isScheduled: false
+          isScheduled: false,
+          premiereDate: '',
+          isUpcoming: false
         });
       }
     } catch (error) {
@@ -254,7 +258,11 @@ const AdminEpisodes = () => {
         scheduledDate: newSingleEpisode.isScheduled && newSingleEpisode.scheduledDate
           ? new Date(newSingleEpisode.scheduledDate).toISOString()
           : null,
-        isScheduled: newSingleEpisode.isScheduled
+        isScheduled: newSingleEpisode.isScheduled,
+        premiereDate: newSingleEpisode.isUpcoming && newSingleEpisode.premiereDate
+          ? new Date(newSingleEpisode.premiereDate).toISOString()
+          : null,
+        isUpcoming: newSingleEpisode.isUpcoming
       };
       delete submitData.platformLinksList;
       
@@ -276,7 +284,9 @@ const AdminEpisodes = () => {
         duration: '',
         platformLinksList: [],
         scheduledDate: '',
-        isScheduled: false
+        isScheduled: false,
+        premiereDate: '',
+        isUpcoming: false
       });
       fetchSingleEpisodes(episodeId);
       fetchEpisodes();
@@ -295,7 +305,11 @@ const AdminEpisodes = () => {
       scheduledDate: singleEpisode.scheduledDate
         ? new Date(singleEpisode.scheduledDate).toISOString().slice(0, 16)
         : '',
-      isScheduled: singleEpisode.isScheduled || false
+      isScheduled: singleEpisode.isScheduled || false,
+      premiereDate: singleEpisode.premiereDate
+        ? new Date(singleEpisode.premiereDate).toISOString().slice(0, 16)
+        : '',
+      isUpcoming: singleEpisode.isUpcoming || false
     });
     setShowSingleEpisodeForm(true);
   };
@@ -411,7 +425,7 @@ const AdminEpisodes = () => {
   const renderEpisodeForm = (isEdit) => (
     <form onSubmit={isEdit ? handleUpdateEpisode : handleAddEpisode}>
       <div className="form-group">
-        <label>标题</label>
+        <label>标题 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <input
           type="text"
           value={newEpisode.title}
@@ -420,7 +434,7 @@ const AdminEpisodes = () => {
         />
       </div>
       <div className="form-group">
-        <label>描述</label>
+        <label>描述 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <textarea
           value={newEpisode.description}
           onChange={(e) => setNewEpisode({...newEpisode, description: e.target.value})}
@@ -429,7 +443,7 @@ const AdminEpisodes = () => {
         />
       </div>
       <div className="form-group">
-        <label>封面图片</label>
+        <label>封面图片 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <ImageUploader
           value={newEpisode.coverImage}
           onChange={(url) => setNewEpisode({...newEpisode, coverImage: url})}
@@ -441,7 +455,7 @@ const AdminEpisodes = () => {
         />
       </div>
       <div className="form-group">
-        <label>总集数</label>
+        <label>总集数 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <input
           type="number"
           value={newEpisode.totalEpisodes}
@@ -548,7 +562,9 @@ const AdminEpisodes = () => {
                   duration: '',
                   platformLinksList: [],
                   scheduledDate: '',
-                  isScheduled: false
+                  isScheduled: false,
+                  premiereDate: '',
+                  isUpcoming: false
                 });
               }
             }}>
@@ -611,6 +627,33 @@ const AdminEpisodes = () => {
                         }}
                       />
                       <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>设置后将在更新日历中显示为预告</p>
+                    </div>
+                  )}
+                </div>
+                <div className="form-group" style={{ padding: '12px', background: 'var(--hover-bg-strong)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={newSingleEpisode.isUpcoming}
+                      onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isUpcoming: e.target.checked, premiereDate: e.target.checked ? newSingleEpisode.premiereDate || '' : ''})}
+                      style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+                    />
+                    <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>🎬 设置为即将上映</label>
+                  </div>
+                  {newSingleEpisode.isUpcoming && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>上映日期</label>
+                      <input
+                        type="datetime-local"
+                        value={newSingleEpisode.premiereDate}
+                        onChange={(e) => setNewSingleEpisode({...newSingleEpisode, premiereDate: e.target.value})}
+                        style={{
+                          width: '100%', padding: '8px 12px', borderRadius: '6px',
+                          border: '1px solid var(--border)', backgroundColor: 'var(--hover-bg)',
+                          color: 'var(--text-light)', fontSize: '14px'
+                        }}
+                      />
+                      <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>设置后将在更新日历中显示为首播</p>
                     </div>
                   )}
                 </div>
@@ -692,7 +735,9 @@ const AdminEpisodes = () => {
                         duration: '',
                         platformLinksList: [],
                         scheduledDate: '',
-                        isScheduled: false
+                        isScheduled: false,
+                        premiereDate: '',
+                        isUpcoming: false
                       });
                     }}>取消编辑</button>
                   )}
@@ -724,7 +769,12 @@ const AdminEpisodes = () => {
                       {se.duration || '-'}
                       {se.isScheduled && se.scheduledDate && (
                         <div style={{ fontSize: '12px', color: 'var(--warning-text)', marginTop: '2px' }}>
-                          🔔 {new Date(se.scheduledDate).toLocaleString('zh-CN')}
+                          🔔 预告: {new Date(se.scheduledDate).toLocaleString('zh-CN')}
+                        </div>
+                      )}
+                      {se.isUpcoming && se.premiereDate && (
+                        <div style={{ fontSize: '12px', color: 'var(--primary)', marginTop: '2px' }}>
+                          🎬 上映: {new Date(se.premiereDate).toLocaleString('zh-CN')}
                         </div>
                       )}
                     </td>

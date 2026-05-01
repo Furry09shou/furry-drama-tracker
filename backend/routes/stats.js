@@ -91,6 +91,13 @@ router.get('/calendar', async (req, res) => {
       premiereDate: { $gte: startDate, $lt: endDate }
     }).sort({ premiereDate: 1 });
 
+    const upcomingSingles = await SingleEpisode.find({
+      isUpcoming: true,
+      premiereDate: { $gte: startDate, $lt: endDate }
+    })
+      .populate('episodeId', 'title coverImage currentEpisodes totalEpisodes status')
+      .sort({ premiereDate: 1 });
+
     const calendar = {};
 
     released.forEach(se => {
@@ -135,6 +142,22 @@ router.get('/calendar', async (req, res) => {
         coverImage: ep.coverImage,
         totalEpisodes: ep.totalEpisodes,
         status: ep.status
+      });
+    });
+
+    upcomingSingles.forEach(se => {
+      if (!se.episodeId) return;
+      const dateKey = new Date(se.premiereDate).toISOString().split('T')[0];
+      if (!calendar[dateKey]) calendar[dateKey] = { released: [], scheduled: [], premieres: [] };
+      calendar[dateKey].premieres.push({
+        _id: se.episodeId._id,
+        title: se.episodeId.title,
+        coverImage: se.episodeId.coverImage,
+        episodeNumber: se.episodeNumber,
+        singleTitle: se.title,
+        totalEpisodes: se.episodeId.totalEpisodes,
+        status: se.episodeId.status,
+        isSinglePremiere: true
       });
     });
 

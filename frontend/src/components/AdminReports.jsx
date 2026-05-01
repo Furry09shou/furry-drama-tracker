@@ -119,21 +119,23 @@ const AdminReports = () => {
                   </div>
                 </div>
                 {r.status === 'pending' && (
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                     <input value={resolveNote} onChange={e => setResolveNote(e.target.value)}
                       placeholder="处理备注" style={{
-                        padding: '6px 10px', borderRadius: '6px', fontSize: '13px',
+                        padding: '8px 12px', borderRadius: '6px', fontSize: '13px',
                         background: 'var(--hover-bg-strong)', border: '1px solid var(--border)',
-                        color: 'var(--foreground)', width: '140px'
+                        color: 'var(--foreground)', width: '100%'
                       }} />
-                    <button onClick={() => handleResolve(r._id, 'resolved')}
-                      className="btn" style={{ fontSize: '13px', padding: '6px 12px', background: 'var(--secondary)' }}>
-                      处理
-                    </button>
-                    <button onClick={() => handleResolve(r._id, 'dismissed')}
-                      className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 12px' }}>
-                      驳回
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => handleResolve(r._id, 'resolved')}
+                        className="btn" style={{ fontSize: '13px', padding: '6px 12px', background: 'var(--secondary)' }}>
+                        处理
+                      </button>
+                      <button onClick={() => handleResolve(r._id, 'dismissed')}
+                        className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 12px' }}>
+                        驳回
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -37,6 +37,14 @@ const SingleEpisodeSchema = new mongoose.Schema({
   isScheduled: {
     type: Boolean,
     default: false
+  },
+  premiereDate: {
+    type: Date,
+    default: null
+  },
+  isUpcoming: {
+    type: Boolean,
+    default: false
   }
 });
 

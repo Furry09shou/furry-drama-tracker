@@ -115,6 +115,22 @@ const NavBar = ({ user, logout }) => {
     return `${Math.floor(diff / 86400000)}天前`;
   };
 
+  const clearSiteCache = () => {
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+      });
+    }
+    window.localStorage.removeItem('theme');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => reg.unregister());
+      });
+    }
+    setShowMoreMenu(false);
+    window.location.reload();
+  };
+
   const moreMenuItems = [
     ...(user ? [{ to: '/admin/dashboard', label: '管理后台' }] : []),
     { to: '/privacy', label: '隐私政策' },
@@ -268,6 +284,17 @@ const NavBar = ({ user, logout }) => {
                       >{item.label}</Link>
                     ))}
                     <div style={{borderTop: '1px solid var(--border)'}}>
+                      <button onClick={clearSiteCache} style={{
+                        display: 'block', width: '100%', padding: '12px 16px',
+                        color: 'var(--foreground)', background: 'none', border: 'none',
+                        fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+                        transition: 'background 0.2s',
+                        borderBottom: '1px solid var(--border)'
+                      }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >清理缓存</button>
+                    </div>
+                    <div>
                       <button onClick={() => { setShowMoreMenu(false); logout(); }} style={{
                         display: 'block', width: '100%', padding: '12px 16px',
                         color: 'var(--destructive-text)', background: 'none', border: 'none',
@@ -322,6 +349,16 @@ const NavBar = ({ user, logout }) => {
                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >{item.label}</Link>
                     ))}
+                    <div style={{borderTop: '1px solid var(--border)'}}>
+                      <button onClick={clearSiteCache} style={{
+                        display: 'block', width: '100%', padding: '12px 16px',
+                        color: 'var(--foreground)', background: 'none', border: 'none',
+                        fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+                        transition: 'background 0.2s'
+                      }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >清理缓存</button>
+                    </div>
                   </div>
                 )}
               </li>
