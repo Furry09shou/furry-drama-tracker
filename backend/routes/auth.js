@@ -7,7 +7,7 @@ const https = require('https');
 const protect = require('../middlewares/auth');
 const adminProtect = require('../middlewares/adminAuth');
 const { validatePassword } = require('../middlewares/security');
-const { sendPasswordResetEmail } = require('../utils/email');
+const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/email');
 
 const getIpRegion = (ip) => {
   return new Promise((resolve) => {
@@ -117,6 +117,7 @@ router.post('/register', async (req, res) => {
       username,
       email,
       password,
+      isEmailVerified: false,
       deviceInfo: {
         browser: deviceInfo?.browser || parsed.browser,
         browserVersion: deviceInfo?.browserVersion || parsed.browserVersion,
@@ -135,15 +136,17 @@ router.post('/register', async (req, res) => {
       lastLoginRegion: await getIpRegion(req.ip || req.connection.remoteAddress || '')
     });
     
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
-    });
+    const verifyToken = jwt.sign(
+      { id: user._id, purpose: 'verify-email' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    sendVerificationEmail(email, verifyToken).catch(() => {});
     
     res.json({
-      _id: user._id,
-      username: user.username,
+      message: '注册成功，请验证邮箱后登录',
       email: user.email,
-      token
+      needVerification: true
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -181,6 +184,16 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    if (!user.isEmailVerified) {
+      const verifyToken = jwt.sign(
+        { id: user._id, purpose: 'verify-email' },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      sendVerificationEmail(user.email, verifyToken).catch(() => {});
+      return res.status(403).json({ message: '请先验证邮箱后再登录，验证邮件已重新发送至您的邮箱', needVerification: true, email: user.email });
+    }
+
     user.deviceInfo = {
       browser: deviceInfo?.browser || parsed.browser,
       browserVersion: deviceInfo?.browserVersion || parsed.browserVersion,
@@ -207,6 +220,7 @@ router.post('/login', async (req, res) => {
       _id: user._id,
       username: user.username,
       email: user.email,
+      isEmailVerified: user.isEmailVerified,
       token
     });
   } catch (error) {
@@ -302,6 +316,83 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: '重置链接已过期，请重新获取' });
     }
     res.status(400).json({ message: '无效的重置令牌' });
+  }
+});
+
+router.post('/verify-email', async (req, res) => {
+  const { token } = req.body;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose !== 'verify-email') {
+      return res.status(400).json({ message: '无效的验证令牌' });
+    }
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    if (user.isEmailVerified) {
+      return res.json({ message: '邮箱已验证' });
+    }
+    user.isEmailVerified = true;
+    await user.save();
+    res.json({ message: '邮箱验证成功' });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({ message: '验证链接已过期，请重新获取' });
+    }
+    res.status(400).json({ message: '无效的验证令牌' });
+  }
+});
+
+router.post('/resend-verification', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    if (user.isEmailVerified) {
+      return res.status(400).json({ message: '邮箱已验证' });
+    }
+    const verifyToken = jwt.sign(
+      { id: user._id, purpose: 'verify-email' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    const sent = await sendVerificationEmail(user.email, verifyToken);
+    if (!sent) {
+      return res.json({ message: '邮件服务未配置，请联系管理员' });
+    }
+    res.json({ message: '验证邮件已发送' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/resend-verification-by-email', async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email) {
+      return res.status(400).json({ message: '请提供邮箱地址' });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json({ message: '如果该邮箱已注册且未验证，验证邮件已发送' });
+    }
+    if (user.isEmailVerified) {
+      return res.json({ message: '如果该邮箱已注册且未验证，验证邮件已发送' });
+    }
+    const verifyToken = jwt.sign(
+      { id: user._id, purpose: 'verify-email' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    const sent = await sendVerificationEmail(user.email, verifyToken);
+    if (!sent) {
+      return res.json({ message: '邮件服务未配置，请联系管理员' });
+    }
+    res.json({ message: '验证邮件已发送至您的邮箱' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

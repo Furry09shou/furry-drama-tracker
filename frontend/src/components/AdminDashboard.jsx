@@ -89,6 +89,14 @@ const AdminDashboard = () => {
           </Link>
         )}
 
+        {admin.role === 'superadmin' && (
+          <Link to="/admin/email-settings" className="dashboard-card">
+            <div className="card-icon">📧</div>
+            <h3>邮件服务设置</h3>
+            <p>配置SMTP邮件发送服务</p>
+          </Link>
+        )}
+
         {(admin.role === 'admin' || admin.role === 'superadmin') && (
           <Link to="/admin/review" className="dashboard-card">
             <div className="card-icon">✅</div>
@@ -104,12 +112,6 @@ const AdminDashboard = () => {
             <p>处理用户举报</p>
           </Link>
         )}
-
-        <Link to="/admin/stats" className="dashboard-card">
-          <div className="card-icon">📊</div>
-          <h3>数据统计</h3>
-          <p>查看平台运营数据</p>
-        </Link>
 
         <Link to="/admin/change-password" className="dashboard-card">
           <div className="card-icon">🔐</div>

@@ -1,6 +1,6 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +9,8 @@ const Register = () => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [registered, setRegistered] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   const navigate = useNavigate();
   
   const handleChange = (e) => {
@@ -71,15 +73,51 @@ const Register = () => {
         ...formData,
         deviceInfo: getDeviceInfo()
       });
-      navigate('/login');
+      setRegisteredEmail(formData.email);
+      setRegistered(true);
     } catch (error) {
       setError(error.response?.data?.message || '注册失败');
     }
   };
   
+  if (registered) {
+    return (
+      <div className="auth-form" style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📧</div>
+        <h2>验证您的邮箱</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.7 }}>
+          验证邮件已发送至 <strong style={{ color: 'var(--foreground)' }}>{registeredEmail}</strong>
+        </p>
+        <div style={{
+          padding: '14px', marginBottom: '20px', borderRadius: '8px',
+          background: 'var(--warning-bg)', border: '1px solid var(--warning-border)',
+          color: 'var(--warning-text)', fontSize: '13px', lineHeight: 1.7, textAlign: 'left'
+        }}>
+          <p style={{margin: '0 0 6px 0', fontWeight: 600}}>⚠️ 必须完成邮箱验证才能登录</p>
+          <ul style={{margin: 0, paddingLeft: '16px'}}>
+            <li>请查收邮件并点击验证链接（24小时内有效）</li>
+            <li>验证完成后方可登录使用</li>
+            <li>如未收到邮件，请检查垃圾邮件</li>
+          </ul>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <button className="btn" onClick={() => navigate('/login')}>前往登录</button>
+          <Link to="/" className="btn btn-secondary">返回首页</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-form">
       <h2>注册</h2>
+      <div style={{
+        padding: '10px 14px', marginBottom: '16px', borderRadius: '8px',
+        background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)',
+        color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6
+      }}>
+        📧 注册需验证邮箱，请填写您可接收邮件的邮箱地址
+      </div>
       {error && <div className="error-message">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">

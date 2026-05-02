@@ -51,7 +51,10 @@ const AdminStats = () => {
 
   return (
     <div>
-      <h2 style={{ marginBottom: '24px' }}>📊 数据统计</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+        <button className="btn btn-secondary" onClick={() => navigate(-1)}>← 返回上一步</button>
+        <h2 style={{ margin: 0 }}>📊 数据统计</h2>
+      </div>
 
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
@@ -98,7 +101,7 @@ const AdminStats = () => {
           background: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: '12px', padding: '20px'
         }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>🔥 浭门剧集</h3>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>🔥 热门剧集</h3>
           {stats.mostViewed.map((ep, i) => (
             <div key={ep._id} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',

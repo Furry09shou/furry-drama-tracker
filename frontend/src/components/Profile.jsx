@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -16,6 +16,8 @@ const Profile = ({ user, setUser, logout }) => {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('follows');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
 
   const location = useLocation();
 
@@ -441,6 +443,53 @@ const Profile = ({ user, setUser, logout }) => {
           <div>
             <h3 style={{margin: '0 0 4px 0'}}>{user.username}</h3>
             <p style={{margin: 0, color: 'var(--text-secondary)', fontSize: '14px'}}>{user.email}</p>
+            {user.isEmailVerified ? (
+              <span style={{
+                display: 'inline-block', marginTop: '6px', fontSize: '12px',
+                color: 'var(--success-text)', background: 'var(--success-bg)',
+                padding: '2px 10px', borderRadius: '12px',
+                border: '1px solid var(--success-border)'
+              }}>✓ 邮箱已验证</span>
+            ) : (
+              <div style={{ marginTop: '8px' }}>
+                <span style={{
+                  display: 'inline-block', fontSize: '12px',
+                  color: 'var(--warning-text)', background: 'var(--warning-bg)',
+                  padding: '2px 10px', borderRadius: '12px',
+                  border: '1px solid var(--warning-border)', marginRight: '8px'
+                }}>⚠ 邮箱未验证</span>
+                <button
+                  onClick={async () => {
+                    setResendLoading(true);
+                    setResendMsg('');
+                    try {
+                      const token = localStorage.getItem('token');
+                      const res = await axios.post('/api/auth/resend-verification', {}, {
+                        headers: { Authorization: `Bearer ${token}` }
+                      });
+                      setResendMsg(res.data.message);
+                    } catch (err) {
+                      setResendMsg(err.response?.data?.message || '发送失败');
+                    }
+                    setResendLoading(false);
+                  }}
+                  disabled={resendLoading}
+                  style={{
+                    fontSize: '12px', color: 'var(--primary)', background: 'none',
+                    border: 'none', cursor: 'pointer', padding: '2px 4px',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  {resendLoading ? '发送中...' : '重新发送验证邮件'}
+                </button>
+                {resendMsg && (
+                  <p style={{
+                    fontSize: '12px', margin: '4px 0 0 0',
+                    color: resendMsg.includes('已发送') ? 'var(--success-text)' : 'var(--destructive-text)'
+                  }}>{resendMsg}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>

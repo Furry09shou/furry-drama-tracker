@@ -25,6 +25,8 @@ import NotFound from './components/NotFound';
 import { PrivacyPage, TermsPage, AboutPage, LicensePage } from './components/SitePage';
 import ChangePassword from './components/ChangePassword';
 import ResetPassword from './components/ResetPassword';
+import VerifyEmail from './components/VerifyEmail';
+import AdminEmailSettings from './components/AdminEmailSettings';
 
 const NavBar = ({ user, logout }) => {
   const navigate = useNavigate();
@@ -132,7 +134,7 @@ const NavBar = ({ user, logout }) => {
   };
 
   const moreMenuItems = [
-    ...(user ? [{ to: '/admin/dashboard', label: '管理后台' }] : []),
+    ...(user ? [{ to: '/admin/dashboard', label: '管理后台' }, { to: '/admin/stats', label: '数据统计' }] : []),
     { to: '/privacy', label: '隐私政策' },
     { to: '/terms', label: '用户协议' },
     { to: '/license', label: '许可协议' },
@@ -372,7 +374,7 @@ const NavBar = ({ user, logout }) => {
 };
 
 const FooterBeian = () => {
-  const [beianInfo, setBeianInfo] = useState({ icp: '', policeRecord: '', copyright: '', aiDisclaimer: '' });
+  const [beianInfo, setBeianInfo] = useState({ icp: '', policeRecord: '', copyright: '', aiDisclaimer: '', version: '' });
 
   useEffect(() => {
     axios.get('/api/site-content/about')
@@ -381,7 +383,8 @@ const FooterBeian = () => {
           const data = JSON.parse(res.data.content);
           setBeianInfo({
             icp: data.icp || '', policeRecord: data.policeRecord || '',
-            copyright: data.copyright || '', aiDisclaimer: data.aiDisclaimer || ''
+            copyright: data.copyright || '', aiDisclaimer: data.aiDisclaimer || '',
+            version: data.version || ''
           });
         } catch (e) {}
       })
@@ -434,6 +437,9 @@ const FooterBeian = () => {
         onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
         onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
       >GPL v3.0 / AGPL v3.0 许可协议</Link>
+      {beianInfo.version && (
+        <span style={{ color: 'var(--text-tertiary)' }}>v{beianInfo.version}</span>
+      )}
     </div>
   );
 };
@@ -488,6 +494,7 @@ function AppContent() {
           <Route path="/profile" element={user ? <Profile user={user} setUser={setUser} logout={logout} /> : <Navigate to="/login" />} />
           <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/calendar" element={<UpdateCalendar />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -500,6 +507,7 @@ function AppContent() {
           <Route path="/admin/stats" element={<AdminStats />} />
           <Route path="/admin/creator-profile" element={<AdminCreatorProfile />} />
           <Route path="/admin/site-content" element={<AdminSiteContent />} />
+          <Route path="/admin/email-settings" element={<AdminEmailSettings />} />
           <Route path="/admin/change-password" element={<ChangePassword />} />
           <Route path="/creator/:id" element={<CreatorPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />

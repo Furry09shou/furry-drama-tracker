@@ -6,6 +6,8 @@ const crypto = require('crypto');
 const SiteContent = require('../models/SiteContent');
 const adminProtect = require('../middlewares/adminAuth');
 const superAdminProtect = require('../middlewares/superAdminAuth');
+const nodemailer = require('nodemailer');
+const { clearEmailCache } = require('../utils/email');
 
 const siteStorage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -78,6 +80,11 @@ const DEFAULT_CONTENT = {
     key: 'settings',
     title: '站点设置',
     content: '{"siteName":"兽剧聚合平台","navLogo":"","welcomeTitle":"欢迎来到兽剧聚合平台","welcomeSubtitle":"发现和追踪你喜爱的兽剧内容"}'
+  },
+  email: {
+    key: 'email',
+    title: '邮件服务',
+    content: '{"host":"","port":"465","user":"","pass":"","fromName":"兽剧聚合平台","enabled":false}'
   }
 };
 
@@ -105,6 +112,9 @@ router.put('/:key', superAdminProtect, async (req, res) => {
       { title, content, updatedAt: Date.now() },
       { new: true, upsert: true, runValidators: true }
     );
+    if (req.params.key === 'email') {
+      clearEmailCache();
+    }
     res.json(updated);
   } catch (error) {
     console.error('Update site content error:', error);
@@ -125,6 +135,42 @@ router.get('/', superAdminProtect, async (req, res) => {
   } catch (error) {
     console.error('Get all site content error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/test-email', superAdminProtect, async (req, res) => {
+  try {
+    const { host, port, user, pass, fromName, to } = req.body;
+    if (!host || !user || !pass || !to) {
+      return res.status(400).json({ message: '请填写完整的邮件服务配置和收件地址' });
+    }
+    const transporter = nodemailer.createTransport({
+      host,
+      port: parseInt(port || '465'),
+      secure: parseInt(port || '465') === 465,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      auth: { user, pass }
+    });
+    await transporter.sendMail({
+      from: `"${fromName || '兽剧聚合平台'}" <${user}>`,
+      to,
+      subject: '邮件服务测试 - 兽剧聚合平台',
+      html: `
+        <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
+          <h2 style="color:#6366f1;">邮件服务测试</h2>
+          <p>这是一封测试邮件，用于验证邮件服务配置是否正确。</p>
+          <p>如果您收到了此邮件，说明邮件服务配置成功！</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+          <p style="color:#94a3b8;font-size:12px;">此邮件由管理后台发送，请勿回复。</p>
+        </div>
+      `
+    });
+    res.json({ message: '测试邮件发送成功，请检查收件箱' });
+  } catch (error) {
+    console.error('Test email error:', error);
+    res.status(400).json({ message: `邮件发送失败：${error.message || '未知错误'}` });
   }
 });
 

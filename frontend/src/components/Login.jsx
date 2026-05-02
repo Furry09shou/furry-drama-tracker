@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,6 +15,10 @@ const Login = ({ login }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [needVerification, setNeedVerification] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
   const navigate = useNavigate();
   
   const handleChange = (e) => {
@@ -64,6 +68,8 @@ const Login = ({ login }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setNeedVerification(false);
     try {
       const response = await axios.post('/api/auth/login', {
         ...formData,
@@ -72,7 +78,14 @@ const Login = ({ login }) => {
       login(response.data);
       navigate('/');
     } catch (error) {
-      setError(error.response?.data?.message || '登录失败');
+      const data = error.response?.data;
+      if (data?.needVerification) {
+        setNeedVerification(true);
+        setVerifyEmail(data.email || formData.email);
+        setError(data.message || '请先验证邮箱后再登录');
+      } else {
+        setError(data?.message || '登录失败');
+      }
     }
   };
 
@@ -201,6 +214,41 @@ const Login = ({ login }) => {
     <div className="auth-form">
       <h2>登录</h2>
       {error && <div className="error-message">{error}</div>}
+      {needVerification && (
+        <div style={{
+          padding: '16px', marginBottom: '16px', borderRadius: '8px',
+          background: 'var(--warning-bg)', border: '1px solid var(--warning-border)',
+          color: 'var(--warning-text)', fontSize: '14px', lineHeight: 1.7
+        }}>
+          <p style={{margin: '0 0 10px 0'}}>📧 您的邮箱 <strong>{verifyEmail}</strong> 尚未验证，请查收验证邮件完成验证后再登录。</p>
+          <button
+            onClick={async () => {
+              setResendLoading(true);
+              setResendMsg('');
+              try {
+                const res = await axios.post('/api/auth/resend-verification-by-email', { email: verifyEmail });
+                setResendMsg(res.data.message);
+              } catch (err) {
+                setResendMsg(err.response?.data?.message || '发送失败');
+              }
+              setResendLoading(false);
+            }}
+            disabled={resendLoading}
+            style={{
+              padding: '6px 16px', borderRadius: '6px', fontSize: '13px',
+              background: 'var(--btn-gradient)', color: 'var(--btn-text)',
+              border: 'none', cursor: 'pointer', fontWeight: 500
+            }}
+          >
+            {resendLoading ? '发送中...' : '重新发送验证邮件'}
+          </button>
+          {resendMsg && (
+            <p style={{margin: '8px 0 0 0', fontSize: '13px',
+              color: resendMsg.includes('已发送') ? 'var(--success-text)' : 'var(--destructive-text)'
+            }}>{resendMsg}</p>
+          )}
+        </div>
+      )}
       {successMsg && <div className="success-message" style={{padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{successMsg}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
