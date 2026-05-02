@@ -8,6 +8,9 @@ const createTransporter = () => {
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT || '465'),
     secure: parseInt(process.env.EMAIL_PORT || '465') === 465,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
@@ -18,7 +21,7 @@ const createTransporter = () => {
 const sendPasswordResetEmail = async (email, resetToken) => {
   const transporter = createTransporter();
   if (!transporter) {
-    console.log(`[Email] Password reset token for ${email}: ${resetToken} (email not configured)`);
+    console.log(`[Email] Password reset requested for ${email} (email service not configured)`);
     return false;
   }
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;

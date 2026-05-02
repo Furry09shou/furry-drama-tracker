@@ -33,6 +33,14 @@ for (const varName of requiredEnvVars) {
 
 const app = express();
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
 connectDB();
 
 app.use(helmet({
@@ -46,7 +54,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, false);
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {

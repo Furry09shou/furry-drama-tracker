@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const SiteContent = require('../models/SiteContent');
 const adminProtect = require('../middlewares/adminAuth');
 const superAdminProtect = require('../middlewares/superAdminAuth');
@@ -11,7 +12,7 @@ const siteStorage = multer.diskStorage({
     cb(null, path.join(__dirname, '../uploads'));
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(8).toString('hex');
     const ext = path.extname(file.originalname);
     cb(null, 'site-' + uniqueSuffix + ext);
   }

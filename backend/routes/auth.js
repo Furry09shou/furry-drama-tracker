@@ -16,7 +16,7 @@ const getIpRegion = (ip) => {
       return;
     }
     const url = `https://ipapi.co/${ip}/json/`;
-    https.get(url, (res) => {
+    const req = https.get(url, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
@@ -31,7 +31,12 @@ const getIpRegion = (ip) => {
           resolve('未知');
         }
       });
-    }).on('error', () => {
+    });
+    req.setTimeout(5000, () => {
+      req.destroy();
+      resolve('未知');
+    });
+    req.on('error', () => {
       resolve('未知');
     });
   });
@@ -141,6 +146,10 @@ router.post('/register', async (req, res) => {
       token
     });
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: field === 'email' ? 'User already exists' : 'Username already taken' });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 });

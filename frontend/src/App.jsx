@@ -22,7 +22,7 @@ import AdminStats from './components/AdminStats';
 import CreatorPage from './components/CreatorPage';
 import UpdateCalendar from './components/UpdateCalendar';
 import NotFound from './components/NotFound';
-import { PrivacyPage, TermsPage, AboutPage } from './components/SitePage';
+import { PrivacyPage, TermsPage, AboutPage, LicensePage } from './components/SitePage';
 import ChangePassword from './components/ChangePassword';
 import ResetPassword from './components/ResetPassword';
 
@@ -135,6 +135,7 @@ const NavBar = ({ user, logout }) => {
     ...(user ? [{ to: '/admin/dashboard', label: '管理后台' }] : []),
     { to: '/privacy', label: '隐私政策' },
     { to: '/terms', label: '用户协议' },
+    { to: '/license', label: '许可协议' },
     { to: '/about', label: '关于我们' },
   ];
 
@@ -429,6 +430,10 @@ const FooterBeian = () => {
           {beianInfo.policeRecord}
         </a>
       )}
+      <Link to="/license" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }}
+        onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+        onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+      >GPL v3.0 / AGPL v3.0 许可协议</Link>
     </div>
   );
 };
@@ -500,6 +505,7 @@ function AppContent() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/license" element={<LicensePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

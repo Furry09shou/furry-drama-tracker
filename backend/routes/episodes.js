@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const Episode = require('../models/Episode');
 const SingleEpisode = require('../models/SingleEpisode');
@@ -12,12 +13,16 @@ const adminProtect = require('../middlewares/adminAuth');
 const creatorProtect = require('../middlewares/creatorAuth');
 const { setCache, getCache, clearCache, clearCacheByPrefix } = require('../middlewares/cache');
 
+const escapeRegex = (str) => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path.join(__dirname, '../uploads'));
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(8).toString('hex');
     const ext = path.extname(file.originalname);
     cb(null, 'cover-' + uniqueSuffix + ext);
   }
@@ -50,6 +55,19 @@ router.post('/upload', creatorProtect, upload.single('image'), async (req, res) 
   }
 });
 
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: '文件大小不能超过5MB' });
+    }
+    return res.status(400).json({ message: '文件上传错误' });
+  }
+  if (err) {
+    return res.status(400).json({ message: err.message || '文件上传失败' });
+  }
+  next();
+});
+
 router.get('/', async (req, res) => {
   try {
     const { category, sort, status, tag, search, minRating } = req.query;
@@ -72,12 +90,13 @@ router.get('/', async (req, res) => {
       query.tags = { $in: [tag] };
     }
     if (search) {
+      const escapedSearch = escapeRegex(search);
       query.$and = [
         query,
         {
           $or: [
-            { title: { $regex: search, $options: 'i' } },
-            { description: { $regex: search, $options: 'i' } }
+            { title: { $regex: escapedSearch, $options: 'i' } },
+            { description: { $regex: escapedSearch, $options: 'i' } }
           ]
         }
       ];
@@ -259,7 +278,7 @@ router.post('/', creatorProtect, async (req, res) => {
       const messages = Object.values(error.errors).map(e => e.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

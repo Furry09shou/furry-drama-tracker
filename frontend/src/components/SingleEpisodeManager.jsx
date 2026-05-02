@@ -18,9 +18,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
     duration: '',
     platformLinksList: [],
     scheduledDate: '',
-    isScheduled: false,
-    premiereDate: '',
-    isUpcoming: false
+    isScheduled: false
   });
   const [error, setError] = useState('');
 
@@ -44,11 +42,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
         scheduledDate: newSingleEpisode.isScheduled && newSingleEpisode.scheduledDate
           ? new Date(newSingleEpisode.scheduledDate).toISOString()
           : null,
-        isScheduled: newSingleEpisode.isScheduled,
-        premiereDate: newSingleEpisode.isUpcoming && newSingleEpisode.premiereDate
-          ? new Date(newSingleEpisode.premiereDate).toISOString()
-          : null,
-        isUpcoming: newSingleEpisode.isUpcoming
+        isScheduled: newSingleEpisode.isScheduled
       };
       
       if (editingSingleEpisode) {
@@ -77,11 +71,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       scheduledDate: singleEpisode.scheduledDate
         ? new Date(singleEpisode.scheduledDate).toISOString().slice(0, 16)
         : '',
-      isScheduled: singleEpisode.isScheduled || false,
-      premiereDate: singleEpisode.premiereDate
-        ? new Date(singleEpisode.premiereDate).toISOString().slice(0, 16)
-        : '',
-      isUpcoming: singleEpisode.isUpcoming || false
+      isScheduled: singleEpisode.isScheduled || false
     });
     setShowAddForm(true);
   };
@@ -105,9 +95,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       duration: '',
       platformLinksList: [],
       scheduledDate: '',
-      isScheduled: false,
-      premiereDate: '',
-      isUpcoming: false
+      isScheduled: false
     });
   };
 
@@ -281,37 +269,6 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
                     设置后将在更新日历中显示为预告
                   </p>
-                </div>
-              )}
-            </div>
-            <div style={{ marginBottom: '12px', padding: '12px', background: 'var(--hover-bg-strong)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <input
-                  type="checkbox"
-                  checked={newSingleEpisode.isUpcoming}
-                  onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isUpcoming: e.target.checked, premiereDate: e.target.checked ? newSingleEpisode.premiereDate || '' : ''})}
-                  style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
-                />
-                <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>🎬 设置为即将上映</label>
-              </div>
-              {newSingleEpisode.isUpcoming && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>上映日期</label>
-                  <input
-                    type="datetime-local"
-                    value={newSingleEpisode.premiereDate}
-                    onChange={(e) => setNewSingleEpisode({...newSingleEpisode, premiereDate: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--hover-bg)',
-                      color: 'var(--text-light)',
-                      fontSize: '14px'
-                    }}
-                  />
-                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>设置后将在更新日历中显示为首播</p>
                 </div>
               )}
             </div>
@@ -496,11 +453,6 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
                   <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     🔔 预告: {new Date(singleEpisode.scheduledDate).toLocaleString('zh-CN')}
-                  </p>
-                )}
-                {singleEpisode.isUpcoming && singleEpisode.premiereDate && (
-                  <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    🎬 上映: {new Date(singleEpisode.premiereDate).toLocaleString('zh-CN')}
                   </p>
                 )}
                 {singleEpisode.duration && (

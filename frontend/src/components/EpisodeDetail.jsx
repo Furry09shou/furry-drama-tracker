@@ -196,6 +196,9 @@ const EpisodeDetail = ({ user }) => {
           <p>{episode.description}</p>
           <div className="meta-info">
             <p><strong>状态：</strong>{episode.status === 'ongoing' ? '连载中' : episode.status === 'completed' ? '已完结' : '即将上映'}</p>
+            {episode.status === 'upcoming' && episode.premiereDate && (
+              <p><strong>上映时间：</strong><span style={{ color: 'var(--primary)' }}>{new Date(episode.premiereDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
+            )}
             <p><strong>集数：</strong>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</p>
             <p><strong>分类：</strong>{episode.category?.join(', ') || '无'}</p>
             {episode.tags && episode.tags.length > 0 && (
@@ -304,19 +307,26 @@ const EpisodeDetail = ({ user }) => {
               <span className="episode-number">第{singleEpisode.episodeNumber}集</span>
               <span>{singleEpisode.title}</span>
               {singleEpisode.duration && <span> ({singleEpisode.duration})</span>}
-              {watchedEpisodes.includes(singleEpisode.episodeNumber) ? (
+              {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
+                <span style={{
+                  fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
+                  background: 'var(--warning-bg)', padding: '2px 8px',
+                  borderRadius: '4px', border: '1px solid var(--warning-border)'
+                }}>预告 {new Date(singleEpisode.scheduledDate).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}</span>
+              )}
+              {!singleEpisode.isScheduled && watchedEpisodes.includes(singleEpisode.episodeNumber) ? (
                 <span style={{
                   fontSize: '12px', color: 'var(--success-text)', marginLeft: '8px',
                   background: 'var(--success-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--success-border)'
                 }}>已看</span>
-              ) : isFollowing && followedAtEpisodes !== null && singleEpisode.episodeNumber > followedAtEpisodes ? (
+              ) : !singleEpisode.isScheduled && isFollowing && followedAtEpisodes !== null && singleEpisode.episodeNumber > followedAtEpisodes ? (
                 <span style={{
                   fontSize: '12px', color: 'var(--destructive-text)', marginLeft: '8px',
                   background: 'var(--destructive-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--destructive-border)'
                 }}>新更新</span>
-              ) : user && watchedEpisodes.length > 0 && (
+              ) : !singleEpisode.isScheduled && user && watchedEpisodes.length > 0 && (
                 <span style={{
                   fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
                   background: 'var(--warning-bg)', padding: '2px 8px',

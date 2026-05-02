@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const User = require('../models/User');
 const protect = require('../middlewares/auth');
 
@@ -10,7 +11,7 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, '../uploads'));
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(8).toString('hex');
     const ext = path.extname(file.originalname);
     cb(null, 'avatar-' + uniqueSuffix + ext);
   }
@@ -42,6 +43,19 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: '头像上传失败' });
   }
+});
+
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: '文件大小不能超过2MB' });
+    }
+    return res.status(400).json({ message: '文件上传错误' });
+  }
+  if (err) {
+    return res.status(400).json({ message: err.message || '文件上传失败' });
+  }
+  next();
 });
 
 router.put('/profile', protect, async (req, res) => {

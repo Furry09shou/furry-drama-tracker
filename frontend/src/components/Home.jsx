@@ -437,24 +437,24 @@ const Home = () => {
               <img src={episode.coverImage} alt={episode.title} />
               <div className="card-content">
                 <h3>{episode.title}</h3>
-                <p>{episode.description.length > 120 ? episode.description.substring(0, 120) + '...' : episode.description}</p>
+                <p>{episode.description.length > 50 ? episode.description.substring(0, 50) + '...' : episode.description}</p>
                 <div className="episode-meta">
-                  <span>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</span>
+                  <span>第{episode.currentEpisodes}/{episode.totalEpisodes}集</span>
                   <span className={`status ${episode.status}`}>
                     {episode.status === 'ongoing' ? '连载中' : episode.status === 'completed' ? '已完结' : '即将上映'}
                   </span>
                 </div>
                 <div className="episode-meta">
-                  <span>热度: {episode.views || 0}</span>
-                  <span style={{color: 'var(--warning-text)'}}>⭐ {episode.averageRating > 0 ? episode.averageRating.toFixed(1) : '暂无'}</span>
+                  <span>🔥 {episode.views || 0}</span>
+                  <span style={{color: 'var(--warning-text)'}}>⭐ {episode.averageRating > 0 ? episode.averageRating.toFixed(1) : '暂无'}{episode.ratingCount > 0 && <span style={{color: 'var(--text-tertiary)', fontSize: '11px'}}>({episode.ratingCount}人)</span>}</span>
                   <span>{episode.category?.join(', ')}</span>
                 </div>
                 {episode.tags && episode.tags.length > 0 && (
-                  <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px'}}>
+                  <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px'}}>
                     {episode.tags.slice(0, 3).map((tag, i) => (
                       <span key={i} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTagFilter(tag); }}
                         style={{
-                          padding: '1px 8px', borderRadius: '10px', fontSize: '11px',
+                          padding: '1px 6px', borderRadius: '10px', fontSize: '10px',
                           background: 'var(--primary-bg)', color: 'var(--primary-light)',
                           cursor: 'pointer', border: '1px solid var(--primary-border-subtle)'
                         }}>{tag}</span>

@@ -15,13 +15,11 @@ router.post('/', protect, async (req, res) => {
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
-    const existing = await Rating.findOne({ userId: req.user._id, episodeId });
-    if (existing) {
-      existing.score = score;
-      await existing.save();
-    } else {
-      await Rating.create({ userId: req.user._id, episodeId, score });
-    }
+    await Rating.findOneAndUpdate(
+      { userId: req.user._id, episodeId },
+      { score },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
     const stats = await Rating.aggregate([
       { $match: { episodeId: episode._id } },
       { $group: { _id: null, avg: { $avg: '$score' }, count: { $sum: 1 } } }
