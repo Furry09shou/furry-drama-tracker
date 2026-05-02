@@ -16,7 +16,6 @@ const EpisodeDetail = ({ user }) => {
   const [hoverRating, setHoverRating] = useState(0);
   const [recommendations, setRecommendations] = useState([]);
   const [showReport, setShowReport] = useState(false);
-  const [previewEpisode, setPreviewEpisode] = useState(null);
   const navigate = useNavigate();
   const { id: episodeId } = useParams();
 
@@ -297,118 +296,6 @@ const EpisodeDetail = ({ user }) => {
           </div>
         </div>
       </div>
-
-      {(() => {
-        const episodesWithBilibili = (episode.episodes || []).filter(ep => {
-          const links = toPlainLinks(ep.platformLinks);
-          return Object.values(links).some(url => {
-            if (!url) return false;
-            try {
-              const urlObj = new URL(url);
-              return urlObj.hostname.includes('bilibili.com') || urlObj.hostname.includes('b23.tv');
-            } catch { return url.includes('bilibili') || url.includes('b23.tv'); }
-          });
-        });
-        if (episodesWithBilibili.length === 0) return null;
-        const activeEp = previewEpisode || episodesWithBilibili[0];
-        const activeLinks = toPlainLinks(activeEp.platformLinks);
-        const bilibiliLink = Object.values(activeLinks).find(url => {
-          if (!url) return false;
-          try {
-            const urlObj = new URL(url);
-            return urlObj.hostname.includes('bilibili.com') || urlObj.hostname.includes('b23.tv');
-          } catch { return url.includes('bilibili') || url.includes('b23.tv'); }
-        });
-        const embedUrl = getEmbedUrl(bilibiliLink);
-        if (!embedUrl) return null;
-        return (
-          <div style={{
-            margin: '24px 0', borderRadius: '16px', overflow: 'hidden',
-            background: 'var(--card)', border: '1px solid var(--border)',
-            boxShadow: '0 4px 24px var(--shadow-modal)'
-          }}>
-            <div style={{
-              padding: '16px 20px', borderBottom: '1px solid var(--border)',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              <h3 style={{margin: 0, fontSize: '16px', color: 'var(--foreground)'}}>
-                📺 视频预览
-              </h3>
-              <span style={{fontSize: '13px', color: 'var(--text-secondary)'}}>
-                第{activeEp.episodeNumber}集 - {activeEp.title}
-              </span>
-            </div>
-            <div style={{width: '100%', aspectRatio: '16/9', background: '#000'}}>
-              <iframe
-                src={embedUrl}
-                style={{width: '100%', height: '100%', border: 'none'}}
-                scrolling="no"
-                frameBorder="0"
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              />
-            </div>
-            <div style={{
-              padding: '12px 20px', borderTop: '1px solid var(--border)',
-              display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center'
-            }}>
-              <span style={{fontSize: '13px', color: 'var(--text-secondary)', marginRight: '4px'}}>跳转观看：</span>
-              {Object.entries(activeLinks).filter(([_, url]) => url).map(([platform, url]) => (
-                <a
-                  key={platform}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => recordWatchProgress(activeEp.episodeNumber)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 14px', borderRadius: '8px',
-                    background: 'var(--glass-bg)', border: '1px solid var(--border)',
-                    color: 'var(--foreground)', textDecoration: 'none',
-                    fontSize: '13px', fontWeight: 500, transition: 'all 0.2s',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--primary)';
-                    e.currentTarget.style.color = 'var(--primary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border)';
-                    e.currentTarget.style.color = 'var(--foreground)';
-                  }}
-                >
-                  <span>{getPlatformIcon(platform)}</span>
-                  <span>{platform}</span>
-                </a>
-              ))}
-            </div>
-            {episodesWithBilibili.length > 1 && (
-              <div style={{
-                padding: '12px 20px', borderTop: '1px solid var(--border)',
-                display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'
-              }}>
-                <span style={{fontSize: '13px', color: 'var(--text-secondary)', marginRight: '4px'}}>切换集数：</span>
-                {episodesWithBilibili.map(ep => (
-                  <button
-                    key={ep._id}
-                    onClick={() => setPreviewEpisode(ep)}
-                    style={{
-                      padding: '5px 14px', borderRadius: '6px', fontSize: '13px',
-                      border: '1px solid',
-                      borderColor: previewEpisode?._id === ep._id || (!previewEpisode && ep === episodesWithBilibili[0]) ? 'var(--primary)' : 'var(--border)',
-                      background: previewEpisode?._id === ep._id || (!previewEpisode && ep === episodesWithBilibili[0]) ? 'var(--primary-bg)' : 'transparent',
-                      color: previewEpisode?._id === ep._id || (!previewEpisode && ep === episodesWithBilibili[0]) ? 'var(--primary)' : 'var(--text-secondary)',
-                      cursor: 'pointer', transition: 'all 0.2s', fontWeight: 500
-                    }}
-                  >
-                    第{ep.episodeNumber}集
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })()}
 
       <div className="episodes-list">
         <h3>剧集列表</h3>
