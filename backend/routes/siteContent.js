@@ -79,7 +79,7 @@ const DEFAULT_CONTENT = {
   settings: {
     key: 'settings',
     title: '站点设置',
-    content: '{"siteName":"兽剧聚合平台","navLogo":"","welcomeTitle":"欢迎来到兽剧聚合平台","welcomeSubtitle":"发现和追踪你喜爱的兽剧内容"}'
+    content: '{"siteName":"兽剧聚合平台","navLogo":"","welcomeTitle":"欢迎来到兽剧聚合平台","welcomeSubtitle":"发现和追踪你喜爱的兽剧内容","favicon":"","browserTitle":"兽剧聚合平台"}'
   },
   email: {
     key: 'email',

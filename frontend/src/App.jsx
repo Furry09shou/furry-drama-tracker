@@ -461,6 +461,28 @@ function AppContent() {
     }
     setInitializing(false);
   }, []);
+
+  useEffect(() => {
+    axios.get('/api/site-content/settings')
+      .then(res => {
+        try {
+          const data = JSON.parse(res.data.content);
+          if (data.browserTitle) {
+            document.title = data.browserTitle;
+          }
+          if (data.favicon) {
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.head.appendChild(link);
+            }
+            link.href = data.favicon;
+          }
+        } catch (e) {}
+      })
+      .catch(() => {});
+  }, []);
   
   const login = (userData) => {
     setUser(userData);

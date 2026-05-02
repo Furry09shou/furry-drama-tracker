@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
@@ -14,7 +14,7 @@ const AdminSiteContent = () => {
     updates: [], icp: '', policeRecord: '', aiDisclaimer: '本网站部分内容由AI生成', copyright: '© 2026 09兽'
   });
   const [settingsData, setSettingsData] = useState({
-    siteName: '兽剧聚合平台', navLogo: '', welcomeTitle: '欢迎来到兽剧聚合平台', welcomeSubtitle: '发现和追踪你喜爱的兽剧内容'
+    siteName: '兽剧聚合平台', navLogo: '', welcomeTitle: '欢迎来到兽剧聚合平台', welcomeSubtitle: '发现和追踪你喜爱的兽剧内容', favicon: '', browserTitle: '兽剧聚合平台'
   });
   const [newUpdate, setNewUpdate] = useState('');
   const [saving, setSaving] = useState(false);
@@ -79,10 +79,12 @@ const AdminSiteContent = () => {
           siteName: data.siteName || '兽剧聚合平台',
           navLogo: data.navLogo || '',
           welcomeTitle: data.welcomeTitle || '欢迎来到兽剧聚合平台',
-          welcomeSubtitle: data.welcomeSubtitle || '发现和追踪你喜爱的兽剧内容'
+          welcomeSubtitle: data.welcomeSubtitle || '发现和追踪你喜爱的兽剧内容',
+          favicon: data.favicon || '',
+          browserTitle: data.browserTitle || '兽剧聚合平台'
         });
       } catch (e) {
-        setSettingsData({ siteName: '兽剧聚合平台', navLogo: '', welcomeTitle: '欢迎来到兽剧聚合平台', welcomeSubtitle: '发现和追踪你喜爱的兽剧内容' });
+        setSettingsData({ siteName: '兽剧聚合平台', navLogo: '', welcomeTitle: '欢迎来到兽剧聚合平台', welcomeSubtitle: '发现和追踪你喜爱的兽剧内容', favicon: '', browserTitle: '兽剧聚合平台' });
       }
     } else {
       setEditContent(item.content);
@@ -135,6 +137,41 @@ const AdminSiteContent = () => {
   const renderSettingsEditor = () => (
     <div>
       <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+        <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🌐 浏览器标签栏</h4>
+        <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>设置浏览器标签页显示的图标和标题</p>
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>标签栏图标（Favicon）</label>
+          <ImageUploader label="Favicon" value={settingsData.favicon} onChange={(url) => setSettingsData(prev => ({ ...prev, favicon: url }))} aspectRatio={1} outputWidth={32} outputHeight={32} />
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '6px' }}>建议使用 32x32 或 64x64 的正方形图标（.ico/.png）</p>
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>标签栏标题</label>
+          <input type="text" value={settingsData.browserTitle} onChange={(e) => setSettingsData(prev => ({ ...prev, browserTitle: e.target.value }))} placeholder="如：兽剧聚合平台" />
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>显示在浏览器标签页上的文字</p>
+        </div>
+        <div style={{
+          marginTop: '16px', padding: '12px', borderRadius: '8px',
+          background: 'var(--card)', border: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: '10px'
+        }}>
+          <div style={{
+            width: '16px', height: '16px', borderRadius: '3px', overflow: 'hidden',
+            background: settingsData.favicon ? 'transparent' : 'var(--hover-bg-strong)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+          }}>
+            {settingsData.favicon ? (
+              <img src={settingsData.favicon} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontSize: '10px' }}>🌐</span>
+            )}
+          </div>
+          <span style={{ fontSize: '13px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {settingsData.browserTitle || '网站标题'}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🏷️ 导航栏Logo</h4>
         <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>显示在导航栏左上角，建议使用正方形小图标</p>
         <ImageUploader label="导航栏Logo" value={settingsData.navLogo} onChange={(url) => setSettingsData(prev => ({ ...prev, navLogo: url }))} aspectRatio={1} outputWidth={64} outputHeight={64} />
@@ -143,7 +180,7 @@ const AdminSiteContent = () => {
       <div className="form-group">
         <label>📝 网站名称</label>
         <input type="text" value={settingsData.siteName} onChange={(e) => setSettingsData(prev => ({ ...prev, siteName: e.target.value }))} placeholder="如：兽剧聚合平台" />
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>显示在导航栏左上角和浏览器标签页</p>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>显示在导航栏左上角</p>
       </div>
 
       <div className="form-group">
