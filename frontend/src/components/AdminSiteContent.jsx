@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
@@ -251,9 +251,17 @@ const AdminSiteContent = () => {
           {aboutData.updates.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
               {aboutData.updates.map((item, index) => (
-                <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--hover-bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', gap: '8px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>• {item}</span>
-                  <button type="button" onClick={() => removeUpdate(index)} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px', padding: '2px 8px', borderRadius: '4px', flexShrink: 0 }}>删除</button>
+                <div key={index} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '8px',
+                  background: 'var(--hover-bg)', border: '1px solid var(--border)',
+                  borderRadius: '6px', padding: '8px 10px'
+                }}>
+                  <span style={{ fontSize: '13px', color: 'var(--foreground)', lineHeight: 1.5, flex: 1, wordBreak: 'break-all' }}>• {item}</span>
+                  <button type="button" onClick={() => removeUpdate(index)} style={{
+                    background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
+                    color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px',
+                    padding: '2px 8px', borderRadius: '4px', flexShrink: 0, marginTop: '1px'
+                  }}>删除</button>
                 </div>
               ))}
             </div>
