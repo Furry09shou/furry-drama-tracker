@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
@@ -245,8 +245,8 @@ const AdminSiteContent = () => {
         }}>
           <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>当前版本更新内容</h4>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-            <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder="输入更新内容后回车添加" style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
-            <button type="button" className="btn" style={{ fontSize: '13px', padding: '6px 14px', whiteSpace: 'nowrap' }} onClick={addUpdate}>添加</button>
+            <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder="输入更新内容后回车添加" style={{ flex: 1, minWidth: 0, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
+            <button type="button" className="btn" style={{ fontSize: '13px', padding: '6px 14px', whiteSpace: 'nowrap', flexShrink: 0 }} onClick={addUpdate}>添加</button>
           </div>
           {aboutData.updates.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
