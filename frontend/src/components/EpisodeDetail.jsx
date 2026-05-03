@@ -243,7 +243,7 @@ const EpisodeDetail = ({ user }) => {
                 ))}
               </p>
             )}
-            {user && watchedEpisodes.length > 0 && (
+            {user && isFollowing && (
               <p><strong>观看进度：</strong>已看 {watchedEpisodes.length}/{episode.totalEpisodes} 集</p>
             )}
           </div>
@@ -314,19 +314,19 @@ const EpisodeDetail = ({ user }) => {
                   borderRadius: '4px', border: '1px solid var(--warning-border)'
                 }}>预告 {new Date(singleEpisode.scheduledDate).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}</span>
               )}
-              {!singleEpisode.isScheduled && watchedEpisodes.includes(singleEpisode.episodeNumber) ? (
+              {!singleEpisode.isScheduled && user && watchedEpisodes.includes(singleEpisode.episodeNumber) ? (
                 <span style={{
                   fontSize: '12px', color: 'var(--success-text)', marginLeft: '8px',
                   background: 'var(--success-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--success-border)'
                 }}>已看</span>
-              ) : !singleEpisode.isScheduled && isFollowing && followedAtEpisodes !== null && singleEpisode.episodeNumber > followedAtEpisodes ? (
+              ) : !singleEpisode.isScheduled && user && isFollowing && followedAtEpisodes !== null && singleEpisode.episodeNumber > followedAtEpisodes ? (
                 <span style={{
                   fontSize: '12px', color: 'var(--destructive-text)', marginLeft: '8px',
                   background: 'var(--destructive-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--destructive-border)'
                 }}>新更新</span>
-              ) : !singleEpisode.isScheduled && user && watchedEpisodes.length > 0 && (
+              ) : !singleEpisode.isScheduled && user && !watchedEpisodes.includes(singleEpisode.episodeNumber) && (
                 <span style={{
                   fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
                   background: 'var(--warning-bg)', padding: '2px 8px',
