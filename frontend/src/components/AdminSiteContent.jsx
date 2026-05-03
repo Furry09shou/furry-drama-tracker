@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
@@ -276,7 +276,9 @@ const AdminSiteContent = () => {
             const existing = aboutData.changelog.find(c => c.version === aboutData.version);
             let newChangelog;
             if (existing) {
-              newChangelog = aboutData.changelog.map(c => c.version === aboutData.version ? newEntry : c);
+              const mergedItems = [...existing.items, ...aboutData.updates.filter(item => !existing.items.includes(item))];
+              const updatedEntry = { ...existing, items: mergedItems };
+              newChangelog = aboutData.changelog.map(c => c.version === aboutData.version ? updatedEntry : c);
             } else {
               newChangelog = [newEntry, ...aboutData.changelog];
             }
