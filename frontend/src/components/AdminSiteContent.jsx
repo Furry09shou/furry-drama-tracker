@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
@@ -315,7 +315,23 @@ const AdminSiteContent = () => {
                   </div>
                   <div style={{ padding: '8px 12px' }}>
                     {(entry.items || []).map((item, i) => (
-                      <div key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', padding: '2px 0' }}>• {item}</div>
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: '6px',
+                        padding: '4px 0',
+                        borderBottom: i < (entry.items || []).length - 1 ? '1px dashed var(--border)' : 'none'
+                      }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1, wordBreak: 'break-all' }}>• {item}</span>
+                        <button type="button" onClick={() => {
+                          setAboutData(prev => ({
+                            ...prev,
+                            changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, items: c.items.filter((_, ii) => ii !== i) } : c).filter(c => c.items.length > 0)
+                          }));
+                        }} style={{
+                          background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
+                          color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '11px',
+                          padding: '1px 6px', borderRadius: '3px', flexShrink: 0, marginTop: '2px'
+                        }}>删除</button>
+                      </div>
                     ))}
                   </div>
                 </div>
