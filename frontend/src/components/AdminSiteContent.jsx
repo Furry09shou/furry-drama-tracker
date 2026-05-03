@@ -17,6 +17,7 @@ const AdminSiteContent = () => {
     siteName: '兽剧聚合平台', navLogo: '', welcomeTitle: '欢迎来到兽剧聚合平台', welcomeSubtitle: '发现和追踪你喜爱的兽剧内容', favicon: '', browserTitle: '兽剧聚合平台'
   });
   const [newUpdate, setNewUpdate] = useState('');
+  const [changelogInputs, setChangelogInputs] = useState({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
@@ -333,6 +334,33 @@ const AdminSiteContent = () => {
                         }}>删除</button>
                       </div>
                     ))}
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed var(--border)' }}>
+                      <input type="text" value={changelogInputs[idx] || ''} onChange={(e) => setChangelogInputs(prev => ({ ...prev, [idx]: e.target.value }))} placeholder="输入追加内容后回车添加" style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '12px', minWidth: 0 }} onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const val = (changelogInputs[idx] || '').trim();
+                          if (!val) return;
+                          setAboutData(prev => ({
+                            ...prev,
+                            changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, items: [...c.items, val] } : c)
+                          }));
+                          setChangelogInputs(prev => ({ ...prev, [idx]: '' }));
+                        }
+                      }} />
+                      <button type="button" onClick={() => {
+                        const val = (changelogInputs[idx] || '').trim();
+                        if (!val) return;
+                        setAboutData(prev => ({
+                          ...prev,
+                          changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, items: [...c.items, val] } : c)
+                        }));
+                        setChangelogInputs(prev => ({ ...prev, [idx]: '' }));
+                      }} style={{
+                        background: 'var(--primary-bg)', border: '1px solid var(--primary-border)',
+                        color: 'var(--primary-light)', cursor: 'pointer', fontSize: '11px',
+                        padding: '4px 10px', borderRadius: '4px', flexShrink: 0, whiteSpace: 'nowrap'
+                      }}>添加</button>
+                    </div>
                   </div>
                 </div>
               ))}
