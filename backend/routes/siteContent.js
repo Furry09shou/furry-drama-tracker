@@ -74,7 +74,7 @@ const DEFAULT_CONTENT = {
   about: {
     key: 'about',
     title: '关于我们',
-    content: '{"banner":"","logo":"","description":"","version":"1.0.0","updates":[],"icp":"","policeRecord":"","aiDisclaimer":"本网站部分内容由AI生成","copyright":"© 2026 09兽"}'
+    content: '{"banner":"","logo":"","description":"","version":"1.0.0","updates":[],"changelog":[{"version":"1.0.0","date":"2026-05-02","items":["平台上线"]}],"icp":"","policeRecord":"","aiDisclaimer":"本网站部分内容由AI生成","copyright":"© 2026 09兽"}'
   },
   settings: {
     key: 'settings',

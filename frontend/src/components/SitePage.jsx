@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -83,27 +83,80 @@ const SitePage = ({ pageKey }) => {
                 版本 {aboutData.version}
               </p>
             )}
-            {aboutData.updates && aboutData.updates.length > 0 && (
-              <div style={{ textAlign: 'left', marginBottom: '24px' }}>
-                <h3 style={{ color: 'var(--foreground)', marginBottom: '12px', fontSize: '16px' }}>更新日志</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {aboutData.updates.map((item, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: '10px',
-                      padding: '10px 14px', borderRadius: '8px',
-                      background: 'var(--hover-bg)', border: '1px solid var(--border)'
+            {(() => {
+              const changelog = aboutData.changelog || [];
+              const oldUpdates = aboutData.updates || [];
+              const hasChangelog = changelog.length > 0;
+              const hasOldUpdates = oldUpdates.length > 0;
+              if (!hasChangelog && !hasOldUpdates) return null;
+              return (
+                <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+                  <h3 style={{ color: 'var(--foreground)', marginBottom: '12px', fontSize: '16px' }}>更新日志</h3>
+                  {hasChangelog && changelog.map((entry, idx) => (
+                    <div key={idx} style={{
+                      marginBottom: '16px', borderRadius: '12px',
+                      background: 'var(--hover-bg)', border: '1px solid var(--border)',
+                      overflow: 'hidden'
                     }}>
-                      <span style={{
-                        color: 'var(--primary-light)', fontSize: '12px', fontWeight: 600,
-                        background: 'var(--primary-bg)', borderRadius: '4px',
-                        padding: '2px 8px', flexShrink: 0, marginTop: '1px'
-                      }}>{i + 1}</span>
-                      <span style={{ color: 'var(--text-lighter)', fontSize: '14px', lineHeight: 1.5 }}>{item}</span>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                        background: 'var(--glass-bg)'
+                      }}>
+                        <span style={{
+                          color: 'var(--primary-light)', fontSize: '13px', fontWeight: 700,
+                          background: 'var(--primary-bg)', borderRadius: '6px',
+                          padding: '3px 10px'
+                        }}>v{entry.version}</span>
+                        {entry.date && (
+                          <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{entry.date}</span>
+                        )}
+                        {idx === 0 && (
+                          <span style={{
+                            fontSize: '11px', color: 'var(--success-text)',
+                            background: 'var(--success-bg)', padding: '1px 8px',
+                            borderRadius: '4px', border: '1px solid var(--success-border)'
+                          }}>最新</span>
+                        )}
+                      </div>
+                      <div style={{ padding: '10px 14px' }}>
+                        {(entry.items || []).map((item, i) => (
+                          <div key={i} style={{
+                            display: 'flex', alignItems: 'flex-start', gap: '8px',
+                            padding: '6px 0',
+                            borderBottom: i < (entry.items || []).length - 1 ? '1px dashed var(--border)' : 'none'
+                          }}>
+                            <span style={{
+                              color: 'var(--primary-light)', fontSize: '11px',
+                              flexShrink: 0, marginTop: '2px'
+                            }}>•</span>
+                            <span style={{ color: 'var(--text-lighter)', fontSize: '13px', lineHeight: 1.5 }}>{item}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
+                  {!hasChangelog && hasOldUpdates && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {oldUpdates.map((item, i) => (
+                        <div key={i} style={{
+                          display: 'flex', alignItems: 'flex-start', gap: '10px',
+                          padding: '10px 14px', borderRadius: '8px',
+                          background: 'var(--hover-bg)', border: '1px solid var(--border)'
+                        }}>
+                          <span style={{
+                            color: 'var(--primary-light)', fontSize: '12px', fontWeight: 600,
+                            background: 'var(--primary-bg)', borderRadius: '4px',
+                            padding: '2px 8px', flexShrink: 0, marginTop: '1px'
+                          }}>{i + 1}</span>
+                          <span style={{ color: 'var(--text-lighter)', fontSize: '14px', lineHeight: 1.5 }}>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
             <div style={{
               borderTop: '1px solid var(--border)', paddingTop: '20px',
               color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 2

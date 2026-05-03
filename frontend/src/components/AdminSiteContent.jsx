@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
@@ -11,7 +11,7 @@ const AdminSiteContent = () => {
   const [editContent, setEditContent] = useState('');
   const [aboutData, setAboutData] = useState({
     banner: '', logo: '', description: '', version: '1.0.0',
-    updates: [], icp: '', policeRecord: '', aiDisclaimer: '本网站部分内容由AI生成', copyright: '© 2026 09兽'
+    updates: [], changelog: [], icp: '', policeRecord: '', aiDisclaimer: '本网站部分内容由AI生成', copyright: '© 2026 09兽'
   });
   const [settingsData, setSettingsData] = useState({
     siteName: '兽剧聚合平台', navLogo: '', welcomeTitle: '欢迎来到兽剧聚合平台', welcomeSubtitle: '发现和追踪你喜爱的兽剧内容', favicon: '', browserTitle: '兽剧聚合平台'
@@ -61,6 +61,7 @@ const AdminSiteContent = () => {
           description: data.description || '',
           version: data.version || '1.0.0',
           updates: data.updates || [],
+          changelog: data.changelog || [],
           icp: data.icp || '',
           policeRecord: data.policeRecord || '',
           aiDisclaimer: data.aiDisclaimer || '本网站部分内容由AI生成',
@@ -69,7 +70,7 @@ const AdminSiteContent = () => {
       } catch (e) {
         setAboutData({
           banner: '', logo: '', description: '', version: '1.0.0',
-          updates: [], icp: '', policeRecord: '', aiDisclaimer: '本网站部分内容由AI生成', copyright: '© 2026 09兽'
+          updates: [], changelog: [], icp: '', policeRecord: '', aiDisclaimer: '本网站部分内容由AI生成', copyright: '© 2026 09兽'
         });
       }
     } else if (item.key === 'settings') {
@@ -234,26 +235,82 @@ const AdminSiteContent = () => {
       </div>
 
       <div className="form-group">
-        <label>📋 更新日志</label>
-        <div style={{ marginBottom: '12px' }}>
-          <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder="输入更新内容" style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px', marginBottom: '8px' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
-          <button type="button" className="btn" style={{ fontSize: '13px', padding: '6px 14px', whiteSpace: 'nowrap' }} onClick={addUpdate}>添加</button>
+        <label>📋 版本更新日志</label>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 12px 0', lineHeight: 1.6 }}>
+          每个版本的更新日志独立保存，发布新版本后旧版本日志仍可查看。点击"发布新版本"将当前版本号和更新内容写入日志。
+        </p>
+        <div style={{
+          padding: '14px', borderRadius: '10px', marginBottom: '12px',
+          background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)'
+        }}>
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>当前版本更新内容</h4>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+            <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder="输入更新内容后回车添加" style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
+            <button type="button" className="btn" style={{ fontSize: '13px', padding: '6px 14px', whiteSpace: 'nowrap' }} onClick={addUpdate}>添加</button>
+          </div>
+          {aboutData.updates.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
+              {aboutData.updates.map((item, index) => (
+                <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--hover-bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>• {item}</span>
+                  <button type="button" onClick={() => removeUpdate(index)} style={{ background: 'none', border: 'none', color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '14px', padding: '0 4px', flexShrink: 0 }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button type="button" className="btn" style={{ fontSize: '13px', padding: '8px 16px' }} onClick={() => {
+            if (aboutData.updates.length === 0) { setMessage('请先添加更新内容'); return; }
+            const newEntry = {
+              version: aboutData.version,
+              date: new Date().toISOString().split('T')[0],
+              items: [...aboutData.updates]
+            };
+            const existing = aboutData.changelog.find(c => c.version === aboutData.version);
+            let newChangelog;
+            if (existing) {
+              newChangelog = aboutData.changelog.map(c => c.version === aboutData.version ? newEntry : c);
+            } else {
+              newChangelog = [newEntry, ...aboutData.changelog];
+            }
+            setAboutData(prev => ({ ...prev, changelog: newChangelog, updates: [] }));
+            setNewUpdate('');
+            setMessage('版本日志已发布，更新内容已归档到 v' + aboutData.version);
+          }}>
+            📦 发布 v{aboutData.version} 版本日志
+          </button>
         </div>
-        {aboutData.updates.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {aboutData.updates.map((item, index) => (
-              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--hover-bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-                  <span style={{ color: 'var(--text-tertiary)', fontSize: '12px', flexShrink: 0 }}>{index + 1}.</span>
-                  <span style={{ fontSize: '14px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
+
+        {aboutData.changelog.length > 0 && (
+          <div>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>历史版本日志</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {aboutData.changelog.map((entry, idx) => (
+                <div key={idx} style={{
+                  borderRadius: '8px', overflow: 'hidden',
+                  border: '1px solid var(--border)', background: 'var(--hover-bg)'
+                }}>
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', borderBottom: '1px solid var(--border)',
+                    background: 'var(--glass-bg)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: 'var(--primary-light)', fontSize: '12px', fontWeight: 700, background: 'var(--primary-bg)', borderRadius: '4px', padding: '2px 8px' }}>v{entry.version}</span>
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{entry.date}</span>
+                      {idx === 0 && <span style={{ fontSize: '10px', color: 'var(--success-text)', background: 'var(--success-bg)', padding: '1px 6px', borderRadius: '3px' }}>最新</span>}
+                    </div>
+                    <button type="button" onClick={() => {
+                      setAboutData(prev => ({ ...prev, changelog: prev.changelog.filter((_, i) => i !== idx) }));
+                    }} style={{ background: 'none', border: 'none', color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px' }}>删除</button>
+                  </div>
+                  <div style={{ padding: '8px 12px' }}>
+                    {(entry.items || []).map((item, i) => (
+                      <div key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', padding: '2px 0' }}>• {item}</div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '4px', flexShrink: 0, marginLeft: '8px' }}>
-                  <button type="button" onClick={() => moveUpdate(index, -1)} disabled={index === 0} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: index === 0 ? 'var(--text-lighter)' : 'var(--text-secondary)', borderRadius: '4px', padding: '2px 6px', cursor: index === 0 ? 'default' : 'pointer', fontSize: '12px' }}>↑</button>
-                  <button type="button" onClick={() => moveUpdate(index, 1)} disabled={index === aboutData.updates.length - 1} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: index === aboutData.updates.length - 1 ? 'var(--text-lighter)' : 'var(--text-secondary)', borderRadius: '4px', padding: '2px 6px', cursor: index === aboutData.updates.length - 1 ? 'default' : 'pointer', fontSize: '12px' }}>↓</button>
-                  <button type="button" onClick={() => removeUpdate(index)} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '12px' }}>删除</button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -291,12 +348,18 @@ const AdminSiteContent = () => {
             <h3 style={{ margin: '0 0 4px 0', color: 'var(--foreground)', fontSize: '15px' }}>关于我们</h3>
             {aboutData.description && (<p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: '6px 0 0 0', lineHeight: 1.5 }}>{aboutData.description}</p>)}
             {aboutData.version && <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', margin: '6px 0 0 0' }}>版本 {aboutData.version}</p>}
-            {aboutData.updates.length > 0 && (
+            {aboutData.changelog.length > 0 && (
               <div style={{ textAlign: 'left', marginTop: '10px' }}>
                 <p style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 600, margin: '0 0 4px 0' }}>更新日志</p>
-                <ul style={{ color: 'var(--text-secondary)', fontSize: '11px', lineHeight: 1.7, paddingLeft: '14px', margin: 0 }}>
-                  {aboutData.updates.map((item, i) => <li key={i}>{item}</li>)}
-                </ul>
+                {aboutData.changelog.slice(0, 2).map((entry, idx) => (
+                  <div key={idx} style={{ marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--primary-light)' }}>v{entry.version}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>{entry.date}</span>
+                    <ul style={{ color: 'var(--text-secondary)', fontSize: '11px', lineHeight: 1.5, paddingLeft: '14px', margin: '2px 0 0 0' }}>
+                      {entry.items.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                  </div>
+                ))}
               </div>
             )}
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '10px', fontSize: '10px', color: 'var(--text-tertiary)' }}>
