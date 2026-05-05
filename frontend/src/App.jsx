@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
@@ -34,15 +34,13 @@ import AdminApiUsage from './components/AdminApiUsage';
 import FeedbackModal from './components/FeedbackModal';
 import ShareModal from './components/ShareModal';
 
-const NavBar = ({ user, logout }) => {
+const NavBar = ({ user, logout, onFeedback }) => {
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [siteSettings, setSiteSettings] = useState({ siteName: '兽剧聚合平台', navLogo: '' });
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [showShare, setShowShare] = useState(false);
   const notifRef = useRef(null);
   const notifPanelRef = useRef(null);
   const moreRef = useRef(null);
@@ -295,7 +293,7 @@ const NavBar = ({ user, logout }) => {
                       >{item.label}</Link>
                     ))}
                     <div style={{borderTop: '1px solid var(--border)'}}>
-                      <button onClick={() => { setShowMoreMenu(false); setShowFeedback(true); }} style={{
+                      <button onClick={() => { setShowMoreMenu(false); onFeedback(); }} style={{
                         display: 'block', width: '100%', padding: '12px 16px',
                         color: 'var(--foreground)', background: 'none', border: 'none',
                         fontSize: '14px', cursor: 'pointer', textAlign: 'left',
@@ -466,6 +464,7 @@ const FooterBeian = () => {
 function AppContent() {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
+  const [showFeedback, setShowFeedback] = useState(false);
   
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -525,7 +524,7 @@ function AppContent() {
   
   return (
     <>
-      <NavBar user={user} logout={logout} />
+      <NavBar user={user} logout={logout} onFeedback={() => setShowFeedback(true)} />
       <div className="container">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -572,10 +571,34 @@ function App() {
   return (
     <Router>
       <ThemeProvider>
-        <AppContent />
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
       </ThemeProvider>
     </Router>
   );
+}
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--foreground)' }}>
+          <h2>页面加载出错</h2>
+          <p style={{ color: 'var(--destructive-text)', margin: '16px 0' }}>{this.state.error?.message}</p>
+          <button onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }} style={{ padding: '10px 24px', borderRadius: '8px', background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '14px' }}>刷新页面</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export default App;

@@ -414,10 +414,10 @@ const Home = () => {
           <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>评分：</span>
           {[
             { value: '', label: '全部' },
-            { value: '9', label: '9+' },
-            { value: '8', label: '8+' },
-            { value: '7', label: '7+' },
-            { value: '6', label: '6+' }
+            { value: '4', label: '4+' },
+            { value: '3', label: '3+' },
+            { value: '2', label: '2+' },
+            { value: '1', label: '1+' }
           ].map(opt => (
             <button
               key={opt.value}

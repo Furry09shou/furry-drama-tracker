@@ -4,6 +4,11 @@ const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
 const User = require('../models/User');
+const Follow = require('../models/Follow');
+const Favorite = require('../models/Favorite');
+const Rating = require('../models/Rating');
+const History = require('../models/History');
+const Wishlist = require('../models/Wishlist');
 const protect = require('../middlewares/auth');
 
 const storage = multer.diskStorage({
@@ -74,6 +79,32 @@ router.put('/profile', protect, async (req, res) => {
     }
     const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true }).select('-password');
     res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/export-my-data', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).select('-password');
+    const follows = await Follow.find({ userId }).populate('episodeId', 'title coverImage status');
+    const favorites = await Favorite.find({ userId }).populate('episodeId', 'title coverImage status');
+    const ratings = await Rating.find({ userId }).populate('episodeId', 'title');
+    const history = await History.find({ userId }).populate('episodeId', 'title');
+    const wishlist = await Wishlist.find({ userId }).populate('episodeId', 'title coverImage status');
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      user: user,
+      follows: follows,
+      favorites: favorites,
+      ratings: ratings,
+      watchHistory: history,
+      wishlist: wishlist
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=my_data_${new Date().toISOString().split('T')[0]}.json`);
+    res.json(exportData);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

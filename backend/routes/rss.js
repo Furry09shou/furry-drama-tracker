@@ -6,6 +6,16 @@ const SiteContent = require('../models/SiteContent');
 const ApiUsage = require('../models/ApiUsage');
 const adminProtect = require('../middlewares/adminAuth');
 
+const escapeXml = (str) => {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+};
+
 router.get('/', async (req, res) => {
   try {
     let siteName = '兽剧聚合平台';
@@ -35,15 +45,15 @@ router.get('/', async (req, res) => {
 
     let items = '';
     episodes.forEach(ep => {
-      items += `<item><title>${ep.title} - 更新至第${ep.currentEpisodes}集</title><link>https://example.com/episode/${ep._id}</link><description>状态：${ep.status === 'ongoing' ? '连载中' : ep.status === 'completed' ? '已完结' : '即将上映'}，共${ep.totalEpisodes}集</description><pubDate>${new Date(ep.updatedAt).toUTCString()}</pubDate></item>`;
+      items += `<item><title>${escapeXml(ep.title)} - 更新至第${ep.currentEpisodes}集</title><link>https://example.com/episode/${ep._id}</link><description>状态：${ep.status === 'ongoing' ? '连载中' : ep.status === 'completed' ? '已完结' : '即将上映'}，共${ep.totalEpisodes}集</description><pubDate>${new Date(ep.updatedAt).toUTCString()}</pubDate></item>`;
     });
     singleEpisodes.forEach(se => {
       if (!se.episodeId) return;
-      items += `<item><title>${se.episodeId.title} 第${se.episodeNumber}集更新</title><link>https://example.com/episode/${se.episodeId._id}</link><description>${se.title || ''}</description><pubDate>${new Date(se.createdAt).toUTCString()}</pubDate></item>`;
+      items += `<item><title>${escapeXml(se.episodeId.title)} 第${se.episodeNumber}集更新</title><link>https://example.com/episode/${se.episodeId._id}</link><description>${escapeXml(se.title || '')}</description><pubDate>${new Date(se.createdAt).toUTCString()}</pubDate></item>`;
     });
 
     res.type('application/xml');
-    res.send(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${siteName} - 更新订阅</title><link>https://example.com</link><description>${siteDesc}</description><language>zh-CN</language>${items}</channel></rss>`);
+    res.send(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${escapeXml(siteName)} - 更新订阅</title><link>https://example.com</link><description>${escapeXml(siteDesc)}</description><language>zh-CN</language>${items}</channel></rss>`);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

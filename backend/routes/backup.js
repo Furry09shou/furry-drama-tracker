@@ -4,14 +4,35 @@ const mongoose = require('mongoose');
 const adminProtect = require('../middlewares/adminAuth');
 const { logManual } = require('../middlewares/auditLog');
 
-router.get('/export', adminProtect, async (req, res) => {
+const ALLOWED_EXPORT_COLLECTIONS = [
+  'episodes', 'users', 'categories', 'banners', 'ratings',
+  'follows', 'favorites', 'histories', 'notifications', 'reports',
+  'sitecontents', 'singleepisodes', 'creatorprofiles'
+];
+
+const ALLOWED_IMPORT_COLLECTIONS = [
+  'episodes', 'users', 'categories', 'banners', 'ratings',
+  'follows', 'favorites', 'histories', 'notifications', 'reports',
+  'sitecontents', 'singleepisodes', 'creatorprofiles'
+];
+
+function requireSuperAdmin(req, res, next) {
+  if (req.admin && req.admin.role === 'superadmin') return next();
+  return res.status(403).json({ message: '需要超级管理员权限' });
+}
+
+router.get('/export', adminProtect, requireSuperAdmin, async (req, res) => {
   try {
-    const collections = ['episodes', 'users', 'categories', 'banners', 'ratings', 'follows', 'favorites', 'histories', 'notifications', 'reports', 'sitecontents', 'admins', 'singleepisodes', 'creatorprofiles'];
     const db = mongoose.connection.db;
     const backup = {};
-    for (const col of collections) {
+    for (const col of ALLOWED_EXPORT_COLLECTIONS) {
       try {
-        backup[col] = await db.collection(col).find({}).toArray();
+        const docs = await db.collection(col).find({}).toArray();
+        if (col === 'users') {
+          backup[col] = docs.map(d => { const { password, ...rest } = d; return rest; });
+        } else {
+          backup[col] = docs;
+        }
       } catch (e) {}
     }
     res.setHeader('Content-Type', 'application/json');
@@ -22,20 +43,24 @@ router.get('/export', adminProtect, async (req, res) => {
   }
 });
 
-router.post('/import', adminProtect, async (req, res) => {
+router.post('/import', adminProtect, requireSuperAdmin, async (req, res) => {
   try {
     const { data, overwrite } = req.body;
     if (!data || typeof data !== 'object') return res.status(400).json({ message: '无效的备份数据' });
     const db = mongoose.connection.db;
     const results = {};
     for (const [col, docs] of Object.entries(data)) {
+      if (!ALLOWED_IMPORT_COLLECTIONS.includes(col)) {
+        results[col] = 'skipped: not allowed';
+        continue;
+      }
       if (!Array.isArray(docs) || docs.length === 0) continue;
       try {
         if (overwrite) {
           await db.collection(col).deleteMany({});
         }
         const cleanDocs = docs.map(d => {
-          const { _id, ...rest } = d;
+          const { _id, password, ...rest } = d;
           return rest;
         });
         if (cleanDocs.length > 0) {

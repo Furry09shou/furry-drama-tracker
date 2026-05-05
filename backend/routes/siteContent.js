@@ -90,6 +90,20 @@ const DEFAULT_CONTENT = {
 
 router.get('/:key', async (req, res) => {
   try {
+    const sensitiveKeys = ['email'];
+    if (sensitiveKeys.includes(req.params.key)) {
+      const adminToken = req.headers.authorization?.replace('Bearer ', '');
+      if (!adminToken) return res.status(403).json({ message: 'Forbidden' });
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+        if (!decoded.role || !['admin', 'superadmin', 'creator'].includes(decoded.role)) {
+          return res.status(403).json({ message: 'Forbidden' });
+        }
+      } catch (e) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
     let content = await SiteContent.findOne({ key: req.params.key });
     if (!content && DEFAULT_CONTENT[req.params.key]) {
       content = await SiteContent.create(DEFAULT_CONTENT[req.params.key]);

@@ -114,9 +114,37 @@ router.delete('/users/:id', adminProtect, async (req, res) => {
     const Follow = require('../models/Follow');
     const History = require('../models/History');
     const Notification = require('../models/Notification');
+    const Favorite = require('../models/Favorite');
+    const Rating = require('../models/Rating');
+    const Report = require('../models/Report');
+    const Wishlist = require('../models/Wishlist');
+    const Feedback = require('../models/Feedback');
     await Follow.deleteMany({ userId: req.params.id });
     await History.deleteMany({ userId: req.params.id });
     await Notification.deleteMany({ userId: req.params.id });
+    await Favorite.deleteMany({ userId: req.params.id });
+    await Report.deleteMany({ reporter: req.params.id });
+    await Wishlist.deleteMany({ userId: req.params.id });
+    await Feedback.deleteMany({ userId: req.params.id });
+    const userRatings = await Rating.find({ userId: req.params.id });
+    await Rating.deleteMany({ userId: req.params.id });
+    for (const r of userRatings) {
+      const stats = await Rating.aggregate([
+        { $match: { episodeId: r.episodeId } },
+        { $group: { _id: '$episodeId', avg: { $avg: '$score' }, count: { $sum: 1 } } }
+      ]);
+      if (stats.length > 0) {
+        await require('../models/Episode').findByIdAndUpdate(r.episodeId, {
+          averageRating: Math.round(stats[0].avg * 10) / 10,
+          ratingCount: stats[0].count
+        });
+      } else {
+        await require('../models/Episode').findByIdAndUpdate(r.episodeId, {
+          averageRating: 0,
+          ratingCount: 0
+        });
+      }
+    }
     res.json({ message: '用户已删除' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

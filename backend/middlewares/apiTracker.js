@@ -1,7 +1,6 @@
 const ApiUsage = require('../models/ApiUsage');
 
-const trackApiUsage = async (req, res, next) => {
-  next();
+const trackApiUsage = (req, res, next) => {
   res.on('finish', () => {
     if (!req.path.startsWith('/api/')) return;
     const endpoint = req.route ? `${req.method} ${req.route.path}` : `${req.method} ${req.path}`;
@@ -12,6 +11,7 @@ const trackApiUsage = async (req, res, next) => {
       { upsert: true, new: true }
     ).catch(() => {});
   });
+  next();
 };
 
 module.exports = trackApiUsage;

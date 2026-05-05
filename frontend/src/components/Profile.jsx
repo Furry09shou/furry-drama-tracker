@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -499,6 +499,25 @@ const Profile = ({ user, setUser, logout }) => {
         </div>
         <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
           <Link to="/change-password" className="btn" style={{display: 'inline-block'}}>修改密码</Link>
+          <button onClick={async () => {
+            try {
+              const token = localStorage.getItem('token');
+              const res = await fetch('/api/users/export-my-data', {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              const blob = await res.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `my_data_${new Date().toISOString().split('T')[0]}.json`;
+              a.click();
+              window.URL.revokeObjectURL(url);
+            } catch (e) {}
+          }} style={{
+            padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--primary-border)',
+            background: 'var(--primary-bg)', color: 'var(--primary-light)',
+            cursor: 'pointer', fontSize: '14px', fontWeight: 500, transition: 'all 0.2s'
+          }}>📥 导出我的数据</button>
           <button onClick={logout} style={{
             padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--destructive-border)',
             background: 'var(--destructive-bg)', color: 'var(--destructive-text)',

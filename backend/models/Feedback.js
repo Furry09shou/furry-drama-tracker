@@ -17,7 +17,8 @@ const FeedbackSchema = new mongoose.Schema({
   },
   content: {
     type: String,
-    required: true
+    required: true,
+    maxlength: 2000
   },
   status: {
     type: String,
@@ -26,7 +27,8 @@ const FeedbackSchema = new mongoose.Schema({
   },
   reply: {
     type: String,
-    default: ''
+    default: '',
+    maxlength: 1000
   },
   createdAt: {
     type: Date,

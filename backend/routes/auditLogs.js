@@ -3,12 +3,14 @@ const router = express.Router();
 const AuditLog = require('../models/AuditLog');
 const adminProtect = require('../middlewares/adminAuth');
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 router.get('/', adminProtect, async (req, res) => {
   try {
     const { page = 1, limit = 50, action, admin } = req.query;
     const query = {};
-    if (action) query.action = { $regex: action, $options: 'i' };
-    if (admin) query.adminName = { $regex: admin, $options: 'i' };
+    if (action) query.action = { $regex: escapeRegex(action), $options: 'i' };
+    if (admin) query.adminName = { $regex: escapeRegex(admin), $options: 'i' };
     const total = await AuditLog.countDocuments(query);
     const logs = await AuditLog.find(query)
       .sort({ createdAt: -1 })

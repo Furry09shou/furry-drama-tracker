@@ -205,6 +205,14 @@ const EpisodeDetail = ({ user }) => {
             {episode.status === 'upcoming' && episode.premiereDate && (
               <p><strong>上映时间：</strong><span style={{ color: 'var(--primary)' }}>{new Date(episode.premiereDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
             )}
+            {(episode.status === 'ongoing' || episode.status === 'completed') && episode.episodes && episode.episodes.length > 0 && (() => {
+              const firstEp = [...episode.episodes].sort((a, b) => a.episodeNumber - b.episodeNumber)[0];
+              const premiereDate = firstEp.releaseDate || firstEp.createdAt;
+              if (!premiereDate) return null;
+              return (
+                <p><strong>首播日期：</strong><span style={{ color: 'var(--primary)' }}>{new Date(premiereDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
+              );
+            })()}
             <p><strong>集数：</strong>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</p>
             <p><strong>分类：</strong>{episode.category?.join(', ') || '无'}</p>
             {episode.tags && episode.tags.length > 0 && (

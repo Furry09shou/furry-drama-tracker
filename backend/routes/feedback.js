@@ -1,18 +1,28 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const Feedback = require('../models/Feedback');
 const protect = require('../middlewares/auth');
 const adminProtect = require('../middlewares/adminAuth');
 
-router.post('/', protect, async (req, res) => {
+const feedbackLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { message: '反馈提交过于频繁，请1小时后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post('/', protect, feedbackLimiter, async (req, res) => {
   try {
     const { type, content } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ message: '内容不能为空' });
+    if (content.length > 2000) return res.status(400).json({ message: '内容不能超过2000字' });
     await Feedback.create({
       userId: req.user._id,
       username: req.user.username || req.user.email,
       type: type || 'suggestion',
-      content: content.trim()
+      content: content.trim().slice(0, 2000)
     });
     res.json({ message: '反馈已提交，感谢您的建议！' });
   } catch (error) {
@@ -47,7 +57,7 @@ router.put('/:id', adminProtect, async (req, res) => {
     const { status, reply } = req.body;
     const update = {};
     if (status) update.status = status;
-    if (reply !== undefined) update.reply = reply;
+    if (reply !== undefined) update.reply = reply.slice(0, 1000);
     const fb = await Feedback.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!fb) return res.status(404).json({ message: 'Not found' });
     res.json(fb);

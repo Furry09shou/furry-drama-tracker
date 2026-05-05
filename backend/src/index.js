@@ -62,8 +62,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, false);
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -93,8 +93,15 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: '登录尝试过多，请15分钟后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 app.use('/api/auth/login', authLimiter);
-app.use('/api/admin/login', authLimiter);
+app.use('/api/admin/login', adminAuthLimiter);
 
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const ApiUsageSchema = new mongoose.Schema({
   endpoint: { type: String, required: true },
-  method: { type: String, required: true },
+  method: { type: String, default: '' },
   count: { type: Number, default: 0 },
   date: { type: String, required: true }
 });

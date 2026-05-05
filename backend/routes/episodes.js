@@ -108,7 +108,13 @@ router.get('/', async (req, res) => {
     if (year) {
       const start = new Date(parseInt(year), 0, 1);
       const end = new Date(parseInt(year) + 1, 0, 1);
-      query.createdAt = { $gte: start, $lt: end };
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { premiereDate: { $gte: start, $lt: end } },
+          { createdAt: { $gte: start, $lt: end } }
+        ]
+      });
     }
     
     let sortOption = { updatedAt: -1 };
