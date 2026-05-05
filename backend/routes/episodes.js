@@ -70,8 +70,8 @@ router.use((err, req, res, next) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { category, sort, status, tag, search, minRating } = req.query;
-    const cacheKey = `episodes_${category || 'all'}_${sort || 'latest'}_${status || ''}_${tag || ''}_${search || ''}_${minRating || ''}`;
+    const { category, sort, status, tag, search, minRating, year } = req.query;
+    const cacheKey = `episodes_${category || 'all'}_${sort || 'latest'}_${status || ''}_${tag || ''}_${search || ''}_${minRating || ''}_${year || ''}`;
     
     const cachedEpisodes = getCache(cacheKey);
     if (cachedEpisodes) {
@@ -104,6 +104,11 @@ router.get('/', async (req, res) => {
     }
     if (minRating) {
       query.averageRating = { $gte: parseFloat(minRating) };
+    }
+    if (year) {
+      const start = new Date(parseInt(year), 0, 1);
+      const end = new Date(parseInt(year) + 1, 0, 1);
+      query.createdAt = { $gte: start, $lt: end };
     }
     
     let sortOption = { updatedAt: -1 };

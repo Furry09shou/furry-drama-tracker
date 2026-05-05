@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Follow = require('../models/Follow');
 const Rating = require('../models/Rating');
 const Report = require('../models/Report');
+const History = require('../models/History');
 const adminProtect = require('../middlewares/adminAuth');
 
 router.get('/overview', adminProtect, async (req, res) => {
@@ -51,11 +52,46 @@ router.get('/overview', adminProtect, async (req, res) => {
       last7Days.push({ date: date.toISOString().split('T')[0], count });
     }
 
+    const last30DaysActive = await History.distinct('userId', {
+      watchedAt: { $gte: thirtyDaysAgo }
+    });
+    const activeUsers30d = last30DaysActive.length;
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const last7DaysActive = await History.distinct('userId', {
+      watchedAt: { $gte: sevenDaysAgo }
+    });
+    const activeUsers7d = last7DaysActive.length;
+
+    const ratingDistribution = await Rating.aggregate([
+      { $group: { _id: '$score', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const dailyActiveUsers = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+      const active = await History.distinct('userId', {
+        watchedAt: { $gte: date, $lt: nextDate }
+      });
+      dailyActiveUsers.push({ date: date.toISOString().split('T')[0], count: active.length });
+    }
+
+    const episodeStatusDist = await Episode.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
     res.json({
       totalEpisodes, pendingEpisodes, totalUsers, totalFollows,
       totalRatings, pendingReports, newUsers, newEpisodes,
       topRated, mostViewed, mostFollowed: mostFollowedResult,
-      userTrend: last7Days
+      userTrend: last7Days,
+      activeUsers30d,
+      activeUsers7d,
+      ratingDistribution,
+      dailyActiveUsers,
+      episodeStatusDist
     });
   } catch (error) {
     console.error('Stats error:', error);

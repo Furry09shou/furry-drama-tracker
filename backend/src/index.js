@@ -21,7 +21,15 @@ const favoriteRoutes = require('../routes/favorites');
 const reportRoutes = require('../routes/reports');
 const userRoutes = require('../routes/users');
 const statsRoutes = require('../routes/stats');
+const auditLogRoutes = require('../routes/auditLogs');
+const wishlistRoutes = require('../routes/wishlists');
+const feedbackRoutes = require('../routes/feedback');
+const seriesRoutes = require('../routes/series');
+const backupRoutes = require('../routes/backup');
+const rssRoutes = require('../routes/rss');
+const autoStatusRoutes = require('../routes/autoStatus');
 const { sanitizeInput } = require('../middlewares/security');
+const trackApiUsage = require('../middlewares/apiTracker');
 
 const requiredEnvVars = ['JWT_SECRET', 'MONGO_URI'];
 for (const varName of requiredEnvVars) {
@@ -67,6 +75,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sanitizeInput);
+app.use(trackApiUsage);
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -130,6 +139,13 @@ app.use('/api/favorites', favoriteRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/wishlists', wishlistRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/series', seriesRoutes);
+app.use('/api/backup', backupRoutes);
+app.use('/api/rss', rssRoutes);
+app.use('/api/auto-status', autoStatusRoutes);
 
 app.use((err, req, res, next) => {
   if (err.message === 'Not allowed by CORS') {

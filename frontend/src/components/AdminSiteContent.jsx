@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
@@ -246,8 +246,10 @@ const AdminSiteContent = () => {
         }}>
           <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>当前版本更新内容</h4>
           <div style={{ marginBottom: '10px' }}>
-            <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder="输入更新内容后回车添加" style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px', marginBottom: '8px', boxSizing: 'border-box' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
-            <button type="button" className="btn" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={addUpdate}>添加</button>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder="输入更新内容后回车添加" style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px', minWidth: 0 }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
+              <button type="button" style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary-light)', cursor: 'pointer', fontSize: '14px', width: '26px', height: '26px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1 }} onClick={addUpdate}>+</button>
+            </div>
           </div>
           {aboutData.updates.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
@@ -261,8 +263,9 @@ const AdminSiteContent = () => {
                   <button type="button" onClick={() => removeUpdate(index)} style={{
                     background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
                     color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px',
-                    padding: '2px 8px', borderRadius: '4px', flexShrink: 0, marginTop: '1px'
-                  }}>删除</button>
+                    width: '20px', height: '20px', borderRadius: '3px', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginTop: '1px'
+                  }}>×</button>
                 </div>
               ))}
             </div>
@@ -312,7 +315,7 @@ const AdminSiteContent = () => {
                     </div>
                     <button type="button" onClick={() => {
                       setAboutData(prev => ({ ...prev, changelog: prev.changelog.filter((_, i) => i !== idx) }));
-                    }} style={{ background: 'none', border: 'none', color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px' }}>删除</button>
+                    }} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px', width: '20px', height: '20px', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
                   </div>
                   <div style={{ padding: '8px 12px' }}>
                     {(entry.items || []).map((item, i) => (
@@ -329,9 +332,10 @@ const AdminSiteContent = () => {
                           }));
                         }} style={{
                           background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
-                          color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '11px',
-                          padding: '1px 6px', borderRadius: '3px', flexShrink: 0, marginTop: '2px'
-                        }}>删除</button>
+                          color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px',
+                          width: '18px', height: '18px', borderRadius: '3px', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginTop: '2px'
+                        }}>×</button>
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: '6px', marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed var(--border)' }}>
@@ -357,9 +361,10 @@ const AdminSiteContent = () => {
                         setChangelogInputs(prev => ({ ...prev, [idx]: '' }));
                       }} style={{
                         background: 'var(--primary-bg)', border: '1px solid var(--primary-border)',
-                        color: 'var(--primary-light)', cursor: 'pointer', fontSize: '11px',
-                        padding: '4px 10px', borderRadius: '4px', flexShrink: 0, whiteSpace: 'nowrap'
-                      }}>添加</button>
+                        color: 'var(--primary-light)', cursor: 'pointer', fontSize: '14px',
+                        width: '24px', height: '24px', borderRadius: '4px', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1
+                      }}>+</button>
                     </div>
                   </div>
                 </div>

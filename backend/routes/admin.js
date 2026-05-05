@@ -165,4 +165,18 @@ router.get('/creators', adminProtect, async (req, res) => {
   }
 });
 
+router.post('/verify-password', adminProtect, async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ message: '请输入密码' });
+  try {
+    const admin = await Admin.findById(req.admin._id);
+    if (!admin) return res.status(404).json({ message: 'Not found' });
+    const isMatch = await admin.matchPassword(password);
+    if (!isMatch) return res.status(400).json({ message: '密码错误' });
+    res.json({ verified: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

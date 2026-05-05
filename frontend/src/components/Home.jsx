@@ -13,6 +13,8 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [ratingFilter, setRatingFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
   const [banners, setBanners] = useState([]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
@@ -118,6 +120,8 @@ const Home = () => {
         if (sort) params.set('sort', sort);
         if (statusFilter) params.set('status', statusFilter);
         if (tagFilter) params.set('tag', tagFilter);
+        if (ratingFilter) params.set('minRating', ratingFilter);
+        if (yearFilter) params.set('year', yearFilter);
         const response = await axios.get(`/api/episodes?${params.toString()}`);
         setEpisodes(response.data);
         setLoading(false);
@@ -127,7 +131,7 @@ const Home = () => {
       }
     };
     fetchEpisodes();
-  }, [category, sort, statusFilter, tagFilter]);
+  }, [category, sort, statusFilter, tagFilter, ratingFilter, yearFilter]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -402,6 +406,60 @@ const Home = () => {
                 fontWeight: sort === opt.value ? '600' : '400',
                 transition: 'all 0.2s ease',
                 opacity: sort === opt.value ? 1 : 0.85
+              }}
+            >{opt.label}</button>
+          ))}
+        </div>
+        <div style={{display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
+          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>评分：</span>
+          {[
+            { value: '', label: '全部' },
+            { value: '9', label: '9+' },
+            { value: '8', label: '8+' },
+            { value: '7', label: '7+' },
+            { value: '6', label: '6+' }
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setRatingFilter(opt.value)}
+              style={{
+                padding: '8px 20px',
+                borderRadius: '20px',
+                border: ratingFilter === opt.value ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                background: ratingFilter === opt.value ? 'var(--primary-bg)' : 'var(--hover-bg)',
+                color: ratingFilter === opt.value ? 'var(--primary)' : 'var(--foreground)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: ratingFilter === opt.value ? '600' : '400',
+                transition: 'all 0.2s ease',
+                opacity: ratingFilter === opt.value ? 1 : 0.85
+              }}
+            >{opt.label}</button>
+          ))}
+        </div>
+        <div style={{display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
+          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>年份：</span>
+          {[
+            { value: '', label: '全部' },
+            { value: '2026', label: '2026' },
+            { value: '2025', label: '2025' },
+            { value: '2024', label: '2024' },
+            { value: '2023', label: '2023' }
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setYearFilter(opt.value)}
+              style={{
+                padding: '8px 20px',
+                borderRadius: '20px',
+                border: yearFilter === opt.value ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                background: yearFilter === opt.value ? 'var(--primary-bg)' : 'var(--hover-bg)',
+                color: yearFilter === opt.value ? 'var(--primary)' : 'var(--foreground)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: yearFilter === opt.value ? '600' : '400',
+                transition: 'all 0.2s ease',
+                opacity: yearFilter === opt.value ? 1 : 0.85
               }}
             >{opt.label}</button>
           ))}

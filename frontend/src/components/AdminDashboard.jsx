@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const AdminDashboard = () => {
   const [admin, setAdmin] = useState(null);
+  const [statusMsg, setStatusMsg] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -97,6 +99,38 @@ const AdminDashboard = () => {
           </Link>
         )}
 
+        {admin.role === 'superadmin' && (
+          <Link to="/admin/audit-logs" className="dashboard-card">
+            <div className="card-icon">📋</div>
+            <h3>操作日志</h3>
+            <p>查看管理员操作记录</p>
+          </Link>
+        )}
+
+        {admin.role === 'superadmin' && (
+          <Link to="/admin/backup" className="dashboard-card">
+            <div className="card-icon">💾</div>
+            <h3>数据备份与恢复</h3>
+            <p>导出和恢复数据库</p>
+          </Link>
+        )}
+
+        {admin.role === 'superadmin' && (
+          <Link to="/admin/api-usage" className="dashboard-card">
+            <div className="card-icon">📊</div>
+            <h3>API用量监控</h3>
+            <p>查看接口调用统计</p>
+          </Link>
+        )}
+
+        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+          <Link to="/admin/feedback" className="dashboard-card">
+            <div className="card-icon">💬</div>
+            <h3>用户反馈</h3>
+            <p>查看和回复用户反馈</p>
+          </Link>
+        )}
+
         {(admin.role === 'admin' || admin.role === 'superadmin') && (
           <Link to="/admin/review" className="dashboard-card">
             <div className="card-icon">✅</div>
@@ -119,6 +153,31 @@ const AdminDashboard = () => {
           <p>修改登录密码</p>
         </Link>
       </div>
+
+      {admin.role === 'superadmin' && (
+        <div style={{ marginTop: '24px', background: 'var(--card)', borderRadius: '12px', padding: '20px', border: '1px solid var(--border)' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--foreground)' }}>⚙️ 自动状态流转</h3>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary" onClick={async () => {
+              try {
+                const token = localStorage.getItem('adminToken');
+                const res = await axios.post('/api/auto-status/auto-complete', {}, { headers: { Authorization: `Bearer ${token}` } });
+                setStatusMsg(res.data.message);
+              } catch (e) { setStatusMsg('操作失败'); }
+              setTimeout(() => setStatusMsg(''), 3000);
+            }}>🔄 自动标记已完结</button>
+            <button className="btn btn-secondary" onClick={async () => {
+              try {
+                const token = localStorage.getItem('adminToken');
+                const res = await axios.post('/api/auto-status/check-premieres', {}, { headers: { Authorization: `Bearer ${token}` } });
+                setStatusMsg(res.data.message);
+              } catch (e) { setStatusMsg('操作失败'); }
+              setTimeout(() => setStatusMsg(''), 3000);
+            }}>🎬 发布到期预告</button>
+          </div>
+          {statusMsg && <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--success-text)' }}>{statusMsg}</p>}
+        </div>
+      )}
     </div>
   );
 };

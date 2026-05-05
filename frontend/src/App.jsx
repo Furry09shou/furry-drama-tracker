@@ -27,6 +27,12 @@ import ChangePassword from './components/ChangePassword';
 import ResetPassword from './components/ResetPassword';
 import VerifyEmail from './components/VerifyEmail';
 import AdminEmailSettings from './components/AdminEmailSettings';
+import AdminAuditLogs from './components/AdminAuditLogs';
+import AdminBackup from './components/AdminBackup';
+import AdminFeedback from './components/AdminFeedback';
+import AdminApiUsage from './components/AdminApiUsage';
+import FeedbackModal from './components/FeedbackModal';
+import ShareModal from './components/ShareModal';
 
 const NavBar = ({ user, logout }) => {
   const navigate = useNavigate();
@@ -35,10 +41,12 @@ const NavBar = ({ user, logout }) => {
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [siteSettings, setSiteSettings] = useState({ siteName: '兽剧聚合平台', navLogo: '' });
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const notifRef = useRef(null);
   const notifPanelRef = useRef(null);
   const moreRef = useRef(null);
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, themeIcon, themeTitle } = useTheme();
 
   useEffect(() => {
     axios.get('/api/site-content/settings')
@@ -253,8 +261,8 @@ const NavBar = ({ user, logout }) => {
                 <button onClick={toggleTheme} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
-                }} title={theme === 'dark' ? '切换亮色' : '切换暗色'}>
-                  {theme === 'dark' ? '☀️' : '🌙'}
+                }} title={themeTitle}>
+                  {themeIcon}
                 </button>
               </li>
               <li style={{position: 'relative'}} ref={moreRef}>
@@ -286,6 +294,17 @@ const NavBar = ({ user, logout }) => {
                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >{item.label}</Link>
                     ))}
+                    <div style={{borderTop: '1px solid var(--border)'}}>
+                      <button onClick={() => { setShowMoreMenu(false); setShowFeedback(true); }} style={{
+                        display: 'block', width: '100%', padding: '12px 16px',
+                        color: 'var(--foreground)', background: 'none', border: 'none',
+                        fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+                        transition: 'background 0.2s',
+                        borderBottom: '1px solid var(--border)'
+                      }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >💬 用户反馈</button>
+                    </div>
                     <div style={{borderTop: '1px solid var(--border)'}}>
                       <button onClick={clearSiteCache} style={{
                         display: 'block', width: '100%', padding: '12px 16px',
@@ -319,8 +338,8 @@ const NavBar = ({ user, logout }) => {
                 <button onClick={toggleTheme} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
-                }} title={theme === 'dark' ? '切换亮色' : '切换暗色'}>
-                  {theme === 'dark' ? '☀️' : '🌙'}
+                }} title={themeTitle}>
+                  {themeIcon}
                 </button>
               </li>
               <li style={{position: 'relative'}} ref={moreRef}>
@@ -530,6 +549,10 @@ function AppContent() {
           <Route path="/admin/creator-profile" element={<AdminCreatorProfile />} />
           <Route path="/admin/site-content" element={<AdminSiteContent />} />
           <Route path="/admin/email-settings" element={<AdminEmailSettings />} />
+          <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+          <Route path="/admin/backup" element={<AdminBackup />} />
+          <Route path="/admin/feedback" element={<AdminFeedback />} />
+          <Route path="/admin/api-usage" element={<AdminApiUsage />} />
           <Route path="/admin/change-password" element={<ChangePassword />} />
           <Route path="/creator/:id" element={<CreatorPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
@@ -540,6 +563,7 @@ function AppContent() {
         </Routes>
       </div>
       <FooterBeian />
+      <FeedbackModal show={showFeedback} onClose={() => setShowFeedback(false)} user={user} />
     </>
   );
 }

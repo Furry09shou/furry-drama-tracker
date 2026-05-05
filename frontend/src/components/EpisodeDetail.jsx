@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import ReportModal from './ReportModal';
+import ShareModal from './ShareModal';
 
 const EpisodeDetail = ({ user }) => {
   const [episode, setEpisode] = useState(null);
@@ -16,6 +17,8 @@ const EpisodeDetail = ({ user }) => {
   const [hoverRating, setHoverRating] = useState(0);
   const [recommendations, setRecommendations] = useState([]);
   const [showReport, setShowReport] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
   const navigate = useNavigate();
   const { id: episodeId } = useParams();
 
@@ -60,6 +63,9 @@ const EpisodeDetail = ({ user }) => {
       .catch(() => {});
     axios.get(`/api/favorites/check/${episodeId}`, config)
       .then(res => setIsFavorite(res.data.isFavorite))
+      .catch(() => {});
+    axios.get(`/api/wishlists/check/${episodeId}`, config)
+      .then(res => setIsWishlisted(res.data.isWishlisted))
       .catch(() => {});
   }, [user, episodeId]);
 
@@ -267,6 +273,32 @@ const EpisodeDetail = ({ user }) => {
             )}
             {user && (
               <button
+                className={`btn ${isWishlisted ? 'btn-secondary' : ''}`}
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token');
+                    const config = { headers: { Authorization: `Bearer ${token}` } };
+                    if (isWishlisted) {
+                      await axios.post('/api/wishlists/remove', { episodeId }, config);
+                    } else {
+                      await axios.post('/api/wishlists/add', { episodeId }, config);
+                    }
+                    setIsWishlisted(!isWishlisted);
+                  } catch (e) {}
+                }}
+              >
+                {isWishlisted ? '📌 已想看' : '📌 想看'}
+              </button>
+            )}
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowShare(true)}
+              style={{fontSize: '13px', padding: '8px 14px'}}
+            >
+              🔗 分享
+            </button>
+            {user && (
+              <button
                 className="btn btn-secondary"
                 onClick={() => setShowReport(true)}
                 style={{fontSize: '13px', padding: '8px 14px'}}
@@ -382,6 +414,13 @@ const EpisodeDetail = ({ user }) => {
         targetType="episode"
         targetId={episodeId}
         targetName={episode.title}
+      />
+
+      <ShareModal
+        show={showShare}
+        onClose={() => setShowShare(false)}
+        title={episode.title}
+        episodeId={episodeId}
       />
 
       {watchModal && createPortal(

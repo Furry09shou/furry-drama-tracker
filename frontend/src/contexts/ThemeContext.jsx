@@ -193,8 +193,20 @@ const themes = {
   }
 };
 
+const getSystemTheme = () => {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'dark';
+};
+
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'system') return getSystemTheme();
+    return saved || 'dark';
+  });
+  const [themeMode, setThemeMode] = useState(() => {
     return localStorage.getItem('theme') || 'dark';
   });
 
@@ -205,15 +217,36 @@ export const ThemeProvider = ({ children }) => {
       root.style.setProperty(key, value);
     }
     root.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (themeMode !== 'system') return;
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e) => setTheme(e.matches ? 'dark' : 'light');
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [themeMode]);
+
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setThemeMode(prev => {
+      const modes = ['dark', 'light', 'system'];
+      const idx = modes.indexOf(prev);
+      const next = modes[(idx + 1) % modes.length];
+      localStorage.setItem('theme', next);
+      if (next === 'system') {
+        setTheme(getSystemTheme());
+      } else {
+        setTheme(next);
+      }
+      return next;
+    });
   };
 
+  const themeIcon = themeMode === 'dark' ? '☀️' : themeMode === 'light' ? '🌙' : '💻';
+  const themeTitle = themeMode === 'dark' ? '切换亮色' : themeMode === 'light' ? '跟随系统' : '切换暗色';
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, themeMode, themeIcon, themeTitle }}>
       {children}
     </ThemeContext.Provider>
   );
