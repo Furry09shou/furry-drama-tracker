@@ -36,13 +36,17 @@ router.post('/', creatorProtect, async (req, res) => {
 
 router.put('/:id', creatorProtect, async (req, res) => {
   try {
+    const existing = await Series.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Not found' });
+    if (req.admin.role !== 'superadmin' && req.admin.role !== 'admin' && existing.createdBy && existing.createdBy.toString() !== req.admin._id.toString()) {
+      return res.status(403).json({ message: '无权修改此系列' });
+    }
     const { name, description, episodes } = req.body;
     const update = { updatedAt: Date.now() };
     if (name !== undefined) update.name = name;
     if (description !== undefined) update.description = description;
     if (episodes !== undefined) update.episodes = episodes;
     const series = await Series.findByIdAndUpdate(req.params.id, update, { new: true });
-    if (!series) return res.status(404).json({ message: 'Not found' });
     res.json(series);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

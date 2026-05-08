@@ -5,19 +5,26 @@ const Admin = require('../models/Admin');
 const adminProtect = require('../middlewares/adminAuth');
 const { clearCache, clearCacheByPrefix } = require('../middlewares/cache');
 
-router.get('/pending', adminProtect, async (req, res) => {
+const adminOnly = (req, res, next) => {
+  if (req.admin && (req.admin.role === 'admin' || req.admin.role === 'superadmin' || req.admin.role === 'user-admin')) {
+    next();
+  } else {
+    return res.status(403).json({ message: '需要管理员权限' });
+  }
+};
+
+router.get('/pending', adminProtect, adminOnly, async (req, res) => {
   try {
     const episodes = await Episode.find({ reviewStatus: 'pending' })
       .populate('createdBy', 'username email')
       .sort({ updatedAt: -1 });
     res.json(episodes);
   } catch (error) {
-    console.error('Get pending episodes error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.get('/all', adminProtect, async (req, res) => {
+router.get('/all', adminProtect, adminOnly, async (req, res) => {
   try {
     const episodes = await Episode.find({})
       .populate('createdBy', 'username email')
@@ -25,12 +32,11 @@ router.get('/all', adminProtect, async (req, res) => {
       .sort({ updatedAt: -1 });
     res.json(episodes);
   } catch (error) {
-    console.error('Get all episodes for review error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.put('/approve/:id', adminProtect, async (req, res) => {
+router.put('/approve/:id', adminProtect, adminOnly, async (req, res) => {
   try {
     const episode = await Episode.findByIdAndUpdate(
       req.params.id,
@@ -44,12 +50,11 @@ router.put('/approve/:id', adminProtect, async (req, res) => {
     clearCacheByPrefix('episodes_');
     res.json(episode);
   } catch (error) {
-    console.error('Approve episode error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.put('/reject/:id', adminProtect, async (req, res) => {
+router.put('/reject/:id', adminProtect, adminOnly, async (req, res) => {
   try {
     const episode = await Episode.findByIdAndUpdate(
       req.params.id,
@@ -63,12 +68,11 @@ router.put('/reject/:id', adminProtect, async (req, res) => {
     clearCacheByPrefix('episodes_');
     res.json(episode);
   } catch (error) {
-    console.error('Reject episode error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.put('/assign-editor/:episodeId', adminProtect, async (req, res) => {
+router.put('/assign-editor/:episodeId', adminProtect, adminOnly, async (req, res) => {
   try {
     const { editorId } = req.body;
     const editor = await Admin.findById(editorId);
@@ -92,12 +96,11 @@ router.put('/assign-editor/:episodeId', adminProtect, async (req, res) => {
       .populate('allowedEditors', 'username');
     res.json(updated);
   } catch (error) {
-    console.error('Assign editor error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.put('/remove-editor/:episodeId', adminProtect, async (req, res) => {
+router.put('/remove-editor/:episodeId', adminProtect, adminOnly, async (req, res) => {
   try {
     const { editorId } = req.body;
     const episode = await Episode.findById(req.params.episodeId);
@@ -113,7 +116,6 @@ router.put('/remove-editor/:episodeId', adminProtect, async (req, res) => {
       .populate('allowedEditors', 'username email');
     res.json(updated);
   } catch (error) {
-    console.error('Remove editor error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

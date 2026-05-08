@@ -264,6 +264,7 @@ router.delete('/single/:id', adminProtect, async (req, res) => {
 router.post('/', creatorProtect, async (req, res) => {
   try {
     const isCreator = req.admin.role === 'creator';
+    const isUserAdmin = req.admin.role === 'user-admin';
     const episodeData = {
       title: req.body.title,
       description: req.body.description,
@@ -276,7 +277,7 @@ router.post('/', creatorProtect, async (req, res) => {
       updateDay: req.body.updateDay || '',
       premiereDate: req.body.premiereDate || null,
       platformLinks: req.body.platformLinks || {},
-      createdBy: req.admin._id,
+      createdBy: isUserAdmin ? null : req.admin._id,
       reviewStatus: isCreator ? 'pending' : 'approved'
     };
     

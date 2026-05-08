@@ -5,9 +5,16 @@ import { Link } from 'react-router-dom';
 const UpdateCalendar = () => {
   const [calendarData, setCalendarData] = useState({ year: 0, month: 0, calendar: {} });
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
   const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -139,9 +146,16 @@ const UpdateCalendar = () => {
         background: 'var(--card)', borderRadius: '12px',
         border: '1px solid var(--border)', overflow: 'hidden'
       }}>
+        {isMobile && (
+          <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border)' }}>
+            ← 左右滑动查看日历 →
+          </div>
+        )}
+        <div style={{ overflowX: isMobile ? 'auto' : 'visible', WebkitOverflowScrolling: 'touch' }}>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-          borderBottom: '1px solid var(--border)'
+          borderBottom: '1px solid var(--border)',
+          minWidth: isMobile ? '500px' : 'auto'
         }}>
           {weekDays.map((day, i) => (
             <div key={day} style={{
@@ -154,7 +168,8 @@ const UpdateCalendar = () => {
         </div>
 
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)'
+          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+          minWidth: isMobile ? '500px' : 'auto'
         }}>
           {Array.from({ length: firstDay }).map((_, i) => (
             <div key={`empty-${i}`} style={{
@@ -245,11 +260,12 @@ const UpdateCalendar = () => {
             }}></div>
           ))}
         </div>
+        </div>
       </div>
 
       <div style={{ marginTop: '24px' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: 'var(--foreground)' }}>
-          本月更新详情
+          <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: 'var(--foreground)' }}>
+            本月更新详情
         </h3>
         {Object.keys(calendarData.calendar).length === 0 ? (
           <div style={{

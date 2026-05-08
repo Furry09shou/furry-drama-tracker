@@ -31,8 +31,8 @@ import AdminAuditLogs from './components/AdminAuditLogs';
 import AdminBackup from './components/AdminBackup';
 import AdminFeedback from './components/AdminFeedback';
 import AdminApiUsage from './components/AdminApiUsage';
+import AdminFriendLinks from './components/AdminFriendLinks';
 import FeedbackModal from './components/FeedbackModal';
-import ShareModal from './components/ShareModal';
 
 const NavBar = ({ user, logout, onFeedback }) => {
   const navigate = useNavigate();
@@ -40,6 +40,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [siteSettings, setSiteSettings] = useState({ siteName: '兽剧聚合平台', navLogo: '' });
   const notifRef = useRef(null);
   const notifPanelRef = useRef(null);
@@ -140,12 +141,62 @@ const NavBar = ({ user, logout, onFeedback }) => {
   };
 
   const moreMenuItems = [
-    ...(user ? [{ to: '/admin/dashboard', label: '管理后台' }, { to: '/admin/stats', label: '数据统计' }] : []),
+    ...(user ? [{ to: user.adminAccess ? '/admin/dashboard' : '/admin/stats', label: user.adminAccess ? '管理后台' : '数据统计' }] : []),
     { to: '/privacy', label: '隐私政策' },
     { to: '/terms', label: '用户协议' },
     { to: '/license', label: '许可协议' },
     { to: '/about', label: '关于我们' },
   ];
+
+  const [showMobileMore, setShowMobileMore] = useState(false);
+
+  const renderMobileMoreItems = () => (
+    <>
+      {moreMenuItems.map((item) => (
+        <li key={item.to}>
+          <Link to={item.to} onClick={() => { setShowMobileMenu(false); setShowMobileMore(false); }} style={{
+            display: 'block', padding: '10px 12px', color: 'var(--foreground)',
+            textDecoration: 'none', fontSize: '14px', fontWeight: 500,
+            borderRadius: '8px', transition: 'background 0.2s'
+          }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >{item.label}</Link>
+        </li>
+      ))}
+      <li>
+        <button onClick={() => { setShowMobileMenu(false); setShowMobileMore(false); onFeedback(); }} style={{
+          display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px',
+          color: 'var(--foreground)', background: 'none', border: 'none',
+          fontSize: '14px', fontWeight: 500, cursor: 'pointer', borderRadius: '8px',
+          transition: 'background 0.2s'
+        }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+        >用户反馈</button>
+      </li>
+      <li>
+        <button onClick={() => { clearSiteCache(); setShowMobileMore(false); }} style={{
+          display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px',
+          color: 'var(--foreground)', background: 'none', border: 'none',
+          fontSize: '14px', fontWeight: 500, cursor: 'pointer', borderRadius: '8px',
+          transition: 'background 0.2s'
+        }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+        >清理缓存</button>
+      </li>
+      {user && (
+        <li>
+          <button onClick={() => { setShowMobileMenu(false); setShowMobileMore(false); logout(); }} style={{
+            display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px',
+            color: 'var(--destructive-text)', background: 'none', border: 'none',
+            fontSize: '14px', fontWeight: 500, cursor: 'pointer', borderRadius: '8px',
+            transition: 'background 0.2s'
+          }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--destructive-bg-subtle)'}
+             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >退出登录</button>
+        </li>
+      )}
+    </>
+  );
 
   return (
     <header>
@@ -158,15 +209,48 @@ const NavBar = ({ user, logout, onFeedback }) => {
             <h1>{siteSettings.siteName}</h1>
           </a>
         </div>
-        <ul>
-          <li><a href="/" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}>首页</a></li>
-          <li><Link to="/calendar">日历</Link></li>
+        <div className="mobile-actions" style={{ display: 'none', alignItems: 'center', gap: '4px' }}>
+          {user && (
+            <button
+              onClick={() => setShowNotifPanel(!showNotifPanel)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--foreground)', fontSize: '20px', position: 'relative',
+                padding: '6px', lineHeight: 1
+              }}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: '0', right: '-2px',
+                  background: 'var(--badge-bg)', color: 'var(--badge-text)', fontSize: '10px',
+                  borderRadius: '10px', padding: '1px 4px', minWidth: '14px',
+                  textAlign: 'center', lineHeight: '12px'
+                }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </button>
+          )}
+          <button onClick={toggleTheme} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--foreground)', fontSize: '18px', padding: '6px'
+          }} title={themeTitle}>
+            {themeIcon}
+          </button>
+          <button className="mobile-menu-btn" onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMobileMore(false); }} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--foreground)', fontSize: '22px', padding: '6px'
+          }}>☰</button>
+        </div>
+        <ul className={showMobileMenu ? 'mobile-open' : ''}>
+          <li><a href="/" onClick={(e) => { e.preventDefault(); setShowMobileMenu(false); window.location.href = '/'; }}>首页</a></li>
+          <li><Link to="/calendar" onClick={() => setShowMobileMenu(false)}>日历</Link></li>
           {user ? (
             <>
-              <li><Link to="/profile">个人中心</Link></li>
+              <li><Link to="/profile" onClick={() => setShowMobileMenu(false)}>个人中心</Link></li>
               <li style={{position: 'relative'}} ref={notifRef}>
                 <button
                   onClick={() => setShowNotifPanel(!showNotifPanel)}
+                  className="desktop-only-notif"
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--foreground)', fontSize: '20px', position: 'relative',
@@ -223,6 +307,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
                             onClick={() => {
                               if (!n.episodeId) return;
                               setShowNotifPanel(false);
+                              setShowMobileMenu(false);
                               navigate(`/episode/${n.episodeId}`);
                             }}
                             style={{
@@ -255,7 +340,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
                   document.body
                 )}
               </li>
-              <li>
+              <li className="desktop-only-theme">
                 <button onClick={toggleTheme} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
@@ -265,6 +350,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
               </li>
               <li style={{position: 'relative'}} ref={moreRef}>
                 <button
+                  className="desktop-more-btn"
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
@@ -283,7 +369,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
                     backdropFilter: 'blur(20px)'
                   }}>
                     {moreMenuItems.map((item, i) => (
-                      <Link key={item.to} to={item.to} onClick={() => setShowMoreMenu(false)} style={{
+                      <Link key={item.to} to={item.to} onClick={() => { setShowMoreMenu(false); setShowMobileMenu(false); }} style={{
                         display: 'block', padding: '12px 16px', color: 'var(--foreground)',
                         textDecoration: 'none', fontSize: '14px',
                         borderBottom: '1px solid var(--border)',
@@ -301,7 +387,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
                         borderBottom: '1px solid var(--border)'
                       }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                      >💬 用户反馈</button>
+                      >用户反馈</button>
                     </div>
                     <div style={{borderTop: '1px solid var(--border)'}}>
                       <button onClick={clearSiteCache} style={{
@@ -327,12 +413,26 @@ const NavBar = ({ user, logout, onFeedback }) => {
                   </div>
                 )}
               </li>
+              <li className="mobile-more-toggle">
+                <button onClick={() => setShowMobileMore(!showMobileMore)} style={{
+                  width: '100%', textAlign: 'left', padding: '10px 12px',
+                  color: 'var(--foreground)', background: 'none', border: 'none',
+                  fontSize: '14px', fontWeight: 500, cursor: 'pointer', borderRadius: '8px',
+                  transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span>更多</span>
+                  <span style={{ fontSize: '12px', transition: 'transform 0.2s', transform: showMobileMore ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
+                </button>
+              </li>
+              {showMobileMore && renderMobileMoreItems()}
             </>
           ) : (
             <>
               <li><Link to="/login">登录</Link></li>
               <li><Link to="/register">注册</Link></li>
-              <li>
+              <li className="desktop-only-theme">
                 <button onClick={toggleTheme} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
@@ -342,6 +442,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
               </li>
               <li style={{position: 'relative'}} ref={moreRef}>
                 <button
+                  className="desktop-more-btn"
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
@@ -360,7 +461,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
                     backdropFilter: 'blur(20px)'
                   }}>
                     {moreMenuItems.map((item, i) => (
-                      <Link key={item.to} to={item.to} onClick={() => setShowMoreMenu(false)} style={{
+                      <Link key={item.to} to={item.to} onClick={() => { setShowMoreMenu(false); setShowMobileMenu(false); }} style={{
                         display: 'block', padding: '12px 16px', color: 'var(--foreground)',
                         textDecoration: 'none', fontSize: '14px',
                         borderBottom: i < moreMenuItems.length - 1 ? '1px solid var(--border)' : 'none',
@@ -382,6 +483,20 @@ const NavBar = ({ user, logout, onFeedback }) => {
                   </div>
                 )}
               </li>
+              <li className="mobile-more-toggle">
+                <button onClick={() => setShowMobileMore(!showMobileMore)} style={{
+                  width: '100%', textAlign: 'left', padding: '10px 12px',
+                  color: 'var(--foreground)', background: 'none', border: 'none',
+                  fontSize: '14px', fontWeight: 500, cursor: 'pointer', borderRadius: '8px',
+                  transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span>更多</span>
+                  <span style={{ fontSize: '12px', transition: 'transform 0.2s', transform: showMobileMore ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
+                </button>
+              </li>
+              {showMobileMore && renderMobileMoreItems()}
             </>
           )}
         </ul>
@@ -392,6 +507,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
 
 const FooterBeian = () => {
   const [beianInfo, setBeianInfo] = useState({ icp: '', policeRecord: '', copyright: '', aiDisclaimer: '', version: '' });
+  const [showGithubModal, setShowGithubModal] = useState(false);
 
   useEffect(() => {
     axios.get('/api/site-content/about')
@@ -454,6 +570,88 @@ const FooterBeian = () => {
         onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
         onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
       >GPL v3.0 / AGPL v3.0 许可协议</Link>
+      <span
+        onClick={() => setShowGithubModal(true)}
+        style={{ color: 'var(--text-tertiary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+        onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+        onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+      >
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" style={{ flexShrink: 0 }}><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub 开源项目
+      </span>
+      {showGithubModal && (
+        <div onClick={() => setShowGithubModal(false)} style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            background: 'var(--card)', border: '1px solid var(--border)',
+            borderRadius: '16px', padding: '24px', width: 'min(300px, calc(100vw - 40px))',
+            maxWidth: '400px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--foreground)' }}>GitHub 开源项目</h3>
+              <button onClick={() => setShowGithubModal(false)} style={{
+                background: 'none', border: 'none', color: 'var(--text-secondary)',
+                fontSize: '20px', cursor: 'pointer', padding: '4px 8px', lineHeight: 1
+              }}>✕</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+                borderRadius: '12px', background: 'var(--hover-bg)', border: '1px solid var(--border)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                <span style={{ fontSize: '24px' }}>🎨</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>前端项目</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-fe</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>GPL v3.0</span>
+                    <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }}
+                      onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                      onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                    >查看许可协议</Link>
+                  </div>
+                </div>
+                <a href="https://github.com/Furry09shou/furry-drama-fe" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
+                  padding: '6px 12px', borderRadius: '8px', background: 'var(--primary)',
+                  color: '#fff', textDecoration: 'none', fontSize: '12px', fontWeight: 600,
+                  flexShrink: 0, whiteSpace: 'nowrap'
+                }}>GitHub</a>
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+                borderRadius: '12px', background: 'var(--hover-bg)', border: '1px solid var(--border)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                <span style={{ fontSize: '24px' }}>⚙️</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>后端项目</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-be</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>AGPL v3.0</span>
+                    <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }}
+                      onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                      onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                    >查看许可协议</Link>
+                  </div>
+                </div>
+                <a href="https://github.com/Furry09shou/furry-drama-be" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
+                  padding: '6px 12px', borderRadius: '8px', background: 'var(--primary)',
+                  color: '#fff', textDecoration: 'none', fontSize: '12px', fontWeight: 600,
+                  flexShrink: 0, whiteSpace: 'nowrap'
+                }}>GitHub</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {beianInfo.version && (
         <span style={{ color: 'var(--text-tertiary)' }}>v{beianInfo.version}</span>
       )}
@@ -552,6 +750,7 @@ function AppContent() {
           <Route path="/admin/backup" element={<AdminBackup />} />
           <Route path="/admin/feedback" element={<AdminFeedback />} />
           <Route path="/admin/api-usage" element={<AdminApiUsage />} />
+          <Route path="/admin/friend-links" element={<AdminFriendLinks />} />
           <Route path="/admin/change-password" element={<ChangePassword />} />
           <Route path="/creator/:id" element={<CreatorPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />

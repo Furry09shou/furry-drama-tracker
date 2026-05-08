@@ -45,11 +45,13 @@ const AdminDashboard = () => {
       </div>
 
       <div className="dashboard-cards">
-        <Link to="/admin/episodes" className="dashboard-card">
-          <div className="card-icon">🎬</div>
-          <h3>剧集管理</h3>
-          <p>{admin.role === 'creator' ? '创建和管理我的剧集' : '添加、编辑和管理剧集'}</p>
-        </Link>
+        {(admin.role === 'user-admin' || admin.role === 'admin' || admin.role === 'superadmin' || admin.role === 'creator') && (
+          <Link to="/admin/episodes" className="dashboard-card">
+            <div className="card-icon">🎬</div>
+            <h3>剧集管理</h3>
+            <p>{admin.role === 'creator' ? '创建和管理我的剧集' : '添加、编辑和管理剧集'}</p>
+          </Link>
+        )}
         
         {admin.role === 'creator' && (
           <Link to="/admin/creator-profile" className="dashboard-card">
@@ -59,7 +61,7 @@ const AdminDashboard = () => {
           </Link>
         )}
         
-        {admin.role !== 'creator' && (
+        {admin.role !== 'creator' && admin.role !== 'user-admin' && (
           <>
             <Link to="/admin/categories" className="dashboard-card">
               <div className="card-icon">🏷️</div>
@@ -116,6 +118,14 @@ const AdminDashboard = () => {
         )}
 
         {admin.role === 'superadmin' && (
+          <Link to="/admin/friend-links" className="dashboard-card">
+            <div className="card-icon">🔗</div>
+            <h3>友链管理</h3>
+            <p>添加、编辑和管理友情链接</p>
+          </Link>
+        )}
+
+        {admin.role === 'superadmin' && (
           <Link to="/admin/api-usage" className="dashboard-card">
             <div className="card-icon">📊</div>
             <h3>API用量监控</h3>
@@ -123,7 +133,7 @@ const AdminDashboard = () => {
           </Link>
         )}
 
-        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+        {(admin.role === 'admin' || admin.role === 'superadmin' || admin.role === 'user-admin') && (
           <Link to="/admin/feedback" className="dashboard-card">
             <div className="card-icon">💬</div>
             <h3>用户反馈</h3>
@@ -131,7 +141,7 @@ const AdminDashboard = () => {
           </Link>
         )}
 
-        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+        {(admin.role === 'admin' || admin.role === 'superadmin' || admin.role === 'user-admin') && (
           <Link to="/admin/review" className="dashboard-card">
             <div className="card-icon">✅</div>
             <h3>审核管理</h3>
@@ -139,7 +149,7 @@ const AdminDashboard = () => {
           </Link>
         )}
 
-        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+        {(admin.role === 'admin' || admin.role === 'superadmin' || admin.role === 'user-admin') && (
           <Link to="/admin/reports" className="dashboard-card">
             <div className="card-icon">🚨</div>
             <h3>举报管理</h3>

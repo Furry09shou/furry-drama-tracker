@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
+const User = require('../models/User');
 
 const creatorProtect = async (req, res, next) => {
   let token;
@@ -8,6 +9,15 @@ const creatorProtect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      if (decoded.role === 'user-admin') {
+        const user = await User.findById(decoded.id).select('-password');
+        if (!user || !user.adminAccess) {
+          return res.status(403).json({ message: 'Not authorized as creator' });
+        }
+        req.admin = { _id: user._id, username: user.username, role: 'user-admin' };
+        return next();
+      }
 
       if (decoded.role !== 'creator' && decoded.role !== 'admin' && decoded.role !== 'superadmin') {
         return res.status(403).json({ message: 'Not authorized as creator' });

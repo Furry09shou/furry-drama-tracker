@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
 const adminProtect = require('../middlewares/adminAuth');
+const { realAdminOnly } = require('../middlewares/adminAuth');
 
 router.get('/', async (req, res) => {
   try {
@@ -12,7 +13,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', adminProtect, async (req, res) => {
+router.post('/', adminProtect, realAdminOnly, async (req, res) => {
   try {
     const { name, order } = req.body;
     const existing = await Category.findOne({ name });
@@ -26,7 +27,7 @@ router.post('/', adminProtect, async (req, res) => {
   }
 });
 
-router.put('/:id', adminProtect, async (req, res) => {
+router.put('/:id', adminProtect, realAdminOnly, async (req, res) => {
   try {
     const { name, order } = req.body;
     const category = await Category.findById(req.params.id);
@@ -42,7 +43,7 @@ router.put('/:id', adminProtect, async (req, res) => {
   }
 });
 
-router.delete('/:id', adminProtect, async (req, res) => {
+router.delete('/:id', adminProtect, realAdminOnly, async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
     if (!category) {

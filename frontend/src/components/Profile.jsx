@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -6,7 +6,7 @@ const Profile = ({ user, setUser, logout }) => {
   const [followedEpisodes, setFollowedEpisodes] = useState([]);
   const [historyEpisodes, setHistoryEpisodes] = useState([]);
   const [favoriteEpisodes, setFavoriteEpisodes] = useState([]);
-  const [wishlistEpisodes, setWishlistEpisodes] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [deletionStatus, setDeletionStatus] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -42,10 +42,7 @@ const Profile = ({ user, setUser, logout }) => {
           const favRes = await axios.get('/api/favorites/list', config);
           setFavoriteEpisodes(favRes.data || []);
         } catch (e) {}
-        try {
-          const wishRes = await axios.get('/api/wishlists/list', config);
-          setWishlistEpisodes(wishRes.data || []);
-        } catch (e) {}
+
         setFollowedEpisodes(followData);
         setHistoryEpisodes(historyData);
         try {
@@ -418,7 +415,7 @@ const Profile = ({ user, setUser, logout }) => {
       <h2>个人中心</h2>
 
       <div className="user-info">
-        <div style={{display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '16px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', justifyContent: 'center'}}>
           <div style={{position: 'relative'}}>
             <div style={{
               width: '64px', height: '64px', borderRadius: '50%',
@@ -497,7 +494,7 @@ const Profile = ({ user, setUser, logout }) => {
             )}
           </div>
         </div>
-        <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
+        <div style={{display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
           <Link to="/change-password" className="btn" style={{display: 'inline-block'}}>修改密码</Link>
           <button onClick={async () => {
             try {
@@ -530,7 +527,6 @@ const Profile = ({ user, setUser, logout }) => {
         {[
           { key: 'follows', label: '我的追番', count: followedEpisodes.length },
           { key: 'favorites', label: '我的收藏', count: favoriteEpisodes.length },
-          { key: 'wishlist', label: '我的想看', count: wishlistEpisodes.length },
           { key: 'history', label: '观看历史', count: historyEpisodes.length },
         ].map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -585,27 +581,6 @@ const Profile = ({ user, setUser, logout }) => {
                 </div>
               );
             })
-          )}
-        </div>
-      )}
-
-      {activeTab === 'wishlist' && (
-        <div className="followed-episodes">
-          {wishlistEpisodes.length === 0 ? (
-            <p style={{textAlign: 'center', color: 'var(--text-secondary)', padding: '40px'}}>暂无想看内容</p>
-          ) : (
-            wishlistEpisodes.map(item => (
-              <Link key={item._id} to={`/episode/${item.episodeId?._id}`} className="followed-episode-item" style={{textDecoration: 'none'}}>
-                {item.episodeId?.coverImage && <img src={item.episodeId.coverImage} alt="" style={{width: '60px', height: '80px', borderRadius: '6px', objectFit: 'cover'}} />}
-                <div style={{flex: 1, minWidth: 0}}>
-                  <h4 style={{margin: '0 0 4px 0', color: 'var(--foreground)'}}>{item.episodeId?.title || '未知剧集'}</h4>
-                  <p style={{margin: 0, fontSize: '12px', color: 'var(--text-secondary)'}}>
-                    {item.episodeId?.status === 'ongoing' ? '连载中' : item.episodeId?.status === 'completed' ? '已完结' : '即将上映'}
-                    {item.episodeId?.averageRating > 0 && ` · ⭐ ${item.episodeId.averageRating.toFixed(1)}`}
-                  </p>
-                </div>
-              </Link>
-            ))
           )}
         </div>
       )}

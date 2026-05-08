@@ -221,6 +221,7 @@ router.post('/login', async (req, res) => {
       username: user.username,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
+      adminAccess: user.adminAccess || false,
       token
     });
   } catch (error) {
@@ -308,7 +309,11 @@ router.post('/reset-password', async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
     }
+    if (user.passwordChangedAt && new Date(user.passwordChangedAt).getTime() > decoded.iat * 1000) {
+      return res.status(400).json({ message: '该重置链接已使用，请重新获取' });
+    }
     user.password = newPassword;
+    user.passwordChangedAt = new Date();
     await user.save();
     res.json({ message: '密码重置成功' });
   } catch (error) {

@@ -12,25 +12,45 @@ router.post('/login', async (req, res) => {
   
   try {
     const admin = await Admin.findOne({ username });
-    if (!admin) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+    if (admin) {
+      const isMatch = await admin.matchPassword(password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Invalid credentials' });
+      }
+      
+      const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, {
+        expiresIn: '30d'
+      });
+      
+      return res.json({
+        _id: admin._id,
+        username: admin.username,
+        role: admin.role,
+        token
+      });
+    }
+
+    const user = await User.findOne({ email: username });
+    if (user && user.adminAccess) {
+      const isMatch = await user.matchPassword(password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Invalid credentials' });
+      }
+      if (!user.isEmailVerified) {
+        return res.status(403).json({ message: '请先验证邮箱' });
+      }
+      const token = jwt.sign({ id: user._id, role: 'user-admin', userId: user._id }, process.env.JWT_SECRET, {
+        expiresIn: '30d'
+      });
+      return res.json({
+        _id: user._id,
+        username: user.username,
+        role: 'user-admin',
+        token
+      });
     }
     
-    const isMatch = await admin.matchPassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-    
-    const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
-    });
-    
-    res.json({
-      _id: admin._id,
-      username: admin.username,
-      role: admin.role,
-      token
-    });
+    return res.status(400).json({ message: 'Invalid credentials' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -104,7 +124,7 @@ router.get('/users', adminProtect, async (req, res) => {
   }
 });
 
-router.delete('/users/:id', adminProtect, async (req, res) => {
+router.delete('/users/:id', superAdminProtect, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -117,14 +137,12 @@ router.delete('/users/:id', adminProtect, async (req, res) => {
     const Favorite = require('../models/Favorite');
     const Rating = require('../models/Rating');
     const Report = require('../models/Report');
-    const Wishlist = require('../models/Wishlist');
     const Feedback = require('../models/Feedback');
     await Follow.deleteMany({ userId: req.params.id });
     await History.deleteMany({ userId: req.params.id });
     await Notification.deleteMany({ userId: req.params.id });
     await Favorite.deleteMany({ userId: req.params.id });
     await Report.deleteMany({ reporter: req.params.id });
-    await Wishlist.deleteMany({ userId: req.params.id });
     await Feedback.deleteMany({ userId: req.params.id });
     const userRatings = await Rating.find({ userId: req.params.id });
     await Rating.deleteMany({ userId: req.params.id });
@@ -197,11 +215,63 @@ router.post('/verify-password', adminProtect, async (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ message: '请输入密码' });
   try {
+    if (req.admin.role === 'user-admin') {
+      const user = await User.findById(req.admin._id);
+      if (!user) return res.status(404).json({ message: 'Not found' });
+      const isMatch = await user.matchPassword(password);
+      if (!isMatch) return res.status(400).json({ message: '密码错误' });
+      return res.json({ verified: true });
+    }
     const admin = await Admin.findById(req.admin._id);
     if (!admin) return res.status(404).json({ message: 'Not found' });
     const isMatch = await admin.matchPassword(password);
     if (!isMatch) return res.status(400).json({ message: '密码错误' });
     res.json({ verified: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/user-admin-access/:id', superAdminProtect, async (req, res) => {
+  try {
+    const { adminAccess } = req.body;
+    if (typeof adminAccess !== 'boolean') {
+      return res.status(400).json({ message: '参数错误' });
+    }
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    user.adminAccess = adminAccess;
+    await user.save();
+    res.json({ message: adminAccess ? '已授予管理后台权限' : '已撤销管理后台权限', adminAccess });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/user-admin-change-password', adminProtect, async (req, res) => {
+  if (req.admin.role !== 'user-admin') {
+    return res.status(403).json({ message: '无权限' });
+  }
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const { validatePassword } = require('../middlewares/security');
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+    const user = await User.findById(req.admin._id);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: '当前密码不正确' });
+    }
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: '密码修改成功' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

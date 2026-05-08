@@ -38,7 +38,8 @@ const AdminEpisodes = () => {
     duration: '',
     platformLinksList: [],
     scheduledDate: '',
-    isScheduled: false
+    isScheduled: false,
+    releaseDate: ''
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -259,7 +260,10 @@ const AdminEpisodes = () => {
         scheduledDate: newSingleEpisode.isScheduled && newSingleEpisode.scheduledDate
           ? new Date(newSingleEpisode.scheduledDate).toISOString()
           : null,
-        isScheduled: newSingleEpisode.isScheduled
+        isScheduled: newSingleEpisode.isScheduled,
+        releaseDate: newSingleEpisode.releaseDate
+          ? new Date(newSingleEpisode.releaseDate).toISOString()
+          : null
       };
       delete submitData.platformLinksList;
       
@@ -281,7 +285,8 @@ const AdminEpisodes = () => {
         duration: '',
         platformLinksList: [],
         scheduledDate: '',
-        isScheduled: false
+        isScheduled: false,
+        releaseDate: ''
       });
       fetchSingleEpisodes(episodeId);
       fetchEpisodes();
@@ -300,7 +305,10 @@ const AdminEpisodes = () => {
       scheduledDate: singleEpisode.scheduledDate
         ? new Date(singleEpisode.scheduledDate).toISOString().slice(0, 16)
         : '',
-      isScheduled: singleEpisode.isScheduled || false
+      isScheduled: singleEpisode.isScheduled || false,
+      releaseDate: singleEpisode.releaseDate
+        ? new Date(singleEpisode.releaseDate).toISOString().slice(0, 16)
+        : ''
     });
     setShowSingleEpisodeForm(true);
   };
@@ -553,7 +561,8 @@ const AdminEpisodes = () => {
                   duration: '',
                   platformLinksList: [],
                   scheduledDate: '',
-                  isScheduled: false
+                  isScheduled: false,
+                  releaseDate: ''
                 });
               }
             }}>
@@ -592,6 +601,22 @@ const AdminEpisodes = () => {
                     placeholder="例如：24分钟"
                   />
                 </div>
+                {editingEpisode && (editingEpisode.status === 'ongoing' || editingEpisode.status === 'completed') && (
+                  <div className="form-group">
+                    <label>发布日期 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>（选填，不填默认上传日期）</span></label>
+                    <input
+                      type="datetime-local"
+                      value={newSingleEpisode.releaseDate}
+                      onChange={(e) => setNewSingleEpisode({...newSingleEpisode, releaseDate: e.target.value})}
+                      style={{
+                        width: '100%', padding: '8px 12px', borderRadius: '6px',
+                        border: '1px solid var(--border)', backgroundColor: 'var(--hover-bg)',
+                        color: 'var(--text-light)', fontSize: '14px'
+                      }}
+                    />
+                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>适用于已上映但平台补充信息较晚的剧集</p>
+                  </div>
+                )}
                 <div className="form-group" style={{ padding: '12px', background: 'var(--hover-bg-strong)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                     <input
@@ -709,11 +734,12 @@ const AdminEpisodes = () => {
           {singleEpisodes.length === 0 ? (
             <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '20px'}}>暂无单集，点击上方"添加单集"按钮为每一集设置跳转链接</p>
           ) : (
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>集数</th>
-                  <th>标题</th>
+                    <th>集数</th>
+                    <th>标题</th>
                   <th>时长</th>
                   <th>跳转链接</th>
                   <th>热度</th>
@@ -761,6 +787,7 @@ const AdminEpisodes = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
@@ -769,7 +796,7 @@ const AdminEpisodes = () => {
 
   return (
     <div className="admin-panel">
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
           <Link to="/admin/dashboard" className="btn btn-secondary">返回控制台</Link>
           <h2>剧集管理</h2>
@@ -795,9 +822,10 @@ const AdminEpisodes = () => {
           )}
         />
       </div>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <table className="admin-table">
-        <thead>
-          <tr>
+          <thead>
+            <tr>
             <th>标题</th>
             <th>状态</th>
             <th>集数</th>
@@ -864,6 +892,7 @@ const AdminEpisodes = () => {
           )}
         </tbody>
       </table>
+      </div>
 
       {createPortal(addFormModal, document.body)}
       {createPortal(editFormModal, document.body)}

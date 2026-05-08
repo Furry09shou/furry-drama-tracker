@@ -8,7 +8,6 @@ const Follow = require('../models/Follow');
 const Favorite = require('../models/Favorite');
 const Rating = require('../models/Rating');
 const History = require('../models/History');
-const Wishlist = require('../models/Wishlist');
 const protect = require('../middlewares/auth');
 
 const storage = multer.diskStorage({
@@ -92,15 +91,13 @@ router.get('/export-my-data', protect, async (req, res) => {
     const favorites = await Favorite.find({ userId }).populate('episodeId', 'title coverImage status');
     const ratings = await Rating.find({ userId }).populate('episodeId', 'title');
     const history = await History.find({ userId }).populate('episodeId', 'title');
-    const wishlist = await Wishlist.find({ userId }).populate('episodeId', 'title coverImage status');
     const exportData = {
       exportDate: new Date().toISOString(),
       user: user,
       follows: follows,
       favorites: favorites,
       ratings: ratings,
-      watchHistory: history,
-      wishlist: wishlist
+      watchHistory: history
     };
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename=my_data_${new Date().toISOString().split('T')[0]}.json`);

@@ -14,6 +14,7 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   min-height: 100vh;
+  padding-bottom: 60px;
   background-image:
     radial-gradient(circle at 25% 25%, var(--gradient-bg1) 0%, transparent 50%),
     radial-gradient(circle at 75% 75%, var(--gradient-bg2) 0%, transparent 50%);
@@ -35,6 +36,7 @@ header {
   top: 0;
   z-index: 100;
   transition: background 0.3s ease, border-color 0.3s ease;
+  position: relative;
 }
 
 nav {
@@ -65,6 +67,18 @@ nav ul {
   list-style: none;
   align-items: center;
   gap: 20px;
+}
+
+.mobile-menu-btn {
+  display: none;
+}
+
+.mobile-actions {
+  display: none;
+}
+
+.mobile-more-toggle {
+  display: none;
 }
 
 nav ul li a {
@@ -1148,33 +1162,79 @@ table tr:last-child td {
 
 @media (max-width: 768px) {
   .container {
-    padding: 16px;
+    padding: 12px;
   }
 
   nav {
-    flex-direction: column;
-    gap: 16px;
-    padding: 16px;
+    flex-direction: row;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .mobile-menu-btn {
+    display: block !important;
+  }
+
+  .mobile-actions {
+    display: flex !important;
+  }
+
+  .desktop-only-notif,
+  .desktop-only-theme,
+  .desktop-more-btn {
+    display: none !important;
+  }
+
+  .mobile-more-toggle {
+    display: list-item !important;
   }
 
   nav ul {
-    flex-wrap: wrap;
-    justify-content: center;
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px;
+    gap: 4px;
+    z-index: 200;
+    box-shadow: 0 8px 24px var(--shadow-modal);
+  }
+
+  nav ul.mobile-open {
+    display: flex;
+  }
+
+  nav ul li {
+    width: 100%;
+  }
+
+  nav ul li a,
+  nav ul li button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 8px;
   }
 
   .hero {
     padding: 0;
-    margin: 0 0 30px 0;
-    height: 200px;
+    margin: 0 0 20px 0;
+    height: auto;
+    min-height: 160px;
   }
 
   .hero h2 {
-    font-size: 2rem;
+    font-size: 1.6rem;
   }
 
   .episode-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
   }
 
   .episode-info {
@@ -1185,13 +1245,17 @@ table tr:last-child td {
 
   .episode-info img {
     width: 100%;
-    max-width: 300px;
+    max-width: 200px;
     height: auto;
   }
 
+  .episode-details h2 {
+    font-size: 1.4rem;
+  }
+
   .auth-form {
-    margin: 40px auto;
-    padding: 30px;
+    margin: 20px auto;
+    padding: 20px;
   }
 
   .followed-episode-card {
@@ -1200,8 +1264,8 @@ table tr:last-child td {
   }
 
   .followed-episode-card img {
-    width: 150px;
-    height: 225px;
+    width: 120px;
+    height: 180px;
   }
 
   .filters {
@@ -1213,39 +1277,110 @@ table tr:last-child td {
   }
 
   table {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   table th,
   table td {
-    padding: 12px;
+    padding: 8px 6px;
   }
 
   .episode-detail {
-    padding: 20px;
+    padding: 16px;
+  }
+
+  .user-profile {
+    padding: 16px;
+  }
+
+  .admin-panel {
+    padding: 16px;
+  }
+
+  .admin-panel h2 {
+    font-size: 1.4rem;
+  }
+
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-card {
+    padding: 16px;
+  }
+
+  .card-icon {
+    font-size: 32px;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: 8px;
+  }
+
   .episode-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
   .hero h2 {
-    font-size: 1.6rem;
+    font-size: 1.3rem;
   }
 
   .hero p {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
   .auth-form {
-    padding: 24px;
+    padding: 16px;
+    margin: 12px auto;
   }
 
   .admin-panel {
-    padding: 20px;
+    padding: 12px;
+  }
+
+  .admin-panel h2 {
+    font-size: 1.2rem;
+  }
+
+  .episode-details h2 {
+    font-size: 1.2rem;
+  }
+
+  .episode-detail {
+    padding: 12px;
+  }
+
+  .user-profile {
+    padding: 12px;
+  }
+
+  .dashboard-card {
+    padding: 12px;
+  }
+
+  .card-icon {
+    font-size: 28px;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  table th,
+  table td {
+    padding: 6px 4px;
+  }
+
+  nav .logo h1 {
+    font-size: 1.2rem;
   }
 }
 

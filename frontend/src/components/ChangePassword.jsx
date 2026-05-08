@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -12,6 +12,8 @@ const ChangePassword = () => {
   const location = useLocation();
 
   const isAdmin = location.pathname.includes('/admin');
+  const adminData = localStorage.getItem('adminData');
+  const isUserAdmin = adminData && JSON.parse(adminData).role === 'user-admin';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,9 +40,17 @@ const ChangePassword = () => {
     }
 
     try {
-      const tokenKey = isAdmin ? 'adminToken' : 'token';
-      const token = localStorage.getItem(tokenKey);
-      const endpoint = isAdmin ? '/api/auth/admin/change-password' : '/api/auth/change-password';
+      let token, endpoint;
+      if (isAdmin && !isUserAdmin) {
+        token = localStorage.getItem('adminToken');
+        endpoint = '/api/auth/admin/change-password';
+      } else if (isUserAdmin) {
+        token = localStorage.getItem('adminToken');
+        endpoint = '/api/admin/user-admin-change-password';
+      } else {
+        token = localStorage.getItem('token');
+        endpoint = '/api/auth/change-password';
+      }
 
       await axios.put(endpoint, {
         currentPassword,

@@ -18,7 +18,7 @@ const EpisodeDetail = ({ user }) => {
   const [recommendations, setRecommendations] = useState([]);
   const [showReport, setShowReport] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+
   const navigate = useNavigate();
   const { id: episodeId } = useParams();
 
@@ -64,9 +64,7 @@ const EpisodeDetail = ({ user }) => {
     axios.get(`/api/favorites/check/${episodeId}`, config)
       .then(res => setIsFavorite(res.data.isFavorite))
       .catch(() => {});
-    axios.get(`/api/wishlists/check/${episodeId}`, config)
-      .then(res => setIsWishlisted(res.data.isWishlisted))
-      .catch(() => {});
+
   }, [user, episodeId]);
 
   const handleWatch = async (singleEpisode) => {
@@ -279,25 +277,6 @@ const EpisodeDetail = ({ user }) => {
                 {isFavorite ? '⭐ 已收藏' : '☆ 收藏'}
               </button>
             )}
-            {user && (
-              <button
-                className={`btn ${isWishlisted ? 'btn-secondary' : ''}`}
-                onClick={async () => {
-                  try {
-                    const token = localStorage.getItem('token');
-                    const config = { headers: { Authorization: `Bearer ${token}` } };
-                    if (isWishlisted) {
-                      await axios.post('/api/wishlists/remove', { episodeId }, config);
-                    } else {
-                      await axios.post('/api/wishlists/add', { episodeId }, config);
-                    }
-                    setIsWishlisted(!isWishlisted);
-                  } catch (e) {}
-                }}
-              >
-                {isWishlisted ? '📌 已想看' : '📌 想看'}
-              </button>
-            )}
             <button
               className="btn btn-secondary"
               onClick={() => setShowShare(true)}
@@ -440,13 +419,13 @@ const EpisodeDetail = ({ user }) => {
         }} onClick={() => setWatchModal(null)}>
           <div style={{
             background: 'var(--card)', borderRadius: '16px',
-            maxWidth: '800px', width: '100%', maxHeight: '90vh',
+            maxWidth: '800px', width: 'min(100%, calc(100vw - 32px))', maxHeight: '90vh',
             overflow: 'auto', border: '1px solid var(--border)',
             boxShadow: '0 25px 50px var(--shadow-strong)'
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '20px 24px', borderBottom: '1px solid var(--border)'
+              padding: '16px', borderBottom: '1px solid var(--border)'
             }}>
               <h3 style={{margin: 0, color: 'var(--foreground)'}}>
                 第{watchModal.episodeNumber}集 - {watchModal.title}
@@ -456,7 +435,7 @@ const EpisodeDetail = ({ user }) => {
                 fontSize: '24px', cursor: 'pointer', padding: '0 4px', lineHeight: 1
               }}>✕</button>
             </div>
-            <div style={{padding: '20px 24px'}}>
+            <div style={{padding: '16px'}}>
               {(() => {
                 const links = (() => {
                   const obj = toPlainLinks(watchModal.platformLinks);

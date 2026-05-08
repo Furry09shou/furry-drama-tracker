@@ -53,6 +53,14 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  adminAccess: {
+    type: Boolean,
+    default: false
+  },
+  passwordChangedAt: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

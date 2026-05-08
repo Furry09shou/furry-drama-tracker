@@ -68,7 +68,7 @@ router.post('/import', adminProtect, requireSuperAdmin, async (req, res) => {
         }
         results[col] = cleanDocs.length;
       } catch (e) {
-        results[col] = `error: ${e.message}`;
+        results[col] = `error: 导入失败`;
       }
     }
     await logManual(req.admin._id, req.admin.username, '数据恢复', '全库', JSON.stringify(results));

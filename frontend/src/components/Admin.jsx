@@ -34,7 +34,7 @@ const Admin = () => {
       {error && <div className="error-message">{error}</div>}
       <form onSubmit={handleLogin}>
         <div className="form-group">
-          <label>用户名</label>
+          <label>用户名 / 邮箱</label>
           <input
             type="text"
             value={username}

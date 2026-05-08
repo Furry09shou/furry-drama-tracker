@@ -97,7 +97,7 @@ router.get('/:key', async (req, res) => {
       try {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
-        if (!decoded.role || !['admin', 'superadmin', 'creator'].includes(decoded.role)) {
+        if (!decoded.role || !['admin', 'superadmin', 'creator', 'user-admin'].includes(decoded.role)) {
           return res.status(403).json({ message: 'Forbidden' });
         }
       } catch (e) {
@@ -184,7 +184,7 @@ router.post('/test-email', superAdminProtect, async (req, res) => {
     res.json({ message: '测试邮件发送成功，请检查收件箱' });
   } catch (error) {
     console.error('Test email error:', error);
-    res.status(400).json({ message: `邮件发送失败：${error.message || '未知错误'}` });
+    res.status(400).json({ message: '邮件发送失败，请检查邮件服务配置' });
   }
 });
 

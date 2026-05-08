@@ -22,12 +22,13 @@ const reportRoutes = require('../routes/reports');
 const userRoutes = require('../routes/users');
 const statsRoutes = require('../routes/stats');
 const auditLogRoutes = require('../routes/auditLogs');
-const wishlistRoutes = require('../routes/wishlists');
+
 const feedbackRoutes = require('../routes/feedback');
 const seriesRoutes = require('../routes/series');
 const backupRoutes = require('../routes/backup');
 const rssRoutes = require('../routes/rss');
 const autoStatusRoutes = require('../routes/autoStatus');
+const friendLinkRoutes = require('../routes/friendLinks');
 const { sanitizeInput } = require('../middlewares/security');
 const trackApiUsage = require('../middlewares/apiTracker');
 
@@ -147,12 +148,13 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
-app.use('/api/wishlists', wishlistRoutes);
+
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/series', seriesRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/rss', rssRoutes);
 app.use('/api/auto-status', autoStatusRoutes);
+app.use('/api/friend-links', friendLinkRoutes);
 
 app.use((err, req, res, next) => {
   if (err.message === 'Not allowed by CORS') {

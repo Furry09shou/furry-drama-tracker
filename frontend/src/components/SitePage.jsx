@@ -1,10 +1,12 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const SitePage = ({ pageKey }) => {
   const [content, setContent] = useState(null);
+  const [friendLinks, setFriendLinks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showGithubModal, setShowGithubModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,6 +20,9 @@ const SitePage = ({ pageKey }) => {
       setLoading(false);
     };
     fetchContent();
+    if (pageKey === 'about') {
+      axios.get('/api/friend-links').then(res => setFriendLinks(res.data)).catch(() => {});
+    }
   }, [pageKey]);
 
   if (loading) return <div className="container"><h2>加载中...</h2></div>;
@@ -55,7 +60,7 @@ const SitePage = ({ pageKey }) => {
             </div>
           )}
           <div style={{
-            textAlign: 'center', padding: aboutData.banner ? '0 40px 40px' : '40px',
+            textAlign: 'center', padding: aboutData.banner ? '0 16px 16px' : '16px',
             marginTop: aboutData.banner ? '-30px' : '0', position: 'relative'
           }}>
             {aboutData.logo && (
@@ -175,6 +180,39 @@ const SitePage = ({ pageKey }) => {
                 </div>
               );
             })()}
+            {friendLinks.length > 0 && (
+              <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+                <h3 style={{ color: 'var(--foreground)', marginBottom: '12px', fontSize: '16px' }}>友情链接</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {friendLinks.map(link => (
+                    <a key={link._id} href={link.url} target="_blank" rel="noopener noreferrer" style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      padding: '8px 16px', borderRadius: '10px',
+                      background: 'var(--hover-bg)', border: '1px solid var(--border)',
+                      color: 'var(--foreground)', textDecoration: 'none',
+                      fontSize: '14px', transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary)';
+                      e.currentTarget.style.color = 'var(--primary)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                      e.currentTarget.style.color = 'var(--foreground)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}>
+                      {link.logo ? (
+                        <img src={link.logo} alt="" style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: '14px' }}>🔗</span>
+                      )}
+                      <span>{link.name}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{
               borderTop: '1px solid var(--border)', paddingTop: '20px',
               color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 2
@@ -202,6 +240,96 @@ const SitePage = ({ pageKey }) => {
                 </p>
               )}
               {aboutData.aiDisclaimer && <p style={{ margin: '4px 0', fontStyle: 'italic', color: 'var(--text-tertiary)' }}>{aboutData.aiDisclaimer}</p>}
+              <p style={{ margin: '4px 0' }}>
+                <Link to="/license" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }}
+                  onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                  onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                >GPL v3.0 / AGPL v3.0 许可协议</Link>
+              </p>
+              <p style={{ margin: '8px 0 4px 0' }}>
+                <span
+                  onClick={() => setShowGithubModal(true)}
+                  style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                  onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                  onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                >
+                  <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                  GitHub 开源项目
+                </span>
+              </p>
+              {showGithubModal && (
+                <div onClick={() => setShowGithubModal(false)} style={{
+                  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <div onClick={(e) => e.stopPropagation()} style={{
+                    background: 'var(--card)', border: '1px solid var(--border)',
+                    borderRadius: '16px', padding: '24px', width: 'min(300px, calc(100vw - 40px))',
+                    maxWidth: '400px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--foreground)' }}>GitHub 开源项目</h3>
+                      <button onClick={() => setShowGithubModal(false)} style={{
+                        background: 'none', border: 'none', color: 'var(--text-secondary)',
+                        fontSize: '20px', cursor: 'pointer', padding: '4px 8px', lineHeight: 1
+                      }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+                        borderRadius: '12px', background: 'var(--hover-bg)', border: '1px solid var(--border)',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                        <span style={{ fontSize: '24px' }}>🎨</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>前端项目</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-fe</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>GPL v3.0</span>
+                            <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }}
+                              onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                              onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                            >查看许可协议</Link>
+                          </div>
+                        </div>
+                        <a href="https://github.com/Furry09shou/furry-drama-fe" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
+                          padding: '6px 12px', borderRadius: '8px', background: 'var(--primary)',
+                          color: '#fff', textDecoration: 'none', fontSize: '12px', fontWeight: 600,
+                          flexShrink: 0, whiteSpace: 'nowrap'
+                        }}>GitHub</a>
+                      </div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+                        borderRadius: '12px', background: 'var(--hover-bg)', border: '1px solid var(--border)',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                        <span style={{ fontSize: '24px' }}>⚙️</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>后端项目</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-be</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>AGPL v3.0</span>
+                            <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }}
+                              onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                              onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                            >查看许可协议</Link>
+                          </div>
+                        </div>
+                        <a href="https://github.com/Furry09shou/furry-drama-be" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
+                          padding: '6px 12px', borderRadius: '8px', background: 'var(--primary)',
+                          color: '#fff', textDecoration: 'none', fontSize: '12px', fontWeight: 600,
+                          flexShrink: 0, whiteSpace: 'nowrap'
+                        }}>GitHub</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -215,7 +343,7 @@ const SitePage = ({ pageKey }) => {
         返回上一步
       </button>
       <div style={{
-        background: 'var(--card)', borderRadius: '16px', padding: '40px',
+        background: 'var(--card)', borderRadius: '16px', padding: '20px',
         border: '1px solid var(--border)'
       }}>
         <h1 style={{ margin: '0 0 24px 0', color: 'var(--foreground)' }}>{content ? content.title : '加载中...'}</h1>
@@ -234,12 +362,12 @@ export const AboutPage = () => <SitePage pageKey="about" />;
 export const LicensePage = () => {
   const navigate = useNavigate();
   return (
-    <div className="container" style={{ paddingTop: '40px', paddingBottom: '60px', maxWidth: '800px' }}>
+    <div className="container" style={{ paddingTop: '20px', paddingBottom: '60px', maxWidth: '800px' }}>
       <button className="btn btn-secondary" onClick={() => navigate(-1)} style={{ marginBottom: '20px' }}>
         返回上一步
       </button>
       <div style={{
-        background: 'var(--card)', borderRadius: '16px', padding: '40px',
+        background: 'var(--card)', borderRadius: '16px', padding: '20px',
         border: '1px solid var(--border)'
       }}>
         <h1 style={{ margin: '0 0 24px 0', color: 'var(--foreground)' }}>开源许可协议</h1>
@@ -253,21 +381,41 @@ export const LicensePage = () => {
               <div style={{ padding: '12px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <h4 style={{ color: 'var(--foreground)', margin: '0 0 6px 0', fontSize: '14px' }}>前端 — GPL v3.0</h4>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>GNU General Public License v3.0 or later</p>
-                <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none', marginTop: '4px', display: 'inline-block' }}
-                  onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                  onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                >查看协议原文 →</a>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none' }}
+                    onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                  >查看协议原文 →</a>
+                  <a href="https://github.com/Furry09shou/furry-drama-fe" target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                  >
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    GitHub 仓库 →
+                  </a>
+                </div>
               </div>
               <div style={{ padding: '12px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <h4 style={{ color: 'var(--foreground)', margin: '0 0 6px 0', fontSize: '14px' }}>后端 — AGPL v3.0</h4>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>GNU Affero General Public License v3.0 or later</p>
                 <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--warning-text)' }}>AGPL 要求通过网络提供服务的后端也必须公开源代码</p>
-                <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none', marginTop: '4px', display: 'inline-block' }}
-                  onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                  onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                >查看协议原文 →</a>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                  <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none' }}
+                    onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                  >查看协议原文 →</a>
+                  <a href="https://github.com/Furry09shou/furry-drama-be" target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                  >
+                    <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    GitHub 仓库 →
+                  </a>
+                </div>
               </div>
             </div>
           </div>

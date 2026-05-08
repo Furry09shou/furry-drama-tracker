@@ -18,7 +18,8 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
     duration: '',
     platformLinksList: [],
     scheduledDate: '',
-    isScheduled: false
+    isScheduled: false,
+    releaseDate: ''
   });
   const [error, setError] = useState('');
 
@@ -42,7 +43,10 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
         scheduledDate: newSingleEpisode.isScheduled && newSingleEpisode.scheduledDate
           ? new Date(newSingleEpisode.scheduledDate).toISOString()
           : null,
-        isScheduled: newSingleEpisode.isScheduled
+        isScheduled: newSingleEpisode.isScheduled,
+        releaseDate: newSingleEpisode.releaseDate
+          ? new Date(newSingleEpisode.releaseDate).toISOString()
+          : null
       };
       
       if (editingSingleEpisode) {
@@ -71,7 +75,10 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       scheduledDate: singleEpisode.scheduledDate
         ? new Date(singleEpisode.scheduledDate).toISOString().slice(0, 16)
         : '',
-      isScheduled: singleEpisode.isScheduled || false
+      isScheduled: singleEpisode.isScheduled || false,
+      releaseDate: singleEpisode.releaseDate
+        ? new Date(singleEpisode.releaseDate).toISOString().slice(0, 16)
+        : ''
     });
     setShowAddForm(true);
   };
@@ -95,7 +102,8 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       duration: '',
       platformLinksList: [],
       scheduledDate: '',
-      isScheduled: false
+      isScheduled: false,
+      releaseDate: ''
     });
   };
 
@@ -239,6 +247,28 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 }}
               />
             </div>
+            {(episode.status === 'ongoing' || episode.status === 'completed') && (
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>发布日期 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>（选填，不填默认上传日期）</span></label>
+                <input
+                  type="datetime-local"
+                  value={newSingleEpisode.releaseDate}
+                  onChange={(e) => setNewSingleEpisode({...newSingleEpisode, releaseDate: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--hover-bg-strong)',
+                    color: 'var(--text-light)',
+                    fontSize: '14px'
+                  }}
+                />
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                  适用于已上映但平台补充信息较晚的剧集
+                </p>
+              </div>
+            )}
             <div style={{ marginBottom: '12px', padding: '12px', background: 'var(--hover-bg-strong)', borderRadius: '8px', border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <input
@@ -450,6 +480,11 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   </div>
                 </div>
                 <p style={{ margin: '8px 0', fontSize: '14px' }}>{singleEpisode.title}</p>
+                {singleEpisode.releaseDate && (
+                  <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    📅 发布: {new Date(singleEpisode.releaseDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                )}
                 {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
                   <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     🔔 预告: {new Date(singleEpisode.scheduledDate).toLocaleString('zh-CN')}

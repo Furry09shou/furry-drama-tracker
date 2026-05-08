@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
@@ -277,6 +277,7 @@ const AdminUsers = () => {
                   <tr style={{borderBottom: '1px solid var(--border)'}}>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>用户名</th>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>邮箱</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>后台权限</th>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>注册时间</th>
                     <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>操作</th>
                   </tr>
@@ -299,6 +300,34 @@ const AdminUsers = () => {
                       </td>
                       <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
                         {u.email}
+                      </td>
+                      <td style={{padding: '12px 20px'}}>
+                        <button
+                          onClick={async () => {
+                            const newVal = !u.adminAccess;
+                            if (!window.confirm(newVal ? `确定授予 ${u.username} 管理后台权限吗？` : `确定撤销 ${u.username} 的管理后台权限吗？`)) return;
+                            try {
+                              const token = localStorage.getItem('adminToken');
+                              await axios.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: newVal }, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              fetchUsers();
+                              setSuccess(newVal ? '已授予管理后台权限' : '已撤销管理后台权限');
+                            } catch (err) {
+                              setError(err.response?.data?.message || '操作失败');
+                            }
+                          }}
+                          style={{
+                            padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500',
+                            cursor: 'pointer', border: '1px solid',
+                            background: u.adminAccess ? 'var(--success-bg-subtle)' : 'var(--hover-bg)',
+                            color: u.adminAccess ? 'var(--success-text)' : 'var(--text-secondary)',
+                            borderColor: u.adminAccess ? 'var(--success-border)' : 'var(--border)',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {u.adminAccess ? '已授权' : '未授权'}
+                        </button>
                       </td>
                       <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
                         {new Date(u.createdAt).toLocaleDateString('zh-CN')}
