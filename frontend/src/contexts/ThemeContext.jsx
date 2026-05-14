@@ -97,6 +97,7 @@ const themes = {
     '--crop-overlay': 'rgba(0, 0, 0, 0.55)',
     '--crop-border': '#fff',
     '--crop-grid': 'rgba(255, 255, 255, 0.3)',
+    '--hover-bg-subtle': 'rgba(255, 255, 255, 0.03)',
   },
   light: {
     '--primary': '#6366f1',
@@ -190,6 +191,7 @@ const themes = {
     '--crop-overlay': 'rgba(0, 0, 0, 0.55)',
     '--crop-border': '#fff',
     '--crop-grid': 'rgba(255, 255, 255, 0.3)',
+    '--hover-bg-subtle': 'rgba(0, 0, 0, 0.02)',
   }
 };
 

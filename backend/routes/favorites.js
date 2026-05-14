@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Favorite = require('../models/Favorite');
 const Episode = require('../models/Episode');
-const protect = require('../middlewares/auth');
+const { protect } = require('../middlewares/authFactory');
 
 router.post('/add', protect, async (req, res) => {
   try {
@@ -34,8 +34,17 @@ router.post('/remove', protect, async (req, res) => {
 
 router.get('/list', protect, async (req, res) => {
   try {
-    const favorites = await Favorite.find({ userId: req.user._id }).populate('episodeId').sort({ createdAt: -1 });
-    res.json(favorites);
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const total = await Favorite.countDocuments({ userId: req.user._id });
+    const totalPages = Math.ceil(total / limitNum);
+    const list = await Favorite.find({ userId: req.user._id })
+      .populate('episodeId')
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+    res.json({ list, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

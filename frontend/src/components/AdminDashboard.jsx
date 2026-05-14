@@ -1,58 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 
+const Badge = ({ count }) => {
+  if (!count) return null;
+  return (
+    <span style={{
+      position: 'absolute', top: '10px', right: '10px',
+      background: '#ef4444', color: '#fff', fontSize: '11px',
+      fontWeight: 700, minWidth: '18px', height: '18px',
+      borderRadius: '9px', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', padding: '0 5px',
+      lineHeight: '18px', boxShadow: '0 1px 3px rgba(239,68,68,0.4)'
+    }}>{count}</span>
+  );
+};
+
 const AdminDashboard = () => {
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [statusMsg, setStatusMsg] = useState('');
-  const navigate = useNavigate();
+  const [pendingCounts, setPendingCounts] = useState({ episodes: 0, reports: 0, feedbacks: 0, friendLinks: 0 });
+  const statusTimerRef = useRef(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
-    if (token && adminData) {
-      try {
-        setAdmin(JSON.parse(adminData));
-      } catch (e) {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminData');
-        navigate('/admin', { replace: true });
+    return () => {
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
       }
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
+    };
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminData');
-    navigate('/admin', { replace: true });
-  };
+  const clearStatusMsg = useCallback(() => {
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+    }
+    statusTimerRef.current = setTimeout(() => setStatusMsg(''), 3000);
+  }, []);
+
+  useEffect(() => {
+    if (!admin) return;
+    const token = localStorage.getItem('adminToken');
+    if (!token) return;
+    axios.get('/api/admin/pending-counts', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => setPendingCounts(res.data))
+      .catch(() => {});
+  }, [admin]);
 
   if (!admin) return null;
 
   return (
-    <div className="admin-panel">
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <Link to="/" className="btn btn-secondary">返回首页</Link>
-          <h2>管理后台</h2>
-        </div>
-        <div>
-          <span style={{marginRight: '15px'}}>欢迎，{admin.username}</span>
-          <button className="btn btn-secondary" onClick={handleLogout}>退出</button>
-        </div>
+    <>
+      <div style={{marginBottom: '30px'}}>
+        <h2>欢迎，{admin.username}</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+          角色权限：{admin.role === 'superadmin' ? '超级管理员' : admin.role === 'admin' ? '管理员' : '创作者'}
+        </p>
       </div>
 
       <div className="dashboard-cards">
-        {(admin.role === 'user-admin' || admin.role === 'admin' || admin.role === 'superadmin' || admin.role === 'creator') && (
-          <Link to="/admin/episodes" className="dashboard-card">
-            <div className="card-icon">🎬</div>
-            <h3>剧集管理</h3>
-            <p>{admin.role === 'creator' ? '创建和管理我的剧集' : '添加、编辑和管理剧集'}</p>
-          </Link>
-        )}
-        
+        <Link to="/admin/episodes" className="dashboard-card" style={{ position: 'relative' }}>
+          <div className="card-icon">🎬</div>
+          <h3>剧集管理</h3>
+          <p>{admin.role === 'creator' ? '创建和管理我的剧集' : '添加、编辑和管理剧集'}</p>
+          <Badge count={pendingCounts.episodes} />
+        </Link>
+
         {admin.role === 'creator' && (
           <Link to="/admin/creator-profile" className="dashboard-card">
             <div className="card-icon">👤</div>
@@ -60,8 +72,8 @@ const AdminDashboard = () => {
             <p>编辑我的创作者主页</p>
           </Link>
         )}
-        
-        {admin.role !== 'creator' && admin.role !== 'user-admin' && (
+
+        {admin.role !== 'creator' && (
           <>
             <Link to="/admin/categories" className="dashboard-card">
               <div className="card-icon">🏷️</div>
@@ -76,7 +88,7 @@ const AdminDashboard = () => {
             </Link>
           </>
         )}
-        
+
         {admin.role === 'superadmin' && (
           <Link to="/admin/users" className="dashboard-card">
             <div className="card-icon">👥</div>
@@ -118,10 +130,19 @@ const AdminDashboard = () => {
         )}
 
         {admin.role === 'superadmin' && (
-          <Link to="/admin/friend-links" className="dashboard-card">
+          <Link to="/admin/friend-links" className="dashboard-card" style={{ position: 'relative' }}>
             <div className="card-icon">🔗</div>
             <h3>友链管理</h3>
             <p>添加、编辑和管理友情链接</p>
+            <Badge count={pendingCounts.friendLinks} />
+          </Link>
+        )}
+
+        {admin.role === 'superadmin' && (
+          <Link to="/admin/sessions" className="dashboard-card">
+            <div className="card-icon">📱</div>
+            <h3>设备管理</h3>
+            <p>管理账号登录设备</p>
           </Link>
         )}
 
@@ -133,27 +154,38 @@ const AdminDashboard = () => {
           </Link>
         )}
 
-        {(admin.role === 'admin' || admin.role === 'superadmin' || admin.role === 'user-admin') && (
-          <Link to="/admin/feedback" className="dashboard-card">
+        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+          <Link to="/admin/analytics" className="dashboard-card">
+            <div className="card-icon">📈</div>
+            <h3>数据分析</h3>
+            <p>用户活跃度、热门剧集、留存率</p>
+          </Link>
+        )}
+
+        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+          <Link to="/admin/feedback" className="dashboard-card" style={{ position: 'relative' }}>
             <div className="card-icon">💬</div>
             <h3>用户反馈</h3>
             <p>查看和回复用户反馈</p>
+            <Badge count={pendingCounts.feedbacks} />
           </Link>
         )}
 
-        {(admin.role === 'admin' || admin.role === 'superadmin' || admin.role === 'user-admin') && (
-          <Link to="/admin/review" className="dashboard-card">
+        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+          <Link to="/admin/review" className="dashboard-card" style={{ position: 'relative' }}>
             <div className="card-icon">✅</div>
             <h3>审核管理</h3>
             <p>审核创作者提交的剧集</p>
+            <Badge count={pendingCounts.episodes} />
           </Link>
         )}
 
-        {(admin.role === 'admin' || admin.role === 'superadmin' || admin.role === 'user-admin') && (
-          <Link to="/admin/reports" className="dashboard-card">
+        {(admin.role === 'admin' || admin.role === 'superadmin') && (
+          <Link to="/admin/reports" className="dashboard-card" style={{ position: 'relative' }}>
             <div className="card-icon">🚨</div>
             <h3>举报管理</h3>
             <p>处理用户举报</p>
+            <Badge count={pendingCounts.reports} />
           </Link>
         )}
 
@@ -174,7 +206,7 @@ const AdminDashboard = () => {
                 const res = await axios.post('/api/auto-status/auto-complete', {}, { headers: { Authorization: `Bearer ${token}` } });
                 setStatusMsg(res.data.message);
               } catch (e) { setStatusMsg('操作失败'); }
-              setTimeout(() => setStatusMsg(''), 3000);
+              clearStatusMsg();
             }}>🔄 自动标记已完结</button>
             <button className="btn btn-secondary" onClick={async () => {
               try {
@@ -182,13 +214,13 @@ const AdminDashboard = () => {
                 const res = await axios.post('/api/auto-status/check-premieres', {}, { headers: { Authorization: `Bearer ${token}` } });
                 setStatusMsg(res.data.message);
               } catch (e) { setStatusMsg('操作失败'); }
-              setTimeout(() => setStatusMsg(''), 3000);
+              clearStatusMsg();
             }}>🎬 发布到期预告</button>
           </div>
           {statusMsg && <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--success-text)' }}>{statusMsg}</p>}
         </div>
       )}
-    </div>
+    </>
   );
 };
 

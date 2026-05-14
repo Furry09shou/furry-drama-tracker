@@ -1,47 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const Episode = require('../models/Episode');
 const SingleEpisode = require('../models/SingleEpisode');
 const Follow = require('../models/Follow');
 const Notification = require('../models/Notification');
-const protect = require('../middlewares/auth');
-const adminProtect = require('../middlewares/adminAuth');
-const creatorProtect = require('../middlewares/creatorAuth');
+const { protect, adminProtect, creatorProtect } = require('../middlewares/authFactory');
 const { setCache, getCache, clearCache, clearCacheByPrefix } = require('../middlewares/cache');
+const { escapeRegex } = require('../utils/helpers');
+const { createUploadConfig } = require('../utils/upload');
 
-const escapeRegex = (str) => {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
+const upload = createUploadConfig('cover', 5 * 1024 * 1024);
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads'));
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(8).toString('hex');
-    const ext = path.extname(file.originalname);
-    cb(null, 'cover-' + uniqueSuffix + ext);
-  }
-});
+const viewTracker = new Map();
+const VIEW_COOLDOWN = 10 * 60 * 1000;
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: function (req, file, cb) {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
-      cb(null, true);
-    } else {
-      cb(new Error('只支持图片文件(jpeg, jpg, png, gif, webp)'));
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamp] of viewTracker) {
+    if (now - timestamp > VIEW_COOLDOWN) {
+      viewTracker.delete(key);
     }
   }
-});
+}, 5 * 60 * 1000);
 
 router.post('/upload', creatorProtect, upload.single('image'), async (req, res) => {
   try {
@@ -56,7 +37,7 @@ router.post('/upload', creatorProtect, upload.single('image'), async (req, res) 
 });
 
 router.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
+  if (err instanceof require('multer').MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ message: '文件大小不能超过5MB' });
     }
@@ -70,71 +51,111 @@ router.use((err, req, res, next) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { category, sort, status, tag, search, minRating, year } = req.query;
-    const cacheKey = `episodes_${category || 'all'}_${sort || 'latest'}_${status || ''}_${tag || ''}_${search || ''}_${minRating || ''}_${year || ''}`;
-    
+    const { category, sort, status, tag, search, minRating, year, order, page, limit } = req.query;
+    const usePagination = page && limit;
+    const pageNum = usePagination ? parseInt(page) : 1;
+    const limitNum = usePagination ? parseInt(limit) : 0;
+    const cacheKey = `episodes_${category || 'all'}_${sort || 'latest'}_${order || 'desc'}_${status || ''}_${tag || ''}_${search || ''}_${minRating || ''}_${year || ''}_${pageNum}_${limitNum}`;
+
     const cachedEpisodes = getCache(cacheKey);
     if (cachedEpisodes) {
       return res.json(cachedEpisodes);
     }
-    
-    let query = { $or: [{ reviewStatus: 'approved' }, { reviewStatus: { $exists: false } }] };
-    
+
+    let baseQuery = { $or: [{ reviewStatus: 'approved' }, { reviewStatus: { $exists: false } }] };
+
     if (category) {
-      query.category = { $in: [category] };
+      baseQuery.category = { $in: [category] };
     }
     if (status) {
-      query.status = status;
+      baseQuery.status = status;
     }
     if (tag) {
-      query.tags = { $in: [tag] };
-    }
-    if (search) {
-      const escapedSearch = escapeRegex(search);
-      query.$and = [
-        query,
-        {
-          $or: [
-            { title: { $regex: escapedSearch, $options: 'i' } },
-            { description: { $regex: escapedSearch, $options: 'i' } }
-          ]
-        }
-      ];
-      delete query.$or;
+      baseQuery.tags = { $in: [tag] };
     }
     if (minRating) {
-      query.averageRating = { $gte: parseFloat(minRating) };
+      baseQuery.averageRating = { $gte: parseFloat(minRating) };
     }
+
+    let query = { ...baseQuery };
+
+    if (search) {
+      const escapedSearch = escapeRegex(search);
+      const searchCondition = {
+        $or: [
+          { title: { $regex: escapedSearch, $options: 'i' } },
+          { description: { $regex: escapedSearch, $options: 'i' } }
+        ]
+      };
+      query = { $and: [baseQuery, searchCondition] };
+    }
+
     if (year) {
       const start = new Date(parseInt(year), 0, 1);
       const end = new Date(parseInt(year) + 1, 0, 1);
-      query.$and = query.$and || [];
-      query.$and.push({
+      const yearCondition = {
         $or: [
           { premiereDate: { $gte: start, $lt: end } },
           { createdAt: { $gte: start, $lt: end } }
         ]
-      });
+      };
+      if (query.$and) {
+        query.$and.push(yearCondition);
+      } else {
+        query = { $and: [baseQuery, yearCondition] };
+      }
     }
-    
-    let sortOption = { updatedAt: -1 };
+
+    const sortOrder = order === 'asc' ? 1 : -1;
+    let sortOption = { updatedAt: sortOrder };
     if (sort === 'views') {
-      sortOption = { views: -1 };
+      sortOption = { views: sortOrder };
     } else if (sort === 'premiere') {
-      sortOption = { createdAt: -1 };
+      sortOption = { premiereDate: sortOrder };
     } else if (sort === 'rating') {
-      sortOption = { averageRating: -1, ratingCount: -1 };
+      sortOption = { averageRating: sortOrder, ratingCount: sortOrder };
     }
-    
-    const episodes = await Episode.find(query).sort(sortOption)
+
+    const total = await Episode.countDocuments(query);
+    let episodesQuery = Episode.find(query).sort(sortOption)
       .populate('createdBy', 'username')
       .populate('allowedEditors', 'username');
-    
-    setCache(cacheKey, episodes);
-    
-    res.json(episodes);
+
+    if (usePagination) {
+      const totalPages = Math.ceil(total / limitNum);
+      episodesQuery = episodesQuery.skip((pageNum - 1) * limitNum).limit(limitNum);
+      const episodes = await episodesQuery;
+      const result = { episodes, page: pageNum, limit: limitNum, total, totalPages };
+      setCache(cacheKey, result);
+      res.json(result);
+    } else {
+      const episodes = await episodesQuery;
+      const result = { episodes, total };
+      setCache(cacheKey, result);
+      res.json(result);
+    }
   } catch (error) {
     console.error('Get episodes error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/search', async (req, res) => {
+  try {
+    const { q, limit = 10 } = req.query;
+    if (!q || !q.trim()) {
+      return res.json([]);
+    }
+    const escapedSearch = escapeRegex(q.trim());
+    const episodes = await Episode.find({
+      $or: [{ reviewStatus: 'approved' }, { reviewStatus: { $exists: false } }],
+      $or: [
+        { title: { $regex: escapedSearch, $options: 'i' } },
+        { description: { $regex: escapedSearch, $options: 'i' } }
+      ]
+    }).sort({ views: -1 }).limit(parseInt(limit)).select('title coverImage category rating averageRating');
+    res.json(episodes);
+  } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -142,24 +163,24 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const cacheKey = `episode_${req.params.id}`;
-    
+
     const cachedEpisode = getCache(cacheKey);
     if (cachedEpisode) {
       return res.json(cachedEpisode);
     }
-    
+
     const episode = await Episode.findById(req.params.id)
       .populate('createdBy', 'username')
       .populate('allowedEditors', 'username');
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
-    
+
     const singleEpisodes = await SingleEpisode.find({ episodeId: req.params.id }).sort({ episodeNumber: 1 });
     const episodeWithEpisodes = { ...episode.toObject(), episodes: singleEpisodes };
-    
+
     setCache(cacheKey, episodeWithEpisodes);
-    
+
     res.json(episodeWithEpisodes);
   } catch (error) {
     console.error('Get episode detail error:', error);
@@ -176,19 +197,32 @@ const viewLimiter = rateLimit({
 
 router.put('/:id/view', viewLimiter, async (req, res) => {
   try {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.headers['x-real-ip'] || req.ip || '';
+    const viewKey = `${req.params.id}_${ip}`;
+    const now = Date.now();
+    const lastView = viewTracker.get(viewKey);
+    if (lastView && now - lastView < VIEW_COOLDOWN) {
+      const episode = await Episode.findById(req.params.id);
+      if (!episode) {
+        return res.status(404).json({ message: 'Episode not found' });
+      }
+      return res.json(episode);
+    }
+    viewTracker.set(viewKey, now);
+
     const episode = await Episode.findByIdAndUpdate(
       req.params.id,
       { $inc: { views: 1 } },
       { new: true }
     );
-    
+
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
-    
+
     clearCache(`episode_${req.params.id}`);
     clearCacheByPrefix('episodes_');
-    
+
     res.json(episode);
   } catch (error) {
     console.error('Update view error:', error);
@@ -224,19 +258,19 @@ router.put('/single/:id', adminProtect, async (req, res) => {
     if (req.body.isScheduled !== undefined) updateData.isScheduled = req.body.isScheduled;
     if (req.body.premiereDate !== undefined) updateData.premiereDate = req.body.premiereDate;
     if (req.body.isUpcoming !== undefined) updateData.isUpcoming = req.body.isUpcoming;
-    
+
     const singleEpisode = await SingleEpisode.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     );
-    
+
     if (!singleEpisode) {
       return res.status(404).json({ message: 'Single episode not found' });
     }
-    
+
     clearCache(`episode_${singleEpisode.episodeId}`);
-    
+
     res.json(singleEpisode);
   } catch (error) {
     console.error('Edit single episode error:', error);
@@ -264,7 +298,6 @@ router.delete('/single/:id', adminProtect, async (req, res) => {
 router.post('/', creatorProtect, async (req, res) => {
   try {
     const isCreator = req.admin.role === 'creator';
-    const isUserAdmin = req.admin.role === 'user-admin';
     const episodeData = {
       title: req.body.title,
       description: req.body.description,
@@ -277,10 +310,10 @@ router.post('/', creatorProtect, async (req, res) => {
       updateDay: req.body.updateDay || '',
       premiereDate: req.body.premiereDate || null,
       platformLinks: req.body.platformLinks || {},
-      createdBy: isUserAdmin ? null : req.admin._id,
+      createdBy: req.admin._id,
       reviewStatus: isCreator ? 'pending' : 'approved'
     };
-    
+
     const episode = await Episode.create(episodeData);
     clearCacheByPrefix('episodes_');
     res.status(201).json(episode);
@@ -300,7 +333,7 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
-    
+
     const isCreatorRole = req.admin.role === 'creator';
     if (isCreatorRole) {
       const isOwner = episode.createdBy && episode.createdBy.toString() === req.admin._id.toString();
@@ -309,7 +342,7 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
         return res.status(403).json({ message: 'No permission to add episodes' });
       }
     }
-    
+
     const singleEpisodeData = {
       episodeId: req.params.id,
       episodeNumber: req.body.episodeNumber,
@@ -321,14 +354,14 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
       premiereDate: req.body.premiereDate || null,
       isUpcoming: req.body.isUpcoming || false
     };
-    
+
     const singleEpisode = await SingleEpisode.create(singleEpisodeData);
-    
+
     await Episode.findByIdAndUpdate(req.params.id, {
       $inc: { currentEpisodes: 1 },
       updatedAt: Date.now()
     });
-    
+
     clearCache(`episode_${req.params.id}`);
 
     const updatedEpisode = await Episode.findById(req.params.id);
@@ -345,7 +378,7 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
         await Notification.insertMany(notifications);
       }
     }
-    
+
     res.status(201).json(singleEpisode);
   } catch (error) {
     console.error('Create single episode error:', error);
@@ -359,9 +392,9 @@ router.put('/:id', creatorProtect, async (req, res) => {
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
-    
+
     const isCreatorRole = req.admin.role === 'creator';
-    
+
     if (isCreatorRole) {
       const isOwner = episode.createdBy && episode.createdBy.toString() === req.admin._id.toString();
       const isAllowed = episode.allowedEditors && episode.allowedEditors.some(e => e.toString() === req.admin._id.toString());
@@ -369,7 +402,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
         return res.status(403).json({ message: 'You do not have permission to edit this episode' });
       }
     }
-    
+
     const oldCurrentEpisodes = episode.currentEpisodes;
     const allowedFields = ['title', 'description', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks'];
     const updateData = { updatedAt: Date.now() };
@@ -378,17 +411,17 @@ router.put('/:id', creatorProtect, async (req, res) => {
         updateData[field] = req.body[field];
       }
     }
-    
+
     if (isCreatorRole) {
       updateData.reviewStatus = 'pending';
     }
-    
+
     const updatedEpisode = await Episode.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     );
-    
+
     if (req.body.currentEpisodes && req.body.currentEpisodes > oldCurrentEpisodes) {
       const follows = await Follow.find({ episodeId: req.params.id });
       if (follows.length > 0) {
@@ -409,7 +442,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
         }
       }
     }
-    
+
     clearCache(`episode_${req.params.id}`);
     clearCacheByPrefix('episodes_');
     res.json(updatedEpisode);

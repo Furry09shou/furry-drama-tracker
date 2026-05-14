@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const Feedback = require('../models/Feedback');
-const protect = require('../middlewares/auth');
-const adminProtect = require('../middlewares/adminAuth');
+const Notification = require('../models/Notification');
+const { protect, adminProtect } = require('../middlewares/authFactory');
 
 const feedbackLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -55,11 +55,20 @@ router.get('/', adminProtect, async (req, res) => {
 router.put('/:id', adminProtect, async (req, res) => {
   try {
     const { status, reply } = req.body;
+    const validStatuses = ['pending', 'read', 'replied'];
+    if (status && !validStatuses.includes(status)) return res.status(400).json({ message: '无效的状态值' });
     const update = {};
     if (status) update.status = status;
     if (reply !== undefined) update.reply = reply.slice(0, 1000);
     const fb = await Feedback.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!fb) return res.status(404).json({ message: 'Not found' });
+    if (reply) {
+      await Notification.create({
+        userId: fb.userId,
+        type: 'feedback_reply',
+        message: `您的反馈已收到回复：${reply.slice(0, 50)}...`
+      });
+    }
     res.json(fb);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

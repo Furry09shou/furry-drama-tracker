@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Banner = require('../models/Banner');
-const adminProtect = require('../middlewares/adminAuth');
-const { realAdminOnly } = require('../middlewares/adminAuth');
+const { adminProtect } = require('../middlewares/authFactory');
 
 router.get('/', async (req, res) => {
   try {
@@ -22,7 +21,7 @@ router.get('/all', adminProtect, async (req, res) => {
   }
 });
 
-router.post('/', adminProtect, realAdminOnly, async (req, res) => {
+router.post('/', adminProtect, async (req, res) => {
   try {
     const { title, subtitle, image, link, order, active } = req.body;
     const banner = await Banner.create({ title, subtitle, image, link, order: order || 0, active: active !== undefined ? active : true });
@@ -32,7 +31,7 @@ router.post('/', adminProtect, realAdminOnly, async (req, res) => {
   }
 });
 
-router.put('/:id', adminProtect, realAdminOnly, async (req, res) => {
+router.put('/:id', adminProtect, async (req, res) => {
   try {
     const { title, subtitle, image, link, order, active } = req.body;
     const banner = await Banner.findById(req.params.id);
@@ -50,7 +49,7 @@ router.put('/:id', adminProtect, realAdminOnly, async (req, res) => {
   }
 });
 
-router.delete('/:id', adminProtect, realAdminOnly, async (req, res) => {
+router.delete('/:id', adminProtect, async (req, res) => {
   try {
     const banner = await Banner.findById(req.params.id);
     if (!banner) return res.status(404).json({ message: '轮播图不存在' });

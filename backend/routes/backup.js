@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const adminProtect = require('../middlewares/adminAuth');
+const { adminProtect } = require('../middlewares/authFactory');
 const { logManual } = require('../middlewares/auditLog');
 
 const ALLOWED_EXPORT_COLLECTIONS = [
@@ -56,17 +56,30 @@ router.post('/import', adminProtect, requireSuperAdmin, async (req, res) => {
       }
       if (!Array.isArray(docs) || docs.length === 0) continue;
       try {
-        if (overwrite) {
-          await db.collection(col).deleteMany({});
-        }
         const cleanDocs = docs.map(d => {
           const { _id, password, ...rest } = d;
           return rest;
         });
-        if (cleanDocs.length > 0) {
+        if (cleanDocs.length === 0) continue;
+
+        if (overwrite) {
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            await db.collection(col).deleteMany({}, { session });
+            await db.collection(col).insertMany(cleanDocs, { ordered: false, session });
+            await session.commitTransaction();
+            results[col] = cleanDocs.length;
+          } catch (e) {
+            await session.abortTransaction();
+            results[col] = `error: 导入失败`;
+          } finally {
+            session.endSession();
+          }
+        } else {
           await db.collection(col).insertMany(cleanDocs, { ordered: false });
+          results[col] = cleanDocs.length;
         }
-        results[col] = cleanDocs.length;
       } catch (e) {
         results[col] = `error: 导入失败`;
       }

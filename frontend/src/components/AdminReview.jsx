@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -21,7 +21,7 @@ const AdminReview = () => {
     if (token && adminData) {
       const parsed = JSON.parse(adminData);
       setAdmin(parsed);
-      if (parsed.role === 'admin' || parsed.role === 'superadmin' || parsed.role === 'user-admin') {
+      if (parsed.role === 'admin' || parsed.role === 'superadmin') {
         fetchPendingEpisodes();
         fetchAllEpisodes();
         fetchCreators();

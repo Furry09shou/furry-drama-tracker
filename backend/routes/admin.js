@@ -1,56 +1,92 @@
 const express = require('express');
 const router = express.Router();
 const Admin = require('../models/Admin');
+const AdminSession = require('../models/AdminSession');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const superAdminProtect = require('../middlewares/superAdminAuth');
-const adminProtect = require('../middlewares/adminAuth');
+const { superAdminProtect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
+const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
+const Episode = require('../models/Episode');
+const Report = require('../models/Report');
+const Feedback = require('../models/Feedback');
+const FriendLink = require('../models/FriendLink');
+
+router.get('/pending-counts', adminProtect, async (req, res) => {
+  try {
+    const [episodes, reports, feedbacks, friendLinks] = await Promise.all([
+      Episode.countDocuments({ status: 'pending' }),
+      Report.countDocuments({ status: 'pending' }),
+      Feedback.countDocuments({ status: 'pending' }),
+      FriendLink.countDocuments({ $or: [{ status: 'pending' }, { status: { $exists: false }, isActive: false }] })
+    ]);
+    res.json({ episodes, reports, feedbacks, friendLinks });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  
+  const { username, password, screenWidth, screenHeight, language } = req.body;
+
   try {
     const admin = await Admin.findOne({ username });
-    if (admin) {
-      const isMatch = await admin.matchPassword(password);
-      if (!isMatch) {
-        return res.status(400).json({ message: 'Invalid credentials' });
-      }
-      
-      const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
-      });
-      
-      return res.json({
-        _id: admin._id,
-        username: admin.username,
-        role: admin.role,
-        token
-      });
+    if (!admin) {
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const user = await User.findOne({ email: username });
-    if (user && user.adminAccess) {
-      const isMatch = await user.matchPassword(password);
-      if (!isMatch) {
-        return res.status(400).json({ message: 'Invalid credentials' });
-      }
-      if (!user.isEmailVerified) {
-        return res.status(403).json({ message: '请先验证邮箱' });
-      }
-      const token = jwt.sign({ id: user._id, role: 'user-admin', userId: user._id }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
-      });
-      return res.json({
-        _id: user._id,
-        username: user.username,
-        role: 'user-admin',
-        token
-      });
+    if (admin.isLocked) {
+      return res.status(423).json({ message: '账号已被锁定，请30分钟后再试' });
     }
-    
-    return res.status(400).json({ message: 'Invalid credentials' });
+
+    const isMatch = await admin.matchPassword(password);
+    if (!isMatch) {
+      await admin.incLoginAttempts();
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    await admin.resetLoginAttempts();
+
+    const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, {
+      expiresIn: '30d'
+    });
+
+    const tokenHash = hashToken(token);
+    const ua = req.headers['user-agent'] || '';
+    const ip = getClientIp(req);
+    const deviceInfo = parseUserAgent(ua);
+    if (screenWidth) deviceInfo.screenWidth = screenWidth;
+    if (screenHeight) deviceInfo.screenHeight = screenHeight;
+    if (language) deviceInfo.language = language;
+    deviceInfo.userAgent = ua;
+
+    const session = new AdminSession({
+      adminId: admin._id,
+      adminUsername: admin.username,
+      adminRole: admin.role,
+      tokenHash,
+      deviceInfo,
+      ip
+    });
+    await session.save();
+
+    res.json({
+      _id: admin._id,
+      username: admin.username,
+      role: admin.role,
+      token
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/logout', adminProtect, async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const tokenHash = hashToken(token);
+    await AdminSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
+    res.json({ message: '退出成功' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -67,7 +103,7 @@ router.get('/list', superAdminProtect, async (req, res) => {
 
 router.post('/register', superAdminProtect, async (req, res) => {
   const { username, password, role = 'admin' } = req.body;
-  
+
   try {
     const passwordError = validatePassword(password);
     if (passwordError) {
@@ -77,22 +113,17 @@ router.post('/register', superAdminProtect, async (req, res) => {
     if (adminExists) {
       return res.status(400).json({ message: 'Admin already exists' });
     }
-    
+
     const admin = await Admin.create({
       username,
       password,
       role
     });
-    
-    const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
-    });
-    
+
     res.json({
       _id: admin._id,
       username: admin.username,
-      role: admin.role,
-      token
+      role: admin.role
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -117,8 +148,24 @@ router.delete('/:id', superAdminProtect, async (req, res) => {
 
 router.get('/users', adminProtect, async (req, res) => {
   try {
-    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
-    res.json(users);
+    const { page = 1, limit = 20, search } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const query = {};
+    if (search) {
+      query.$or = [
+        { username: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+    const total = await User.countDocuments(query);
+    const totalPages = Math.ceil(total / limitNum);
+    const list = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+    res.json({ list, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -138,12 +185,14 @@ router.delete('/users/:id', superAdminProtect, async (req, res) => {
     const Rating = require('../models/Rating');
     const Report = require('../models/Report');
     const Feedback = require('../models/Feedback');
+    const UserSession = require('../models/UserSession');
     await Follow.deleteMany({ userId: req.params.id });
     await History.deleteMany({ userId: req.params.id });
     await Notification.deleteMany({ userId: req.params.id });
     await Favorite.deleteMany({ userId: req.params.id });
     await Report.deleteMany({ reporter: req.params.id });
     await Feedback.deleteMany({ userId: req.params.id });
+    await UserSession.deleteMany({ userId: req.params.id });
     const userRatings = await Rating.find({ userId: req.params.id });
     await Rating.deleteMany({ userId: req.params.id });
     for (const r of userRatings) {
@@ -215,13 +264,6 @@ router.post('/verify-password', adminProtect, async (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ message: '请输入密码' });
   try {
-    if (req.admin.role === 'user-admin') {
-      const user = await User.findById(req.admin._id);
-      if (!user) return res.status(404).json({ message: 'Not found' });
-      const isMatch = await user.matchPassword(password);
-      if (!isMatch) return res.status(400).json({ message: '密码错误' });
-      return res.json({ verified: true });
-    }
     const admin = await Admin.findById(req.admin._id);
     if (!admin) return res.status(404).json({ message: 'Not found' });
     const isMatch = await admin.matchPassword(password);
@@ -245,33 +287,6 @@ router.put('/user-admin-access/:id', superAdminProtect, async (req, res) => {
     user.adminAccess = adminAccess;
     await user.save();
     res.json({ message: adminAccess ? '已授予管理后台权限' : '已撤销管理后台权限', adminAccess });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-router.put('/user-admin-change-password', adminProtect, async (req, res) => {
-  if (req.admin.role !== 'user-admin') {
-    return res.status(403).json({ message: '无权限' });
-  }
-  const { currentPassword, newPassword } = req.body;
-  try {
-    const { validatePassword } = require('../middlewares/security');
-    const passwordError = validatePassword(newPassword);
-    if (passwordError) {
-      return res.status(400).json({ message: passwordError });
-    }
-    const user = await User.findById(req.admin._id);
-    if (!user) {
-      return res.status(404).json({ message: '用户不存在' });
-    }
-    const isMatch = await user.matchPassword(currentPassword);
-    if (!isMatch) {
-      return res.status(400).json({ message: '当前密码不正确' });
-    }
-    user.password = newPassword;
-    await user.save();
-    res.json({ message: '密码修改成功' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

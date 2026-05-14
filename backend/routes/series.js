@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Series = require('../models/Series');
-const adminProtect = require('../middlewares/adminAuth');
-const creatorProtect = require('../middlewares/creatorAuth');
+const { adminProtect, creatorProtect } = require('../middlewares/authFactory');
 
 router.get('/', async (req, res) => {
   try {

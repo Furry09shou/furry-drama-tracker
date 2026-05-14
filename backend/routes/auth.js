@@ -2,12 +2,20 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Admin = require('../models/Admin');
+const UserSession = require('../models/UserSession');
+const Follow = require('../models/Follow');
+const History = require('../models/History');
+const Notification = require('../models/Notification');
+const Favorite = require('../models/Favorite');
+const Rating = require('../models/Rating');
+const Report = require('../models/Report');
+const Feedback = require('../models/Feedback');
 const jwt = require('jsonwebtoken');
 const https = require('https');
-const protect = require('../middlewares/auth');
-const adminProtect = require('../middlewares/adminAuth');
+const { protect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/email');
+const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
 
 const getIpRegion = (ip) => {
   return new Promise((resolve) => {
@@ -42,63 +50,76 @@ const getIpRegion = (ip) => {
   });
 };
 
-const parseUserAgent = (ua) => {
-  const result = { browser: '', browserVersion: '', os: '', osVersion: '', deviceType: '桌面端', deviceModel: '' };
+// 验证码存储（内存Map，5分钟过期，挂载到global以便其他路由共享）
+if (!global._captchaStore) global._captchaStore = new Map();
+const captchaStore = global._captchaStore;
 
-  if (/Mobile|Android|iPhone|iPad|iPod/i.test(ua)) {
-    result.deviceType = '移动端';
-  } else if (/Tablet/i.test(ua)) {
-    result.deviceType = '平板';
+// 生成验证码
+router.get('/captcha', (req, res) => {
+  const a = Math.floor(Math.random() * 50) + 1;
+  const b = Math.floor(Math.random() * 50) + 1;
+  const ops = ['+', '-', '×'];
+  const op = ops[Math.floor(Math.random() * ops.length)];
+  let answer;
+  let question;
+  if (op === '+') { answer = a + b; question = `${a} + ${b}`; }
+  else if (op === '-') { const big = Math.max(a, b); const small = Math.min(a, b); answer = big - small; question = `${big} - ${small}`; }
+  else { const sa = Math.floor(Math.random() * 12) + 1; const sb = Math.floor(Math.random() * 12) + 1; answer = sa * sb; question = `${sa} × ${sb}`; }
+
+  const captchaId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  captchaStore.set(captchaId, { answer, expires: Date.now() + 5 * 60 * 1000 });
+
+  // 清理过期验证码
+  for (const [key, val] of captchaStore) {
+    if (val.expires < Date.now()) captchaStore.delete(key);
   }
 
-  if (/Edg\/(\d+)/.test(ua)) {
-    result.browser = 'Microsoft Edge';
-    result.browserVersion = ua.match(/Edg\/(\d+[\.\d]*)/)?.[1] || '';
-  } else if (/Chrome\/(\d+)/.test(ua) && !/Edg/.test(ua)) {
-    result.browser = 'Google Chrome';
-    result.browserVersion = ua.match(/Chrome\/(\d+[\.\d]*)/)?.[1] || '';
-  } else if (/Firefox\/(\d+)/.test(ua)) {
-    result.browser = 'Mozilla Firefox';
-    result.browserVersion = ua.match(/Firefox\/(\d+[\.\d]*)/)?.[1] || '';
-  } else if (/Safari\/(\d+)/.test(ua) && !/Chrome/.test(ua)) {
-    result.browser = 'Apple Safari';
-    result.browserVersion = ua.match(/Version\/(\d+[\.\d]*)/)?.[1] || '';
-  }
+  res.json({ captchaId, question });
+});
 
-  if (/Windows NT (\d+[\.\d]*)/.test(ua)) {
-    result.os = 'Windows';
-    const v = ua.match(/Windows NT (\d+[\.\d]*)/)?.[1];
-    const winMap = { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' };
-    result.osVersion = winMap[v] || v || '';
-  } else if (/Mac OS X (\d+[._\d]*)/.test(ua)) {
-    result.os = 'macOS';
-    result.osVersion = (ua.match(/Mac OS X (\d+[._\d]*)/)?.[1] || '').replace(/_/g, '.');
-  } else if (/Android (\d+[\.\d]*)/.test(ua)) {
-    result.os = 'Android';
-    result.osVersion = ua.match(/Android (\d+[\.\d]*)/)?.[1] || '';
-    const buildMatch = ua.match(/;\s*([^;)]+)\s*Build\//);
-    if (buildMatch) result.deviceModel = buildMatch[1].trim();
-  } else if (/iPhone OS (\d+[_\d]*)/.test(ua)) {
-    result.os = 'iOS';
-    result.osVersion = (ua.match(/iPhone OS (\d+[_\d]*)/)?.[1] || '').replace(/_/g, '.');
-    result.deviceModel = 'iPhone';
-  } else if (/iPad/.test(ua)) {
-    result.os = 'iPadOS';
-    result.osVersion = (ua.match(/CPU OS (\d+[_\d]*)/)?.[1] || '').replace(/_/g, '.');
-    result.deviceModel = 'iPad';
-  } else if (/Linux/.test(ua)) {
-    result.os = 'Linux';
+// 验证验证码的辅助函数
+const verifyCaptcha = (captchaId, captchaAnswer) => {
+  if (!captchaId || !captchaAnswer) return false;
+  const stored = captchaStore.get(captchaId);
+  if (!stored) return false;
+  if (stored.expires < Date.now()) {
+    captchaStore.delete(captchaId);
+    return false;
   }
-
-  return result;
+  const isCorrect = String(stored.answer) === String(captchaAnswer).trim();
+  captchaStore.delete(captchaId);
+  return isCorrect;
 };
 
+router.get('/check-username', async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username) {
+      return res.status(400).json({ message: 'Username is required' });
+    }
+    const existing = await User.findOne({ username });
+    res.json({ available: !existing });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.post('/register', async (req, res) => {
-  const { username, email, password, deviceInfo } = req.body;
+  const { username, email, password, deviceInfo, captchaId, captchaAnswer } = req.body;
   const ua = req.headers['user-agent'] || '';
   const parsed = parseUserAgent(ua);
-  
+
   try {
+    // 验证验证码
+    if (!verifyCaptcha(captchaId, captchaAnswer)) {
+      return res.status(400).json({ message: '验证码错误或已过期' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return res.status(400).json({ message: '邮箱格式不正确' });
+    if (username.length < 2 || username.length > 20) return res.status(400).json({ message: '用户名长度需在2-20个字符之间' });
+    if (!/^[\w\u4e00-\u9fa5]+$/.test(username)) return res.status(400).json({ message: '用户名只能包含字母、数字、下划线和中文' });
+
     const passwordError = validatePassword(password);
     if (passwordError) {
       return res.status(400).json({ message: passwordError });
@@ -107,12 +128,12 @@ router.post('/register', async (req, res) => {
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
-    
+
     const usernameExists = await User.findOne({ username });
     if (usernameExists) {
       return res.status(400).json({ message: 'Username already taken' });
     }
-    
+
     const user = await User.create({
       username,
       email,
@@ -132,17 +153,17 @@ router.post('/register', async (req, res) => {
         carrier: deviceInfo?.carrier || ''
       },
       lastLoginAt: new Date(),
-      lastLoginIp: req.ip || req.connection.remoteAddress || '',
-      lastLoginRegion: await getIpRegion(req.ip || req.connection.remoteAddress || '')
+      lastLoginIp: getClientIp(req),
+      lastLoginRegion: await getIpRegion(getClientIp(req))
     });
-    
+
     const verifyToken = jwt.sign(
       { id: user._id, purpose: 'verify-email' },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
     sendVerificationEmail(email, verifyToken).catch(() => {});
-    
+
     res.json({
       message: '注册成功，请验证邮箱后登录',
       email: user.email,
@@ -161,7 +182,7 @@ router.post('/login', async (req, res) => {
   const { email, password, deviceInfo } = req.body;
   const ua = req.headers['user-agent'] || '';
   const parsed = parseUserAgent(ua);
-  
+
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -172,9 +193,14 @@ router.post('/login', async (req, res) => {
       const deleteAt = new Date(user.deletionRequestedAt.getTime() + 7 * 24 * 60 * 60 * 1000);
       if (new Date() >= deleteAt) {
         await User.findByIdAndDelete(user._id);
-        await require('../models/Follow').deleteMany({ userId: user._id });
-        await require('../models/History').deleteMany({ userId: user._id });
-        await require('../models/Notification').deleteMany({ userId: user._id });
+        await Follow.deleteMany({ userId: user._id });
+        await History.deleteMany({ userId: user._id });
+        await Notification.deleteMany({ userId: user._id });
+        await Favorite.deleteMany({ userId: user._id });
+        await Rating.deleteMany({ userId: user._id });
+        await Report.deleteMany({ userId: user._id });
+        await Feedback.deleteMany({ userId: user._id });
+        await UserSession.deleteMany({ userId: user._id });
         return res.status(400).json({ message: '该账号已被注销' });
       }
     }
@@ -208,14 +234,30 @@ router.post('/login', async (req, res) => {
       carrier: deviceInfo?.carrier || ''
     };
     user.lastLoginAt = new Date();
-    user.lastLoginIp = req.ip || req.connection.remoteAddress || '';
-    user.lastLoginRegion = await getIpRegion(req.ip || req.connection.remoteAddress || '');
+    user.lastLoginIp = getClientIp(req);
+    user.lastLoginRegion = await getIpRegion(getClientIp(req));
     await user.save();
-    
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: '30d'
     });
-    
+
+    const tokenHash = hashToken(token);
+    const ip = getClientIp(req);
+    const sessionDeviceInfo = parseUserAgent(ua);
+    if (deviceInfo?.screenWidth) sessionDeviceInfo.screenWidth = deviceInfo.screenWidth;
+    if (deviceInfo?.screenHeight) sessionDeviceInfo.screenHeight = deviceInfo.screenHeight;
+    if (deviceInfo?.language) sessionDeviceInfo.language = deviceInfo.language;
+    sessionDeviceInfo.userAgent = ua;
+
+    const session = new UserSession({
+      userId: user._id,
+      tokenHash,
+      deviceInfo: sessionDeviceInfo,
+      ip
+    });
+    await session.save();
+
     res.json({
       _id: user._id,
       username: user.username,
@@ -223,6 +265,36 @@ router.post('/login', async (req, res) => {
       isEmailVerified: user.isEmailVerified,
       adminAccess: user.adminAccess || false,
       token
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/logout', protect, async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const tokenHash = hashToken(token);
+    await UserSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
+    res.json({ message: '退出成功' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/me', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      adminAccess: user.adminAccess || false,
+      avatar: user.avatar || ''
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

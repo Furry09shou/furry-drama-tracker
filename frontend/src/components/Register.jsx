@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { getDeviceInfo } from '../utils/deviceInfo';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -8,54 +9,31 @@ const Register = () => {
     email: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [captchaData, setCaptchaData] = useState({ captchaId: '', question: '' });
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
   const navigate = useNavigate();
-  
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
+  const fetchCaptcha = async () => {
+    try {
+      const res = await axios.get('/api/captcha');
+      setCaptchaData({ captchaId: res.data.captchaId, question: res.data.question });
+    } catch (e) {}
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-  };
-  
-  const getDeviceInfo = () => {
-    const ua = navigator.userAgent;
-    let browser = '', browserVersion = '', os = '', osVersion = '', deviceType = '桌面端', deviceModel = '', carrier = '';
-
-    if (/Mobile|Android|iPhone|iPad|iPod/i.test(ua)) deviceType = '移动端';
-    else if (/Tablet/i.test(ua)) deviceType = '平板';
-
-    if (/Edg\/(\d+[\.\d]*)/.test(ua)) { browser = 'Microsoft Edge'; browserVersion = ua.match(/Edg\/(\d+[\.\d]*)/)?.[1] || ''; }
-    else if (/Chrome\/(\d+[\.\d]*)/.test(ua) && !/Edg/.test(ua)) { browser = 'Google Chrome'; browserVersion = ua.match(/Chrome\/(\d+[\.\d]*)/)?.[1] || ''; }
-    else if (/Firefox\/(\d+[\.\d]*)/.test(ua)) { browser = 'Mozilla Firefox'; browserVersion = ua.match(/Firefox\/(\d+[\.\d]*)/)?.[1] || ''; }
-    else if (/Safari\/(\d+[\.\d]*)/.test(ua) && !/Chrome/.test(ua)) { browser = 'Apple Safari'; browserVersion = ua.match(/Version\/(\d+[\.\d]*)/)?.[1] || ''; }
-
-    if (/Windows NT (\d+[\.\d]*)/.test(ua)) { os = 'Windows'; osVersion = ua.match(/Windows NT (\d+[\.\d]*)/)?.[1] || ''; }
-    else if (/Mac OS X (\d+[._\d]*)/.test(ua)) { os = 'macOS'; osVersion = (ua.match(/Mac OS X (\d+[._\d]*)/)?.[1] || '').replace(/_/g, '.'); }
-    else if (/Android (\d+[\.\d]*)/.test(ua)) {
-      os = 'Android'; osVersion = ua.match(/Android (\d+[\.\d]*)/)?.[1] || '';
-      const buildMatch = ua.match(/;\s*([^;)]+)\s*Build\//);
-      if (buildMatch) deviceModel = buildMatch[1].trim();
-    } else if (/iPhone OS (\d+[_\d]*)/.test(ua)) {
-      os = 'iOS'; osVersion = (ua.match(/iPhone OS (\d+[_\d]*)/)?.[1] || '').replace(/_/g, '.');
-      deviceModel = 'iPhone';
-    } else if (/iPad/.test(ua)) {
-      os = 'iPadOS'; osVersion = (ua.match(/CPU OS (\d+[_\d]*)/)?.[1] || '').replace(/_/g, '.');
-      deviceModel = 'iPad';
-    } else if (/Linux/.test(ua)) { os = 'Linux'; }
-
-    if (navigator.connection && navigator.connection.effectiveType) {
-      carrier = navigator.connection.effectiveType;
-    }
-
-    return {
-      browser, browserVersion, os, osVersion, deviceType, deviceModel, carrier,
-      screenWidth: window.screen.width,
-      screenHeight: window.screen.height,
-      language: navigator.language || ''
-    };
   };
 
   const handleSubmit = async (e) => {
@@ -68,15 +46,27 @@ const Register = () => {
       setError('密码必须包含至少一个字母和一个数字');
       return;
     }
+    if (!agreedToTerms) {
+      setError('请先阅读并同意用户协议和隐私政策');
+      return;
+    }
+    if (!captchaAnswer.trim()) {
+      setError('请输入验证码');
+      return;
+    }
     try {
       await axios.post('/api/auth/register', {
         ...formData,
+        captchaId: captchaData.captchaId,
+        captchaAnswer: captchaAnswer.trim(),
         deviceInfo: getDeviceInfo()
       });
       setRegisteredEmail(formData.email);
       setRegistered(true);
     } catch (error) {
       setError(error.response?.data?.message || '注册失败');
+      fetchCaptcha();
+      setCaptchaAnswer('');
     }
   };
   
@@ -144,19 +134,73 @@ const Register = () => {
         </div>
         <div className="form-group">
           <label htmlFor="password">密码</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            minLength={8}
-          />
+          <div style={{position: 'relative'}}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              minLength={8}
+              style={{paddingRight: '40px'}}
+            />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} style={{
+              position: 'absolute', right: '8px', top: 0, bottom: 0,
+              background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px',
+              color: 'var(--text-secondary)', padding: '0 4px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{showPassword ? '隐藏' : '显示'}</button>
+          </div>
           <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>密码长度至少8位，需包含字母和数字</span>
         </div>
         <div className="form-group">
-          <button type="submit">注册</button>
+          <label htmlFor="captcha">验证码</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="text"
+              id="captcha"
+              value={captchaAnswer}
+              onChange={(e) => setCaptchaAnswer(e.target.value)}
+              required
+              placeholder={captchaData.question || '请输入验证码'}
+              style={{ flex: 1 }}
+            />
+            <button type="button" onClick={fetchCaptcha} style={{
+              padding: '10px 14px', borderRadius: '8px', fontSize: '13px',
+              background: 'var(--hover-bg)', border: '1px solid var(--border)',
+              color: 'var(--foreground)', cursor: 'pointer', whiteSpace: 'nowrap'
+            }}>刷新</button>
+          </div>
+          {captchaData.question && (
+            <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>
+              请计算: {captchaData.question} = ?
+            </span>
+          )}
+        </div>
+        <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+          <input
+            type="checkbox"
+            id="terms"
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            style={{ accentColor: 'var(--primary)', cursor: 'pointer', width: '16px', height: '16px' }}
+          />
+          <label htmlFor="terms" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', margin: 0, fontWeight: 400 }}>
+            我已阅读并同意
+            <Link to="/terms" style={{ color: 'var(--primary)', textDecoration: 'none', marginLeft: '2px', marginRight: '2px' }}
+              onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+            >《用户协议》</Link>
+            和
+            <Link to="/privacy" style={{ color: 'var(--primary)', textDecoration: 'none', marginLeft: '2px' }}
+              onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+            >《隐私政策》</Link>
+          </label>
+        </div>
+        <div className="form-group">
+          <button type="submit" disabled={!agreedToTerms} style={{ opacity: agreedToTerms ? 1 : 0.5, cursor: agreedToTerms ? 'pointer' : 'not-allowed' }}>注册</button>
         </div>
       </form>
     </div>

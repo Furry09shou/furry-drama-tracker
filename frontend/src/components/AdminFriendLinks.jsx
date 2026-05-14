@@ -7,6 +7,7 @@ const AdminFriendLinks = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingLink, setEditingLink] = useState(null);
+  const [activeTab, setActiveTab] = useState('approved');
   const [formData, setFormData] = useState({
     name: '', url: '', logo: '', description: '', order: 0, isActive: true
   });
@@ -86,6 +87,36 @@ const AdminFriendLinks = () => {
     setError('');
   };
 
+  const handleApprove = async (id) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.put(`/api/friend-links/${id}`, { status: 'approved' }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchLinks();
+    } catch (e) {
+      setError('审核操作失败');
+    }
+  };
+
+  const handleReject = async (id) => {
+    if (!window.confirm('确定要拒绝此友链申请吗？')) return;
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.put(`/api/friend-links/${id}`, { status: 'rejected' }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchLinks();
+    } catch (e) {
+      setError('审核操作失败');
+    }
+  };
+
+  const pendingLinks = links.filter(l => l.status === 'pending' || (!l.status && !l.isActive));
+  const approvedLinks = links.filter(l => l.status === 'approved' || (!l.status && l.isActive));
+  const rejectedLinks = links.filter(l => l.status === 'rejected');
+  const displayLinks = activeTab === 'pending' ? pendingLinks : activeTab === 'approved' ? approvedLinks : rejectedLinks;
+
   if (loading) return <div className="container"><h2>加载中...</h2></div>;
 
   return (
@@ -141,16 +172,35 @@ const AdminFriendLinks = () => {
         </div>
       )}
 
-      {links.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>暂无友链，点击上方按钮添加</div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        {[
+          { key: 'pending', label: '待审核', count: pendingLinks.length },
+          { key: 'approved', label: '已通过', count: approvedLinks.length },
+          { key: 'rejected', label: '已拒绝', count: rejectedLinks.length },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+            padding: '8px 16px', borderRadius: '8px', fontSize: '14px',
+            cursor: 'pointer', transition: 'all 0.2s', border: '1px solid',
+            background: activeTab === tab.key ? 'var(--primary-bg)' : 'var(--card)',
+            color: activeTab === tab.key ? 'var(--primary)' : 'var(--text-secondary)',
+            borderColor: activeTab === tab.key ? 'var(--primary-border)' : 'var(--border)',
+            fontWeight: activeTab === tab.key ? 600 : 400
+          }}>{tab.label} ({tab.count})</button>
+        ))}
+      </div>
+
+      {displayLinks.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+          {activeTab === 'pending' ? '暂无待审核的友链申请' : activeTab === 'approved' ? '暂无已通过的友链' : '暂无已拒绝的友链'}
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {links.map(link => (
+          {displayLinks.map(link => (
             <div key={link._id} style={{
               display: 'flex', alignItems: 'center', gap: '14px',
               padding: '12px 14px', borderRadius: '10px',
               background: 'var(--card)', border: '1px solid var(--border)',
-              opacity: link.isActive ? 1 : 0.5,
+              opacity: link.isActive ? 1 : 0.6,
               flexWrap: 'wrap'
             }}>
               {link.logo ? (
@@ -166,7 +216,21 @@ const AdminFriendLinks = () => {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontWeight: 600, fontSize: '15px' }}>{link.name}</span>
-                  {!link.isActive && (
+                  {(link.status === 'pending' || (!link.status && !link.isActive)) && (
+                    <span style={{
+                      fontSize: '11px', color: '#f59e0b',
+                      background: '#fef3c7', padding: '1px 8px',
+                      borderRadius: '4px', border: '1px solid #fde68a'
+                    }}>待审核</span>
+                  )}
+                  {link.status === 'rejected' && (
+                    <span style={{
+                      fontSize: '11px', color: 'var(--destructive-text)',
+                      background: 'var(--destructive-bg)', padding: '1px 8px',
+                      borderRadius: '4px', border: '1px solid var(--destructive-border)'
+                    }}>已拒绝</span>
+                  )}
+                  {!link.isActive && (link.status === 'approved' || !link.status) && (
                     <span style={{
                       fontSize: '11px', color: 'var(--text-tertiary)',
                       background: 'var(--hover-bg)', padding: '1px 8px',
@@ -185,6 +249,20 @@ const AdminFriendLinks = () => {
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                {(link.status === 'pending' || (!link.status && !link.isActive)) && (
+                  <>
+                    <button style={{
+                      background: 'var(--success-bg-subtle)', border: '1px solid var(--success-border)',
+                      color: 'var(--success-text)', borderRadius: '6px', padding: '6px 14px',
+                      cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s'
+                    }} onClick={() => handleApprove(link._id)}>通过</button>
+                    <button style={{
+                      background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
+                      color: 'var(--destructive-text)', borderRadius: '6px', padding: '6px 14px',
+                      cursor: 'pointer', fontSize: '13px'
+                    }} onClick={() => handleReject(link._id)}>拒绝</button>
+                  </>
+                )}
                 <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => handleEdit(link)}>编辑</button>
                 <button style={{
                   background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',

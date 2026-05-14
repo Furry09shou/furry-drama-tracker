@@ -1165,6 +1165,17 @@ table tr:last-child td {
     padding: 12px;
   }
 
+  /* 管理后台侧边栏移动端适配 */
+  .admin-sidebar-desktop {
+    display: none !important;
+  }
+  .admin-sidebar-mobile {
+    display: block !important;
+  }
+  .admin-main-content {
+    margin-left: 0 !important;
+  }
+
   nav {
     flex-direction: row;
     gap: 12px;

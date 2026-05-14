@@ -6,14 +6,15 @@ const ChangePassword = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
   const isAdmin = location.pathname.includes('/admin');
-  const adminData = localStorage.getItem('adminData');
-  const isUserAdmin = adminData && JSON.parse(adminData).role === 'user-admin';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,17 +41,9 @@ const ChangePassword = () => {
     }
 
     try {
-      let token, endpoint;
-      if (isAdmin && !isUserAdmin) {
-        token = localStorage.getItem('adminToken');
-        endpoint = '/api/auth/admin/change-password';
-      } else if (isUserAdmin) {
-        token = localStorage.getItem('adminToken');
-        endpoint = '/api/admin/user-admin-change-password';
-      } else {
-        token = localStorage.getItem('token');
-        endpoint = '/api/auth/change-password';
-      }
+      const tokenKey = isAdmin ? 'adminToken' : 'token';
+      const token = localStorage.getItem(tokenKey);
+      const endpoint = isAdmin ? '/api/auth/admin/change-password' : '/api/auth/change-password';
 
       await axios.put(endpoint, {
         currentPassword,
@@ -76,6 +69,15 @@ const ChangePassword = () => {
     }
   };
 
+  const PasswordToggle = ({ show, onToggle }) => (
+    <button type="button" onClick={onToggle} style={{
+      position: 'absolute', right: '8px', top: 0, bottom: 0,
+      background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px',
+      color: 'var(--text-secondary)', padding: '0 4px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>{show ? '隐藏' : '显示'}</button>
+  );
+
   return (
     <div className="auth-form" style={{maxWidth: '480px', margin: '0 auto'}}>
       <h2>修改密码</h2>
@@ -84,33 +86,45 @@ const ChangePassword = () => {
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>当前密码</label>
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-          />
+          <div style={{position: 'relative'}}>
+            <input
+              type={showCurrentPassword ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+              style={{paddingRight: '40px'}}
+            />
+            <PasswordToggle show={showCurrentPassword} onToggle={() => setShowCurrentPassword(!showCurrentPassword)} />
+          </div>
         </div>
         <div className="form-group">
           <label>新密码</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            minLength={8}
-          />
+          <div style={{position: 'relative'}}>
+            <input
+              type={showNewPassword ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              minLength={8}
+              style={{paddingRight: '40px'}}
+            />
+            <PasswordToggle show={showNewPassword} onToggle={() => setShowNewPassword(!showNewPassword)} />
+          </div>
           <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>密码长度至少8位，需包含字母和数字</span>
         </div>
         <div className="form-group">
           <label>确认新密码</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            minLength={8}
-          />
+          <div style={{position: 'relative'}}>
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+              style={{paddingRight: '40px'}}
+            />
+            <PasswordToggle show={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
+          </div>
         </div>
         <div className="form-group" style={{display: 'flex', gap: '10px'}}>
           <button type="submit">确认修改</button>

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Episode = require('../models/Episode');
-const creatorProtect = require('../middlewares/creatorAuth');
+const { creatorProtect } = require('../middlewares/authFactory');
 
 router.get('/my-episodes', creatorProtect, async (req, res) => {
   try {

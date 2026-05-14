@@ -9,7 +9,7 @@ const NotificationSchema = new mongoose.Schema({
   episodeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Episode',
-    required: true
+    default: null
   },
   episodeTitle: {
     type: String,
@@ -17,8 +17,12 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['new_episode', 'status_change'],
+    enum: ['new_episode', 'status_change', 'feedback_reply', 'friend_link_apply', 'friend_link_status'],
     default: 'new_episode'
+  },
+  link: {
+    type: String,
+    default: ''
   },
   message: {
     type: String,

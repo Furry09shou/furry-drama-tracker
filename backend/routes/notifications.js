@@ -1,14 +1,110 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
-const protect = require('../middlewares/auth');
+const { protect } = require('../middlewares/authFactory');
+const jwt = require('jsonwebtoken');
+
+// SSE连接的客户端管理
+const sseClients = new Map();
+
+// SSE推送端点
+router.get('/stream', async (req, res) => {
+  const token = req.query.token;
+  if (!token) {
+    return res.status(401).json({ message: '需要认证' });
+  }
+
+  let userId;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    userId = decoded.id || decoded._id;
+  } catch (e) {
+    return res.status(401).json({ message: 'token无效' });
+  }
+
+  // 设置SSE响应头
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+
+  // 发送初始连接成功事件
+  res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+
+  // 注册客户端
+  if (!sseClients.has(userId)) {
+    sseClients.set(userId, []);
+  }
+  sseClients.get(userId).push(res);
+
+  // 心跳保活
+  const heartbeat = setInterval(() => {
+    res.write(`:heartbeat\n\n`);
+  }, 30000);
+
+  // 清理连接
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    const clients = sseClients.get(userId);
+    if (clients) {
+      const idx = clients.indexOf(res);
+      if (idx > -1) clients.splice(idx, 1);
+      if (clients.length === 0) sseClients.delete(userId);
+    }
+  });
+});
+
+// 向指定用户推送通知
+const pushNotificationToUser = async (userId) => {
+  const clients = sseClients.get(String(userId));
+  if (!clients || clients.length === 0) return;
+  try {
+    const count = await Notification.countDocuments({ userId, isRead: false });
+    const data = JSON.stringify({ type: 'new', unreadCount: count });
+    clients.forEach(client => {
+      try {
+        client.write(`event: notification\ndata: ${data}\n\n`);
+      } catch (e) {}
+    });
+  } catch (e) {}
+};
+
+module.exports.pushNotificationToUser = pushNotificationToUser;
+
+// 订阅提醒
+router.post('/subscribe-reminder', protect, async (req, res) => {
+  try {
+    const { episodeId } = req.body;
+    if (!episodeId) {
+      return res.status(400).json({ message: '缺少剧集ID' });
+    }
+    // 创建一条提醒通知记录
+    await Notification.create({
+      userId: req.user._id,
+      type: 'reminder',
+      message: '您已订阅该剧集的更新提醒',
+      episodeId
+    });
+    res.json({ message: '订阅提醒成功' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 router.get('/list', protect, async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user._id })
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const total = await Notification.countDocuments({ userId: req.user._id });
+    const totalPages = Math.ceil(total / limitNum);
+    const list = await Notification.find({ userId: req.user._id })
       .sort({ createdAt: -1 })
-      .limit(50);
-    res.json(notifications);
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+    res.json({ list, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

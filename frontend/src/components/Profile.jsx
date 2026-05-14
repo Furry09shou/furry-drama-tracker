@@ -112,6 +112,8 @@ const Profile = ({ user, setUser, logout }) => {
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('图片大小不能超过2MB'); return; }
+    if (!file.type.startsWith('image/')) { alert('请选择图片文件'); return; }
     setUploadingAvatar(true);
     try {
       const token = localStorage.getItem('token');
@@ -496,6 +498,7 @@ const Profile = ({ user, setUser, logout }) => {
         </div>
         <div style={{display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
           <Link to="/change-password" className="btn" style={{display: 'inline-block'}}>修改密码</Link>
+          <Link to="/devices" className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>管理设备</Link>
           <button onClick={async () => {
             try {
               const token = localStorage.getItem('token');

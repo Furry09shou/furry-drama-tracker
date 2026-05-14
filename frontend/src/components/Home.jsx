@@ -1,543 +1,749 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
 import SearchInput from './SearchInput';
+import { EpisodeCardSkeletonFixed as EpisodeCardSkeleton } from './Skeleton';
+
+const STATUS_OPTIONS = [
+  { value: '', label: '全部' },
+  { value: 'ongoing', label: '连载中' },
+  { value: 'completed', label: '已完结' },
+  { value: 'upcoming', label: '即将上映' },
+];
+
+const RATING_OPTIONS = [
+  { value: '', label: '全部' },
+  { value: '4', label: '4+' },
+  { value: '3', label: '3+' },
+  { value: '2', label: '2+' },
+  { value: '1', label: '1+' },
+];
+
+const YEAR_OPTIONS = [
+  { value: '', label: '全部' },
+  { value: 'recent5', label: '近5年' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'latest', label: '最新更新' },
+  { value: 'views', label: '热门推荐' },
+  { value: 'premiere', label: '最新首播' },
+  { value: 'rating', label: '最高评分' },
+];
+
+const STATUS_MAP = {
+  ongoing: { text: '连载中', cls: 'ongoing' },
+  completed: { text: '已完结', cls: 'completed' },
+  upcoming: { text: '即将上映', cls: 'upcoming' },
+};
+
+const capsuleBtnStyle = (active) => ({
+  padding: '6px 16px',
+  borderRadius: '20px',
+  border: active ? '1px solid var(--primary)' : '1px solid var(--border)',
+  background: active ? 'var(--primary)' : 'var(--input)',
+  color: active ? '#fff' : 'var(--foreground)',
+  fontSize: '13px',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  whiteSpace: 'nowrap',
+  fontWeight: active ? 600 : 400,
+  outline: 'none',
+});
+
+const filterRowStyle = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '8px',
+  alignItems: 'center',
+  marginBottom: '12px',
+};
+
+const filterLabelStyle = {
+  fontSize: '13px',
+  color: 'var(--text-secondary)',
+  fontWeight: 500,
+  minWidth: '48px',
+  flexShrink: 0,
+};
 
 const Home = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [episodes, setEpisodes] = useState([]);
-  const [filteredEpisodes, setFilteredEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState('');
   const [categories, setCategories] = useState([]);
-  const [sort, setSort] = useState('latest');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
-  const [ratingFilter, setRatingFilter] = useState('');
-  const [yearFilter, setYearFilter] = useState('');
   const [banners, setBanners] = useState([]);
-  const [currentBanner, setCurrentBanner] = useState(0);
-  const [showWelcome, setShowWelcome] = useState(true);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [previousBanner, setPreviousBanner] = useState(null);
-  const [siteSettings, setSiteSettings] = useState({ welcomeTitle: '欢迎来到兽剧聚合平台', welcomeSubtitle: '发现和追踪你喜爱的兽剧内容' });
+  const [total, setTotal] = useState(0);
 
+  const [filters, setFilters] = useState({
+    category: searchParams.get('category') || '',
+    sort: searchParams.get('sort') || 'latest',
+    status: searchParams.get('status') || '',
+    tag: searchParams.get('tag') || '',
+    rating: searchParams.get('rating') || '',
+    year: searchParams.get('year') || '',
+  });
+  const [sortOrder, setSortOrder] = useState(searchParams.get('order') || 'desc');
+
+  const searchQuery = searchParams.get('search') || '';
+
+  // 轮播图状态
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const bannerTimerRef = useRef(null);
+  const welcomeTimerRef = useRef(null);
+
+  // 滚动位置恢复
+  const scrollRestoredRef = useRef(false);
+
+  // 初始化：加载分类和轮播图
   useEffect(() => {
-    if (!loading) {
-      const savedScroll = sessionStorage.getItem('homeScrollPosition');
-      if (savedScroll) {
-        requestAnimationFrame(() => {
-          window.scrollTo(0, parseInt(savedScroll, 10));
-          sessionStorage.removeItem('homeScrollPosition');
-        });
+    axios.get('/api/categories').then(res => setCategories(res.data)).catch(() => {});
+    axios.get('/api/banners').then(res => setBanners(res.data)).catch(() => {});
+  }, []);
+
+  // 轮播图逻辑
+  useEffect(() => {
+    if (banners.length === 0) return;
+
+    // 先显示3秒欢迎文字
+    welcomeTimerRef.current = setTimeout(() => {
+      setShowWelcome(false);
+    }, 3000);
+
+    return () => {
+      if (welcomeTimerRef.current) clearTimeout(welcomeTimerRef.current);
+    };
+  }, [banners.length]);
+
+  // 欢迎文字消失后启动轮播
+  useEffect(() => {
+    if (showWelcome || banners.length <= 1) return;
+
+    bannerTimerRef.current = setInterval(() => {
+      setBannerIndex(prev => (prev + 1) % banners.length);
+    }, 4000);
+
+    return () => {
+      if (bannerTimerRef.current) clearInterval(bannerTimerRef.current);
+    };
+  }, [showWelcome, banners.length]);
+
+  // 加载剧集数据（不分页）
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (filters.category) params.set('category', filters.category);
+    if (filters.sort) params.set('sort', filters.sort);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.tag) params.set('tag', filters.tag);
+    if (filters.rating) params.set('minRating', filters.rating);
+    if (filters.year) params.set('year', filters.year);
+    if (sortOrder) params.set('order', sortOrder);
+
+    axios.get(`/api/episodes?${params.toString()}`)
+      .then(res => {
+        const data = res.data;
+        if (data.episodes) {
+          setEpisodes(data.episodes);
+          setTotal(data.total || 0);
+        } else if (Array.isArray(data)) {
+          setEpisodes(data);
+          setTotal(data.length);
+        }
+      })
+      .catch(() => {
+        setEpisodes([]);
+        setTotal(0);
+      })
+      .finally(() => setLoading(false));
+  }, [searchQuery, filters, sortOrder]);
+
+  // 滚动位置恢复
+  useEffect(() => {
+    if (!loading && !scrollRestoredRef.current) {
+      const saved = sessionStorage.getItem('home_scroll_pos');
+      if (saved) {
+        window.scrollTo(0, parseInt(saved, 10));
       }
+      scrollRestoredRef.current = true;
     }
   }, [loading]);
 
+  // 保存滚动位置
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await axios.get('/api/categories');
-        setCategories(res.data);
-      } catch (err) {
-        console.error('获取分类失败', err);
-      }
+    const handleScroll = () => {
+      sessionStorage.setItem('home_scroll_pos', String(window.scrollY));
     };
-    const fetchBanners = async () => {
-      try {
-        const res = await axios.get('/api/banners');
-        setBanners(res.data);
-      } catch (err) {
-        console.error('获取轮播图失败', err);
-      }
-    };
-    fetchCategories();
-    fetchBanners();
-    axios.get('/api/site-content/settings')
-      .then(res => {
-        try {
-          const data = JSON.parse(res.data.content);
-          setSiteSettings({
-            welcomeTitle: data.welcomeTitle || '欢迎来到兽剧聚合平台',
-            welcomeSubtitle: data.welcomeSubtitle || '发现和追踪你喜爱的兽剧内容'
-          });
-        } catch (e) {}
-      })
-      .catch(() => {});
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (banners.length === 0) return;
-    const welcomeTimer = setTimeout(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setShowWelcome(false);
-        setIsTransitioning(false);
-      }, 500);
-    }, 3000);
-    return () => clearTimeout(welcomeTimer);
-  }, [banners]);
-
-  const nextBanner = useCallback(() => {
-    if (banners.length <= 1) return;
-    setPreviousBanner(banners[currentBanner]);
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentBanner(prev => (prev + 1) % banners.length);
-      setIsTransitioning(false);
-      setPreviousBanner(null);
-    }, 500);
-  }, [banners, currentBanner]);
-
-  const prevBanner = useCallback(() => {
-    if (banners.length <= 1) return;
-    setPreviousBanner(banners[currentBanner]);
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentBanner(prev => (prev - 1 + banners.length) % banners.length);
-      setIsTransitioning(false);
-      setPreviousBanner(null);
-    }, 500);
-  }, [banners, currentBanner]);
-
-  useEffect(() => {
-    if (showWelcome || banners.length <= 1) return;
-    const timer = setInterval(nextBanner, 3000);
-    return () => clearInterval(timer);
-  }, [showWelcome, banners.length, nextBanner]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tagParam = params.get('tag');
-    if (tagParam) setTagFilter(tagParam);
-  }, []);
-
-  useEffect(() => {
-    const fetchEpisodes = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (category) params.set('category', category);
-        if (sort) params.set('sort', sort);
-        if (statusFilter) params.set('status', statusFilter);
-        if (tagFilter) params.set('tag', tagFilter);
-        if (ratingFilter) params.set('minRating', ratingFilter);
-        if (yearFilter) params.set('year', yearFilter);
-        const response = await axios.get(`/api/episodes?${params.toString()}`);
-        setEpisodes(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching episodes:', error);
-        setLoading(false);
-      }
-    };
-    fetchEpisodes();
-  }, [category, sort, statusFilter, tagFilter, ratingFilter, yearFilter]);
-
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredEpisodes(episodes);
-      return;
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
     }
-    const keyword = searchQuery.toLowerCase();
-    const results = episodes.filter(ep =>
-      ep.title.toLowerCase().includes(keyword) ||
-      ep.description.toLowerCase().includes(keyword) ||
-      (ep.category && ep.category.some(c => c.toLowerCase().includes(keyword)))
-    );
-    setFilteredEpisodes(results);
-  }, [searchQuery, episodes]);
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
 
-  if (loading) {
-    return <div className="container"><h2>加载中...</h2></div>;
-  }
-
-  const renderHero = () => {
-    if (showWelcome) {
-      return (
-        <div className="hero" style={{
-          transition: 'opacity 0.5s ease',
-          opacity: isTransitioning ? 0 : 1
-        }}>
-          <h2>{siteSettings.welcomeTitle}</h2>
-          <p>{siteSettings.welcomeSubtitle}</p>
-        </div>
-      );
+  const handleSortClick = useCallback((sortValue) => {
+    if (filters.sort === sortValue) {
+      // 点击已选中的排序按钮，切换升序降序
+      const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      setSortOrder(newOrder);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('order', newOrder);
+      setSearchParams(newParams);
+    } else {
+      // 点击未选中的排序按钮，设为该排序，默认降序
+      setFilters(prev => ({ ...prev, sort: sortValue }));
+      setSortOrder('desc');
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('sort', sortValue);
+      newParams.set('order', 'desc');
+      setSearchParams(newParams);
     }
+  }, [filters.sort, sortOrder, searchParams, setSearchParams]);
 
+  const handleTagClick = useCallback((tag) => {
+    handleFilterChange('tag', tag);
+  }, [handleFilterChange]);
+
+  const handleBannerPrev = () => {
+    if (banners.length <= 1) return;
+    setBannerIndex(prev => (prev - 1 + banners.length) % banners.length);
+  };
+
+  const handleBannerNext = () => {
+    if (banners.length <= 1) return;
+    setBannerIndex(prev => (prev + 1) % banners.length);
+  };
+
+  const handleBannerIndicator = (idx) => {
+    setBannerIndex(idx);
+  };
+
+  // 格式化热度
+  const formatViews = (views) => {
+    if (!views && views !== 0) return '0';
+    if (views >= 10000) return (views / 10000).toFixed(1) + '万';
+    return String(views);
+  };
+
+  // 截断描述
+  const truncateDesc = (desc, maxLen = 50) => {
+    if (!desc) return '暂无简介';
+    return desc.length > maxLen ? desc.slice(0, maxLen) + '...' : desc;
+  };
+
+  // 渲染轮播图
+  const renderBanner = () => {
     if (banners.length === 0) {
       return (
-        <div className="hero">
-          <h2>{siteSettings.welcomeTitle}</h2>
-          <p>{siteSettings.welcomeSubtitle}</p>
+        <div style={{
+          position: 'relative',
+          marginBottom: '24px',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          aspectRatio: '3/1',
+          maxHeight: '300px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+          color: '#fff',
+        }}>
+          <h2 style={{
+            fontSize: '2rem',
+            fontWeight: 700,
+            margin: 0,
+            textShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          }}>
+            欢迎来到追剧平台
+          </h2>
+          <p style={{
+            fontSize: '1rem',
+            marginTop: '8px',
+            opacity: 0.9,
+          }}>
+            发现精彩剧集，追番不迷路
+          </p>
         </div>
       );
     }
-
-    const banner = banners[currentBanner];
-    const BannerWrapper = banner.link ? 'a' : 'div';
-    const wrapperProps = banner.link ? { href: banner.link, target: '_blank', rel: 'noopener noreferrer' } : {};
 
     return (
       <div style={{
         position: 'relative',
-        width: '100%',
-        height: '280px',
+        marginBottom: '24px',
         borderRadius: '16px',
         overflow: 'hidden',
-        marginBottom: '30px'
+        aspectRatio: '3/1',
+        maxHeight: '300px',
+        margin: '0 auto',
+        maxWidth: '100%',
       }}>
-        {/* 上一张图片（背景） */}
-        {previousBanner && (
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            zIndex: 1
-          }}>
-            <BannerWrapper {...(previousBanner.link ? { href: previousBanner.link, target: '_blank', rel: 'noopener noreferrer' } : {})} style={{
-              display: 'block', width: '100%', height: '100%',
-              textDecoration: 'none', color: 'inherit'
-            }}>
-              <img
-                src={previousBanner.image}
-                alt={previousBanner.title}
-                style={{
-                  width: '100%', height: '100%', objectFit: 'cover',
-                  transition: 'opacity 0.5s ease',
-                  opacity: isTransitioning ? 1 : 0
-                }}
-              />
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0,
-                padding: '40px 30px 30px',
-                background: 'linear-gradient(transparent, var(--banner-overlay))',
-                pointerEvents: 'none',
-                transition: 'opacity 0.5s ease',
-                opacity: isTransitioning ? 1 : 0
-              }}>
-                <h2 style={{color: 'var(--banner-text)', marginBottom: '8px', fontSize: '24px'}}>{previousBanner.title}</h2>
-                {previousBanner.subtitle && <p style={{color: 'var(--banner-text-secondary)', fontSize: '15px'}}>{previousBanner.subtitle}</p>}
-              </div>
-            </BannerWrapper>
-          </div>
-        )}
-
-        {/* 当前图片（前景） */}
         <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          zIndex: 2
+          position: 'absolute',
+          inset: 0,
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+          color: '#fff',
+          transition: 'opacity 0.8s ease',
+          opacity: showWelcome ? 1 : 0,
+          pointerEvents: showWelcome ? 'auto' : 'none',
         }}>
-          <BannerWrapper {...wrapperProps} style={{
-            display: 'block', width: '100%', height: '100%',
-            textDecoration: 'none', color: 'inherit'
+          <h2 style={{
+            fontSize: '2rem',
+            fontWeight: 700,
+            margin: 0,
+            textShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
+            欢迎来到追剧平台
+          </h2>
+          <p style={{
+            fontSize: '1rem',
+            marginTop: '8px',
+            opacity: 0.9,
+          }}>
+            发现精彩剧集，追番不迷路
+          </p>
+        </div>
+
+        {banners.map((banner, idx) => (
+          <div
+            key={banner._id || idx}
+            onClick={() => {
+              if (banner.link) {
+                if (banner.link.startsWith('/')) {
+                  navigate(banner.link);
+                } else {
+                  window.open(banner.link, '_blank');
+                }
+              }
+            }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: (!showWelcome && idx === bannerIndex) ? 1 : 0,
+              transition: 'opacity 0.8s ease',
+              cursor: banner.link ? 'pointer' : 'default',
+              pointerEvents: (!showWelcome && idx === bannerIndex) ? 'auto' : 'none',
+            }}
+          >
             <img
               src={banner.image}
               alt={banner.title}
               style={{
-                width: '100%', height: '100%', objectFit: 'cover',
-                transition: 'opacity 0.5s ease',
-                opacity: isTransitioning ? 0 : 1
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center',
               }}
             />
             <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              padding: '40px 30px 30px',
-              background: 'linear-gradient(transparent, var(--banner-overlay))',
-              pointerEvents: 'none',
-              transition: 'opacity 0.5s ease',
-              opacity: isTransitioning ? 0 : 1
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: '20px 24px',
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+              color: '#fff',
             }}>
-              <h2 style={{color: 'var(--banner-text)', marginBottom: '8px', fontSize: '24px'}}>{banner.title}</h2>
-              {banner.subtitle && <p style={{color: 'var(--banner-text-secondary)', fontSize: '15px'}}>{banner.subtitle}</p>}
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>
+                {banner.title}
+              </h3>
+              {banner.subtitle && (
+                <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.9 }}>
+                  {banner.subtitle}
+                </p>
+              )}
             </div>
-          </BannerWrapper>
-        </div>
+          </div>
+        ))}
 
-        {banners.length > 1 && (
+        {/* 前后翻页按钮 */}
+        {!showWelcome && banners.length > 1 && (
           <>
-            <button onClick={prevBanner} style={{
-              position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
-              width: '40px', height: '40px', borderRadius: '50%',
-              background: 'var(--banner-overlay-hover)', border: 'none', color: 'var(--banner-text)',
-              fontSize: '18px', cursor: 'pointer', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.3s',
-              zIndex: 3
-            }} onMouseEnter={(e) => e.target.style.background = 'var(--banner-overlay)'} onMouseLeave={(e) => e.target.style.background = 'var(--banner-overlay-hover)'}>
+            <button
+              onClick={handleBannerPrev}
+              style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 20,
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: 'none',
+                background: 'rgba(0,0,0,0.4)',
+                color: '#fff',
+                fontSize: '18px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.4)'}
+            >
               ‹
             </button>
-            <button onClick={nextBanner} style={{
-              position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
-              width: '40px', height: '40px', borderRadius: '50%',
-              background: 'var(--banner-overlay-hover)', border: 'none', color: 'var(--banner-text)',
-              fontSize: '18px', cursor: 'pointer', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.3s',
-              zIndex: 3
-            }} onMouseEnter={(e) => e.target.style.background = 'var(--banner-overlay)'} onMouseLeave={(e) => e.target.style.background = 'var(--banner-overlay-hover)'}>
+            <button
+              onClick={handleBannerNext}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 20,
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: 'none',
+                background: 'rgba(0,0,0,0.4)',
+                color: '#fff',
+                fontSize: '18px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.4)'}
+            >
               ›
             </button>
-            <div style={{
-              position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)',
-              display: 'flex', gap: '8px',
-              zIndex: 3
-            }}>
-              {banners.map((_, idx) => (
-                <span key={idx} onClick={() => { setPreviousBanner(banners[currentBanner]); setIsTransitioning(true); setTimeout(() => { setCurrentBanner(idx); setIsTransitioning(false); setPreviousBanner(null); }, 500); }} style={{
-                  width: idx === currentBanner ? '24px' : '8px',
-                  height: '8px', borderRadius: '4px',
-                  background: idx === currentBanner ? 'var(--indicator-active)' : 'var(--indicator-inactive)',
-                  cursor: 'pointer', transition: 'all 0.3s ease'
-                }} />
-              ))}
-            </div>
           </>
+        )}
+
+        {/* 指示器 */}
+        {!showWelcome && banners.length > 1 && (
+          <div style={{
+            position: 'absolute',
+            bottom: '12px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 20,
+            display: 'flex',
+            gap: '8px',
+          }}>
+            {banners.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleBannerIndicator(idx)}
+                style={{
+                  width: idx === bannerIndex ? '24px' : '8px',
+                  height: '8px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: idx === bannerIndex ? '#fff' : 'rgba(255,255,255,0.5)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  padding: 0,
+                }}
+              />
+            ))}
+          </div>
         )}
       </div>
     );
   };
 
+  // 渲染筛选区域
+  const renderFilters = () => (
+    <div className="filter-section">
+      {/* 搜索框 */}
+      <div style={{ marginBottom: '16px' }}>
+        <SearchInput />
+      </div>
+
+      {/* 分类 */}
+      <div style={filterRowStyle}>
+        <span style={filterLabelStyle}>分类</span>
+        <button
+          style={capsuleBtnStyle(filters.category === '')}
+          onClick={() => handleFilterChange('category', '')}
+        >
+          全部
+        </button>
+        {categories.map(c => {
+          const name = c.name || c;
+          return (
+            <button
+              key={c._id || name}
+              style={capsuleBtnStyle(filters.category === name)}
+              onClick={() => handleFilterChange('category', name)}
+            >
+              {name}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 状态 */}
+      <div style={filterRowStyle}>
+        <span style={filterLabelStyle}>状态</span>
+        {STATUS_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            style={capsuleBtnStyle(filters.status === opt.value)}
+            onClick={() => handleFilterChange('status', opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 评分 */}
+      <div style={filterRowStyle}>
+        <span style={filterLabelStyle}>评分</span>
+        {RATING_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            style={capsuleBtnStyle(filters.rating === opt.value)}
+            onClick={() => handleFilterChange('rating', opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 年份 */}
+      <div style={filterRowStyle}>
+        <span style={filterLabelStyle}>年份</span>
+        {YEAR_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            style={capsuleBtnStyle(filters.year === opt.value)}
+            onClick={() => handleFilterChange('year', opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 排序 */}
+      <div style={filterRowStyle}>
+        <span style={filterLabelStyle}>排序</span>
+        {SORT_OPTIONS.map(opt => {
+          const isActive = filters.sort === opt.value;
+          return (
+            <button
+              key={opt.value}
+              style={{
+                ...capsuleBtnStyle(isActive),
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              onClick={() => handleSortClick(opt.value)}
+            >
+              {opt.label}
+              {isActive && (
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  background: 'rgba(255,255,255,0.25)',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {sortOrder === 'desc' ? '↓' : '↑'}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // 渲染剧集卡片
+  const renderEpisodeCard = (episode) => {
+    const statusInfo = STATUS_MAP[episode.status] || STATUS_MAP.ongoing;
+    const authorName = episode.createdBy?.username || '';
+    const avgRating = episode.averageRating != null ? episode.averageRating.toFixed(1) : '暂无';
+    const ratingCount = episode.ratingCount || 0;
+
+    return (
+      <Link key={episode._id} to={`/episode/${episode._id}`} className="episode-card">
+        <div style={{ position: 'relative', overflow: 'hidden' }}>
+          <img src={episode.coverImage} alt={episode.title} />
+          {/* 状态标签 */}
+          <span className={`status ${statusInfo.cls}`} style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+          }}>
+            {statusInfo.text}
+          </span>
+          {/* 集数进度 */}
+          {(episode.currentEpisodes != null && episode.totalEpisodes != null) && (
+            <span style={{
+              position: 'absolute',
+              bottom: '8px',
+              left: '8px',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              background: 'rgba(0,0,0,0.6)',
+              color: '#fff',
+              fontSize: '11px',
+              fontWeight: 500,
+            }}>
+              第{episode.currentEpisodes}/{episode.totalEpisodes}集
+            </span>
+          )}
+        </div>
+        <div className="card-content">
+          <h3>{episode.title}</h3>
+          <p>{truncateDesc(episode.description)}</p>
+
+          {/* 热度 + 评分 */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '12px',
+            marginTop: '4px',
+          }}>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              🔥 {formatViews(episode.views)}
+            </span>
+            <span style={{ color: 'var(--warning-text, #f59e0b)' }}>
+              ⭐ {avgRating}{ratingCount > 0 ? ` (${ratingCount}人)` : ''}
+            </span>
+          </div>
+
+          {/* 分类标签 */}
+          {episode.category && episode.category.length > 0 && (
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '4px',
+              marginTop: '6px',
+            }}>
+              {episode.category.slice(0, 2).map((cat, i) => (
+                <span
+                  key={i}
+                  style={{
+                    padding: '1px 8px',
+                    borderRadius: '10px',
+                    background: 'rgba(99, 102, 241, 0.15)',
+                    color: 'var(--primary)',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                  }}
+                >
+                  {cat}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* 标签（最多3个） */}
+          {episode.tags && episode.tags.length > 0 && (
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '4px',
+              marginTop: '4px',
+            }}>
+              {episode.tags.slice(0, 3).map((tag, i) => (
+                <span
+                  key={i}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleTagClick(tag);
+                  }}
+                  style={{
+                    padding: '1px 8px',
+                    borderRadius: '10px',
+                    background: 'var(--hover-bg-stronger, var(--hover-bg))',
+                    color: 'var(--text-secondary)',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* 作者 */}
+          {authorName && (
+            <div style={{
+              fontSize: '11px',
+              color: 'var(--text-secondary)',
+              marginTop: '4px',
+            }}>
+              作者: {authorName}
+            </div>
+          )}
+        </div>
+      </Link>
+    );
+  };
+
   return (
     <div>
-      {renderHero()}
+      {renderBanner()}
+      {renderFilters()}
 
-      <div className="filter-section">
-        <h3>筛选剧集</h3>
-        <div style={{marginBottom: '16px'}}>
-          <SearchInput
-            data={episodes}
-            searchKey={['title', 'description']}
-            placeholder="搜索剧集名称、描述..."
-            onSearch={setSearchQuery}
-            onSelect={(item) => setSearchQuery(item.title)}
-            displayRender={(item) => (
-              <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                {item.coverImage && (
-                  <img src={item.coverImage} alt="" style={{width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover'}} />
-                )}
-                <div>
-                  <div style={{fontWeight: '500'}}>{item.title}</div>
-                  <div style={{fontSize: '12px', color: 'var(--text-secondary)'}}>{item.category?.join(', ')}</div>
-                </div>
-              </div>
-            )}
-          />
-        </div>
-        <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
-          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>分类：</span>
-          <button
-            onClick={() => setCategory('')}
-            style={{
-              padding: '8px 20px',
-              borderRadius: '20px',
-              border: category === '' ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
-              background: category === '' ? 'var(--primary-bg)' : 'var(--hover-bg)',
-              color: category === '' ? 'var(--primary)' : 'var(--foreground)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: category === '' ? '600' : '400',
-              transition: 'all 0.2s ease',
-              opacity: category === '' ? 1 : 0.85
-            }}
-          >全部</button>
-          {categories.map(c => (
-            <button
-              key={c.name}
-              onClick={() => setCategory(c.name === category ? '' : c.name)}
-              style={{
-                padding: '8px 20px',
-                borderRadius: '20px',
-                border: category === c.name ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
-                background: category === c.name ? 'var(--primary-bg)' : 'var(--hover-bg)',
-                color: category === c.name ? 'var(--primary)' : 'var(--foreground)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: category === c.name ? '600' : '400',
-                transition: 'all 0.2s ease',
-                opacity: category === c.name ? 1 : 0.85
-              }}
-            >{c.name}</button>
-          ))}
-        </div>
-        <div style={{display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
-          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>状态：</span>
-          {[
-            { value: '', label: '全部' },
-            { value: 'ongoing', label: '连载中' },
-            { value: 'completed', label: '已完结' },
-            { value: 'upcoming', label: '即将上映' }
-          ].map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-              style={{
-                padding: '8px 20px',
-                borderRadius: '20px',
-                border: statusFilter === opt.value ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
-                background: statusFilter === opt.value ? 'var(--primary-bg)' : 'var(--hover-bg)',
-                color: statusFilter === opt.value ? 'var(--primary)' : 'var(--foreground)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: statusFilter === opt.value ? '600' : '400',
-                transition: 'all 0.2s ease',
-                opacity: statusFilter === opt.value ? 1 : 0.85
-              }}
-            >{opt.label}</button>
-          ))}
-        </div>
-        <div style={{display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
-          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>排序：</span>
-          {[
-            { value: 'latest', label: '最新更新' },
-            { value: 'views', label: '热门推荐' },
-            { value: 'premiere', label: '最新首播' },
-            { value: 'rating', label: '最高评分' }
-          ].map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setSort(opt.value)}
-              style={{
-                padding: '8px 20px',
-                borderRadius: '20px',
-                border: sort === opt.value ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
-                background: sort === opt.value ? 'var(--primary-bg)' : 'var(--hover-bg)',
-                color: sort === opt.value ? 'var(--primary)' : 'var(--foreground)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: sort === opt.value ? '600' : '400',
-                transition: 'all 0.2s ease',
-                opacity: sort === opt.value ? 1 : 0.85
-              }}
-            >{opt.label}</button>
-          ))}
-        </div>
-        <div style={{display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
-          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>评分：</span>
-          {[
-            { value: '', label: '全部' },
-            { value: '4', label: '4+' },
-            { value: '3', label: '3+' },
-            { value: '2', label: '2+' },
-            { value: '1', label: '1+' }
-          ].map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setRatingFilter(opt.value)}
-              style={{
-                padding: '8px 20px',
-                borderRadius: '20px',
-                border: ratingFilter === opt.value ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
-                background: ratingFilter === opt.value ? 'var(--primary-bg)' : 'var(--hover-bg)',
-                color: ratingFilter === opt.value ? 'var(--primary)' : 'var(--foreground)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: ratingFilter === opt.value ? '600' : '400',
-                transition: 'all 0.2s ease',
-                opacity: ratingFilter === opt.value ? 1 : 0.85
-              }}
-            >{opt.label}</button>
-          ))}
-        </div>
-        <div style={{display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center'}}>
-          <span style={{fontSize: '14px', color: 'var(--foreground)', fontWeight: 500, marginRight: '4px'}}>年份：</span>
-          {[
-            { value: '', label: '全部' },
-            { value: '2026', label: '2026' },
-            { value: '2025', label: '2025' },
-            { value: '2024', label: '2024' },
-            { value: '2023', label: '2023' }
-          ].map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setYearFilter(opt.value)}
-              style={{
-                padding: '8px 20px',
-                borderRadius: '20px',
-                border: yearFilter === opt.value ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
-                background: yearFilter === opt.value ? 'var(--primary-bg)' : 'var(--hover-bg)',
-                color: yearFilter === opt.value ? 'var(--primary)' : 'var(--foreground)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: yearFilter === opt.value ? '600' : '400',
-                transition: 'all 0.2s ease',
-                opacity: yearFilter === opt.value ? 1 : 0.85
-              }}
-            >{opt.label}</button>
-          ))}
-        </div>
-      </div>
-
-      <h2>{searchQuery ? `搜索结果 (${filteredEpisodes.length})` : '剧集列表'}</h2>
-      {tagFilter && (
-        <div style={{marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-          <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>标签筛选：</span>
-          <span style={{
-            padding: '4px 12px', borderRadius: '12px', fontSize: '13px',
-            background: 'var(--primary-bg)', color: 'var(--primary-light)',
-            border: '1px solid var(--primary-border)', display: 'inline-flex',
-            alignItems: 'center', gap: '6px'
-          }}>
-            {tagFilter}
-            <button onClick={() => setTagFilter('')} style={{
-              background: 'none', border: 'none', color: 'var(--primary-light)',
-              cursor: 'pointer', fontSize: '14px', padding: 0, lineHeight: 1
-            }}>✕</button>
-          </span>
+      {searchQuery && (
+        <div style={{ marginBottom: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+          搜索 "<strong style={{ color: 'var(--foreground)' }}>{searchQuery}</strong>" 的结果，共 {total} 部
         </div>
       )}
-      <div className="episode-grid">
-        {filteredEpisodes.length === 0 ? (
-          <div style={{textAlign: 'center', padding: '60px', color: 'var(--text-secondary)', gridColumn: '1 / -1'}}>
-            {searchQuery ? '没有找到匹配的剧集' : '暂无剧集'}
-          </div>
-        ) : (
-          filteredEpisodes.map(episode => (
-            <Link key={episode._id} to={`/episode/${episode._id}`} className="episode-card" onClick={() => sessionStorage.setItem('homeScrollPosition', String(window.scrollY))}>
-              <img src={episode.coverImage} alt={episode.title} />
-              <div className="card-content">
-                <h3>{episode.title}</h3>
-                <p>{episode.description.length > 50 ? episode.description.substring(0, 50) + '...' : episode.description}</p>
-                <div className="episode-meta">
-                  <span>第{episode.currentEpisodes}/{episode.totalEpisodes}集</span>
-                  <span className={`status ${episode.status}`}>
-                    {episode.status === 'ongoing' ? '连载中' : episode.status === 'completed' ? '已完结' : '即将上映'}
-                  </span>
-                </div>
-                <div className="episode-meta">
-                  <span>🔥 {episode.views || 0}</span>
-                  <span style={{color: 'var(--warning-text)'}}>⭐ {episode.averageRating > 0 ? episode.averageRating.toFixed(1) : '暂无'}{episode.ratingCount > 0 && <span style={{color: 'var(--text-tertiary)', fontSize: '11px'}}>({episode.ratingCount}人)</span>}</span>
-                  <span>{episode.category?.join(', ')}</span>
-                </div>
-                {episode.tags && episode.tags.length > 0 && (
-                  <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px'}}>
-                    {episode.tags.slice(0, 3).map((tag, i) => (
-                      <span key={i} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTagFilter(tag); }}
-                        style={{
-                          padding: '1px 6px', borderRadius: '10px', fontSize: '10px',
-                          background: 'var(--primary-bg)', color: 'var(--primary-light)',
-                          cursor: 'pointer', border: '1px solid var(--primary-border-subtle)'
-                        }}>{tag}</span>
-                    ))}
-                  </div>
-                )}
-                {episode.createdBy && (
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>作者:</span>
-                    <span
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/creator/${episode.createdBy._id}`; }}
-                      style={{ color: 'var(--primary-light)', textDecoration: 'none', cursor: 'pointer' }}
-                    >
-                      {episode.createdBy.username}
-                    </span>
-                  </div>
-                )}
-                <div className="btn-container">
-                  <span className="btn">查看详情</span>
-                </div>
-              </div>
-            </Link>
-          ))
-        )}
-      </div>
+
+      {loading ? (
+        <div className="episode-grid">
+          {Array.from({ length: 8 }, (_, i) => (
+            <EpisodeCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : episodes.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          color: 'var(--text-secondary)',
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+          <p style={{ fontSize: '16px', margin: 0 }}>
+            {searchQuery ? `没有找到与 "${searchQuery}" 相关的剧集` : '暂无剧集'}
+          </p>
+        </div>
+      ) : (
+        <div className="episode-grid">
+          {episodes.map(episode => renderEpisodeCard(episode))}
+        </div>
+      )}
     </div>
   );
 };

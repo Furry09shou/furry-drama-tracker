@@ -1,173 +1,172 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-const SearchInput = ({ data, searchKey, placeholder, onSelect, onSearch, displayRender, style }) => {
+const SearchInput = () => {
   const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [filtered, setFiltered] = useState([]);
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const navigate = useNavigate();
   const inputRef = useRef(null);
-  const wrapperRef = useRef(null);
-
-  const updatePosition = useCallback(() => {
-    if (inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width
-      });
-    }
-  }, []);
+  const suggestionsRef = useRef(null);
+  const debounceTimer = useRef(null);
 
   useEffect(() => {
-    if (showSuggestions) {
-      updatePosition();
-    }
-  }, [showSuggestions, updatePosition]);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, [query]);
 
   useEffect(() => {
-    if (!showSuggestions) return;
-
-    const handleScroll = () => updatePosition();
-    const handleResize = () => updatePosition();
-
-    window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [showSuggestions, updatePosition]);
-
-  useEffect(() => {
-    if (!query.trim()) {
-      setFiltered([]);
-      if (onSearch) onSearch('');
+    if (debouncedQuery.trim().length < 1) {
+      setSuggestions([]);
       return;
     }
-    const keyword = query.toLowerCase();
-    const results = data.filter(item => {
-      const keys = Array.isArray(searchKey) ? searchKey : [searchKey];
-      return keys.some(key => {
-        const val = key.split('.').reduce((o, k) => o?.[k], item);
-        return val && String(val).toLowerCase().includes(keyword);
+    axios.get(`/api/episodes/search?q=${encodeURIComponent(debouncedQuery)}&limit=10`)
+      .then(res => {
+        const data = res.data;
+        const list = Array.isArray(data) ? data : (data.episodes || data.results || []);
+        setSuggestions(list.slice(0, 10));
+        setShowSuggestions(list.length > 0);
+        setActiveIndex(-1);
+      })
+      .catch(() => {
+        setSuggestions([]);
       });
-    });
-    setFiltered(results);
-    if (onSearch) onSearch(query);
-  }, [query, data, searchKey]);
+  }, [debouncedQuery]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        const dropdown = document.getElementById('search-suggestions-dropdown');
-        if (!dropdown || !dropdown.contains(e.target)) {
-          setShowSuggestions(false);
-        }
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target) &&
+          inputRef.current && !inputRef.current.contains(e.target)) {
+        setShowSuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelect = (item) => {
-    const keys = Array.isArray(searchKey) ? searchKey : [searchKey];
-    const val = keys[0].split('.').reduce((o, k) => o?.[k], item);
-    setQuery(String(val || ''));
-    if (onSelect) {
-      onSelect(item);
-    }
+  const handleSelect = useCallback((episode) => {
+    navigate(`/episode/${episode._id}`);
+    setQuery('');
     setShowSuggestions(false);
+    setSuggestions([]);
+  }, [navigate]);
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === 'Enter' && query.trim()) {
+        navigate(`/?search=${encodeURIComponent(query.trim())}`);
+        setShowSuggestions(false);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < suggestions.length) {
+        handleSelect(suggestions[activeIndex]);
+      } else if (query.trim()) {
+        navigate(`/?search=${encodeURIComponent(query.trim())}`);
+        setShowSuggestions(false);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setActiveIndex(-1);
+    }
   };
 
-  const defaultDisplayRender = (item) => {
-    const keys = Array.isArray(searchKey) ? searchKey : [searchKey];
-    return keys.map(key => key.split('.').reduce((o, k) => o?.[k], item)).filter(Boolean).join(' - ');
+  const highlightText = (text, highlight) => {
+    if (!highlight.trim()) return text;
+    const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part) ? (
+        <mark key={i} style={{ background: 'var(--primary-bg)', color: 'var(--primary)', padding: '0 2px', borderRadius: '2px' }}>{part}</mark>
+      ) : part
+    );
   };
-
-  const renderDisplay = displayRender || defaultDisplayRender;
 
   return (
-    <div ref={wrapperRef} style={{position: 'relative', ...style}}>
-      <div style={{position: 'relative'}}>
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setShowSuggestions(true); }}
-          onFocus={() => { if (query.trim()) setShowSuggestions(true); }}
-          placeholder={placeholder || '搜索...'}
-          style={{
-            width: '100%',
-            padding: '10px 16px 10px 40px',
-            background: 'var(--input)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            color: 'var(--foreground)',
-            fontSize: '14px',
-            outline: 'none',
-            transition: 'all 0.3s ease',
-            boxSizing: 'border-box'
-          }}
-        />
-        <span style={{
-          position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-          color: 'var(--text-secondary)', fontSize: '16px', pointerEvents: 'none'
+    <div style={{ position: 'relative', width: '100%' }}>
+      <input
+        ref={inputRef}
+        type="text"
+        placeholder="搜索剧集..."
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (e.target.value.trim()) {
+            setShowSuggestions(true);
+          }
+        }}
+        onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+        onKeyDown={handleKeyDown}
+        style={{
+          width: '100%', padding: '10px 16px', borderRadius: '10px',
+          border: '1px solid var(--border)', background: 'var(--input)',
+          color: 'var(--foreground)', fontSize: '14px', outline: 'none',
+          transition: 'border-color 0.2s, box-shadow 0.2s'
+        }}
+        onFocusCapture={(e) => {
+          e.target.style.borderColor = 'var(--primary)';
+          e.target.style.boxShadow = '0 0 0 3px var(--primary-bg)';
+        }}
+        onBlurCapture={(e) => {
+          e.target.style.borderColor = 'var(--border)';
+          e.target.style.boxShadow = 'none';
+        }}
+      />
+      {showSuggestions && suggestions.length > 0 && (
+        <div ref={suggestionsRef} style={{
+          position: 'absolute', top: '100%', left: 0, right: 0,
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: '10px', marginTop: '4px', maxHeight: '360px',
+          overflowY: 'auto', zIndex: 1000, boxShadow: '0 8px 32px var(--shadow-modal)'
         }}>
-          🔍
-        </span>
-        {query && (
-          <span
-            onClick={() => { setQuery(''); setShowSuggestions(false); }}
-            style={{
-              position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-              color: 'var(--text-secondary)', fontSize: '16px', cursor: 'pointer'
-            }}
-          >
-            ✕
-          </span>
-        )}
-      </div>
-      {showSuggestions && filtered.length > 0 && createPortal(
-        <div
-          id="search-suggestions-dropdown"
-          style={{
-            position: 'fixed',
-            top: position.top,
-            left: position.left,
-            width: position.width,
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: '8px',
-            maxHeight: '240px',
-            overflowY: 'auto',
-            zIndex: 2000,
-            boxShadow: '0 10px 25px -5px var(--shadow-modal)'
-          }}
-        >
-          {filtered.map((item, idx) => (
+          {suggestions.map((episode, index) => (
             <div
-              key={idx}
-              onClick={() => handleSelect(item)}
+              key={episode._id}
+              onClick={() => handleSelect(episode)}
+              onMouseEnter={() => setActiveIndex(index)}
               style={{
-                padding: '10px 16px',
-                cursor: 'pointer',
-                color: 'var(--foreground)',
-                fontSize: '14px',
-                borderBottom: idx < filtered.length - 1 ? '1px solid var(--border)' : 'none',
-                transition: 'background 0.2s ease'
+                padding: '10px 16px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '10px',
+                background: index === activeIndex ? 'var(--hover-bg)' : 'transparent',
+                transition: 'background 0.15s',
+                borderBottom: index < suggestions.length - 1 ? '1px solid var(--border)' : 'none'
               }}
-              onMouseEnter={(e) => e.target.style.background = 'var(--primary-bg-subtle)'}
-              onMouseLeave={(e) => e.target.style.background = 'transparent'}
             >
-              {renderDisplay(item)}
+              {episode.coverImage && (
+                <img src={episode.coverImage} alt="" style={{
+                  width: '36px', height: '48px', borderRadius: '4px',
+                  objectFit: 'cover', flexShrink: 0
+                }} />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 500, fontSize: '14px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {highlightText(episode.title || '', query)}
+                </div>
+                {episode.category && (
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{episode.category}</span>
+                )}
+              </div>
+              {episode.rating && (
+                <span style={{ fontSize: '12px', color: 'var(--warning-text)', flexShrink: 0 }}>⭐ {episode.rating?.average?.toFixed(1) || episode.rating}</span>
+              )}
             </div>
           ))}
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );

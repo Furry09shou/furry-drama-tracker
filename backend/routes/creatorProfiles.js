@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const CreatorProfile = require('../models/CreatorProfile');
 const Episode = require('../models/Episode');
-const creatorProtect = require('../middlewares/creatorAuth');
+const { creatorProtect } = require('../middlewares/authFactory');
 
 router.get('/my-profile', creatorProtect, async (req, res) => {
   try {

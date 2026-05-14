@@ -9,9 +9,23 @@ const Admin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
+    const adminToken = localStorage.getItem('adminToken');
+    if (adminToken) {
       navigate('/admin/dashboard', { replace: true });
+      return;
+    }
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    try {
+      const user = JSON.parse(userStr);
+      if (!user.adminAccess) {
+        navigate('/', { replace: true });
+      }
+    } catch {
+      navigate('/login', { replace: true });
     }
   }, [navigate]);
 
@@ -22,9 +36,20 @@ const Admin = () => {
       const response = await axios.post('/api/admin/login', { username, password });
       localStorage.setItem('adminToken', response.data.token);
       localStorage.setItem('adminData', JSON.stringify(response.data));
+      try {
+        await axios.post('/api/admin-sessions/create', {
+          screenWidth: window.screen.width,
+          screenHeight: window.screen.height,
+          language: navigator.language
+        }, {
+          headers: { Authorization: `Bearer ${response.data.token}` }
+        });
+      } catch (sessionErr) {
+        console.error('Failed to create session:', sessionErr);
+      }
       navigate('/admin/dashboard', { replace: true });
-    } catch (error) {
-      setError(error.response?.data?.message || '登录失败');
+    } catch (err) {
+      setError(err.response?.data?.message || '登录失败');
     }
   };
 
@@ -34,7 +59,7 @@ const Admin = () => {
       {error && <div className="error-message">{error}</div>}
       <form onSubmit={handleLogin}>
         <div className="form-group">
-          <label>用户名 / 邮箱</label>
+          <label>用户名</label>
           <input
             type="text"
             value={username}

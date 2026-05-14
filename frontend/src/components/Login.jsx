@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { getDeviceInfo } from '../utils/deviceInfo';
 
 const Login = ({ login }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
   const [showReset, setShowReset] = useState(false);
@@ -14,56 +16,20 @@ const Login = ({ login }) => {
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [needVerification, setNeedVerification] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
   const navigate = useNavigate();
-  
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-  };
-  
-  const getDeviceInfo = () => {
-    const ua = navigator.userAgent;
-    let browser = '', browserVersion = '', os = '', osVersion = '', deviceType = '桌面端', deviceModel = '', carrier = '';
-
-    if (/Mobile|Android|iPhone|iPad|iPod/i.test(ua)) deviceType = '移动端';
-    else if (/Tablet/i.test(ua)) deviceType = '平板';
-
-    if (/Edg\/(\d+[\.\d]*)/.test(ua)) { browser = 'Microsoft Edge'; browserVersion = ua.match(/Edg\/(\d+[\.\d]*)/)?.[1] || ''; }
-    else if (/Chrome\/(\d+[\.\d]*)/.test(ua) && !/Edg/.test(ua)) { browser = 'Google Chrome'; browserVersion = ua.match(/Chrome\/(\d+[\.\d]*)/)?.[1] || ''; }
-    else if (/Firefox\/(\d+[\.\d]*)/.test(ua)) { browser = 'Mozilla Firefox'; browserVersion = ua.match(/Firefox\/(\d+[\.\d]*)/)?.[1] || ''; }
-    else if (/Safari\/(\d+[\.\d]*)/.test(ua) && !/Chrome/.test(ua)) { browser = 'Apple Safari'; browserVersion = ua.match(/Version\/(\d+[\.\d]*)/)?.[1] || ''; }
-
-    if (/Windows NT (\d+[\.\d]*)/.test(ua)) { os = 'Windows'; osVersion = ua.match(/Windows NT (\d+[\.\d]*)/)?.[1] || ''; }
-    else if (/Mac OS X (\d+[._\d]*)/.test(ua)) { os = 'macOS'; osVersion = (ua.match(/Mac OS X (\d+[._\d]*)/)?.[1] || '').replace(/_/g, '.'); }
-    else if (/Android (\d+[\.\d]*)/.test(ua)) {
-      os = 'Android'; osVersion = ua.match(/Android (\d+[\.\d]*)/)?.[1] || '';
-      const buildMatch = ua.match(/;\s*([^;)]+)\s*Build\//);
-      if (buildMatch) deviceModel = buildMatch[1].trim();
-    } else if (/iPhone OS (\d+[_\d]*)/.test(ua)) {
-      os = 'iOS'; osVersion = (ua.match(/iPhone OS (\d+[_\d]*)/)?.[1] || '').replace(/_/g, '.');
-      deviceModel = 'iPhone';
-    } else if (/iPad/.test(ua)) {
-      os = 'iPadOS'; osVersion = (ua.match(/CPU OS (\d+[_\d]*)/)?.[1] || '').replace(/_/g, '.');
-      deviceModel = 'iPad';
-    } else if (/Linux/.test(ua)) { os = 'Linux'; }
-
-    if (navigator.connection && navigator.connection.effectiveType) {
-      carrier = navigator.connection.effectiveType;
-    }
-
-    return {
-      browser, browserVersion, os, osVersion, deviceType, deviceModel, carrier,
-      screenWidth: window.screen.width,
-      screenHeight: window.screen.height,
-      language: navigator.language || ''
-    };
   };
 
   const handleSubmit = async (e) => {
@@ -132,6 +98,15 @@ const Login = ({ login }) => {
     }
   };
 
+  const PasswordToggle = ({ show, onToggle }) => (
+    <button type="button" onClick={onToggle} style={{
+      position: 'absolute', right: '8px', top: 0, bottom: 0,
+      background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px',
+      color: 'var(--text-secondary)', padding: '0 4px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>{show ? '隐藏' : '显示'}</button>
+  );
+
   if (showReset) {
     return (
       <div className="auth-form">
@@ -141,25 +116,33 @@ const Login = ({ login }) => {
         <form onSubmit={handleResetPassword}>
           <div className="form-group">
             <label>新密码</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              minLength={8}
-              placeholder="请输入新密码（至少8位，含字母和数字）"
-            />
+            <div style={{position: 'relative'}}>
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={8}
+                placeholder="请输入新密码（至少8位，含字母和数字）"
+                style={{paddingRight: '40px'}}
+              />
+              <PasswordToggle show={showNewPassword} onToggle={() => setShowNewPassword(!showNewPassword)} />
+            </div>
           </div>
           <div className="form-group">
             <label>确认新密码</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={8}
-              placeholder="请再次输入新密码"
-            />
+            <div style={{position: 'relative'}}>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                placeholder="请再次输入新密码"
+                style={{paddingRight: '40px'}}
+              />
+              <PasswordToggle show={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
+            </div>
           </div>
           <div className="form-group">
             <button type="submit">确认重置</button>
@@ -264,14 +247,18 @@ const Login = ({ login }) => {
         </div>
         <div className="form-group">
           <label htmlFor="password">密码</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
+          <div style={{position: 'relative'}}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              style={{paddingRight: '40px'}}
+            />
+            <PasswordToggle show={showPassword} onToggle={() => setShowPassword(!showPassword)} />
+          </div>
         </div>
         <div className="form-group">
           <button type="submit">登录</button>

@@ -29,8 +29,11 @@ const backupRoutes = require('../routes/backup');
 const rssRoutes = require('../routes/rss');
 const autoStatusRoutes = require('../routes/autoStatus');
 const friendLinkRoutes = require('../routes/friendLinks');
+const adminSessionRoutes = require('../routes/adminSessions');
+const userSessionRoutes = require('../routes/userSessions');
 const { sanitizeInput } = require('../middlewares/security');
 const trackApiUsage = require('../middlewares/apiTracker');
+const { startCronJobs } = require('./cron');
 
 const requiredEnvVars = ['JWT_SECRET', 'MONGO_URI'];
 for (const varName of requiredEnvVars) {
@@ -76,7 +79,28 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sanitizeInput);
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET') {
+    const hasCustomHeader = req.headers['x-requested-with'];
+    const isJsonContent = req.headers['content-type'] && req.headers['content-type'].includes('application/json');
+    if (!hasCustomHeader && !isJsonContent) {
+      return res.status(403).json({ message: 'CSRF protection: missing required headers' });
+    }
+  }
+  next();
+});
+
 app.use(trackApiUsage);
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`);
+  });
+  next();
+});
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -130,31 +154,47 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
   etag: true,
 }));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/episodes', episodeRoutes);
-app.use('/api/follows', followRoutes);
-app.use('/api/histories', historyRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/banners', bannerRoutes);
-app.use('/api/creator', creatorRoutes);
-app.use('/api/review', reviewRoutes);
-app.use('/api/creator-profile', creatorProfileRoutes);
-app.use('/api/site-content', siteContentRoutes);
-app.use('/api/ratings', ratingRoutes);
-app.use('/api/favorites', favoriteRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/audit-logs', auditLogRoutes);
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
 
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/series', seriesRoutes);
-app.use('/api/backup', backupRoutes);
-app.use('/api/rss', rssRoutes);
-app.use('/api/auto-status', autoStatusRoutes);
-app.use('/api/friend-links', friendLinkRoutes);
+const routeMounts = [
+  ['/api/auth', authRoutes],
+  ['/api/episodes', episodeRoutes],
+  ['/api/follows', followRoutes],
+  ['/api/histories', historyRoutes],
+  ['/api/notifications', notificationRoutes],
+  ['/api/admin', adminRoutes],
+  ['/api/categories', categoryRoutes],
+  ['/api/banners', bannerRoutes],
+  ['/api/creator', creatorRoutes],
+  ['/api/review', reviewRoutes],
+  ['/api/creator-profile', creatorProfileRoutes],
+  ['/api/site-content', siteContentRoutes],
+  ['/api/ratings', ratingRoutes],
+  ['/api/favorites', favoriteRoutes],
+  ['/api/reports', reportRoutes],
+  ['/api/users', userRoutes],
+  ['/api/stats', statsRoutes],
+  ['/api/audit-logs', auditLogRoutes],
+  ['/api/feedback', feedbackRoutes],
+  ['/api/series', seriesRoutes],
+  ['/api/backup', backupRoutes],
+  ['/api/rss', rssRoutes],
+  ['/api/auto-status', autoStatusRoutes],
+  ['/api/friend-links', friendLinkRoutes],
+  ['/api/admin-sessions', adminSessionRoutes],
+  ['/api/user-sessions', userSessionRoutes],
+];
+
+for (const [mountPath, route] of routeMounts) {
+  app.use(mountPath, route);
+  app.use(mountPath.replace('/api/', '/api/v1/'), route);
+}
 
 app.use((err, req, res, next) => {
   if (err.message === 'Not allowed by CORS') {
@@ -163,6 +203,8 @@ app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
   res.status(500).json({ message: '服务器内部错误' });
 });
+
+startCronJobs();
 
 const PORT = process.env.PORT || 5000;
 

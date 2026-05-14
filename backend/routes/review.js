@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Episode = require('../models/Episode');
 const Admin = require('../models/Admin');
-const adminProtect = require('../middlewares/adminAuth');
+const { adminProtect } = require('../middlewares/authFactory');
 const { clearCache, clearCacheByPrefix } = require('../middlewares/cache');
 
 const adminOnly = (req, res, next) => {
-  if (req.admin && (req.admin.role === 'admin' || req.admin.role === 'superadmin' || req.admin.role === 'user-admin')) {
+  if (req.admin && (req.admin.role === 'admin' || req.admin.role === 'superadmin')) {
     next();
   } else {
     return res.status(403).json({ message: '需要管理员权限' });

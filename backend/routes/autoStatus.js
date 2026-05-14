@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Episode = require('../models/Episode');
 const SingleEpisode = require('../models/SingleEpisode');
-const adminProtect = require('../middlewares/adminAuth');
+const { adminProtect } = require('../middlewares/authFactory');
 
 router.post('/auto-complete', adminProtect, async (req, res) => {
   try {

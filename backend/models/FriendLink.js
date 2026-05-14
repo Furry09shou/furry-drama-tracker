@@ -24,6 +24,16 @@ const FriendLinkSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved'
+  },
+  applicantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   }
 }, { timestamps: true });
 

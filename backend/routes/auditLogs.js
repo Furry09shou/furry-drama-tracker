@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const AuditLog = require('../models/AuditLog');
-const adminProtect = require('../middlewares/adminAuth');
-
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const { adminProtect } = require('../middlewares/authFactory');
+const { escapeRegex } = require('../utils/helpers');
 
 router.get('/', adminProtect, async (req, res) => {
   try {

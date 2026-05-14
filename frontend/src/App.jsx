@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef, Component } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Home from './components/Home';
 import EpisodeDetail from './components/EpisodeDetail';
 import Login from './components/Login';
 import Register from './components/Register';
 import Profile from './components/Profile';
 import Admin from './components/Admin';
+import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './components/AdminDashboard';
 import AdminEpisodes from './components/AdminEpisodes';
 import AdminUsers from './components/AdminUsers';
@@ -32,9 +34,14 @@ import AdminBackup from './components/AdminBackup';
 import AdminFeedback from './components/AdminFeedback';
 import AdminApiUsage from './components/AdminApiUsage';
 import AdminFriendLinks from './components/AdminFriendLinks';
+import AdminSessions from './components/AdminSessions';
+import UserDevices from './components/UserDevices';
+import FriendLinks from './components/FriendLinks';
 import FeedbackModal from './components/FeedbackModal';
+import AdminAnalytics from './components/AdminAnalytics';
 
-const NavBar = ({ user, logout, onFeedback }) => {
+const NavBar = ({ onFeedback }) => {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
@@ -45,6 +52,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
   const notifRef = useRef(null);
   const notifPanelRef = useRef(null);
   const moreRef = useRef(null);
+  const sseRef = useRef(null);
   const { theme, toggleTheme, themeIcon, themeTitle } = useTheme();
 
   useEffect(() => {
@@ -58,10 +66,45 @@ const NavBar = ({ user, logout, onFeedback }) => {
       .catch(() => {});
   }, []);
 
+  // SSE通知推送
   useEffect(() => {
     if (!user) return;
     const token = localStorage.getItem('token');
     if (!token) return;
+
+    // SSE连接
+    const connectSSE = () => {
+      if (sseRef.current) {
+        sseRef.current.close();
+      }
+      try {
+        const eventSource = new EventSource(`/api/notifications/stream?token=${token}`);
+        sseRef.current = eventSource;
+
+        eventSource.addEventListener('notification', (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.unreadCount !== undefined) {
+              setUnreadCount(data.unreadCount);
+            }
+            if (data.type === 'new') {
+              setUnreadCount(prev => prev + 1);
+            }
+          } catch (e) {}
+        });
+
+        eventSource.onerror = () => {
+          eventSource.close();
+          // 降级为轮询
+        };
+      } catch (e) {
+        // SSE不可用，使用轮询降级
+      }
+    };
+
+    connectSSE();
+
+    // 轮询降级方案
     const fetchUnread = () => {
       axios.get('/api/notifications/unread-count', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => setUnreadCount(res.data.count))
@@ -69,7 +112,13 @@ const NavBar = ({ user, logout, onFeedback }) => {
     };
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      if (sseRef.current) {
+        sseRef.current.close();
+      }
+    };
   }, [user]);
 
   useEffect(() => {
@@ -142,6 +191,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
 
   const moreMenuItems = [
     ...(user ? [{ to: user.adminAccess ? '/admin/dashboard' : '/admin/stats', label: user.adminAccess ? '管理后台' : '数据统计' }] : []),
+    { to: '/friend-links', label: '友情链接' },
     { to: '/privacy', label: '隐私政策' },
     { to: '/terms', label: '用户协议' },
     { to: '/license', label: '许可协议' },
@@ -202,7 +252,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
     <header>
       <nav>
         <div className="logo">
-          <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <a href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {siteSettings.navLogo && (
               <img src={siteSettings.navLogo} alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
             )}
@@ -242,7 +292,7 @@ const NavBar = ({ user, logout, onFeedback }) => {
           }}>☰</button>
         </div>
         <ul className={showMobileMenu ? 'mobile-open' : ''}>
-          <li><a href="/" onClick={(e) => { e.preventDefault(); setShowMobileMenu(false); window.location.href = '/'; }}>首页</a></li>
+          <li><a href="/" onClick={(e) => { e.preventDefault(); setShowMobileMenu(false); navigate('/'); }}>首页</a></li>
           <li><Link to="/calendar" onClick={() => setShowMobileMenu(false)}>日历</Link></li>
           {user ? (
             <>
@@ -536,6 +586,22 @@ const FooterBeian = () => {
     onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
     onMouseLeave={(e) => e.currentTarget.style.opacity = '0.5'}
     >
+      <button
+        onClick={() => window.location.reload()}
+        title="刷新页面"
+        style={{
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: '8px', padding: '4px 8px', cursor: 'pointer',
+          color: 'var(--text-secondary)', fontSize: '12px',
+          display: 'flex', alignItems: 'center', gap: '4px',
+          transition: 'all 0.2s', marginBottom: '4px'
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+        刷新
+      </button>
       {beianInfo.copyright && (
         <span style={{ color: 'var(--text-secondary)' }}>{beianInfo.copyright}</span>
       )}
@@ -660,23 +726,11 @@ const FooterBeian = () => {
 };
 
 function AppContent() {
-  const [user, setUser] = useState(null);
-  const [initializing, setInitializing] = useState(true);
+  const { user, login, logout, initializing } = useAuth();
   const [showFeedback, setShowFeedback] = useState(false);
-  
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
-    }
-    setInitializing(false);
-  }, []);
+  const location = useLocation();
+
+  const isAdminRoute = location.pathname.startsWith('/admin/') && location.pathname !== '/admin';
 
   useEffect(() => {
     axios.get('/api/site-content/settings')
@@ -699,19 +753,7 @@ function AppContent() {
       })
       .catch(() => {});
   }, []);
-  
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('token', userData.token);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-  
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  };
-  
+
   if (initializing) {
     return (
       <div className="container" style={{textAlign: 'center', paddingTop: '100px'}}>
@@ -719,43 +761,57 @@ function AppContent() {
       </div>
     );
   }
-  
+
+  if (isAdminRoute) {
+    return (
+      <Routes>
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="episodes" element={<AdminEpisodes />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="categories" element={<AdminCategories />} />
+          <Route path="banners" element={<AdminBanners />} />
+          <Route path="review" element={<AdminReview />} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="stats" element={<AdminStats />} />
+          <Route path="creator-profile" element={<AdminCreatorProfile />} />
+          <Route path="site-content" element={<AdminSiteContent />} />
+          <Route path="email-settings" element={<AdminEmailSettings />} />
+          <Route path="audit-logs" element={<AdminAuditLogs />} />
+          <Route path="backup" element={<AdminBackup />} />
+          <Route path="feedback" element={<AdminFeedback />} />
+          <Route path="api-usage" element={<AdminApiUsage />} />
+          <Route path="friend-links" element={<AdminFriendLinks />} />
+          <Route path="sessions" element={<AdminSessions />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="change-password" element={<ChangePassword />} />
+        </Route>
+      </Routes>
+    );
+  }
+
   return (
     <>
-      <NavBar user={user} logout={logout} onFeedback={() => setShowFeedback(true)} />
+      <NavBar onFeedback={() => setShowFeedback(true)} />
       <div className="container">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/episode/:id" element={<EpisodeDetail user={user} />} />
           <Route path="/login" element={<Login login={login} />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={user ? <Profile user={user} setUser={setUser} logout={logout} /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={user ? <Profile user={user} setUser={(u) => { if (typeof u === 'function') { /* AuthContext不支持函数更新，忽略 */ } }} logout={logout} /> : <Navigate to="/login" />} />
+          <Route path="/devices" element={user ? <UserDevices user={user} /> : <Navigate to="/login" />} />
           <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/calendar" element={<UpdateCalendar />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/episodes" element={<AdminEpisodes />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/categories" element={<AdminCategories />} />
-          <Route path="/admin/banners" element={<AdminBanners />} />
-          <Route path="/admin/review" element={<AdminReview />} />
-          <Route path="/admin/reports" element={<AdminReports />} />
-          <Route path="/admin/stats" element={<AdminStats />} />
-          <Route path="/admin/creator-profile" element={<AdminCreatorProfile />} />
-          <Route path="/admin/site-content" element={<AdminSiteContent />} />
-          <Route path="/admin/email-settings" element={<AdminEmailSettings />} />
-          <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-          <Route path="/admin/backup" element={<AdminBackup />} />
-          <Route path="/admin/feedback" element={<AdminFeedback />} />
-          <Route path="/admin/api-usage" element={<AdminApiUsage />} />
-          <Route path="/admin/friend-links" element={<AdminFriendLinks />} />
-          <Route path="/admin/change-password" element={<ChangePassword />} />
           <Route path="/creator/:id" element={<CreatorPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/friend-links" element={<FriendLinks />} />
           <Route path="/license" element={<LicensePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -770,9 +826,11 @@ function App() {
   return (
     <Router>
       <ThemeProvider>
-        <ErrorBoundary>
-          <AppContent />
-        </ErrorBoundary>
+        <AuthProvider>
+          <ErrorBoundary>
+            <AppContent />
+          </ErrorBoundary>
+        </AuthProvider>
       </ThemeProvider>
     </Router>
   );

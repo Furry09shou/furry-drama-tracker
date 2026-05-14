@@ -18,6 +18,7 @@ const EpisodeDetail = ({ user }) => {
   const [recommendations, setRecommendations] = useState([]);
   const [showReport, setShowReport] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [episodesExpanded, setEpisodesExpanded] = useState(false);
 
   const navigate = useNavigate();
   const { id: episodeId } = useParams();
@@ -47,24 +48,22 @@ const EpisodeDetail = ({ user }) => {
     const token = localStorage.getItem('token');
     if (!token) return;
     const config = { headers: { Authorization: `Bearer ${token}` } };
-    axios.get(`/api/follows/check/${episodeId}`, config)
-      .then(res => {
-        setIsFollowing(res.data.isFollowing);
-        if (res.data.isFollowing && res.data.followedAtEpisodes !== undefined) {
-          setFollowedAtEpisodes(res.data.followedAtEpisodes);
+    Promise.all([
+      axios.get(`/api/follows/check/${episodeId}`, config).catch(() => null),
+      axios.get(`/api/histories/check/${episodeId}`, config).catch(() => null),
+      axios.get(`/api/ratings/check/${episodeId}`, config).catch(() => null),
+      axios.get(`/api/favorites/check/${episodeId}`, config).catch(() => null)
+    ]).then(([followRes, historyRes, ratingRes, favoriteRes]) => {
+      if (followRes) {
+        setIsFollowing(followRes.data.isFollowing);
+        if (followRes.data.isFollowing && followRes.data.followedAtEpisodes !== undefined) {
+          setFollowedAtEpisodes(followRes.data.followedAtEpisodes);
         }
-      })
-      .catch(() => {});
-    axios.get(`/api/histories/check/${episodeId}`, config)
-      .then(res => setWatchedEpisodes(res.data.watchedEpisodes || []))
-      .catch(() => {});
-    axios.get(`/api/ratings/check/${episodeId}`, config)
-      .then(res => setUserRating(res.data.score))
-      .catch(() => {});
-    axios.get(`/api/favorites/check/${episodeId}`, config)
-      .then(res => setIsFavorite(res.data.isFavorite))
-      .catch(() => {});
-
+      }
+      if (historyRes) setWatchedEpisodes(historyRes.data.watchedEpisodes || []);
+      if (ratingRes) setUserRating(ratingRes.data.score);
+      if (favoriteRes) setIsFavorite(favoriteRes.data.isFavorite);
+    });
   }, [user, episodeId]);
 
   const handleWatch = async (singleEpisode) => {
@@ -163,6 +162,26 @@ const EpisodeDetail = ({ user }) => {
     }
   };
 
+  const handleDeleteRating = async () => {
+    if (!user) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(`/api/ratings/${episodeId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserRating(0);
+      if (episode) {
+        setEpisode({
+          ...episode,
+          averageRating: res.data.averageRating || 0,
+          ratingCount: res.data.ratingCount || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting rating:', error);
+    }
+  };
+
   const recordWatchProgress = async (episodeNumber) => {
     if (!user || watchedEpisodes.includes(episodeNumber)) return;
     try {
@@ -177,6 +196,16 @@ const EpisodeDetail = ({ user }) => {
       console.error('Error recording progress:', error);
     }
   };
+
+  // 剧集列表折叠逻辑
+  const sortedEpisodes = episode?.episodes
+    ? [...episode.episodes].sort((a, b) => b.episodeNumber - a.episodeNumber)
+    : [];
+  const DEFAULT_SHOW_COUNT = 5;
+  const displayedEpisodes = episodesExpanded
+    ? sortedEpisodes
+    : sortedEpisodes.slice(0, DEFAULT_SHOW_COUNT);
+  const hasMoreEpisodes = sortedEpisodes.length > DEFAULT_SHOW_COUNT;
 
   if (loading) {
     return <div className="container"><h2>加载中...</h2></div>;
@@ -295,7 +324,9 @@ const EpisodeDetail = ({ user }) => {
             )}
             {user && (
               <div style={{display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px'}}>
-                <span style={{fontSize: '14px', color: 'var(--text-secondary)', marginRight: '4px'}}>评分：</span>
+                <span style={{fontSize: '14px', color: 'var(--text-secondary)', marginRight: '4px'}}>
+                  {userRating > 0 ? '我的评分：' : '评分：'}
+                </span>
                 {[1,2,3,4,5].map(star => (
                   <button key={star} onClick={() => handleRate(star)}
                     onMouseEnter={() => setHoverRating(star)}
@@ -310,6 +341,14 @@ const EpisodeDetail = ({ user }) => {
                 {userRating > 0 && (
                   <span style={{fontSize: '13px', color: 'var(--warning-text)', marginLeft: '4px'}}>{userRating}分</span>
                 )}
+                {userRating > 0 && (
+                  <button onClick={handleDeleteRating} style={{
+                    marginLeft: '8px', padding: '2px 8px', borderRadius: '6px',
+                    background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
+                    border: '1px solid var(--destructive-border)', cursor: 'pointer',
+                    fontSize: '12px', transition: 'all 0.2s'
+                  }}>撤回评分</button>
+                )}
               </div>
             )}
           </div>
@@ -318,7 +357,7 @@ const EpisodeDetail = ({ user }) => {
 
       <div className="episodes-list">
         <h3>剧集列表</h3>
-        {episode.episodes && episode.episodes.map(singleEpisode => (
+        {displayedEpisodes.map(singleEpisode => (
           <div key={singleEpisode._id} className="episode-item" style={{
             opacity: watchedEpisodes.includes(singleEpisode.episodeNumber) ? 0.7 : 1
           }}>
@@ -361,6 +400,20 @@ const EpisodeDetail = ({ user }) => {
             </button>
           </div>
         ))}
+        {hasMoreEpisodes && (
+          <div style={{ textAlign: 'center', marginTop: '12px' }}>
+            <button onClick={() => setEpisodesExpanded(!episodesExpanded)} style={{
+              padding: '8px 24px', borderRadius: '8px',
+              background: 'var(--hover-bg)', border: '1px solid var(--border)',
+              color: 'var(--foreground)', cursor: 'pointer', fontSize: '14px',
+              transition: 'all 0.2s'
+            }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+               onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)'; }}
+            >
+              {episodesExpanded ? '收起' : `展开全部 (${sortedEpisodes.length}集)`}
+            </button>
+          </div>
+        )}
       </div>
 
       {recommendations.length > 0 && (
@@ -415,7 +468,7 @@ const EpisodeDetail = ({ user }) => {
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'var(--overlay-bg)', zIndex: 9999,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '20px'
+          padding: '0'
         }} onClick={() => setWatchModal(null)}>
           <div style={{
             background: 'var(--card)', borderRadius: '16px',
@@ -457,6 +510,7 @@ const EpisodeDetail = ({ user }) => {
                           src={embedUrl}
                           style={{width: '100%', height: '100%', border: 'none'}}
                           allowFullScreen
+                          sandbox="allow-scripts allow-presentation"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         />
                       ) : (

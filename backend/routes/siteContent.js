@@ -1,39 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const crypto = require('crypto');
 const SiteContent = require('../models/SiteContent');
-const adminProtect = require('../middlewares/adminAuth');
-const superAdminProtect = require('../middlewares/superAdminAuth');
+const { adminProtect, superAdminProtect } = require('../middlewares/authFactory');
 const nodemailer = require('nodemailer');
 const { clearEmailCache } = require('../utils/email');
+const { createUploadConfig } = require('../utils/upload');
 
-const siteStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads'));
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(8).toString('hex');
-    const ext = path.extname(file.originalname);
-    cb(null, 'site-' + uniqueSuffix + ext);
-  }
-});
-
-const siteUpload = multer({
-  storage: siteStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: function (req, file, cb) {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
-      cb(null, true);
-    } else {
-      cb(new Error('只支持图片文件 (jpeg, jpg, png, gif, webp)'));
-    }
-  }
-});
+const siteUpload = createUploadConfig('site', 5 * 1024 * 1024);
 
 router.post('/upload', adminProtect, siteUpload.single('image'), async (req, res) => {
   try {
@@ -48,7 +21,7 @@ router.post('/upload', adminProtect, siteUpload.single('image'), async (req, res
 });
 
 router.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
+  if (err instanceof require('multer').MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ message: '文件大小不能超过5MB' });
     }
@@ -97,7 +70,7 @@ router.get('/:key', async (req, res) => {
       try {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
-        if (!decoded.role || !['admin', 'superadmin', 'creator', 'user-admin'].includes(decoded.role)) {
+        if (!decoded.role || !['admin', 'superadmin', 'creator'].includes(decoded.role)) {
           return res.status(403).json({ message: 'Forbidden' });
         }
       } catch (e) {

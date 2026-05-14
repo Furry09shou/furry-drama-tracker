@@ -4,9 +4,9 @@ import { useNavigate, Link } from 'react-router-dom';
 
 const SitePage = ({ pageKey }) => {
   const [content, setContent] = useState(null);
-  const [friendLinks, setFriendLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showGithubModal, setShowGithubModal] = useState(false);
+  const [changelogPage, setChangelogPage] = useState(1);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,9 +20,10 @@ const SitePage = ({ pageKey }) => {
       setLoading(false);
     };
     fetchContent();
-    if (pageKey === 'about') {
-      axios.get('/api/friend-links').then(res => setFriendLinks(res.data)).catch(() => {});
-    }
+  }, [pageKey]);
+
+  useEffect(() => {
+    setChangelogPage(1);
   }, [pageKey]);
 
   if (loading) return <div className="container"><h2>加载中...</h2></div>;
@@ -133,86 +134,105 @@ const SitePage = ({ pageKey }) => {
                       </div>
                     </div>
                   )}
-                  {hasChangelog && changelog.map((entry, idx) => (
-                    <div key={idx} style={{
-                      marginBottom: '16px', borderRadius: '12px',
-                      background: 'var(--hover-bg)', border: '1px solid var(--border)',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: '10px 14px', borderBottom: '1px solid var(--border)',
-                        background: 'var(--glass-bg)'
-                      }}>
-                        <span style={{
-                          color: 'var(--primary-light)', fontSize: '13px', fontWeight: 700,
-                          background: 'var(--primary-bg)', borderRadius: '6px',
-                          padding: '3px 10px'
-                        }}>v{entry.version}</span>
-                        {entry.date && (
-                          <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{entry.date}</span>
-                        )}
-                        {idx === 0 && (
-                          <span style={{
-                            fontSize: '11px', color: 'var(--success-text)',
-                            background: 'var(--success-bg)', padding: '1px 8px',
-                            borderRadius: '4px', border: '1px solid var(--success-border)'
-                          }}>最新</span>
-                        )}
-                      </div>
-                      <div style={{ padding: '10px 14px' }}>
-                        {(entry.items || []).map((item, i) => (
-                          <div key={i} style={{
-                            display: 'flex', alignItems: 'flex-start', gap: '8px',
-                            padding: '6px 0',
-                            borderBottom: i < (entry.items || []).length - 1 ? '1px dashed var(--border)' : 'none'
+                  {hasChangelog && (() => {
+                    const PAGE_SIZE = 5;
+                    const totalPages = Math.ceil(changelog.length / PAGE_SIZE);
+                    const safePage = Math.min(changelogPage, totalPages) || 1;
+                    const pagedChangelog = changelog.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+                    return (
+                      <>
+                        {pagedChangelog.map((entry, idx) => (
+                          <div key={(safePage - 1) * PAGE_SIZE + idx} style={{
+                            marginBottom: '16px', borderRadius: '12px',
+                            background: 'var(--hover-bg)', border: '1px solid var(--border)',
+                            overflow: 'hidden'
                           }}>
-                            <span style={{
-                              color: 'var(--primary-light)', fontSize: '11px',
-                              flexShrink: 0, marginTop: '2px'
-                            }}>•</span>
-                            <span style={{ color: 'var(--text-lighter)', fontSize: '13px', lineHeight: 1.5 }}>{item}</span>
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: '10px',
+                              padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                              background: 'var(--glass-bg)'
+                            }}>
+                              <span style={{
+                                color: 'var(--primary-light)', fontSize: '13px', fontWeight: 700,
+                                background: 'var(--primary-bg)', borderRadius: '6px',
+                                padding: '3px 10px'
+                              }}>v{entry.version}</span>
+                              {entry.date && (
+                                <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{entry.date}</span>
+                              )}
+                              {(safePage === 1 && idx === 0) && (
+                                <span style={{
+                                  fontSize: '11px', color: 'var(--success-text)',
+                                  background: 'var(--success-bg)', padding: '1px 8px',
+                                  borderRadius: '4px', border: '1px solid var(--success-border)'
+                                }}>最新</span>
+                              )}
+                            </div>
+                            <div style={{ padding: '10px 14px' }}>
+                              {(entry.items || []).map((item, i) => (
+                                <div key={i} style={{
+                                  display: 'flex', alignItems: 'flex-start', gap: '8px',
+                                  padding: '6px 0',
+                                  borderBottom: i < (entry.items || []).length - 1 ? '1px dashed var(--border)' : 'none'
+                                }}>
+                                  <span style={{
+                                    color: 'var(--primary-light)', fontSize: '11px',
+                                    flexShrink: 0, marginTop: '2px'
+                                  }}>•</span>
+                                  <span style={{ color: 'var(--text-lighter)', fontSize: '13px', lineHeight: 1.5 }}>{item}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  ))}
+                        {totalPages > 1 && (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            gap: '8px', marginTop: '8px', marginBottom: '8px'
+                          }}>
+                            <button
+                              disabled={safePage <= 1}
+                              onClick={() => setChangelogPage(safePage - 1)}
+                              style={{
+                                padding: '6px 14px', borderRadius: '8px', fontSize: '13px',
+                                border: '1px solid var(--border)', background: safePage <= 1 ? 'var(--hover-bg)' : 'var(--card)',
+                                color: safePage <= 1 ? 'var(--text-tertiary)' : 'var(--foreground)',
+                                cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                                opacity: safePage <= 1 ? 0.5 : 1
+                              }}
+                            >上一页</button>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                              <button
+                                key={p}
+                                onClick={() => setChangelogPage(p)}
+                                style={{
+                                  width: '32px', height: '32px', borderRadius: '8px', fontSize: '13px',
+                                  border: p === safePage ? '1px solid var(--primary)' : '1px solid var(--border)',
+                                  background: p === safePage ? 'var(--primary-bg)' : 'var(--card)',
+                                  color: p === safePage ? 'var(--primary-light)' : 'var(--text-secondary)',
+                                  cursor: 'pointer', fontWeight: p === safePage ? 700 : 400
+                                }}
+                              >{p}</button>
+                            ))}
+                            <button
+                              disabled={safePage >= totalPages}
+                              onClick={() => setChangelogPage(safePage + 1)}
+                              style={{
+                                padding: '6px 14px', borderRadius: '8px', fontSize: '13px',
+                                border: '1px solid var(--border)', background: safePage >= totalPages ? 'var(--hover-bg)' : 'var(--card)',
+                                color: safePage >= totalPages ? 'var(--text-tertiary)' : 'var(--foreground)',
+                                cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                                opacity: safePage >= totalPages ? 0.5 : 1
+                              }}
+                            >下一页</button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               );
             })()}
-            {friendLinks.length > 0 && (
-              <div style={{ textAlign: 'left', marginBottom: '24px' }}>
-                <h3 style={{ color: 'var(--foreground)', marginBottom: '12px', fontSize: '16px' }}>友情链接</h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                  {friendLinks.map(link => (
-                    <a key={link._id} href={link.url} target="_blank" rel="noopener noreferrer" style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '8px',
-                      padding: '8px 16px', borderRadius: '10px',
-                      background: 'var(--hover-bg)', border: '1px solid var(--border)',
-                      color: 'var(--foreground)', textDecoration: 'none',
-                      fontSize: '14px', transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--primary)';
-                      e.currentTarget.style.color = 'var(--primary)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border)';
-                      e.currentTarget.style.color = 'var(--foreground)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}>
-                      {link.logo ? (
-                        <img src={link.logo} alt="" style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover' }} />
-                      ) : (
-                        <span style={{ fontSize: '14px' }}>🔗</span>
-                      )}
-                      <span>{link.name}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
             <div style={{
               borderTop: '1px solid var(--border)', paddingTop: '20px',
               color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 2
