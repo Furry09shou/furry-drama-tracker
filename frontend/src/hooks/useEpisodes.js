@@ -13,7 +13,7 @@ export const useEpisodes = () => {
       const response = await axios.get('/api/episodes', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setEpisodes(response.data);
+      setEpisodes(Array.isArray(response.data) ? response.data : (response.data.episodes || []));
       setError('');
     } catch (err) {
       setError('获取剧集列表失败');

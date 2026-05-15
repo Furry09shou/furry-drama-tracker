@@ -84,7 +84,8 @@ app.use((req, res, next) => {
   if (req.method !== 'GET') {
     const hasCustomHeader = req.headers['x-requested-with'];
     const isJsonContent = req.headers['content-type'] && req.headers['content-type'].includes('application/json');
-    if (!hasCustomHeader && !isJsonContent) {
+    const isMultipart = req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data');
+    if (!hasCustomHeader && !isJsonContent && !isMultipart) {
       return res.status(403).json({ message: 'CSRF protection: missing required headers' });
     }
   }

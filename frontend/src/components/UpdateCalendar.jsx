@@ -166,25 +166,11 @@ const UpdateCalendar = () => {
 
   if (loading) return <div style={{textAlign: 'center', padding: '60px', color: 'var(--text-secondary)'}}>加载中...</div>;
 
-  if (viewMode === 'week') return (
-    <div>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <button onClick={() => setViewMode('month')} style={{ padding: '6px 14px', borderRadius: '8px', background: 'var(--hover-bg)', border: '1px solid var(--border)', color: 'var(--foreground)', cursor: 'pointer', fontSize: '13px' }}>月视图</button>
-        <button onClick={() => setViewMode('week')} style={{ padding: '6px 14px', borderRadius: '8px', background: 'var(--primary)', border: '1px solid var(--primary)', color: '#fff', cursor: 'pointer', fontSize: '13px' }}>周视图</button>
-      </div>
-      {renderWeekView()}
-    </div>
-  );
-
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>📅 更新日历</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setViewMode('month')} style={{ padding: '6px 14px', borderRadius: '8px', background: 'var(--primary)', border: '1px solid var(--primary)', color: '#fff', cursor: 'pointer', fontSize: '13px' }}>月视图</button>
-            <button onClick={() => setViewMode('week')} style={{ padding: '6px 14px', borderRadius: '8px', background: 'var(--hover-bg)', border: '1px solid var(--border)', color: 'var(--foreground)', cursor: 'pointer', fontSize: '13px' }}>周视图</button>
-          </div>
           <button onClick={prevMonth} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>‹</button>
           <span style={{ fontSize: '16px', fontWeight: 600, minWidth: '120px', textAlign: 'center' }}>{currentYear}年{monthNames[currentMonth - 1]}</span>
           <button onClick={nextMonth} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>›</button>

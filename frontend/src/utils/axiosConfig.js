@@ -5,12 +5,14 @@ axios.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
-      if (url.includes('/api/admin')) {
+      if (url.includes('/admin')) {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminData');
+        window.location.href = '/admin';
       } else {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

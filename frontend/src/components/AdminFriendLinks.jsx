@@ -124,7 +124,6 @@ const AdminFriendLinks = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <h2>友链管理</h2>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-secondary" onClick={() => navigate('/admin/dashboard')}>返回控制台</button>
           {!showForm && (
             <button className="btn" onClick={() => { setShowForm(true); setEditingLink(null); setFormData({ name: '', url: '', logo: '', description: '', order: 0, isActive: true }); }}>添加友链</button>
           )}

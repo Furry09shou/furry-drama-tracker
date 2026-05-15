@@ -54,27 +54,54 @@ const getIpRegion = (ip) => {
 if (!global._captchaStore) global._captchaStore = new Map();
 const captchaStore = global._captchaStore;
 
-// 生成验证码
+// 生成图形验证码
 router.get('/captcha', (req, res) => {
-  const a = Math.floor(Math.random() * 50) + 1;
-  const b = Math.floor(Math.random() * 50) + 1;
-  const ops = ['+', '-', '×'];
-  const op = ops[Math.floor(Math.random() * ops.length)];
-  let answer;
-  let question;
-  if (op === '+') { answer = a + b; question = `${a} + ${b}`; }
-  else if (op === '-') { const big = Math.max(a, b); const small = Math.min(a, b); answer = big - small; question = `${big} - ${small}`; }
-  else { const sa = Math.floor(Math.random() * 12) + 1; const sb = Math.floor(Math.random() * 12) + 1; answer = sa * sb; question = `${sa} × ${sb}`; }
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
 
   const captchaId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  captchaStore.set(captchaId, { answer, expires: Date.now() + 5 * 60 * 1000 });
+  captchaStore.set(captchaId, { answer: code.toLowerCase(), expires: Date.now() + 5 * 60 * 1000 });
 
-  // 清理过期验证码
   for (const [key, val] of captchaStore) {
     if (val.expires < Date.now()) captchaStore.delete(key);
   }
 
-  res.json({ captchaId, question });
+  const width = 120;
+  const height = 40;
+  const colors = ['#e74c3c', '#2ecc71', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#f39c12'];
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`;
+  svg += `<rect width="${width}" height="${height}" fill="#f0f0f0" rx="4"/>`;
+
+  for (let i = 0; i < 5; i++) {
+    const x1 = Math.random() * width;
+    const y1 = Math.random() * height;
+    const x2 = Math.random() * width;
+    const y2 = Math.random() * height;
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${colors[Math.floor(Math.random() * colors.length)]}" stroke-width="1" opacity="0.4"/>`;
+  }
+
+  for (let i = 0; i < 30; i++) {
+    const cx = Math.random() * width;
+    const cy = Math.random() * height;
+    const r = Math.random() * 2 + 0.5;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${colors[Math.floor(Math.random() * colors.length)]}" opacity="0.3"/>`;
+  }
+
+  for (let i = 0; i < code.length; i++) {
+    const x = 18 + i * 26;
+    const y = 26 + (Math.random() * 8 - 4);
+    const rotate = Math.random() * 30 - 15;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const fontSize = 22 + Math.floor(Math.random() * 6);
+    svg += `<text x="${x}" y="${y}" fill="${color}" font-size="${fontSize}" font-weight="bold" font-family="Arial, sans-serif" transform="rotate(${rotate}, ${x}, ${y})">${code[i]}</text>`;
+  }
+
+  svg += '</svg>';
+
+  res.json({ captchaId, svg });
 });
 
 // 验证验证码的辅助函数
@@ -179,11 +206,15 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-  const { email, password, deviceInfo } = req.body;
+  const { email, password, deviceInfo, captchaId, captchaAnswer } = req.body;
   const ua = req.headers['user-agent'] || '';
   const parsed = parseUserAgent(ua);
 
   try {
+    if (!verifyCaptcha(captchaId, captchaAnswer)) {
+      return res.status(400).json({ message: '验证码错误或已过期' });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -218,6 +249,52 @@ router.post('/login', async (req, res) => {
       );
       sendVerificationEmail(user.email, verifyToken).catch(() => {});
       return res.status(403).json({ message: '请先验证邮箱后再登录，验证邮件已重新发送至您的邮箱', needVerification: true, email: user.email });
+    }
+
+    const currentIp = getClientIp(req);
+    const currentUa = ua;
+    const knownSessions = await UserSession.find({ userId: user._id, isActive: true });
+    const isKnownDevice = knownSessions.some(s => s.deviceInfo?.userAgent === currentUa);
+
+    if (!isKnownDevice && knownSessions.length > 0) {
+      const deviceVerifyToken = jwt.sign(
+        { id: user._id, purpose: 'device-verify', ip: currentIp, ua: currentUa },
+        process.env.JWT_SECRET,
+        { expiresIn: '30m' }
+      );
+      try {
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: user.email,
+          subject: '新设备登录验证',
+          html: `<div style="max-width:480px;margin:0 auto;font-family:Arial,sans-serif;padding:20px">
+            <h2 style="color:#333;text-align:center">新设备登录验证</h2>
+            <p>检测到您的账号在新设备上尝试登录：</p>
+            <div style="background:#f5f5f5;padding:12px;border-radius:8px;margin:12px 0">
+              <p style="margin:4px 0"><strong>浏览器：</strong>${parsed.browser || '未知'}</p>
+              <p style="margin:4px 0"><strong>操作系统：</strong>${parsed.os || '未知'}</p>
+              <p style="margin:4px 0"><strong>IP地址：</strong>${currentIp}</p>
+            </div>
+            <p>如非本人操作，请忽略此邮件。如确认是本人，请点击下方按钮确认登录：</p>
+            <div style="text-align:center;margin:20px 0">
+              <a href="${process.env.SITE_URL || 'http://localhost:3000'}/verify-device?token=${deviceVerifyToken}" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">确认登录</a>
+            </div>
+            <p style="color:#999;font-size:12px">此链接30分钟内有效</p>
+          </div>`
+        };
+        const transporter = require('nodemailer').createTransport({
+          host: process.env.EMAIL_HOST,
+          port: parseInt(process.env.EMAIL_PORT || '465'),
+          secure: parseInt(process.env.EMAIL_PORT || '465') === 465,
+          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        });
+        await transporter.sendMail(mailOptions);
+      } catch (e) {}
+      return res.status(403).json({
+        message: '检测到新设备登录，验证邮件已发送至您的邮箱，请确认后登录',
+        needDeviceVerify: true,
+        email: user.email
+      });
     }
 
     user.deviceInfo = {
@@ -268,6 +345,32 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/verify-device', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: 'Token is required' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose !== 'device-verify') return res.status(400).json({ message: 'Invalid token' });
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(400).json({ message: 'User not found' });
+    const loginToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const tokenHash = hashToken(loginToken);
+    const ip = decoded.ip || '';
+    const sessionDeviceInfo = parseUserAgent(decoded.ua || '');
+    sessionDeviceInfo.userAgent = decoded.ua || '';
+    const session = new UserSession({ userId: user._id, tokenHash, deviceInfo: sessionDeviceInfo, ip });
+    await session.save();
+    res.json({
+      _id: user._id, username: user.username, email: user.email,
+      isEmailVerified: user.isEmailVerified, adminAccess: user.adminAccess || false,
+      token: loginToken
+    });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') return res.status(400).json({ message: '验证链接已过期，请重新登录' });
+    res.status(400).json({ message: '验证失败' });
   }
 });
 
@@ -348,8 +451,11 @@ router.put('/admin/change-password', adminProtect, async (req, res) => {
 });
 
 router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
+  const { email, captchaId, captchaAnswer } = req.body;
   try {
+    if (!verifyCaptcha(captchaId, captchaAnswer)) {
+      return res.status(400).json({ message: '验证码错误或已过期' });
+    }
     const user = await User.findOne({ email });
     if (!user) {
       return res.json({ message: '如果该邮箱已注册，重置链接已发送至邮箱' });

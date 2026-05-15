@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const AdminStats = () => {
@@ -50,7 +50,6 @@ const AdminStats = () => {
   return (
     <div className="admin-panel">
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <Link to="/admin/dashboard" className="btn btn-secondary">返回上一步</Link>
         <h2>📊 数据统计</h2>
       </div>
 

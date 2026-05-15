@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
 
@@ -46,7 +46,7 @@ const AdminUsers = () => {
       const res = await axios.get('/api/admin/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUsers(res.data);
+      setUsers(res.data.list || res.data);
     } catch (err) {
       console.error('获取用户列表失败', err);
     }
@@ -223,8 +223,7 @@ const AdminUsers = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <Link to="/admin/dashboard" className="btn btn-secondary">返回控制台</Link>
-          <h2>用户管理</h2>
+        <h2>用户管理</h2>
         </div>
         {activeTab === 'admins' && (
           <button className="btn" onClick={() => setShowAddForm(true)}>

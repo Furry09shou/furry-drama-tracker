@@ -19,10 +19,14 @@ const RATING_OPTIONS = [
   { value: '1', label: '1+' },
 ];
 
-const YEAR_OPTIONS = [
-  { value: '', label: '全部' },
-  { value: 'recent5', label: '近5年' },
-];
+const YEAR_OPTIONS = (() => {
+  const currentYear = new Date().getFullYear();
+  const options = [{ value: '', label: '全部' }, { value: 'recent5', label: '近5年' }];
+  for (let y = currentYear; y >= currentYear - 10; y--) {
+    options.push({ value: String(y), label: String(y) });
+  }
+  return options;
+})();
 
 const SORT_OPTIONS = [
   { value: 'latest', label: '最新更新' },
@@ -75,6 +79,7 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
   const [total, setTotal] = useState(0);
+  const [siteSettings, setSiteSettings] = useState({ welcomeTitle: '', welcomeSubtitle: '' });
 
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
@@ -94,13 +99,43 @@ const Home = () => {
   const bannerTimerRef = useRef(null);
   const welcomeTimerRef = useRef(null);
 
-  // 滚动位置恢复
   const scrollRestoredRef = useRef(false);
 
-  // 初始化：加载分类和轮播图
+  useEffect(() => {
+    if (!loading && !scrollRestoredRef.current) {
+      const saved = sessionStorage.getItem('home_scroll_pos');
+      if (saved) {
+        requestAnimationFrame(() => {
+          window.scrollTo(0, parseInt(saved, 10));
+        });
+      }
+      scrollRestoredRef.current = true;
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    let timer = null;
+    const handleScroll = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        sessionStorage.setItem('home_scroll_pos', String(window.scrollY));
+      }, 100);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
   useEffect(() => {
     axios.get('/api/categories').then(res => setCategories(res.data)).catch(() => {});
     axios.get('/api/banners').then(res => setBanners(res.data)).catch(() => {});
+    axios.get('/api/site-content/settings').then(res => {
+      try {
+        const data = JSON.parse(res.data.content);
+        setSiteSettings({ welcomeTitle: data.welcomeTitle || '', welcomeSubtitle: data.welcomeSubtitle || '' });
+      } catch (e) {}
+    }).catch(() => {});
   }, []);
 
   // 轮播图逻辑
@@ -160,26 +195,6 @@ const Home = () => {
       })
       .finally(() => setLoading(false));
   }, [searchQuery, filters, sortOrder]);
-
-  // 滚动位置恢复
-  useEffect(() => {
-    if (!loading && !scrollRestoredRef.current) {
-      const saved = sessionStorage.getItem('home_scroll_pos');
-      if (saved) {
-        window.scrollTo(0, parseInt(saved, 10));
-      }
-      scrollRestoredRef.current = true;
-    }
-  }, [loading]);
-
-  // 保存滚动位置
-  useEffect(() => {
-    const handleScroll = () => {
-      sessionStorage.setItem('home_scroll_pos', String(window.scrollY));
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -266,14 +281,14 @@ const Home = () => {
             margin: 0,
             textShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
-            欢迎来到追剧平台
+            {siteSettings?.welcomeTitle || '欢迎来到追剧平台'}
           </h2>
           <p style={{
             fontSize: '1rem',
             marginTop: '8px',
             opacity: 0.9,
           }}>
-            发现精彩剧集，追番不迷路
+            {siteSettings?.welcomeSubtitle || '发现精彩剧集，追番不迷路'}
           </p>
         </div>
       );
@@ -310,14 +325,14 @@ const Home = () => {
             margin: 0,
             textShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
-            欢迎来到追剧平台
+            {siteSettings?.welcomeTitle || '欢迎来到追剧平台'}
           </h2>
           <p style={{
             fontSize: '1rem',
             marginTop: '8px',
             opacity: 0.9,
           }}>
-            发现精彩剧集，追番不迷路
+            {siteSettings?.welcomeSubtitle || '发现精彩剧集，追番不迷路'}
           </p>
         </div>
 
@@ -559,18 +574,15 @@ const Home = () => {
               {opt.label}
               {isActive && (
                 <span style={{
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  background: 'rgba(255,255,255,0.25)',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
                   display: 'inline-flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  lineHeight: 1,
+                  gap: '0px',
+                  marginLeft: '2px',
                 }}>
-                  {sortOrder === 'desc' ? '↓' : '↑'}
+                  <span style={{ fontSize: '10px', opacity: sortOrder === 'asc' ? 1 : 0.3, transition: 'opacity 0.2s' }}>▲</span>
+                  <span style={{ fontSize: '10px', opacity: sortOrder === 'desc' ? 1 : 0.3, transition: 'opacity 0.2s', marginTop: '-2px' }}>▼</span>
                 </span>
               )}
             </button>

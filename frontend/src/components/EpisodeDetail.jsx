@@ -19,6 +19,7 @@ const EpisodeDetail = ({ user }) => {
   const [showReport, setShowReport] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [episodesExpanded, setEpisodesExpanded] = useState(false);
+  const [episodeSortOrder, setEpisodeSortOrder] = useState('desc');
 
   const navigate = useNavigate();
   const { id: episodeId } = useParams();
@@ -199,7 +200,9 @@ const EpisodeDetail = ({ user }) => {
 
   // 剧集列表折叠逻辑
   const sortedEpisodes = episode?.episodes
-    ? [...episode.episodes].sort((a, b) => b.episodeNumber - a.episodeNumber)
+    ? [...episode.episodes].sort((a, b) =>
+        episodeSortOrder === 'asc' ? a.episodeNumber - b.episodeNumber : b.episodeNumber - a.episodeNumber
+      )
     : [];
   const DEFAULT_SHOW_COUNT = 5;
   const displayedEpisodes = episodesExpanded
@@ -356,7 +359,16 @@ const EpisodeDetail = ({ user }) => {
       </div>
 
       <div className="episodes-list">
-        <h3>剧集列表</h3>
+        <h3>剧集列表 
+          <button onClick={() => setEpisodeSortOrder(episodeSortOrder === 'asc' ? 'desc' : 'asc')} style={{
+            marginLeft: '8px', padding: '4px 12px', borderRadius: '6px',
+            background: 'var(--hover-bg)', border: '1px solid var(--border)',
+            color: 'var(--foreground)', cursor: 'pointer', fontSize: '13px',
+            transition: 'all 0.2s'
+          }}>
+            {episodeSortOrder === 'asc' ? '↑ 正序' : '↓ 倒序'}
+          </button>
+        </h3>
         {displayedEpisodes.map(singleEpisode => (
           <div key={singleEpisode._id} className="episode-item" style={{
             opacity: watchedEpisodes.includes(singleEpisode.episodeNumber) ? 0.7 : 1
@@ -510,8 +522,9 @@ const EpisodeDetail = ({ user }) => {
                           src={embedUrl}
                           style={{width: '100%', height: '100%', border: 'none'}}
                           allowFullScreen
-                          sandbox="allow-scripts allow-presentation"
+                          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          referrerPolicy="no-referrer"
                         />
                       ) : (
                         <div style={{textAlign: 'center', color: 'var(--text-secondary)'}}>

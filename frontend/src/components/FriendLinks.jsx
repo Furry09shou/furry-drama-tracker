@@ -11,7 +11,7 @@ const FriendLinks = () => {
   const [applyMsg, setApplyMsg] = useState('');
   const [activeTab, setActiveTab] = useState('links');
   const [myApplications, setMyApplications] = useState([]);
-  const [captchaData, setCaptchaData] = useState({ captchaId: '', question: '' });
+  const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
   const [captchaAnswer, setCaptchaAnswer] = useState('');
   const navigate = useNavigate();
 
@@ -37,8 +37,8 @@ const FriendLinks = () => {
 
   const fetchCaptcha = async () => {
     try {
-      const res = await axios.get('/api/captcha');
-      setCaptchaData({ captchaId: res.data.captchaId, question: res.data.question });
+      const res = await axios.get('/api/auth/captcha');
+      setCaptchaData({ captchaId: res.data.captchaId, svg: res.data.svg });
     } catch (e) {}
   };
 
@@ -306,26 +306,25 @@ const FriendLinks = () => {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
-                  验证码 <span style={{ color: 'var(--destructive-text)' }}>*</span>
+                  图形验证码 <span style={{ color: 'var(--destructive-text)' }}>*</span>
                 </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input type="text" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} placeholder={captchaData.question || '请输入验证码'} style={{
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input type="text" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} placeholder="请输入验证码" style={{
                     flex: 1, padding: '10px 14px', borderRadius: '10px',
                     border: '1px solid var(--border)', background: 'var(--hover-bg)',
                     color: 'var(--foreground)', fontSize: '14px', outline: 'none',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box', minWidth: 0
                   }} />
-                  <button type="button" onClick={fetchCaptcha} style={{
-                    padding: '10px 14px', borderRadius: '10px', fontSize: '13px',
-                    background: 'var(--hover-bg)', border: '1px solid var(--border)',
-                    color: 'var(--foreground)', cursor: 'pointer', whiteSpace: 'nowrap'
-                  }}>刷新</button>
+                  {captchaData.svg && (
+                    <img
+                      src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`}
+                      alt="验证码"
+                      onClick={fetchCaptcha}
+                      style={{ height: '40px', cursor: 'pointer', borderRadius: '10px', flexShrink: 0 }}
+                      title="点击刷新"
+                    />
+                  )}
                 </div>
-                {captchaData.question && (
-                  <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>
-                    请计算: {captchaData.question} = ?
-                  </span>
-                )}
               </div>
 
               {applyMsg && (

@@ -18,7 +18,7 @@ router.get('/pending-counts', adminProtect, async (req, res) => {
       Episode.countDocuments({ status: 'pending' }),
       Report.countDocuments({ status: 'pending' }),
       Feedback.countDocuments({ status: 'pending' }),
-      FriendLink.countDocuments({ $or: [{ status: 'pending' }, { status: { $exists: false }, isActive: false }] })
+      FriendLink.countDocuments({ status: 'pending' })
     ]);
     res.json({ episodes, reports, feedbacks, friendLinks });
   } catch (error) {

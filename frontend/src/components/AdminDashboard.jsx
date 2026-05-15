@@ -18,6 +18,7 @@ const Badge = ({ count }) => {
 
 const AdminDashboard = () => {
   const { admin } = useOutletContext();
+  const navigate = useNavigate();
   const [statusMsg, setStatusMsg] = useState('');
   const [pendingCounts, setPendingCounts] = useState({ episodes: 0, reports: 0, feedbacks: 0, friendLinks: 0 });
   const statusTimerRef = useRef(null);

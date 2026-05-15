@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import ImageUploader from './ImageUploader';
 
 const AdminBanners = () => {
@@ -194,7 +194,6 @@ const AdminBanners = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <Link to="/admin/dashboard" className="btn btn-secondary">返回控制台</Link>
           <h2>轮播图管理</h2>
         </div>
         <button className="btn" onClick={openAdd}>添加轮播图</button>

@@ -91,18 +91,36 @@ router.get('/', async (req, res) => {
     }
 
     if (year) {
-      const start = new Date(parseInt(year), 0, 1);
-      const end = new Date(parseInt(year) + 1, 0, 1);
-      const yearCondition = {
-        $or: [
-          { premiereDate: { $gte: start, $lt: end } },
-          { createdAt: { $gte: start, $lt: end } }
-        ]
-      };
-      if (query.$and) {
-        query.$and.push(yearCondition);
+      let yearCondition;
+      if (year === 'recent5') {
+        const currentYear = new Date().getFullYear();
+        const start = new Date(currentYear - 4, 0, 1);
+        const end = new Date(currentYear + 1, 0, 1);
+        yearCondition = {
+          $or: [
+            { premiereDate: { $gte: start, $lt: end } },
+            { createdAt: { $gte: start, $lt: end } }
+          ]
+        };
       } else {
-        query = { $and: [baseQuery, yearCondition] };
+        const yearNum = parseInt(year);
+        if (!isNaN(yearNum)) {
+          const start = new Date(yearNum, 0, 1);
+          const end = new Date(yearNum + 1, 0, 1);
+          yearCondition = {
+            $or: [
+              { premiereDate: { $gte: start, $lt: end } },
+              { createdAt: { $gte: start, $lt: end } }
+            ]
+          };
+        }
+      }
+      if (yearCondition) {
+        if (query.$and) {
+          query.$and.push(yearCondition);
+        } else {
+          query = { $and: [baseQuery, yearCondition] };
+        }
       }
     }
 
@@ -148,10 +166,14 @@ router.get('/search', async (req, res) => {
     }
     const escapedSearch = escapeRegex(q.trim());
     const episodes = await Episode.find({
-      $or: [{ reviewStatus: 'approved' }, { reviewStatus: { $exists: false } }],
-      $or: [
-        { title: { $regex: escapedSearch, $options: 'i' } },
-        { description: { $regex: escapedSearch, $options: 'i' } }
+      $and: [
+        { $or: [{ reviewStatus: 'approved' }, { reviewStatus: { $exists: false } }] },
+        {
+          $or: [
+            { title: { $regex: escapedSearch, $options: 'i' } },
+            { description: { $regex: escapedSearch, $options: 'i' } }
+          ]
+        }
       ]
     }).sort({ views: -1 }).limit(parseInt(limit)).select('title coverImage category rating averageRating');
     res.json(episodes);

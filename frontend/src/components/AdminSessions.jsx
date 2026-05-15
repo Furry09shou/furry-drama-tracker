@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const AdminSessions = () => {
@@ -106,7 +106,6 @@ const AdminSessions = () => {
     <div className="admin-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link to="/admin/dashboard" className="btn btn-secondary">返回</Link>
           <h2 style={{ margin: 0 }}>设备管理</h2>
         </div>
         <button className="btn btn-secondary" onClick={fetchSessions}>刷新</button>

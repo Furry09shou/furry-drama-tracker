@@ -126,7 +126,7 @@ const NavBar = ({ onFeedback }) => {
     const token = localStorage.getItem('token');
     if (!token) return;
     axios.get('/api/notifications/list', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => setNotifications(res.data))
+      .then(res => setNotifications(res.data.list || res.data))
       .catch(() => {});
   }, [showNotifPanel, user]);
 
@@ -805,6 +805,7 @@ function AppContent() {
           <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/verify-device" element={<Login login={(data) => { localStorage.setItem('token', data.token); localStorage.setItem('user', JSON.stringify(data)); }} />} />
           <Route path="/calendar" element={<UpdateCalendar />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/creator/:id" element={<CreatorPage />} />

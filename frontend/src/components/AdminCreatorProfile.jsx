@@ -76,7 +76,6 @@ const AdminCreatorProfile = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <Link to="/admin/dashboard" className="btn btn-secondary">返回控制台</Link>
           <h2>管理我的主页</h2>
         </div>
       </div>

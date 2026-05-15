@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const AdminFeedback = () => {
@@ -56,7 +56,6 @@ const AdminFeedback = () => {
     <div className="admin-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link to="/admin/dashboard" className="btn btn-secondary">返回控制台</Link>
           <h2>用户反馈</h2>
         </div>
         <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>共 {total} 条</span>

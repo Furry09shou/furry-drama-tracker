@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
 import ImageUploader from './ImageUploader';
@@ -70,7 +70,8 @@ const AdminEpisodes = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
-      setEpisodes(response.data);
+      const data = response.data;
+      setEpisodes(Array.isArray(data) ? data : (data.episodes || data.list || []));
     } catch (error) {
       console.error('Error fetching episodes:', error);
     }
@@ -408,7 +409,7 @@ const AdminEpisodes = () => {
       const response = await axios.post('/api/episodes/upload', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          'X-Requested-With': 'XMLHttpRequest'
         }
       });
       setNewEpisode(prev => ({ ...prev, coverImage: response.data.url }));
@@ -798,7 +799,6 @@ const AdminEpisodes = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <Link to="/admin/dashboard" className="btn btn-secondary">返回控制台</Link>
           <h2>剧集管理</h2>
         </div>
         <button className="btn" onClick={() => { resetEpisodeForm(); setError(''); setShowAddForm(true); }}>

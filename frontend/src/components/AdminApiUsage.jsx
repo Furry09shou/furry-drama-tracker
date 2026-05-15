@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const AdminApiUsage = () => {
@@ -36,7 +36,6 @@ const AdminApiUsage = () => {
   return (
     <div className="admin-panel">
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <Link to="/admin/dashboard" className="btn btn-secondary">返回控制台</Link>
         <h2>API 用量监控</h2>
       </div>
 

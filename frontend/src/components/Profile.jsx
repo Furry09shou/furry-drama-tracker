@@ -32,15 +32,15 @@ const Profile = ({ user, setUser, logout }) => {
         let historyData = [];
         try {
           const followRes = await axios.get('/api/follows/list', config);
-          followData = followRes.data || [];
+          followData = followRes.data.list || followRes.data || [];
         } catch (e) { console.error('获取追番失败:', e.response?.data || e.message); }
         try {
           const historyRes = await axios.get('/api/histories/list', config);
-          historyData = historyRes.data || [];
+          historyData = historyRes.data.list || historyRes.data || [];
         } catch (e) { console.error('获取历史失败:', e.response?.data || e.message); }
         try {
           const favRes = await axios.get('/api/favorites/list', config);
-          setFavoriteEpisodes(favRes.data || []);
+          setFavoriteEpisodes(favRes.data.list || favRes.data || []);
         } catch (e) {}
 
         setFollowedEpisodes(followData);
@@ -120,7 +120,7 @@ const Profile = ({ user, setUser, logout }) => {
       const formData = new FormData();
       formData.append('avatar', file);
       const res = await axios.post('/api/users/avatar', formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+        headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }
       });
       if (setUser && user) {
         const updatedUser = { ...user, avatar: res.data.url };

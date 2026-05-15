@@ -66,7 +66,6 @@ const AdminReports = () => {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary" onClick={() => navigate('/admin/dashboard')}>← 返回控制台</button>
         <h2 style={{ margin: 0 }}>🚨 举报管理</h2>
       </div>
 
