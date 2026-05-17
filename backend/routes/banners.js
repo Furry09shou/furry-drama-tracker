@@ -23,8 +23,8 @@ router.get('/all', adminProtect, async (req, res) => {
 
 router.post('/', adminProtect, async (req, res) => {
   try {
-    const { title, subtitle, image, link, order, active } = req.body;
-    const banner = await Banner.create({ title, subtitle, image, link, order: order || 0, active: active !== undefined ? active : true });
+    const { title, titleEn, titleJa, subtitle, subtitleEn, subtitleJa, image, link, order, active } = req.body;
+    const banner = await Banner.create({ title, titleEn: titleEn || '', titleJa: titleJa || '', subtitle: subtitle || '', subtitleEn: subtitleEn || '', subtitleJa: subtitleJa || '', image, link, order: order || 0, active: active !== undefined ? active : true });
     res.json(banner);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -33,11 +33,15 @@ router.post('/', adminProtect, async (req, res) => {
 
 router.put('/:id', adminProtect, async (req, res) => {
   try {
-    const { title, subtitle, image, link, order, active } = req.body;
+    const { title, titleEn, titleJa, subtitle, subtitleEn, subtitleJa, image, link, order, active } = req.body;
     const banner = await Banner.findById(req.params.id);
     if (!banner) return res.status(404).json({ message: '轮播图不存在' });
     if (title !== undefined) banner.title = title;
+    if (titleEn !== undefined) banner.titleEn = titleEn;
+    if (titleJa !== undefined) banner.titleJa = titleJa;
     if (subtitle !== undefined) banner.subtitle = subtitle;
+    if (subtitleEn !== undefined) banner.subtitleEn = subtitleEn;
+    if (subtitleJa !== undefined) banner.subtitleJa = subtitleJa;
     if (image !== undefined) banner.image = image;
     if (link !== undefined) banner.link = link;
     if (order !== undefined) banner.order = order;

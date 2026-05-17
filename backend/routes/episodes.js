@@ -136,8 +136,8 @@ router.get('/', async (req, res) => {
 
     const total = await Episode.countDocuments(query);
     let episodesQuery = Episode.find(query).sort(sortOption)
-      .populate('createdBy', 'username')
-      .populate('allowedEditors', 'username');
+      .populate('createdBy', 'accountId username')
+      .populate('allowedEditors', 'accountId username');
 
     if (usePagination) {
       const totalPages = Math.ceil(total / limitNum);
@@ -192,8 +192,8 @@ router.get('/:id', async (req, res) => {
     }
 
     const episode = await Episode.findById(req.params.id)
-      .populate('createdBy', 'username')
-      .populate('allowedEditors', 'username');
+      .populate('createdBy', 'accountId username')
+      .populate('allowedEditors', 'accountId username');
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
@@ -274,6 +274,8 @@ router.put('/single/:id', adminProtect, async (req, res) => {
     const updateData = {};
     if (req.body.episodeNumber !== undefined) updateData.episodeNumber = req.body.episodeNumber;
     if (req.body.title !== undefined) updateData.title = req.body.title;
+    if (req.body.titleEn !== undefined) updateData.titleEn = req.body.titleEn;
+    if (req.body.titleJa !== undefined) updateData.titleJa = req.body.titleJa;
     if (req.body.duration !== undefined) updateData.duration = req.body.duration;
     if (req.body.platformLinks !== undefined) updateData.platformLinks = req.body.platformLinks;
     if (req.body.scheduledDate !== undefined) updateData.scheduledDate = req.body.scheduledDate;
@@ -322,7 +324,11 @@ router.post('/', creatorProtect, async (req, res) => {
     const isCreator = req.admin.role === 'creator';
     const episodeData = {
       title: req.body.title,
+      titleEn: req.body.titleEn || '',
+      titleJa: req.body.titleJa || '',
       description: req.body.description,
+      descriptionEn: req.body.descriptionEn || '',
+      descriptionJa: req.body.descriptionJa || '',
       coverImage: req.body.coverImage,
       totalEpisodes: req.body.totalEpisodes,
       currentEpisodes: req.body.currentEpisodes || 0,
@@ -369,6 +375,8 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
       episodeId: req.params.id,
       episodeNumber: req.body.episodeNumber,
       title: req.body.title,
+      titleEn: req.body.titleEn || '',
+      titleJa: req.body.titleJa || '',
       duration: req.body.duration || '',
       platformLinks: req.body.platformLinks || {},
       scheduledDate: req.body.scheduledDate || null,
@@ -426,7 +434,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
     }
 
     const oldCurrentEpisodes = episode.currentEpisodes;
-    const allowedFields = ['title', 'description', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks'];
+    const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks'];
     const updateData = { updatedAt: Date.now() };
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {

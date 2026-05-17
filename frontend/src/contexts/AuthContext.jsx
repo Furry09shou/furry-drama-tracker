@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { fetchCsrfToken } from '../utils/axiosConfig';
 
 const AuthContext = createContext(null);
 
@@ -7,49 +8,60 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
 
+  const getAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
+
   useEffect(() => {
+    fetchCsrfToken();
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
+
+    const initAuth = async (storedToken, storedUser) => {
+      const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+      try {
+        const res = await axios.get('/api/auth/me', { headers, skipRedirect: true });
+        const freshUser = res.data;
+        setUser(freshUser);
+        localStorage.setItem('user', JSON.stringify(freshUser));
+        if (storedToken) {
+          axios.post('/api/user-sessions/create', {
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            language: navigator.language
+          }, { headers }).catch(() => {});
+        }
+      } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+      } finally {
+        setInitializing(false);
+      }
+    };
+
     if (token && userData) {
       try {
         const parsed = JSON.parse(userData);
         setUser(parsed);
-        // 验证token有效性
-        axios.get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
-          .then(res => {
-            const freshUser = { ...parsed, ...res.data, token };
-            setUser(freshUser);
-            localStorage.setItem('user', JSON.stringify(freshUser));
-            // 创建会话
-            axios.post('/api/user-sessions/create', {
-              screenWidth: window.screen.width,
-              screenHeight: window.screen.height,
-              language: navigator.language
-            }, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
-          })
-          .catch(() => {
-            // token无效，清除
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setUser(null);
-          });
-      } catch (e) {
+        initAuth(token, parsed);
+      } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setInitializing(false);
       }
+    } else {
+      initAuth(null, null);
     }
-    setInitializing(false);
   }, []);
 
-  // 心跳保活
   useEffect(() => {
     if (!user) return;
-    const token = localStorage.getItem('token');
-    if (!token) return;
     const heartbeat = () => {
-      axios.post('/api/user-sessions/heartbeat', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => {});
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      axios.post('/api/user-sessions/heartbeat', {}, { headers }).catch(() => {});
     };
     const interval = setInterval(heartbeat, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -57,18 +69,28 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback((userData) => {
     setUser(userData);
-    localStorage.setItem('token', userData.token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    if (userData.token) {
+      localStorage.setItem('token', userData.token);
+      const { token, ...userDataWithoutToken } = userData;
+      localStorage.setItem('user', JSON.stringify(userDataWithoutToken));
+    } else {
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await axios.post('/api/auth/logout', {}, { headers });
+    } catch {}
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, initializing }}>
+    <AuthContext.Provider value={{ user, login, logout, initializing, getAuthHeaders }}>
       {children}
     </AuthContext.Provider>
   );

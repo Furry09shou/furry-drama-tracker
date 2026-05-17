@@ -78,6 +78,7 @@ const AdminUsers = () => {
     }
     const keyword = userSearch.toLowerCase();
     setFilteredUsers(users.filter(u =>
+      (u.accountId && u.accountId.toLowerCase().includes(keyword)) ||
       u.username.toLowerCase().includes(keyword) ||
       u.email.toLowerCase().includes(keyword)
     ));
@@ -253,13 +254,14 @@ const AdminUsers = () => {
           <div style={{padding: '12px 20px', borderBottom: '1px solid var(--border)'}}>
             <SearchInput
               data={users}
-              searchKey={['username', 'email']}
-              placeholder="搜索用户名或邮箱..."
+              searchKey={['accountId', 'username', 'email']}
+              placeholder="搜索账号ID、昵称或邮箱..."
               onSearch={setUserSearch}
               onSelect={(item) => setUserSearch(item.username)}
               displayRender={(item) => (
                 <div>
                   <span style={{fontWeight: '500'}}>{item.username}</span>
+                  {item.accountId && <span style={{fontSize: '12px', color: 'var(--text-tertiary)', marginLeft: '6px'}}>@{item.accountId}</span>}
                   <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px'}}>{item.email}</span>
                 </div>
               )}
@@ -274,7 +276,8 @@ const AdminUsers = () => {
               <table style={{width: '100%', borderCollapse: 'collapse'}}>
                 <thead>
                   <tr style={{borderBottom: '1px solid var(--border)'}}>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>用户名</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>昵称</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>账号ID</th>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>邮箱</th>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>后台权限</th>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>注册时间</th>
@@ -296,6 +299,9 @@ const AdminUsers = () => {
                           </div>
                           <span style={{fontWeight: '500'}}>{u.username}</span>
                         </div>
+                      </td>
+                      <td style={{padding: '12px 20px', color: 'var(--text-tertiary)', fontSize: '13px', letterSpacing: '0.5px'}}>
+                        {u.accountId || '-'}
                       </td>
                       <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
                         {u.email}
@@ -480,7 +486,8 @@ const AdminUsers = () => {
               <button className="btn btn-secondary" onClick={() => setDetailUser(null)}>关闭</button>
             </div>
             <div style={{display: 'flex', flexDirection: 'column', gap: '0'}}>
-              <InfoRow label="用户名" value={detailUser.username} />
+              <InfoRow label="账号ID" value={detailUser.accountId || '-'} />
+              <InfoRow label="昵称" value={detailUser.username} />
               <InfoRow label="邮箱" value={detailUser.email} />
               <InfoRow label="注册时间" value={new Date(detailUser.createdAt).toLocaleString('zh-CN')} />
               <InfoRow label="最后登录" value={detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString('zh-CN') : '从未登录'} />

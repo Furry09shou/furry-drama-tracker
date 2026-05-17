@@ -9,17 +9,21 @@ const sseClients = new Map();
 
 // SSE推送端点
 router.get('/stream', async (req, res) => {
-  const token = req.query.token;
-  if (!token) {
-    return res.status(401).json({ message: '需要认证' });
-  }
+  const { ticket } = req.query;
 
   let userId;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    userId = decoded.id || decoded._id;
+    if (ticket) {
+      const decoded = jwt.verify(ticket, process.env.JWT_SECRET);
+      if (decoded.purpose !== 'sse-ticket') {
+        return res.status(401).json({ message: '无效的ticket' });
+      }
+      userId = decoded.id || decoded._id;
+    } else {
+      return res.status(401).json({ message: '需要认证' });
+    }
   } catch (e) {
-    return res.status(401).json({ message: 'token无效' });
+    return res.status(401).json({ message: '认证信息无效' });
   }
 
   // 设置SSE响应头
@@ -37,7 +41,12 @@ router.get('/stream', async (req, res) => {
   if (!sseClients.has(userId)) {
     sseClients.set(userId, []);
   }
-  sseClients.get(userId).push(res);
+  const userClients = sseClients.get(userId);
+  if (userClients.length >= 5) {
+    const oldest = userClients.shift();
+    try { oldest.end(); } catch (e) {}
+  }
+  userClients.push(res);
 
   // 心跳保活
   const heartbeat = setInterval(() => {
@@ -96,8 +105,8 @@ router.post('/subscribe-reminder', protect, async (req, res) => {
 router.get('/list', protect, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const total = await Notification.countDocuments({ userId: req.user._id });
     const totalPages = Math.ceil(total / limitNum);
     const list = await Notification.find({ userId: req.user._id })

@@ -14,6 +14,14 @@ const SingleEpisodeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  titleEn: {
+    type: String,
+    default: ''
+  },
+  titleJa: {
+    type: String,
+    default: ''
+  },
   duration: {
     type: String,
     default: ''

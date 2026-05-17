@@ -23,7 +23,11 @@ const AdminEpisodes = () => {
   const fileInputRef = useRef(null);
   const [newEpisode, setNewEpisode] = useState({
     title: '',
+    titleEn: '',
+    titleJa: '',
     description: '',
+    descriptionEn: '',
+    descriptionJa: '',
     coverImage: '',
     totalEpisodes: 0,
     status: 'ongoing',
@@ -122,7 +126,11 @@ const AdminEpisodes = () => {
       const token = localStorage.getItem('adminToken');
       const episodeData = {
         title: newEpisode.title,
+        titleEn: newEpisode.titleEn || '',
+        titleJa: newEpisode.titleJa || '',
         description: newEpisode.description,
+        descriptionEn: newEpisode.descriptionEn || '',
+        descriptionJa: newEpisode.descriptionJa || '',
         coverImage: newEpisode.coverImage,
         totalEpisodes: newEpisode.totalEpisodes,
         currentEpisodes: 0,
@@ -147,7 +155,11 @@ const AdminEpisodes = () => {
         setEditingEpisode(response.data);
         setNewEpisode({
           title: response.data.title,
+          titleEn: response.data.titleEn || '',
+          titleJa: response.data.titleJa || '',
           description: response.data.description,
+          descriptionEn: response.data.descriptionEn || '',
+          descriptionJa: response.data.descriptionJa || '',
           coverImage: response.data.coverImage,
           totalEpisodes: response.data.totalEpisodes,
           status: response.data.status,
@@ -179,7 +191,11 @@ const AdminEpisodes = () => {
     setEditingEpisode(episode);
     setNewEpisode({
       title: episode.title,
+      titleEn: episode.titleEn || '',
+      titleJa: episode.titleJa || '',
       description: episode.description,
+      descriptionEn: episode.descriptionEn || '',
+      descriptionJa: episode.descriptionJa || '',
       coverImage: episode.coverImage,
       totalEpisodes: episode.totalEpisodes,
       status: episode.status,
@@ -205,7 +221,11 @@ const AdminEpisodes = () => {
       const token = localStorage.getItem('adminToken');
       const episodeData = {
         title: newEpisode.title,
+        titleEn: newEpisode.titleEn || '',
+        titleJa: newEpisode.titleJa || '',
         description: newEpisode.description,
+        descriptionEn: newEpisode.descriptionEn || '',
+        descriptionJa: newEpisode.descriptionJa || '',
         coverImage: newEpisode.coverImage,
         totalEpisodes: newEpisode.totalEpisodes,
         status: newEpisode.status,
@@ -216,7 +236,7 @@ const AdminEpisodes = () => {
           ? new Date(newEpisode.premiereDate).toISOString()
           : null
       };
-      
+
       await axios.put(`/api/episodes/${editingEpisode._id}`, episodeData, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -339,7 +359,11 @@ const AdminEpisodes = () => {
   const resetEpisodeForm = () => {
     setNewEpisode({
       title: '',
+      titleEn: '',
+      titleJa: '',
       description: '',
+      descriptionEn: '',
+      descriptionJa: '',
       coverImage: '',
       totalEpisodes: 0,
       status: 'ongoing',
@@ -433,6 +457,26 @@ const AdminEpisodes = () => {
           required
         />
       </div>
+      <div style={{display: 'flex', gap: '12px'}}>
+        <div className="form-group" style={{flex: 1}}>
+          <label>英文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+          <input
+            type="text"
+            value={newEpisode.titleEn}
+            onChange={(e) => setNewEpisode({...newEpisode, titleEn: e.target.value})}
+            placeholder="English title (optional)"
+          />
+        </div>
+        <div className="form-group" style={{flex: 1}}>
+          <label>日文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+          <input
+            type="text"
+            value={newEpisode.titleJa}
+            onChange={(e) => setNewEpisode({...newEpisode, titleJa: e.target.value})}
+            placeholder="日本語タイトル (任意)"
+          />
+        </div>
+      </div>
       <div className="form-group">
         <label>描述 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <textarea
@@ -441,6 +485,26 @@ const AdminEpisodes = () => {
           required
           rows="3"
         />
+      </div>
+      <div style={{display: 'flex', gap: '12px'}}>
+        <div className="form-group" style={{flex: 1}}>
+          <label>英文描述 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填)</span></label>
+          <textarea
+            value={newEpisode.descriptionEn}
+            onChange={(e) => setNewEpisode({...newEpisode, descriptionEn: e.target.value})}
+            rows="2"
+            placeholder="English description (optional)"
+          />
+        </div>
+        <div className="form-group" style={{flex: 1}}>
+          <label>日文描述 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填)</span></label>
+          <textarea
+            value={newEpisode.descriptionJa}
+            onChange={(e) => setNewEpisode({...newEpisode, descriptionJa: e.target.value})}
+            rows="2"
+            placeholder="日本語説明 (任意)"
+          />
+        </div>
       </div>
       <div className="form-group">
         <label>封面图片 <span style={{color: 'var(--destructive-text)'}}>*</span></label>

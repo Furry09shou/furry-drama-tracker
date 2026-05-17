@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
+
+const getI18nContent = (raw, lang) => {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && ('zh' in parsed || 'en' in parsed || 'ja' in parsed)) {
+      return parsed[lang] || parsed.zh || raw;
+    }
+  } catch (e) {}
+  return raw;
+};
+
+const getLocVal = (data, field, lang) => {
+  if (lang === 'zh') return data[field] || '';
+  const key = `${field}${lang.charAt(0).toUpperCase() + lang.slice(1)}`;
+  return data[key] || data[field] || '';
+};
 
 const SitePage = ({ pageKey }) => {
   const [content, setContent] = useState(null);
@@ -8,6 +25,7 @@ const SitePage = ({ pageKey }) => {
   const [showGithubModal, setShowGithubModal] = useState(false);
   const [changelogPage, setChangelogPage] = useState(1);
   const navigate = useNavigate();
+  const { lang } = useI18n();
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -76,12 +94,12 @@ const SitePage = ({ pageKey }) => {
               />
             )}
             <h1 style={{ margin: '0 0 8px 0', color: 'var(--foreground)' }}>{content.title}</h1>
-            {aboutData.description && (
+            {(getLocVal(aboutData, 'description', lang) || aboutData.description) && (
               <p style={{
                 color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7,
                 margin: '8px auto 0', maxWidth: '500px'
               }}>
-                {aboutData.description}
+                {getLocVal(aboutData, 'description', lang) || aboutData.description}
               </p>
             )}
             {aboutData.version && (
@@ -237,7 +255,7 @@ const SitePage = ({ pageKey }) => {
               borderTop: '1px solid var(--border)', paddingTop: '20px',
               color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 2
             }}>
-              {aboutData.copyright && <p style={{ margin: '4px 0' }}>{aboutData.copyright}</p>}
+              {(getLocVal(aboutData, 'copyright', lang) || aboutData.copyright) && <p style={{ margin: '4px 0' }}>{getLocVal(aboutData, 'copyright', lang) || aboutData.copyright}</p>}
               {aboutData.icp && (
                 <p style={{ margin: '4px 0' }}>
                   <a href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank" rel="noopener noreferrer"
@@ -259,7 +277,7 @@ const SitePage = ({ pageKey }) => {
                   </a>
                 </p>
               )}
-              {aboutData.aiDisclaimer && <p style={{ margin: '4px 0', fontStyle: 'italic', color: 'var(--text-tertiary)' }}>{aboutData.aiDisclaimer}</p>}
+              {(getLocVal(aboutData, 'aiDisclaimer', lang) || aboutData.aiDisclaimer) && <p style={{ margin: '4px 0', fontStyle: 'italic', color: 'var(--text-tertiary)' }}>{getLocVal(aboutData, 'aiDisclaimer', lang) || aboutData.aiDisclaimer}</p>}
               <p style={{ margin: '4px 0' }}>
                 <Link to="/license" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }}
                   onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
@@ -368,7 +386,7 @@ const SitePage = ({ pageKey }) => {
       }}>
         <h1 style={{ margin: '0 0 24px 0', color: 'var(--foreground)' }}>{content ? content.title : '加载中...'}</h1>
         <div style={{ color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-          {content ? content.content : ''}
+          {content ? getI18nContent(content.content, lang) : ''}
         </div>
       </div>
     </div>

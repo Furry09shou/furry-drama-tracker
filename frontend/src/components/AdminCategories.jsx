@@ -9,6 +9,8 @@ const AdminCategories = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryNameEn, setNewCategoryNameEn] = useState('');
+  const [newCategoryNameJa, setNewCategoryNameJa] = useState('');
   const [newCategoryOrder, setNewCategoryOrder] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -48,11 +50,15 @@ const AdminCategories = () => {
       const token = localStorage.getItem('adminToken');
       await axios.post('/api/categories', {
         name: newCategoryName.trim(),
+        nameEn: newCategoryNameEn.trim(),
+        nameJa: newCategoryNameJa.trim(),
         order: newCategoryOrder
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNewCategoryName('');
+      setNewCategoryNameEn('');
+      setNewCategoryNameJa('');
       setNewCategoryOrder(0);
       setShowAddForm(false);
       setSuccess('分类添加成功');
@@ -73,12 +79,16 @@ const AdminCategories = () => {
       const token = localStorage.getItem('adminToken');
       await axios.put(`/api/categories/${editingCategory._id}`, {
         name: newCategoryName.trim(),
+        nameEn: newCategoryNameEn.trim(),
+        nameJa: newCategoryNameJa.trim(),
         order: newCategoryOrder
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEditingCategory(null);
       setNewCategoryName('');
+      setNewCategoryNameEn('');
+      setNewCategoryNameJa('');
       setNewCategoryOrder(0);
       setSuccess('分类修改成功');
       fetchCategories();
@@ -104,6 +114,8 @@ const AdminCategories = () => {
   const openEdit = (cat) => {
     setEditingCategory(cat);
     setNewCategoryName(cat.name);
+    setNewCategoryNameEn(cat.nameEn || '');
+    setNewCategoryNameJa(cat.nameJa || '');
     setNewCategoryOrder(cat.order || 0);
   };
 
@@ -111,7 +123,7 @@ const AdminCategories = () => {
 
   const addFormModal = showAddForm ? (
     <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setShowAddForm(false); }}>
-      <div className="modal-content" style={{maxWidth: '400px'}}>
+      <div className="modal-content" style={{maxWidth: '520px'}}>
         <div className="modal-header">
           <h3>添加分类</h3>
           <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>关闭</button>
@@ -126,6 +138,26 @@ const AdminCategories = () => {
               placeholder="输入分类名称"
               required
             />
+          </div>
+          <div style={{display: 'flex', gap: '12px'}}>
+            <div className="form-group" style={{flex: 1}}>
+              <label>英文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+              <input
+                type="text"
+                value={newCategoryNameEn}
+                onChange={(e) => setNewCategoryNameEn(e.target.value)}
+                placeholder="English name (optional)"
+              />
+            </div>
+            <div className="form-group" style={{flex: 1}}>
+              <label>日文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+              <input
+                type="text"
+                value={newCategoryNameJa}
+                onChange={(e) => setNewCategoryNameJa(e.target.value)}
+                placeholder="日本語名 (任意)"
+              />
+            </div>
           </div>
           <div className="form-group">
             <label>排序（数字越小越靠前）</label>
@@ -147,7 +179,7 @@ const AdminCategories = () => {
 
   const editFormModal = editingCategory ? (
     <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setEditingCategory(null); }}>
-      <div className="modal-content" style={{maxWidth: '400px'}}>
+      <div className="modal-content" style={{maxWidth: '520px'}}>
         <div className="modal-header">
           <h3>编辑分类</h3>
           <button className="btn btn-secondary" onClick={() => setEditingCategory(null)}>关闭</button>
@@ -162,6 +194,26 @@ const AdminCategories = () => {
               placeholder="输入分类名称"
               required
             />
+          </div>
+          <div style={{display: 'flex', gap: '12px'}}>
+            <div className="form-group" style={{flex: 1}}>
+              <label>英文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+              <input
+                type="text"
+                value={newCategoryNameEn}
+                onChange={(e) => setNewCategoryNameEn(e.target.value)}
+                placeholder="English name (optional)"
+              />
+            </div>
+            <div className="form-group" style={{flex: 1}}>
+              <label>日文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+              <input
+                type="text"
+                value={newCategoryNameJa}
+                onChange={(e) => setNewCategoryNameJa(e.target.value)}
+                placeholder="日本語名 (任意)"
+              />
+            </div>
           </div>
           <div className="form-group">
             <label>排序（数字越小越靠前）</label>
@@ -187,7 +239,7 @@ const AdminCategories = () => {
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
           <h2>分类管理</h2>
         </div>
-        <button className="btn" onClick={() => { setShowAddForm(true); setNewCategoryName(''); setNewCategoryOrder(0); setError(''); }}>
+        <button className="btn" onClick={() => { setShowAddForm(true); setNewCategoryName(''); setNewCategoryNameEn(''); setNewCategoryNameJa(''); setNewCategoryOrder(0); setError(''); }}>
           添加分类
         </button>
       </div>
@@ -210,6 +262,8 @@ const AdminCategories = () => {
               <thead>
                 <tr style={{borderBottom: '1px solid var(--border)'}}>
                   <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>分类名称</th>
+                  <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>英文名称</th>
+                  <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>日文名称</th>
                   <th style={{padding: '12px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>排序</th>
                   <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>操作</th>
                 </tr>
@@ -227,6 +281,12 @@ const AdminCategories = () => {
                           {cat.name}
                         </div>
                       </div>
+                    </td>
+                    <td style={{padding: '12px 20px', color: cat.nameEn ? 'var(--foreground)' : 'var(--text-tertiary)', fontSize: '14px'}}>
+                      {cat.nameEn || '—'}
+                    </td>
+                    <td style={{padding: '12px 20px', color: cat.nameJa ? 'var(--foreground)' : 'var(--text-tertiary)', fontSize: '14px'}}>
+                      {cat.nameJa || '—'}
                     </td>
                     <td style={{padding: '12px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px'}}>
                       {cat.order || 0}

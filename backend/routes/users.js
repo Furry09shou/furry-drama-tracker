@@ -40,18 +40,25 @@ router.put('/profile', protect, async (req, res) => {
   try {
     const { username } = req.body;
     const updateData = {};
-    if (username && username.trim()) {
-      const existing = await User.findOne({ username: username.trim(), _id: { $ne: req.user._id } });
-      if (existing) {
-        return res.status(400).json({ message: 'Username already taken' });
+    if (username !== undefined && username.trim()) {
+      if (username.trim().length > 20) {
+        return res.status(400).json({ message: '昵称长度不能超过20个字符' });
       }
       updateData.username = username.trim();
     }
     if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ message: 'No data to update' });
+      return res.status(400).json({ message: '没有需要更新的数据' });
     }
     const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true }).select('-password');
-    res.json(user);
+    res.json({
+      _id: user._id,
+      accountId: user.accountId,
+      username: user.username,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      adminAccess: user.adminAccess || false,
+      avatar: user.avatar || ''
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -80,7 +87,8 @@ router.get('/export-my-data', protect, async (req, res) => {
 
       csv += '用户信息\n';
       csv += '字段,值\n';
-      csv += `用户名,${escapeCsv(user.username)}\n`;
+      csv += `账号ID,${escapeCsv(user.accountId)}\n`;
+      csv += `昵称,${escapeCsv(user.username)}\n`;
       csv += `邮箱,${escapeCsv(user.email)}\n`;
       csv += `注册时间,${escapeCsv(user.createdAt)}\n`;
       csv += '\n';

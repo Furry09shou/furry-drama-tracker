@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const ReportModal = ({ show, onClose, targetType, targetId, targetName }) => {
+  const { t } = useI18n();
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -10,26 +12,27 @@ const ReportModal = ({ show, onClose, targetType, targetId, targetName }) => {
   const [error, setError] = useState('');
 
   const reasons = [
-    { value: 'inappropriate', label: '不当内容' },
-    { value: 'copyright', label: '版权侵权' },
-    { value: 'spam', label: '垃圾信息' },
-    { value: 'misleading', label: '误导信息' },
-    { value: 'other', label: '其他' }
+    { value: 'inappropriate', label: t('report.inappropriate') },
+    { value: 'copyright', label: t('report.copyright') },
+    { value: 'spam', label: t('report.spam') },
+    { value: 'misleading', label: t('report.misleading') },
+    { value: 'other', label: t('report.other') }
   ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!reason) {
-      setError('请选择举报原因');
+      setError(t('report.selectReason'));
       return;
     }
     setSubmitting(true);
     setError('');
     try {
       const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       await axios.post('/api/reports', {
         targetType, targetId, reason, description
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      }, { headers });
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
@@ -38,7 +41,7 @@ const ReportModal = ({ show, onClose, targetType, targetId, targetName }) => {
         onClose();
       }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || '举报失败');
+      setError(err.response?.data?.message || t('report.submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -60,31 +63,31 @@ const ReportModal = ({ show, onClose, targetType, targetId, targetName }) => {
         {success ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
-            <p style={{ color: 'var(--secondary)', fontSize: '16px', fontWeight: 600 }}>举报已提交</p>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '8px' }}>我们会尽快处理</p>
+            <p style={{ color: 'var(--secondary)', fontSize: '16px', fontWeight: 600 }}>{t('report.submitted')}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '8px' }}>{t('report.willProcess')}</p>
           </div>
         ) : (
           <>
-            <h3 style={{ margin: '0 0 20px 0', fontSize: '18px' }}>举报「{targetName}」</h3>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '18px' }}>{t('report.title').replace('{targetName}', targetName)}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>举报原因 *</label>
+                <label>{t('report.reasonLabel')}</label>
                 <select value={reason} onChange={e => setReason(e.target.value)}
                   style={{
                     width: '100%', padding: '10px 12px', borderRadius: '8px',
                     background: 'var(--hover-bg-strong)', border: '1px solid var(--border)',
                     color: 'var(--foreground)', fontSize: '14px'
                   }}>
-                  <option value="">请选择原因</option>
+                  <option value="">{t('report.selectReasonPlaceholder')}</option>
                   {reasons.map(r => (
                     <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>补充说明</label>
+                <label>{t('report.descriptionLabel')}</label>
                 <textarea value={description} onChange={e => setDescription(e.target.value)}
-                  rows={3} placeholder="请描述具体情况..."
+                  rows={3} placeholder={t('report.descriptionPlaceholder')}
                   style={{
                     width: '100%', padding: '10px 12px', borderRadius: '8px',
                     background: 'var(--hover-bg-strong)', border: '1px solid var(--border)',
@@ -93,10 +96,10 @@ const ReportModal = ({ show, onClose, targetType, targetId, targetName }) => {
               </div>
               {error && <p style={{ color: 'var(--destructive-text)', fontSize: '14px', marginBottom: '12px' }}>{error}</p>}
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={onClose} className="btn btn-secondary">取消</button>
+                <button type="button" onClick={onClose} className="btn btn-secondary">{t('common.cancel')}</button>
                 <button type="submit" disabled={submitting} className="btn" style={{
                   background: 'var(--destructive)', opacity: submitting ? 0.7 : 1
-                }}>{submitting ? '提交中...' : '提交举报'}</button>
+                }}>{submitting ? t('common.processing') : t('report.submit')}</button>
               </div>
             </form>
           </>

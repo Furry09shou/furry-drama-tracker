@@ -2,8 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ConfirmModal from './ConfirmModal';
+import { useI18n } from '../contexts/I18nContext';
 
 const UserDevices = ({ user }) => {
+  const { t } = useI18n();
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
@@ -24,9 +30,8 @@ const UserDevices = ({ user }) => {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const res = await axios.get('/api/user-sessions/my', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
       setSessions(res.data);
     } catch (err) {
@@ -38,20 +43,19 @@ const UserDevices = ({ user }) => {
   const handleLogoutSession = async (id) => {
     setConfirmModal({
       show: true,
-      title: '⚠️ 下线设备',
-      message: '确定要下线该设备吗？',
+      title: t('devices.logoutDevice'),
+      message: t('devices.confirmLogoutDevice'),
       type: 'danger',
       onConfirm: async () => {
         try {
-          const token = localStorage.getItem('token');
           await axios.delete(`/api/user-sessions/${id}`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: getAuthHeaders()
           });
-          setMsg('已下线该设备');
+          setMsg(t('devices.deviceLoggedOut'));
           fetchSessions();
           setTimeout(() => setMsg(''), 3000);
         } catch (err) {
-          setMsg(err.response?.data?.message || '操作失败');
+          setMsg(err.response?.data?.message || t('common.operationFailed'));
           setTimeout(() => setMsg(''), 3000);
         }
       }
@@ -61,20 +65,19 @@ const UserDevices = ({ user }) => {
   const handleLogoutAllSessions = async () => {
     setConfirmModal({
       show: true,
-      title: '⚠️ 下线其他设备',
-      message: '确定要下线其他所有设备吗？当前设备不受影响。',
+      title: t('devices.logoutOtherDevices'),
+      message: t('devices.confirmLogoutOtherDevices'),
       type: 'warning',
       onConfirm: async () => {
         try {
-          const token = localStorage.getItem('token');
           const res = await axios.delete('/api/user-sessions/my/all', {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: getAuthHeaders()
           });
           setMsg(res.data.message);
           fetchSessions();
           setTimeout(() => setMsg(''), 3000);
         } catch (err) {
-          setMsg('操作失败');
+          setMsg(t('common.operationFailed'));
           setTimeout(() => setMsg(''), 3000);
         }
       }
@@ -83,17 +86,16 @@ const UserDevices = ({ user }) => {
 
   const handleSaveName = async (id) => {
     try {
-      const token = localStorage.getItem('token');
       await axios.put(`/api/user-sessions/${id}/name`, { deviceName: editName }, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
       setEditingId(null);
       setEditName('');
       fetchSessions();
-      setMsg('别名已更新');
+      setMsg(t('devices.aliasUpdated'));
       setTimeout(() => setMsg(''), 3000);
     } catch (err) {
-      setMsg(err.response?.data?.message || '修改失败');
+      setMsg(err.response?.data?.message || t('common.updateFailed'));
       setTimeout(() => setMsg(''), 3000);
     }
   };
@@ -121,24 +123,24 @@ const UserDevices = ({ user }) => {
     <div className="user-profile">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link to="/profile" className="btn btn-secondary">返回</Link>
-          <h2 style={{ margin: 0 }}>管理设备</h2>
+          <Link to="/profile" className="btn btn-secondary">{t('common.back')}</Link>
+          <h2 style={{ margin: 0 }}>{t('devices.manageDevices')}</h2>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={fetchSessions}>刷新</button>
+          <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={fetchSessions}>{t('common.refresh')}</button>
           {activeCount > 1 && (
             <button style={{
               padding: '6px 14px', borderRadius: '8px', fontSize: '13px',
               background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
               border: '1px solid var(--destructive-border)', cursor: 'pointer',
               transition: 'all 0.2s'
-            }} onClick={handleLogoutAllSessions}>下线其他设备</button>
+            }} onClick={handleLogoutAllSessions}>{t('devices.logoutOtherDevices')}</button>
           )}
         </div>
       </div>
 
       <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-        管理您的登录设备，下线可疑设备以保护账号安全。当前在线 <strong style={{ color: 'var(--success-text)' }}>{activeCount}</strong> 台设备。
+        {t('devices.manageDevicesDesc')} <strong style={{ color: 'var(--success-text)' }}>{activeCount}</strong> {t('devices.manageDevicesDescSuffix')}
       </p>
 
       {msg && (
@@ -151,9 +153,9 @@ const UserDevices = ({ user }) => {
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>加载中...</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>{t('common.loading')}</div>
       ) : sessions.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>暂无登录记录</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>{t('devices.noLoginRecords')}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {sessions.map(session => (
@@ -172,7 +174,7 @@ const UserDevices = ({ user }) => {
                       <input
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        placeholder="输入设备别名"
+                        placeholder={t('devices.enterDeviceAlias')}
                         style={{
                           padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)',
                           background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px', width: '140px'
@@ -182,21 +184,21 @@ const UserDevices = ({ user }) => {
                       <button onClick={() => handleSaveName(session._id)} style={{
                         padding: '4px 10px', borderRadius: '6px', fontSize: '12px',
                         background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer'
-                      }}>保存</button>
+                      }}>{t('common.save')}</button>
                       <button onClick={() => setEditingId(null)} style={{
                         padding: '4px 10px', borderRadius: '6px', fontSize: '12px',
                         background: 'var(--hover-bg)', color: 'var(--foreground)', border: '1px solid var(--border)', cursor: 'pointer'
-                      }}>取消</button>
+                      }}>{t('common.cancel')}</button>
                     </div>
                   ) : (
                     <>
                       <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>
-                        {session.deviceInfo?.deviceName || session.deviceInfo?.browser || '未知浏览器'} {session.deviceInfo?.browserVersion}
+                        {session.deviceInfo?.deviceName || session.deviceInfo?.browser || t('devices.unknownBrowser')} {session.deviceInfo?.browserVersion}
                       </span>
                       <button onClick={() => startEdit(session)} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         color: 'var(--text-secondary)', fontSize: '14px', padding: '2px 4px'
-                      }} title="编辑别名">✏️</button>
+                      }} title={t('devices.editAlias')}>✏️</button>
                     </>
                   )}
                   {session.isActive ? (
@@ -204,20 +206,20 @@ const UserDevices = ({ user }) => {
                       fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
                       background: 'var(--success-bg-subtle)', color: 'var(--success-text)',
                       border: '1px solid var(--success-border)'
-                    }}>在线</span>
+                    }}>{t('devices.online')}</span>
                   ) : (
                     <span style={{
                       fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
                       background: 'var(--hover-bg)', color: 'var(--text-secondary)',
                       border: '1px solid var(--border)'
-                    }}>已离线</span>
+                    }}>{t('devices.offline')}</span>
                   )}
                   {session.isCurrent && (
                     <span style={{
                       fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
                       background: 'var(--primary-bg)', color: 'var(--primary)',
                       border: '1px solid var(--primary-border)', fontWeight: 600
-                    }}>本机</span>
+                    }}>{t('devices.currentDevice')}</span>
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
@@ -228,9 +230,9 @@ const UserDevices = ({ user }) => {
                   {session.ip && <span>IP: {session.ip}</span>}
                 </div>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  <span>登录: {formatTime(session.loginAt)}</span>
-                  {session.isActive && <span>最后活跃: {formatTime(session.lastActiveAt)}</span>}
-                  {!session.isActive && session.logoutAt && <span>离线: {formatTime(session.logoutAt)}</span>}
+                  <span>{t('devices.loginAt')}{formatTime(session.loginAt)}</span>
+                  {session.isActive && <span>{t('devices.lastActive')}{formatTime(session.lastActiveAt)}</span>}
+                  {!session.isActive && session.logoutAt && <span>{t('devices.offlineAt')}{formatTime(session.logoutAt)}</span>}
                 </div>
               </div>
               <div style={{ flexShrink: 0 }}>
@@ -240,7 +242,7 @@ const UserDevices = ({ user }) => {
                     background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
                     border: '1px solid var(--destructive-border)', cursor: 'pointer',
                     transition: 'all 0.2s'
-                  }}>下线</button>
+                  }}>{t('devices.logout')}</button>
                 )}
               </div>
             </div>

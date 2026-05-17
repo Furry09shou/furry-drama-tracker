@@ -4,6 +4,8 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import I18nContext, { I18nProvider, useI18n } from './contexts/I18nContext';
+import useTranslation from './hooks/useTranslation';
 import Home from './components/Home';
 import EpisodeDetail from './components/EpisodeDetail';
 import Login from './components/Login';
@@ -37,18 +39,21 @@ import AdminFriendLinks from './components/AdminFriendLinks';
 import AdminSessions from './components/AdminSessions';
 import UserDevices from './components/UserDevices';
 import FriendLinks from './components/FriendLinks';
+import LanguageSwitcher from './components/LanguageSwitcher';
 import FeedbackModal from './components/FeedbackModal';
 import AdminAnalytics from './components/AdminAnalytics';
 
 const NavBar = ({ onFeedback }) => {
   const { user, logout } = useAuth();
+  const { t } = useI18n();
+  const { getLocalizedContent } = useTranslation();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [siteSettings, setSiteSettings] = useState({ siteName: '兽剧聚合平台', navLogo: '' });
+  const [siteSettings, setSiteSettings] = useState({ siteName: t('site.defaultName'), navLogo: '', siteNameEn: '', siteNameJa: '', browserTitle: '', browserTitleEn: '', browserTitleJa: '' });
   const notifRef = useRef(null);
   const notifPanelRef = useRef(null);
   const moreRef = useRef(null);
@@ -60,7 +65,15 @@ const NavBar = ({ onFeedback }) => {
       .then(res => {
         try {
           const data = JSON.parse(res.data.content);
-          setSiteSettings({ siteName: data.siteName || '兽剧聚合平台', navLogo: data.navLogo || '' });
+          setSiteSettings({
+            siteName: data.siteName || t('site.defaultName'),
+            navLogo: data.navLogo || '',
+            siteNameEn: data.siteNameEn || '',
+            siteNameJa: data.siteNameJa || '',
+            browserTitle: data.browserTitle || '',
+            browserTitleEn: data.browserTitleEn || '',
+            browserTitleJa: data.browserTitleJa || ''
+          });
         } catch (e) {}
       })
       .catch(() => {});
@@ -69,16 +82,25 @@ const NavBar = ({ onFeedback }) => {
   // SSE通知推送
   useEffect(() => {
     if (!user) return;
-    const token = localStorage.getItem('token');
-    if (!token) return;
 
-    // SSE连接
-    const connectSSE = () => {
+    let reconnectTimer = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+    const getReconnectDelay = () => Math.min(3000 * Math.pow(1.5, reconnectAttempts), 30000);
+
+    const getAuthHeaders = () => {
+      const token = localStorage.getItem('token');
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    const connectSSE = async () => {
       if (sseRef.current) {
         sseRef.current.close();
       }
       try {
-        const eventSource = new EventSource(`/api/notifications/stream?token=${token}`);
+        const ticketRes = await axios.get('/api/auth/sse-ticket', { headers: getAuthHeaders() });
+        const ticket = ticketRes.data.ticket;
+        const eventSource = new EventSource(`/api/notifications/stream?ticket=${ticket}`);
         sseRef.current = eventSource;
 
         eventSource.addEventListener('notification', (event) => {
@@ -95,18 +117,26 @@ const NavBar = ({ onFeedback }) => {
 
         eventSource.onerror = () => {
           eventSource.close();
-          // 降级为轮询
+          sseRef.current = null;
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            reconnectTimer = setTimeout(connectSSE, getReconnectDelay());
+          }
         };
+
+        reconnectAttempts = 0;
       } catch (e) {
-        // SSE不可用，使用轮询降级
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          reconnectTimer = setTimeout(connectSSE, getReconnectDelay());
+        }
       }
     };
 
     connectSSE();
 
-    // 轮询降级方案
     const fetchUnread = () => {
-      axios.get('/api/notifications/unread-count', { headers: { Authorization: `Bearer ${token}` } })
+      axios.get('/api/notifications/unread-count', { headers: getAuthHeaders() })
         .then(res => setUnreadCount(res.data.count))
         .catch(() => {});
     };
@@ -115,6 +145,7 @@ const NavBar = ({ onFeedback }) => {
 
     return () => {
       clearInterval(interval);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       if (sseRef.current) {
         sseRef.current.close();
       }
@@ -124,8 +155,8 @@ const NavBar = ({ onFeedback }) => {
   useEffect(() => {
     if (!showNotifPanel || !user) return;
     const token = localStorage.getItem('token');
-    if (!token) return;
-    axios.get('/api/notifications/list', { headers: { Authorization: `Bearer ${token}` } })
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    axios.get('/api/notifications/list', { headers })
       .then(res => setNotifications(res.data.list || res.data))
       .catch(() => {});
   }, [showNotifPanel, user]);
@@ -149,7 +180,8 @@ const NavBar = ({ onFeedback }) => {
   const clearReadNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete('/api/notifications/clear-read', { headers: { Authorization: `Bearer ${token}` } });
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await axios.delete('/api/notifications/clear-read', { headers });
       setNotifications(prev => prev.filter(n => !n.isRead));
     } catch (e) {}
   };
@@ -157,7 +189,8 @@ const NavBar = ({ onFeedback }) => {
   const markAllRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put('/api/notifications/read-all', {}, { headers: { Authorization: `Bearer ${token}` } });
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await axios.put('/api/notifications/read-all', {}, { headers });
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (e) {}
@@ -167,10 +200,10 @@ const NavBar = ({ onFeedback }) => {
     const d = new Date(dateStr);
     const now = new Date();
     const diff = now - d;
-    if (diff < 60000) return '刚刚';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-    return `${Math.floor(diff / 86400000)}天前`;
+    if (diff < 60000) return t('common.justNow');
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('common.minutesAgo')}`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('common.hoursAgo')}`;
+    return `${Math.floor(diff / 86400000)}${t('common.daysAgo')}`;
   };
 
   const clearSiteCache = () => {
@@ -190,12 +223,12 @@ const NavBar = ({ onFeedback }) => {
   };
 
   const moreMenuItems = [
-    ...(user ? [{ to: user.adminAccess ? '/admin/dashboard' : '/admin/stats', label: user.adminAccess ? '管理后台' : '数据统计' }] : []),
-    { to: '/friend-links', label: '友情链接' },
-    { to: '/privacy', label: '隐私政策' },
-    { to: '/terms', label: '用户协议' },
-    { to: '/license', label: '许可协议' },
-    { to: '/about', label: '关于我们' },
+    ...(user ? [{ to: user.adminAccess ? '/admin/dashboard' : '/admin/stats', label: user.adminAccess ? t('nav.admin') : t('nav.admin') }] : []),
+    { to: '/friend-links', label: t('nav.friendLinks') },
+    { to: '/privacy', label: t('nav.privacy') },
+    { to: '/terms', label: t('nav.terms') },
+    { to: '/license', label: t('nav.license') },
+    { to: '/about', label: t('nav.about') },
   ];
 
   const [showMobileMore, setShowMobileMore] = useState(false);
@@ -221,7 +254,7 @@ const NavBar = ({ onFeedback }) => {
           transition: 'background 0.2s'
         }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-        >用户反馈</button>
+        >{t('nav.userFeedback')}</button>
       </li>
       <li>
         <button onClick={() => { clearSiteCache(); setShowMobileMore(false); }} style={{
@@ -231,7 +264,7 @@ const NavBar = ({ onFeedback }) => {
           transition: 'background 0.2s'
         }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-        >清理缓存</button>
+        >{t('nav.clearCache')}</button>
       </li>
       {user && (
         <li>
@@ -242,7 +275,7 @@ const NavBar = ({ onFeedback }) => {
             transition: 'background 0.2s'
           }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--destructive-bg-subtle)'}
              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >退出登录</button>
+          >{t('nav.logout')}</button>
         </li>
       )}
     </>
@@ -256,7 +289,7 @@ const NavBar = ({ onFeedback }) => {
             {siteSettings.navLogo && (
               <img src={siteSettings.navLogo} alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
             )}
-            <h1>{siteSettings.siteName}</h1>
+            <h1>{getLocalizedContent({content: JSON.stringify(siteSettings)}, 'siteName')}</h1>
           </a>
         </div>
         <div className="mobile-actions" style={{ display: 'none', alignItems: 'center', gap: '4px' }}>
@@ -286,17 +319,18 @@ const NavBar = ({ onFeedback }) => {
           }} title={themeTitle}>
             {themeIcon}
           </button>
+          <LanguageSwitcher style={{ fontSize: '12px' }} />
           <button className="mobile-menu-btn" onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMobileMore(false); }} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--foreground)', fontSize: '22px', padding: '6px'
           }}>☰</button>
         </div>
         <ul className={showMobileMenu ? 'mobile-open' : ''}>
-          <li><a href="/" onClick={(e) => { e.preventDefault(); setShowMobileMenu(false); navigate('/'); }}>首页</a></li>
-          <li><Link to="/calendar" onClick={() => setShowMobileMenu(false)}>日历</Link></li>
+          <li><a href="/" onClick={(e) => { e.preventDefault(); setShowMobileMenu(false); navigate('/'); }}>{t('nav.home')}</a></li>
+          <li><Link to="/calendar" onClick={() => setShowMobileMenu(false)}>{t('nav.calendar')}</Link></li>
           {user ? (
             <>
-              <li><Link to="/profile" onClick={() => setShowMobileMenu(false)}>个人中心</Link></li>
+              <li><Link to="/profile" onClick={() => setShowMobileMenu(false)}>{t('nav.profile')}</Link></li>
               <li style={{position: 'relative'}} ref={notifRef}>
                 <button
                   onClick={() => setShowNotifPanel(!showNotifPanel)}
@@ -329,26 +363,26 @@ const NavBar = ({ onFeedback }) => {
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       padding: '16px', borderBottom: '1px solid var(--border)'
                     }}>
-                      <h3 style={{margin: 0, fontSize: '16px', color: 'var(--foreground)'}}>通知</h3>
+                      <h3 style={{margin: 0, fontSize: '16px', color: 'var(--foreground)'}}>{t('nav.notifications')}</h3>
                       <div style={{display: 'flex', gap: '12px'}}>
                         {unreadCount > 0 && (
                           <button onClick={markAllRead} style={{
                             background: 'none', border: 'none', color: 'var(--primary)',
                             cursor: 'pointer', fontSize: '13px'
-                          }}>全部已读</button>
+                          }}>{t('notification.markAllRead')}</button>
                         )}
                         {notifications.some(n => n.isRead) && (
                           <button onClick={clearReadNotifications} style={{
                             background: 'none', border: 'none', color: 'var(--text-secondary)',
                             cursor: 'pointer', fontSize: '13px'
-                          }}>清除已读</button>
+                          }}>{t('notification.clearRead')}</button>
                         )}
                       </div>
                     </div>
                     <div>
                       {notifications.length === 0 ? (
                         <div style={{padding: '30px', textAlign: 'center', color: 'var(--text-secondary)'}}>
-                          暂无通知
+                          {t('notification.noNotifications')}
                         </div>
                       ) : (
                         notifications.map(n => (
@@ -391,6 +425,9 @@ const NavBar = ({ onFeedback }) => {
                 )}
               </li>
               <li className="desktop-only-theme">
+                <LanguageSwitcher style={{ fontSize: '13px' }} />
+              </li>
+              <li className="desktop-only-theme">
                 <button onClick={toggleTheme} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
@@ -408,7 +445,7 @@ const NavBar = ({ onFeedback }) => {
                     padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px'
                   }}
                 >
-                  更多 ▾
+                  {t('nav.more')}
                 </button>
                 {showMoreMenu && (
                   <div style={{
@@ -437,7 +474,7 @@ const NavBar = ({ onFeedback }) => {
                         borderBottom: '1px solid var(--border)'
                       }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                      >用户反馈</button>
+                      >{t('nav.userFeedback')}</button>
                     </div>
                     <div style={{borderTop: '1px solid var(--border)'}}>
                       <button onClick={clearSiteCache} style={{
@@ -448,7 +485,7 @@ const NavBar = ({ onFeedback }) => {
                         borderBottom: '1px solid var(--border)'
                       }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                      >清理缓存</button>
+                      >{t('nav.clearCache')}</button>
                     </div>
                     <div>
                       <button onClick={() => { setShowMoreMenu(false); logout(); }} style={{
@@ -458,7 +495,7 @@ const NavBar = ({ onFeedback }) => {
                         transition: 'background 0.2s'
                       }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--destructive-bg-subtle)'}
                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                      >退出登录</button>
+                      >{t('nav.logout')}</button>
                     </div>
                   </div>
                 )}
@@ -472,7 +509,7 @@ const NavBar = ({ onFeedback }) => {
                 }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
-                  <span>更多</span>
+                  <span>{t('nav.more')}</span>
                   <span style={{ fontSize: '12px', transition: 'transform 0.2s', transform: showMobileMore ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
                 </button>
               </li>
@@ -480,8 +517,11 @@ const NavBar = ({ onFeedback }) => {
             </>
           ) : (
             <>
-              <li><Link to="/login">登录</Link></li>
-              <li><Link to="/register">注册</Link></li>
+              <li><Link to="/login">{t('nav.login')}</Link></li>
+              <li><Link to="/register">{t('nav.register')}</Link></li>
+              <li className="desktop-only-theme">
+                <LanguageSwitcher style={{ fontSize: '13px' }} />
+              </li>
               <li className="desktop-only-theme">
                 <button onClick={toggleTheme} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
@@ -500,7 +540,7 @@ const NavBar = ({ onFeedback }) => {
                     padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px'
                   }}
                 >
-                  更多 ▾
+                  {t('nav.more')}
                 </button>
                 {showMoreMenu && (
                   <div style={{
@@ -528,7 +568,7 @@ const NavBar = ({ onFeedback }) => {
                         transition: 'background 0.2s'
                       }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                      >清理缓存</button>
+                      >{t('nav.clearCache')}</button>
                     </div>
                   </div>
                 )}
@@ -542,7 +582,7 @@ const NavBar = ({ onFeedback }) => {
                 }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
-                  <span>更多</span>
+                  <span>{t('nav.more')}</span>
                   <span style={{ fontSize: '12px', transition: 'transform 0.2s', transform: showMobileMore ? 'rotate(180deg)' : 'rotate(0)' }}>▾</span>
                 </button>
               </li>
@@ -556,6 +596,7 @@ const NavBar = ({ onFeedback }) => {
 };
 
 const FooterBeian = () => {
+  const { t } = useI18n();
   const [beianInfo, setBeianInfo] = useState({ icp: '', policeRecord: '', copyright: '', aiDisclaimer: '', version: '' });
   const [showGithubModal, setShowGithubModal] = useState(false);
 
@@ -588,7 +629,7 @@ const FooterBeian = () => {
     >
       <button
         onClick={() => window.location.reload()}
-        title="刷新页面"
+        title={t('common.refreshPage')}
         style={{
           background: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: '8px', padding: '4px 8px', cursor: 'pointer',
@@ -600,7 +641,7 @@ const FooterBeian = () => {
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-        刷新
+        {t('common.refresh')}
       </button>
       {beianInfo.copyright && (
         <span style={{ color: 'var(--text-secondary)' }}>{beianInfo.copyright}</span>
@@ -635,7 +676,7 @@ const FooterBeian = () => {
       <Link to="/license" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }}
         onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
         onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-      >GPL v3.0 / AGPL v3.0 许可协议</Link>
+      >{t('footer.licenseAgreement')}</Link>
       <span
         onClick={() => setShowGithubModal(true)}
         style={{ color: 'var(--text-tertiary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
@@ -643,7 +684,7 @@ const FooterBeian = () => {
         onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
       >
         <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" style={{ flexShrink: 0 }}><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        GitHub 开源项目
+        {t('footer.githubProject')}
       </span>
       {showGithubModal && (
         <div onClick={() => setShowGithubModal(false)} style={{
@@ -657,7 +698,7 @@ const FooterBeian = () => {
             maxWidth: '400px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--foreground)' }}>GitHub 开源项目</h3>
+              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--foreground)' }}>{t('footer.githubProject')}</h3>
               <button onClick={() => setShowGithubModal(false)} style={{
                 background: 'none', border: 'none', color: 'var(--text-secondary)',
                 fontSize: '20px', cursor: 'pointer', padding: '4px 8px', lineHeight: 1
@@ -673,14 +714,14 @@ const FooterBeian = () => {
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
                 <span style={{ fontSize: '24px' }}>🎨</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>前端项目</div>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>{t('footer.frontendProject')}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-fe</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>GPL v3.0</span>
                     <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }}
                       onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
                       onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                    >查看许可协议</Link>
+                    >{t('footer.viewLicense')}</Link>
                   </div>
                 </div>
                 <a href="https://github.com/Furry09shou/furry-drama-fe" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
@@ -698,14 +739,14 @@ const FooterBeian = () => {
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
                 <span style={{ fontSize: '24px' }}>⚙️</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>后端项目</div>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>{t('footer.backendProject')}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-be</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>AGPL v3.0</span>
                     <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }}
                       onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
                       onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                    >查看许可协议</Link>
+                    >{t('footer.viewLicense')}</Link>
                   </div>
                 </div>
                 <a href="https://github.com/Furry09shou/furry-drama-be" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
@@ -727,6 +768,7 @@ const FooterBeian = () => {
 
 function AppContent() {
   const { user, login, logout, initializing } = useAuth();
+  const { t, lang } = useI18n();
   const [showFeedback, setShowFeedback] = useState(false);
   const location = useLocation();
 
@@ -737,8 +779,10 @@ function AppContent() {
       .then(res => {
         try {
           const data = JSON.parse(res.data.content);
-          if (data.browserTitle) {
-            document.title = data.browserTitle;
+          const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
+          const localizedTitle = data[`browserTitle${suffix}`] || data.browserTitle;
+          if (localizedTitle) {
+            document.title = localizedTitle;
           }
           if (data.favicon) {
             let link = document.querySelector("link[rel~='icon']");
@@ -757,7 +801,7 @@ function AppContent() {
   if (initializing) {
     return (
       <div className="container" style={{textAlign: 'center', paddingTop: '100px'}}>
-        <h2>加载中...</h2>
+        <h2>{t('common.loading')}</h2>
       </div>
     );
   }
@@ -805,7 +849,7 @@ function AppContent() {
           <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/verify-device" element={<Login login={(data) => { localStorage.setItem('token', data.token); localStorage.setItem('user', JSON.stringify(data)); }} />} />
+          <Route path="/verify-device" element={<Login login={login} />} />
           <Route path="/calendar" element={<UpdateCalendar />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/creator/:id" element={<CreatorPage />} />
@@ -827,17 +871,20 @@ function App() {
   return (
     <Router>
       <ThemeProvider>
-        <AuthProvider>
-          <ErrorBoundary>
-            <AppContent />
-          </ErrorBoundary>
-        </AuthProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <ErrorBoundary>
+              <AppContent />
+            </ErrorBoundary>
+          </AuthProvider>
+        </I18nProvider>
       </ThemeProvider>
     </Router>
   );
 }
 
 class ErrorBoundary extends Component {
+  static contextType = I18nContext;
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -847,11 +894,12 @@ class ErrorBoundary extends Component {
   }
   render() {
     if (this.state.hasError) {
+      const { t } = this.context;
       return (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--foreground)' }}>
-          <h2>页面加载出错</h2>
-          <p style={{ color: 'var(--destructive-text)', margin: '16px 0' }}>{this.state.error?.message}</p>
-          <button onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }} style={{ padding: '10px 24px', borderRadius: '8px', background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '14px' }}>刷新页面</button>
+          <h2>{t('common.pageLoadError')}</h2>
+          <p style={{ color: 'var(--destructive-text)', margin: '16px 0' }}>{import.meta.env.PROD ? t('common.pageLoadError') : this.state.error?.message}</p>
+          <button onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }} style={{ padding: '10px 24px', borderRadius: '8px', background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '14px' }}>{t('common.refreshPage')}</button>
         </div>
       );
     }

@@ -5,7 +5,23 @@ const BannerSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  titleEn: {
+    type: String,
+    default: ''
+  },
+  titleJa: {
+    type: String,
+    default: ''
+  },
   subtitle: {
+    type: String,
+    default: ''
+  },
+  subtitleEn: {
+    type: String,
+    default: ''
+  },
+  subtitleJa: {
     type: String,
     default: ''
   },

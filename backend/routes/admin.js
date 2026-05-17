@@ -70,6 +70,15 @@ router.post('/login', async (req, res) => {
     });
     await session.save();
 
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('adminToken', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
     res.json({
       _id: admin._id,
       username: admin.username,
@@ -86,6 +95,7 @@ router.post('/logout', adminProtect, async (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const tokenHash = hashToken(token);
     await AdminSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
+    res.clearCookie('adminToken', { path: '/' });
     res.json({ message: '退出成功' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -154,6 +164,7 @@ router.get('/users', adminProtect, async (req, res) => {
     const query = {};
     if (search) {
       query.$or = [
+        { accountId: { $regex: search, $options: 'i' } },
         { username: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ];

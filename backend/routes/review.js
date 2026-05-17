@@ -16,7 +16,7 @@ const adminOnly = (req, res, next) => {
 router.get('/pending', adminProtect, adminOnly, async (req, res) => {
   try {
     const episodes = await Episode.find({ reviewStatus: 'pending' })
-      .populate('createdBy', 'username email')
+      .populate('createdBy', 'accountId username email')
       .sort({ updatedAt: -1 });
     res.json(episodes);
   } catch (error) {
@@ -27,8 +27,8 @@ router.get('/pending', adminProtect, adminOnly, async (req, res) => {
 router.get('/all', adminProtect, adminOnly, async (req, res) => {
   try {
     const episodes = await Episode.find({})
-      .populate('createdBy', 'username email')
-      .populate('allowedEditors', 'username email')
+      .populate('createdBy', 'accountId username email')
+      .populate('allowedEditors', 'accountId username email')
       .sort({ updatedAt: -1 });
     res.json(episodes);
   } catch (error) {
@@ -92,8 +92,8 @@ router.put('/assign-editor/:episodeId', adminProtect, adminOnly, async (req, res
     }
     clearCache(`episode_${req.params.episodeId}`);
     const updated = await Episode.findById(req.params.episodeId)
-      .populate('createdBy', 'username')
-      .populate('allowedEditors', 'username');
+      .populate('createdBy', 'accountId username')
+      .populate('allowedEditors', 'accountId username');
     res.json(updated);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -112,8 +112,8 @@ router.put('/remove-editor/:episodeId', adminProtect, adminOnly, async (req, res
       await episode.save();
     }
     const updated = await Episode.findById(req.params.episodeId)
-      .populate('createdBy', 'username email')
-      .populate('allowedEditors', 'username email');
+      .populate('createdBy', 'accountId username email')
+      .populate('allowedEditors', 'accountId username email');
     res.json(updated);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

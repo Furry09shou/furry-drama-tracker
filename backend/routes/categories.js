@@ -14,12 +14,12 @@ router.get('/', async (req, res) => {
 
 router.post('/', adminProtect, async (req, res) => {
   try {
-    const { name, order } = req.body;
+    const { name, nameEn, nameJa, order } = req.body;
     const existing = await Category.findOne({ name });
     if (existing) {
       return res.status(400).json({ message: '该分类已存在' });
     }
-    const category = await Category.create({ name, order: order || 0 });
+    const category = await Category.create({ name, nameEn: nameEn || '', nameJa: nameJa || '', order: order || 0 });
     res.json(category);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -28,12 +28,14 @@ router.post('/', adminProtect, async (req, res) => {
 
 router.put('/:id', adminProtect, async (req, res) => {
   try {
-    const { name, order } = req.body;
+    const { name, nameEn, nameJa, order } = req.body;
     const category = await Category.findById(req.params.id);
     if (!category) {
       return res.status(404).json({ message: '分类不存在' });
     }
     if (name) category.name = name;
+    if (nameEn !== undefined) category.nameEn = nameEn;
+    if (nameJa !== undefined) category.nameJa = nameJa;
     if (order !== undefined) category.order = order;
     await category.save();
     res.json(category);

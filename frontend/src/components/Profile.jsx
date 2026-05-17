@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useLocation } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
+import useTranslation from '../hooks/useTranslation';
+import TwoFactorAuth from './TwoFactorAuth';
 
 const Profile = ({ user, setUser, logout }) => {
+  const { t, lang } = useI18n();
+  const { getLocalizedTitle } = useTranslation();
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
   const [followedEpisodes, setFollowedEpisodes] = useState([]);
   const [historyEpisodes, setHistoryEpisodes] = useState([]);
   const [favoriteEpisodes, setFavoriteEpisodes] = useState([]);
@@ -19,6 +28,12 @@ const Profile = ({ user, setUser, logout }) => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameValue, setNicknameValue] = useState('');
+  const [nicknameLoading, setNicknameLoading] = useState(false);
+  const [nicknameError, setNicknameError] = useState('');
+  const [show2FA, setShow2FA] = useState(false);
 
   const location = useLocation();
 
@@ -26,18 +41,18 @@ const Profile = ({ user, setUser, logout }) => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) { setLoading(false); return; }
-        const config = { headers: { Authorization: `Bearer ${token}` } };
+      if (!token) { setLoading(false); return; }
+      const config = { headers: getAuthHeaders() };
         let followData = [];
         let historyData = [];
         try {
           const followRes = await axios.get('/api/follows/list', config);
           followData = followRes.data.list || followRes.data || [];
-        } catch (e) { console.error('获取追番失败:', e.response?.data || e.message); }
+        } catch (e) { console.error(t('profile.fetchFollowsFailed') + ':', e.response?.data || e.message); }
         try {
           const historyRes = await axios.get('/api/histories/list', config);
           historyData = historyRes.data.list || historyRes.data || [];
-        } catch (e) { console.error('获取历史失败:', e.response?.data || e.message); }
+        } catch (e) { console.error(t('profile.fetchHistoryFailed') + ':', e.response?.data || e.message); }
         try {
           const favRes = await axios.get('/api/favorites/list', config);
           setFavoriteEpisodes(favRes.data.list || favRes.data || []);
@@ -64,9 +79,8 @@ const Profile = ({ user, setUser, logout }) => {
     setDeleteLoading(true);
     setDeleteError('');
     try {
-      const token = localStorage.getItem('token');
       const res = await axios.post('/api/auth/request-deletion', {}, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
       setDeletionStatus({
         requested: true,
@@ -77,7 +91,7 @@ const Profile = ({ user, setUser, logout }) => {
       setDeleteStep(0);
       setDeletePassword('');
     } catch (err) {
-      setDeleteError(err.response?.data?.message || '申请注销失败');
+      setDeleteError(err.response?.data?.message || t('profile.deletionRequestFailed'));
     }
     setDeleteLoading(false);
   };
@@ -85,13 +99,12 @@ const Profile = ({ user, setUser, logout }) => {
   const handleCancelDeletion = async () => {
     setCancelLoading(true);
     try {
-      const token = localStorage.getItem('token');
       await axios.post('/api/auth/cancel-deletion', {}, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
       setDeletionStatus(null);
     } catch (err) {
-      console.error('取消注销失败', err);
+      console.error(t('profile.cancelDeletionFailed'), err);
     }
     setCancelLoading(false);
   };
@@ -100,27 +113,26 @@ const Profile = ({ user, setUser, logout }) => {
     const now = new Date();
     const target = new Date(deleteAt);
     const diff = target - now;
-    if (diff <= 0) return '即将执行';
+    if (diff <= 0) return t('profile.imminent');
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    if (days > 0) return `${days}天${hours}小时`;
-    if (hours > 0) return `${hours}小时${minutes}分钟`;
-    return `${minutes}分钟`;
+    if (days > 0) return `${days}${t('common.days')}${hours}${t('common.hours')}`;
+    if (hours > 0) return `${hours}${t('common.hours')}${minutes}${t('common.minutes')}`;
+    return `${minutes}${t('common.minutes')}`;
   };
 
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert('图片大小不能超过2MB'); return; }
-    if (!file.type.startsWith('image/')) { alert('请选择图片文件'); return; }
+    if (file.size > 2 * 1024 * 1024) { alert(t('profile.avatarSizeLimit')); return; }
+    if (!file.type.startsWith('image/')) { alert(t('profile.selectImageFile')); return; }
     setUploadingAvatar(true);
     try {
-      const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('avatar', file);
       const res = await axios.post('/api/users/avatar', formData, {
-        headers: { Authorization: `Bearer ${token}`, 'X-Requested-With': 'XMLHttpRequest' }
+        headers: { ...getAuthHeaders(), 'X-Requested-With': 'XMLHttpRequest' }
       });
       if (setUser && user) {
         const updatedUser = { ...user, avatar: res.data.url };
@@ -136,9 +148,8 @@ const Profile = ({ user, setUser, logout }) => {
 
   const handleUnfavorite = async (episodeId) => {
     try {
-      const token = localStorage.getItem('token');
       await axios.post('/api/favorites/remove', { episodeId }, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
       setFavoriteEpisodes(prev => prev.filter(f => f.episodeId && String(f.episodeId._id) !== String(episodeId)));
     } catch (err) {
@@ -169,31 +180,31 @@ const Profile = ({ user, setUser, logout }) => {
         </Link>
         <div className="followed-episode-info">
           <h4>
-            {episode.title}
+            {getLocalizedTitle(episode)}
             {hasNewUpdate && (
               <span style={{
                 fontSize: '12px', color: 'var(--destructive-text)', marginLeft: '8px',
                 background: 'var(--destructive-bg)', padding: '2px 8px',
                 borderRadius: '4px', border: '1px solid var(--destructive-border)'
-              }}>有更新 +{newUnwatchedCount}集</span>
+              }}>{t('profile.hasUpdate')} +{newUnwatchedCount}{t('profile.episodesUnwatched')}</span>
             )}
             {hasUpdate && (
               <span style={{
                 fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
                 background: 'var(--warning-bg)', padding: '2px 8px',
                 borderRadius: '4px', border: '1px solid var(--warning-border)'
-              }}>{unwatchedCount}集未看</span>
+              }}>{unwatchedCount}{t('profile.episodesUnwatched')}</span>
             )}
           </h4>
-          <p>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</p>
+          <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
           {watchedEps.length > 0 && (
             <>
               <div className="progress-bar">
                 <div className="progress-fill" style={{ width: `${progress}%` }}></div>
               </div>
-              <p>已观看 {watchedEps.length} 集</p>
+              <p>{t('profile.watched')} {watchedEps.length} {t('episode.epSuffix')}</p>
               <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>
-                已看：第{[...watchedEps].sort((a, b) => a - b).join('、')}集
+                {t('profile.watchedEps')}{[...watchedEps].sort((a, b) => a - b).join(`${lang === 'zh' || lang === 'ja' ? '、' : ', '}`)}{t('episode.epSuffix')}
               </p>
             </>
           )}
@@ -203,16 +214,15 @@ const Profile = ({ user, setUser, logout }) => {
               style={{fontSize: '13px', padding: '6px 14px'}}
               onClick={async () => {
                 try {
-                  const token = localStorage.getItem('token');
                   await axios.post('/api/follows/remove', { episodeId: episode._id }, {
-                    headers: { Authorization: `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 setFollowedEpisodes(prev => prev.filter(f => f.episodeId && f.episodeId._id !== episode._id));
               } catch (err) {
-                console.error('取消追番失败', err);
+                console.error(t('episode.unfollow'), err);
               }
             }}
-          >取消追番</button>
+          >{t('episode.unfollow')}</button>
           </div>
         </div>
       </div>
@@ -229,15 +239,15 @@ const Profile = ({ user, setUser, logout }) => {
           <img src={episode.coverImage} alt={episode.title} />
         </Link>
         <div className="followed-episode-info">
-          <h4>{episode.title}</h4>
-          <p>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</p>
+          <h4>{getLocalizedTitle(episode)}</h4>
+          <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${progress}%` }}></div>
           </div>
-          <p>已观看 {history.watchedEpisodes.length} 集</p>
+          <p>{t('profile.watched')} {history.watchedEpisodes.length} {t('episode.epSuffix')}</p>
           {history.watchedEpisodes.length > 0 && (
             <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>
-              已看：第{[...history.watchedEpisodes].sort((a, b) => a - b).join('、')}集
+              {t('profile.watchedEps')}{[...history.watchedEpisodes].sort((a, b) => a - b).join(`${lang === 'zh' || lang === 'ja' ? '、' : ', '}`)}{t('episode.epSuffix')}
             </p>
           )}
           <div style={{display: 'flex', gap: '8px', marginTop: '8px'}}>
@@ -247,32 +257,30 @@ const Profile = ({ user, setUser, logout }) => {
                 style={{fontSize: '13px', padding: '6px 14px'}}
                 onClick={async () => {
                   try {
-                    const token = localStorage.getItem('token');
                     await axios.post('/api/follows/add', { episodeId: episode._id }, {
-                      headers: { Authorization: `Bearer ${token}` }
+                      headers: getAuthHeaders()
                     });
                     setFollowedEpisodes(prev => [...prev, { episodeId: episode }]);
                   } catch (err) {
-                    console.error('追番失败', err);
+                    console.error(t('episode.follow'), err);
                   }
                 }}
-              >追番</button>
+              >{t('episode.follow')}</button>
             )}
             <button
               className="btn btn-secondary"
               style={{fontSize: '13px', padding: '6px 14px'}}
               onClick={async () => {
                 try {
-                  const token = localStorage.getItem('token');
                   await axios.delete(`/api/histories/${episode._id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
+                    headers: getAuthHeaders()
                   });
                   setHistoryEpisodes(prev => prev.filter(h => h.episodeId && h.episodeId._id !== episode._id));
                 } catch (err) {
-                  console.error('删除历史失败', err);
+                  console.error(t('profile.deleteHistoryFailed'), err);
                 }
               }}
-            >删除记录</button>
+            >{t('profile.deleteRecord')}</button>
           </div>
         </div>
       </div>
@@ -286,15 +294,15 @@ const Profile = ({ user, setUser, logout }) => {
           marginTop: '30px', padding: '20px', borderRadius: '12px',
           background: 'var(--destructive-bg-subtle)', border: '1px solid var(--destructive-border-subtle)'
         }}>
-          <h3 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '16px' }}>⚠️ 账号注销中</h3>
+          <h3 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '16px' }}>{t('profile.accountDeleting')}</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7, marginBottom: '12px' }}>
-            您已提交注销申请，账号将在 <strong style={{ color: 'var(--destructive-text)' }}>{formatCountdown(deletionStatus.deleteAt)}</strong> 后被永久删除。
+            {t('profile.deletionCountdown')} <strong style={{ color: 'var(--destructive-text)' }}>{formatCountdown(deletionStatus.deleteAt)}</strong> {t('profile.deletionCountdownAfter')}
           </p>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
-            预计删除时间：{new Date(deletionStatus.deleteAt).toLocaleString('zh-CN')}
+            {t('profile.estimatedDeleteTime')}{new Date(deletionStatus.deleteAt).toLocaleString('zh-CN')}
           </p>
           <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '16px' }}>
-            在反悔期内，您可以随时取消注销申请，恢复账号正常使用。
+            {t('profile.cancelHint')}
           </p>
           <button
             className="btn"
@@ -302,7 +310,7 @@ const Profile = ({ user, setUser, logout }) => {
             onClick={handleCancelDeletion}
             disabled={cancelLoading}
           >
-            {cancelLoading ? '处理中...' : '↩️ 取消注销，保留账号'}
+            {cancelLoading ? t('common.processing') : t('profile.cancelDeletionKeepAccount')}
           </button>
         </div>
       );
@@ -313,9 +321,9 @@ const Profile = ({ user, setUser, logout }) => {
         marginTop: '30px', padding: '20px', borderRadius: '12px',
         background: 'var(--hover-bg)', border: '1px solid var(--border)'
       }}>
-        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '16px' }}>危险区域</h3>
+        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '16px' }}>{t('profile.deleteAccountSection')}</h3>
         <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '16px' }}>
-          注销账号后，您的所有数据将被永久删除，且无法恢复。
+          {t('profile.deleteAccountWarning')}
         </p>
         {!showDeleteConfirm ? (
           <button
@@ -326,7 +334,7 @@ const Profile = ({ user, setUser, logout }) => {
             }}
             onClick={() => { setShowDeleteConfirm(true); setDeleteStep(0); setDeletePassword(''); setDeleteError(''); }}
           >
-            🗑️ 申请注销账号
+            {t('profile.requestDeletion')}
           </button>
         ) : (
           <div style={{
@@ -335,31 +343,31 @@ const Profile = ({ user, setUser, logout }) => {
           }}>
             {deleteStep === 0 && (
               <>
-                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>确认注销账号</h4>
+                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>{t('profile.deleteConfirmTitle')}</h4>
                 <div style={{ background: 'var(--destructive-bg-subtle)', borderRadius: '6px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--destructive-text-light)', lineHeight: 1.7 }}>
-                  <p style={{ margin: '0 0 8px 0' }}>⚠️ 请仔细阅读以下内容：</p>
+                  <p style={{ margin: '0 0 8px 0' }}>{t('profile.pleaseReadCarefully')}</p>
                   <ul style={{ margin: 0, paddingLeft: '16px' }}>
-                    <li>注销申请提交后有 <strong>7天反悔期</strong></li>
-                    <li>反悔期内可随时取消注销</li>
-                    <li>7天后账号及所有数据将被 <strong>永久删除</strong></li>
-                    <li>删除后无法恢复，包括追番、观看记录等</li>
+                    <li>{t('profile.deletionCoolingPeriod')}</li>
+                    <li>{t('profile.canCancelAnytime')}</li>
+                    <li>{t('profile.permanentDeleteAfter7Days')}</li>
+                    <li>{t('profile.deletionIrreversible')}</li>
                   </ul>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => setShowDeleteConfirm(false)}>我再想想</button>
-                  <button style={{ background: 'var(--destructive-bg-strong)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }} onClick={() => setDeleteStep(1)}>我已了解，继续</button>
+                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => setShowDeleteConfirm(false)}>{t('profile.letMeThink')}</button>
+                  <button style={{ background: 'var(--destructive-bg-strong)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }} onClick={() => setDeleteStep(1)}>{t('profile.understoodContinue')}</button>
                 </div>
               </>
             )}
             {deleteStep === 1 && (
               <>
-                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>输入密码确认</h4>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>请输入您的登录密码以确认身份</p>
+                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>{t('profile.enterPasswordConfirm')}</h4>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>{t('profile.enterPasswordToConfirm')}</p>
                 <input
                   type="password"
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
-                  placeholder="请输入登录密码"
+                  placeholder={t('profile.enterLoginPassword')}
                   style={{
                     width: '100%', padding: '10px 14px', borderRadius: '6px',
                     background: 'var(--input)', border: '1px solid var(--border)',
@@ -368,7 +376,7 @@ const Profile = ({ user, setUser, logout }) => {
                 />
                 {deleteError && <p style={{ color: 'var(--destructive-text)', fontSize: '13px', marginBottom: '8px' }}>{deleteError}</p>}
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setDeleteStep(0); setDeletePassword(''); setDeleteError(''); }}>返回</button>
+                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setDeleteStep(0); setDeletePassword(''); setDeleteError(''); }}>{t('common.back')}</button>
                   <button
                     style={{ background: 'var(--destructive-bg-strong)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }}
                     disabled={!deletePassword || deleteLoading}
@@ -379,29 +387,29 @@ const Profile = ({ user, setUser, logout }) => {
                         setDeleteStep(2);
                         setDeleteError('');
                       } catch {
-                        setDeleteError('密码不正确');
+                        setDeleteError(t('profile.incorrectPassword'));
                       }
                     }}
                   >
-                    {deleteLoading ? '验证中...' : '验证密码'}
+                    {deleteLoading ? t('profile.verifying') : t('profile.verifyPassword')}
                   </button>
                 </div>
               </>
             )}
             {deleteStep === 2 && (
               <>
-                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>最后确认</h4>
+                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>{t('profile.finalConfirm')}</h4>
                 <p style={{ color: 'var(--destructive-text-light)', fontSize: '14px', marginBottom: '16px', fontWeight: 500 }}>
-                  确定要提交注销申请吗？提交后有7天反悔期。
+                  {t('profile.finalConfirmText')}
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); }}>取消</button>
+                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); }}>{t('common.cancel')}</button>
                   <button
                     style={{ background: 'var(--destructive)', border: 'none', color: 'var(--btn-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
                     disabled={deleteLoading}
                     onClick={handleRequestDeletion}
                   >
-                    {deleteLoading ? '提交中...' : '确认提交注销申请'}
+                    {deleteLoading ? t('common.processing') : t('profile.confirmSubmitDeletion')}
                   </button>
                 </div>
               </>
@@ -414,7 +422,7 @@ const Profile = ({ user, setUser, logout }) => {
 
   return (
     <div className="user-profile">
-      <h2>个人中心</h2>
+      <h2>{t('profile.title')}</h2>
 
       <div className="user-info">
         <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', justifyContent: 'center'}}>
@@ -445,15 +453,86 @@ const Profile = ({ user, setUser, logout }) => {
             </label>
           </div>
           <div>
-            <h3 style={{margin: '0 0 4px 0'}}>{user.username}</h3>
-            <p style={{margin: 0, color: 'var(--text-secondary)', fontSize: '14px'}}>{user.email}</p>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <h3 style={{margin: '0 0 4px 0'}}>{user.username}</h3>
+              {!editingNickname && (
+                <button
+                  onClick={() => { setEditingNickname(true); setNicknameValue(user.username); setNicknameError(''); }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--primary)', fontSize: '13px', padding: '2px 4px',
+                    display: 'flex', alignItems: 'center'
+                  }}
+                  title={t('profile.editNickname')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+              )}
+            </div>
+            {editingNickname && (
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '4px'}}>
+                <input
+                  type="text"
+                  value={nicknameValue}
+                  onChange={(e) => setNicknameValue(e.target.value)}
+                  maxLength={20}
+                  style={{
+                    padding: '4px 8px', borderRadius: '6px', fontSize: '14px',
+                    background: 'var(--input)', border: '1px solid var(--border)',
+                    color: 'var(--foreground)', width: '160px'
+                  }}
+                />
+                <button
+                  onClick={async () => {
+                    if (!nicknameValue.trim()) { setNicknameError(t('profile.nicknameRequired')); return; }
+                    setNicknameLoading(true);
+                    setNicknameError('');
+                    try {
+                      const res = await axios.put('/api/users/profile', { username: nicknameValue.trim() }, {
+                        headers: getAuthHeaders()
+                      });
+                      const updatedUser = { ...user, username: res.data.username };
+                      setUser(updatedUser);
+                      localStorage.setItem('user', JSON.stringify(updatedUser));
+                      setEditingNickname(false);
+                    } catch (err) {
+                      setNicknameError(err.response?.data?.message || t('profile.updateFailed'));
+                    }
+                    setNicknameLoading(false);
+                  }}
+                  disabled={nicknameLoading}
+                  style={{
+                    padding: '4px 12px', borderRadius: '6px', fontSize: '13px',
+                    background: 'var(--primary)', color: '#fff', border: 'none',
+                    cursor: 'pointer', fontWeight: 500
+                  }}
+                >
+                  {nicknameLoading ? t('common.saving') : t('common.save')}
+                </button>
+                <button
+                  onClick={() => { setEditingNickname(false); setNicknameError(''); }}
+                  style={{
+                    padding: '4px 12px', borderRadius: '6px', fontSize: '13px',
+                    background: 'var(--hover-bg)', color: 'var(--foreground)',
+                    border: '1px solid var(--border)', cursor: 'pointer'
+                  }}
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            )}
+            {nicknameError && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{nicknameError}</p>}
+            <p style={{margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '13px'}}>
+              {t('profile.accountIdLabel')}: <span style={{color: 'var(--text-tertiary)', letterSpacing: '0.5px'}}>{user.accountId || '-'}</span>
+            </p>
+            <p style={{margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px'}}>{user.email}</p>
             {user.isEmailVerified ? (
               <span style={{
                 display: 'inline-block', marginTop: '6px', fontSize: '12px',
                 color: 'var(--success-text)', background: 'var(--success-bg)',
                 padding: '2px 10px', borderRadius: '12px',
                 border: '1px solid var(--success-border)'
-              }}>✓ 邮箱已验证</span>
+              }}>{t('auth.emailVerified')}</span>
             ) : (
               <div style={{ marginTop: '8px' }}>
                 <span style={{
@@ -461,19 +540,21 @@ const Profile = ({ user, setUser, logout }) => {
                   color: 'var(--warning-text)', background: 'var(--warning-bg)',
                   padding: '2px 10px', borderRadius: '12px',
                   border: '1px solid var(--warning-border)', marginRight: '8px'
-                }}>⚠ 邮箱未验证</span>
+                }}>⚠ {t('auth.emailNotVerified')}</span>
                 <button
                   onClick={async () => {
                     setResendLoading(true);
                     setResendMsg('');
+                    setResendSuccess(false);
                     try {
-                      const token = localStorage.getItem('token');
                       const res = await axios.post('/api/auth/resend-verification', {}, {
-                        headers: { Authorization: `Bearer ${token}` }
+                        headers: getAuthHeaders()
                       });
                       setResendMsg(res.data.message);
+                      setResendSuccess(true);
                     } catch (err) {
-                      setResendMsg(err.response?.data?.message || '发送失败');
+                      setResendMsg(err.response?.data?.message || t('common.sendFailed'));
+                      setResendSuccess(false);
                     }
                     setResendLoading(false);
                   }}
@@ -484,12 +565,12 @@ const Profile = ({ user, setUser, logout }) => {
                     textDecoration: 'underline'
                   }}
                 >
-                  {resendLoading ? '发送中...' : '重新发送验证邮件'}
+                  {resendLoading ? t('auth.sending') : t('auth.resendVerification')}
                 </button>
                 {resendMsg && (
                   <p style={{
                     fontSize: '12px', margin: '4px 0 0 0',
-                    color: resendMsg.includes('已发送') ? 'var(--success-text)' : 'var(--destructive-text)'
+                    color: resendSuccess ? 'var(--success-text)' : 'var(--destructive-text)'
                   }}>{resendMsg}</p>
                 )}
               </div>
@@ -497,13 +578,19 @@ const Profile = ({ user, setUser, logout }) => {
           </div>
         </div>
         <div style={{display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
-          <Link to="/change-password" className="btn" style={{display: 'inline-block'}}>修改密码</Link>
-          <Link to="/devices" className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>管理设备</Link>
+          <Link to="/change-password" className="btn" style={{display: 'inline-block'}}>{t('profile.changePassword')}</Link>
+          <Link to="/devices" className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>{t('profile.manageDevices')}</Link>
+          {show2FA ? (
+            <></>
+          ) : (
+            <button onClick={() => setShow2FA(true)} className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>
+              {t('twoFactor.title')}
+            </button>
+          )}
           <button onClick={async () => {
             try {
-              const token = localStorage.getItem('token');
               const res = await fetch('/api/users/export-my-data', {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: getAuthHeaders()
               });
               const blob = await res.blob();
               const url = window.URL.createObjectURL(blob);
@@ -517,20 +604,24 @@ const Profile = ({ user, setUser, logout }) => {
             padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--primary-border)',
             background: 'var(--primary-bg)', color: 'var(--primary-light)',
             cursor: 'pointer', fontSize: '14px', fontWeight: 500, transition: 'all 0.2s'
-          }}>📥 导出我的数据</button>
+          }}>{t('profile.exportData')}</button>
           <button onClick={logout} style={{
             padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--destructive-border)',
             background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
             cursor: 'pointer', fontSize: '14px', fontWeight: 500, transition: 'all 0.2s'
-          }}>退出登录</button>
+          }}>{t('nav.logout')}</button>
         </div>
       </div>
 
+      {show2FA && (
+        <TwoFactorAuth user={user} setUser={setUser} onClose={() => setShow2FA(false)} />
+      )}
+
       <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap'}}>
         {[
-          { key: 'follows', label: '我的追番', count: followedEpisodes.length },
-          { key: 'favorites', label: '我的收藏', count: favoriteEpisodes.length },
-          { key: 'history', label: '观看历史', count: historyEpisodes.length },
+          { key: 'follows', label: t('profile.myFollows'), count: followedEpisodes.length },
+          { key: 'favorites', label: t('profile.myFavorites'), count: favoriteEpisodes.length },
+          { key: 'history', label: t('profile.myHistory'), count: historyEpisodes.length },
         ].map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             style={{
@@ -550,7 +641,7 @@ const Profile = ({ user, setUser, logout }) => {
       {activeTab === 'follows' && (
         <div className="followed-episodes">
           {followedEpisodes.length === 0 ? (
-            <p>还没有追番，去首页发现感兴趣的内容吧！</p>
+            <p>{t('profile.noFollows')}</p>
           ) : (
             followedEpisodes.map(follow => renderFollowCard(follow))
           )}
@@ -560,7 +651,7 @@ const Profile = ({ user, setUser, logout }) => {
       {activeTab === 'favorites' && (
         <div className="followed-episodes">
           {favoriteEpisodes.length === 0 ? (
-            <p>还没有收藏，在剧集详情页点击收藏按钮吧！</p>
+            <p>{t('profile.noFavorites')}</p>
           ) : (
             favoriteEpisodes.map(fav => {
               const episode = fav.episodeId;
@@ -571,14 +662,14 @@ const Profile = ({ user, setUser, logout }) => {
                     <img src={episode.coverImage} alt={episode.title} />
                   </Link>
                   <div className="followed-episode-info">
-                    <h4>{episode.title}</h4>
-                    <p>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</p>
+                    <h4>{getLocalizedTitle(episode)}</h4>
+                    <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
                     {episode.averageRating > 0 && (
-                      <p style={{fontSize: '13px', color: 'var(--warning-text)'}}>⭐ {episode.averageRating} ({episode.ratingCount}人评分)</p>
+                      <p style={{fontSize: '13px', color: 'var(--warning-text)'}}>⭐ {episode.averageRating} ({episode.ratingCount}{t('episode.ratingCountLabel')})</p>
                     )}
                     <button className="btn btn-secondary" onClick={() => handleUnfavorite(episode._id)}
                       style={{marginTop: '8px', fontSize: '13px'}}>
-                      取消收藏
+                      {t('profile.unfavorite')}
                     </button>
                   </div>
                 </div>
@@ -591,7 +682,7 @@ const Profile = ({ user, setUser, logout }) => {
       {activeTab === 'history' && (
         <div className="followed-episodes">
           {historyEpisodes.length === 0 ? (
-            <p>暂无观看记录</p>
+            <p>{t('profile.noHistory')}</p>
           ) : (
             historyEpisodes.map(history => renderHistoryCard(history))
           )}

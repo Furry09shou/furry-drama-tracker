@@ -5,9 +5,25 @@ const EpisodeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  titleEn: {
+    type: String,
+    default: ''
+  },
+  titleJa: {
+    type: String,
+    default: ''
+  },
   description: {
     type: String,
     required: true
+  },
+  descriptionEn: {
+    type: String,
+    default: ''
+  },
+  descriptionJa: {
+    type: String,
+    default: ''
   },
   coverImage: {
     type: String,

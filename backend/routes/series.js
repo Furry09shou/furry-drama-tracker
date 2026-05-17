@@ -3,6 +3,43 @@ const router = express.Router();
 const Series = require('../models/Series');
 const { adminProtect, creatorProtect } = require('../middlewares/authFactory');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Series:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         episodes:
+ *           type: array
+ *           items:
+ *             type: string
+ *         createdBy:
+ *           type: string
+ */
+
+/**
+ * @swagger
+ * /api/series:
+ *   get:
+ *     tags: [系列]
+ *     summary: 获取所有系列
+ *     responses:
+ *       200:
+ *         description: 系列列表
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Series'
+ */
 router.get('/', async (req, res) => {
   try {
     const series = await Series.find().populate('episodes', 'title coverImage currentEpisodes totalEpisodes status averageRating').sort({ updatedAt: -1 });
@@ -12,6 +49,29 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/series/{id}:
+ *   get:
+ *     tags: [系列]
+ *     summary: 根据ID获取系列详情
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 系列ID
+ *     responses:
+ *       200:
+ *         description: 系列详情
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Series'
+ *       404:
+ *         description: 未找到
+ */
 router.get('/:id', async (req, res) => {
   try {
     const series = await Series.findById(req.params.id).populate('episodes', 'title coverImage currentEpisodes totalEpisodes status averageRating description category tags views');
@@ -22,6 +82,40 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/series:
+ *   post:
+ *     tags: [系列]
+ *     summary: 创建新系列（需要创作者/管理员权限）
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               episodes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: 创建成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Series'
+ *       400:
+ *         description: 名称必填
+ */
 router.post('/', creatorProtect, async (req, res) => {
   try {
     const { name, description, episodes } = req.body;
@@ -33,6 +127,43 @@ router.post('/', creatorProtect, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/series/{id}:
+ *   put:
+ *     tags: [系列]
+ *     summary: 更新系列信息（需要创作者/管理员权限）
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               episodes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: 更新成功
+ *       403:
+ *         description: 无权限
+ *       404:
+ *         description: 未找到
+ */
 router.put('/:id', creatorProtect, async (req, res) => {
   try {
     const existing = await Series.findById(req.params.id);
@@ -52,6 +183,28 @@ router.put('/:id', creatorProtect, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/series/{id}:
+ *   delete:
+ *     tags: [系列]
+ *     summary: 删除系列（需要管理员权限）
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: 删除成功
+ *       403:
+ *         description: 无权限
+ *       404:
+ *         description: 未找到
+ */
 router.delete('/:id', adminProtect, async (req, res) => {
   try {
     await Series.findByIdAndDelete(req.params.id);

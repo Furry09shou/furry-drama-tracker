@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getDeviceInfo } from '../utils/deviceInfo';
+import { useI18n } from '../contexts/I18nContext';
 
 const Login = ({ login }) => {
+  const { t } = useI18n();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -20,11 +22,16 @@ const Login = ({ login }) => {
   const [verifyEmail, setVerifyEmail] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
   const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [needDeviceVerify, setNeedDeviceVerify] = useState(false);
   const [deviceVerifyEmail, setDeviceVerifyEmail] = useState('');
   const [deviceVerifyLoading, setDeviceVerifyLoading] = useState(false);
+  const [need2FA, setNeed2FA] = useState(false);
+  const [twoFAEmail, setTwoFAEmail] = useState('');
+  const [twoFAToken, setTwoFAToken] = useState('');
+  const [twoFALoading, setTwoFALoading] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -48,7 +55,7 @@ const Login = ({ login }) => {
           navigate('/');
         })
         .catch(err => {
-          setError(err.response?.data?.message || '设备验证失败，请重新登录');
+          setError(err.response?.data?.message || t('auth.deviceVerifyFailed'));
         })
         .finally(() => setDeviceVerifyLoading(false));
     }
@@ -63,6 +70,7 @@ const Login = ({ login }) => {
     setError('');
     setNeedVerification(false);
     setNeedDeviceVerify(false);
+    setNeed2FA(false);
     try {
       const response = await axios.post('/api/auth/login', {
         ...formData,
@@ -70,6 +78,11 @@ const Login = ({ login }) => {
         captchaId: captchaData.captchaId,
         captchaAnswer
       });
+      if (response.data.need2FA) {
+        setNeed2FA(true);
+        setTwoFAEmail(response.data.email || formData.email);
+        return;
+      }
       login(response.data);
       navigate('/');
     } catch (error) {
@@ -78,15 +91,33 @@ const Login = ({ login }) => {
       if (data?.needVerification) {
         setNeedVerification(true);
         setVerifyEmail(data.email || formData.email);
-        setError(data.message || '请先验证邮箱后再登录');
+        setError(data.message || t('auth.verifyEmailFirst'));
       } else if (data?.needDeviceVerify) {
         setNeedDeviceVerify(true);
         setDeviceVerifyEmail(data.email || formData.email);
         setError('');
       } else {
-        setError(data?.message || '登录失败');
+        setError(data?.message || t('auth.loginFailed'));
       }
     }
+  };
+
+  const handle2FAVerify = async (e) => {
+    e.preventDefault();
+    setError('');
+    setTwoFALoading(true);
+    try {
+      const response = await axios.post('/api/auth/login-2fa', {
+        email: twoFAEmail,
+        twoFactorToken: twoFAToken,
+        deviceInfo: getDeviceInfo()
+      });
+      login(response.data);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || t('twoFactor.invalidCode'));
+    }
+    setTwoFALoading(false);
   };
 
   const handleForgotPassword = async (e) => {
@@ -95,29 +126,29 @@ const Login = ({ login }) => {
     setSuccessMsg('');
     try {
       await axios.post('/api/auth/forgot-password', { email: forgotEmail, captchaId: captchaData.captchaId, captchaAnswer });
-      setSuccessMsg('如果该邮箱已注册，重置链接已发送至邮箱');
+      setSuccessMsg(t('auth.resetLinkSent'));
       setShowForgot(false);
     } catch (err) {
       fetchCaptcha();
-      setError(err.response?.data?.message || '找回密码失败');
+      setError(err.response?.data?.message || t('auth.forgotPasswordFailed'));
     }
   };
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError('');
-    if (newPassword.length < 8) { setError('密码长度不能少于8位'); return; }
-    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) { setError('密码必须包含至少一个字母和一个数字'); return; }
-    if (newPassword !== confirmPassword) { setError('两次输入的密码不一致'); return; }
+    if (newPassword.length < 8) { setError(t('auth.passwordMinLength')); return; }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) { setError(t('auth.passwordMustContainLetterAndNumber')); return; }
+    if (newPassword !== confirmPassword) { setError(t('auth.passwordMismatch')); return; }
     try {
       await axios.post('/api/auth/reset-password', { token: resetToken, newPassword });
-      setSuccessMsg('密码重置成功，请使用新密码登录');
+      setSuccessMsg(t('auth.passwordResetSuccess'));
       setShowReset(false);
       setNewPassword('');
       setConfirmPassword('');
       setResetToken('');
     } catch (err) {
-      setError(err.response?.data?.message || '密码重置失败');
+      setError(err.response?.data?.message || t('auth.passwordResetFailed'));
     }
   };
 
@@ -141,8 +172,8 @@ const Login = ({ login }) => {
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '60px 20px'}}>
         <div style={{fontSize: '48px', marginBottom: '16px'}}>🔐</div>
-        <h2>正在验证设备...</h2>
-        <p style={{color: 'var(--text-secondary)'}}>请稍候</p>
+        <h2>{t('auth.verifyingDevice')}</h2>
+        <p style={{color: 'var(--text-secondary)'}}>{t('common.pleaseWait')}</p>
       </div>
     );
   }
@@ -151,20 +182,59 @@ const Login = ({ login }) => {
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '40px 20px'}}>
         <div style={{fontSize: '48px', marginBottom: '16px'}}>📧</div>
-        <h2>新设备验证</h2>
+        <h2>{t('auth.newDeviceVerify')}</h2>
         <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: '12px'}}>
-          检测到您在新设备上登录，验证邮件已发送至<br/>
+          {t('auth.newDeviceDesc')}<br/>
           <strong>{deviceVerifyEmail}</strong><br/>
-          请在邮箱中点击确认按钮完成验证。
+          {t('auth.clickToVerifyDevice')}
         </p>
         <p style={{color: 'var(--text-secondary)', fontSize: '13px', marginTop: '16px'}}>
-          验证链接30分钟内有效
+          {t('auth.verifyLinkExpiry')}
         </p>
         <button onClick={() => { setNeedDeviceVerify(false); fetchCaptcha(); }} style={{
           marginTop: '24px', padding: '10px 24px', borderRadius: '8px',
           background: 'var(--hover-bg)', border: '1px solid var(--border)',
           color: 'var(--foreground)', cursor: 'pointer', fontSize: '14px'
-        }}>返回登录</button>
+        }}>{t('auth.backToLogin')}</button>
+      </div>
+    );
+  }
+
+  if (need2FA) {
+    return (
+      <div className="auth-form">
+        <h2>{t('twoFactor.title')}</h2>
+        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px', lineHeight: 1.7}}>
+          {t('twoFactor.loginDesc')}
+        </p>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handle2FAVerify}>
+          <div className="form-group">
+            <label>{t('twoFactor.code')}</label>
+            <input
+              type="text"
+              value={twoFAToken}
+              onChange={(e) => setTwoFAToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              maxLength={6}
+              required
+              autoFocus
+              style={{
+                letterSpacing: '0.3em', textAlign: 'center', fontSize: '20px'
+              }}
+            />
+          </div>
+          <div className="form-group">
+            <button type="submit" disabled={twoFALoading || twoFAToken.length !== 6}>
+              {twoFALoading ? t('twoFactor.verifying') : t('twoFactor.verify')}
+            </button>
+          </div>
+        </form>
+        <div style={{textAlign: 'center', marginTop: '10px', position: 'relative', zIndex: 1}}>
+          <span onClick={() => { setNeed2FA(false); setTwoFAToken(''); setError(''); fetchCaptcha(); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>
+            {t('auth.backToLogin')}
+          </span>
+        </div>
       </div>
     );
   }
@@ -172,28 +242,28 @@ const Login = ({ login }) => {
   if (showReset) {
     return (
       <div className="auth-form">
-        <h2>重置密码</h2>
-        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px'}}>邮箱验证通过，请设置新密码</p>
+        <h2>{t('auth.resetPassword')}</h2>
+        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px'}}>{t('auth.emailVerifiedSetNewPassword')}</p>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleResetPassword}>
           <div className="form-group">
-            <label>新密码</label>
+            <label>{t('auth.newPassword')}</label>
             <div style={{position: 'relative'}}>
-              <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} placeholder="请输入新密码（至少8位，含字母和数字）" style={{paddingRight: '40px'}} />
+              <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} placeholder={t('auth.newPasswordPlaceholder')} style={{paddingRight: '40px'}} />
               <PasswordToggle show={showNewPassword} onToggle={() => setShowNewPassword(!showNewPassword)} />
             </div>
           </div>
           <div className="form-group">
-            <label>确认新密码</label>
+            <label>{t('auth.confirmNewPassword')}</label>
             <div style={{position: 'relative'}}>
-              <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} placeholder="请再次输入新密码" style={{paddingRight: '40px'}} />
+              <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} placeholder={t('auth.confirmNewPasswordPlaceholder')} style={{paddingRight: '40px'}} />
               <PasswordToggle show={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
             </div>
           </div>
-          <div className="form-group"><button type="submit">确认重置</button></div>
+          <div className="form-group"><button type="submit">{t('auth.confirmPasswordReset')}</button></div>
         </form>
         <div style={{textAlign: 'center', marginTop: '15px', position: 'relative', zIndex: 1}}>
-          <span onClick={() => { setShowReset(false); setError(''); setResetToken(''); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>返回登录</span>
+          <span onClick={() => { setShowReset(false); setError(''); setResetToken(''); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>{t('auth.backToLogin')}</span>
         </div>
       </div>
     );
@@ -202,27 +272,27 @@ const Login = ({ login }) => {
   if (showForgot) {
     return (
       <div className="auth-form">
-        <h2>找回密码</h2>
-        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px'}}>输入注册时使用的邮箱，验证后可直接重置密码</p>
+        <h2>{t('auth.forgotPasswordTitle')}</h2>
+            <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px'}}>{t('auth.forgotPasswordDesc')}</p>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleForgotPassword}>
           <div className="form-group">
-            <label>邮箱</label>
-            <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder="请输入注册邮箱" />
+            <label>{t('auth.email')}</label>
+            <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder={t('auth.enterRegisteredEmail')} />
           </div>
           <div className="form-group">
-            <label>图形验证码</label>
+            <label>{t('auth.captcha')}</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input type="text" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} required placeholder="请输入验证码" style={{ flex: 1, minWidth: 0 }} />
+              <input type="text" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} required placeholder={t('auth.enterCaptcha')} style={{ flex: 1, minWidth: 0 }} />
               {captchaData.svg && (
-                <img src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`} alt="验证码" onClick={fetchCaptcha} style={{ height: '40px', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }} title="点击刷新" />
+                <img src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`} alt={t('auth.captcha')} onClick={fetchCaptcha} style={{ height: '40px', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }} title={t('common.clickToRefresh')} />
               )}
             </div>
           </div>
-          <div className="form-group"><button type="submit">验证邮箱</button></div>
+          <div className="form-group"><button type="submit">{t('auth.verifyEmail')}</button></div>
         </form>
         <div style={{textAlign: 'center', marginTop: '15px', position: 'relative', zIndex: 1}}>
-          <span onClick={() => { setShowForgot(false); setError(''); fetchCaptcha(); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>返回登录</span>
+          <span onClick={() => { setShowForgot(false); setError(''); fetchCaptcha(); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>{t('auth.backToLogin')}</span>
         </div>
       </div>
     );
@@ -230,7 +300,7 @@ const Login = ({ login }) => {
   
   return (
     <div className="auth-form">
-      <h2>登录</h2>
+      <h2>{t('auth.loginTitle')}</h2>
       {error && <div className="error-message">{error}</div>}
       {needVerification && (
         <div style={{
@@ -238,16 +308,19 @@ const Login = ({ login }) => {
           background: 'var(--warning-bg)', border: '1px solid var(--warning-border)',
           color: 'var(--warning-text)', fontSize: '14px', lineHeight: 1.7
         }}>
-          <p style={{margin: '0 0 10px 0'}}>📧 您的邮箱 <strong>{verifyEmail}</strong> 尚未验证，请查收验证邮件完成验证后再登录。</p>
+          <p style={{margin: '0 0 10px 0'}}>{t('auth.email')} <strong>{verifyEmail}</strong> {t('auth.verifyEmailFirst')}</p>
           <button
             onClick={async () => {
               setResendLoading(true);
               setResendMsg('');
+              setResendSuccess(false);
               try {
                 const res = await axios.post('/api/auth/resend-verification-by-email', { email: verifyEmail });
                 setResendMsg(res.data.message);
+                setResendSuccess(true);
               } catch (err) {
-                setResendMsg(err.response?.data?.message || '发送失败');
+                setResendMsg(err.response?.data?.message || t('common.sendFailed'));
+                setResendSuccess(false);
               }
               setResendLoading(false);
             }}
@@ -258,11 +331,11 @@ const Login = ({ login }) => {
               border: 'none', cursor: 'pointer', fontWeight: 500
             }}
           >
-            {resendLoading ? '发送中...' : '重新发送验证邮件'}
+            {resendLoading ? t('auth.sending') : t('auth.resendVerification')}
           </button>
           {resendMsg && (
             <p style={{margin: '8px 0 0 0', fontSize: '13px',
-              color: resendMsg.includes('已发送') ? 'var(--success-text)' : 'var(--destructive-text)'
+              color: resendSuccess ? 'var(--success-text)' : 'var(--destructive-text)'
             }}>{resendMsg}</p>
           )}
         </div>
@@ -270,11 +343,11 @@ const Login = ({ login }) => {
       {successMsg && <div className="success-message" style={{padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{successMsg}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="email">邮箱</label>
+          <label htmlFor="email">{t('auth.email')}</label>
           <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required />
         </div>
         <div className="form-group">
-          <label htmlFor="password">密码</label>
+          <label htmlFor="password">{t('auth.password')}</label>
           <div style={{position: 'relative'}}>
             <input type={showPassword ? 'text' : 'password'} id="password" name="password" value={formData.password} onChange={handleChange} required style={{paddingRight: '40px'}} />
             <PasswordToggle show={showPassword} onToggle={() => setShowPassword(!showPassword)} />
@@ -283,18 +356,18 @@ const Login = ({ login }) => {
         <div className="form-group">
           <label htmlFor="captcha">图形验证码</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input type="text" id="captcha" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} required placeholder="请输入验证码" style={{ flex: 1, minWidth: 0 }} />
+            <input type="text" id="captcha" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} required placeholder={t('auth.enterCaptcha')} style={{ flex: 1, minWidth: 0 }} />
             {captchaData.svg && (
-              <img src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`} alt="验证码" onClick={fetchCaptcha} style={{ height: '40px', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }} title="点击刷新" />
+              <img src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`} alt={t('auth.captcha')} onClick={fetchCaptcha} style={{ height: '40px', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }} title={t('common.clickToRefresh')} />
             )}
           </div>
         </div>
         <div className="form-group">
-          <button type="submit">登录</button>
+          <button type="submit">{t('auth.loginButton')}</button>
         </div>
       </form>
       <div style={{textAlign: 'center', marginTop: '10px', position: 'relative', zIndex: 1}}>
-        <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowForgot(true); setError(''); setSuccessMsg(''); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>忘记密码？</span>
+        <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowForgot(true); setError(''); setSuccessMsg(''); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>{t('auth.forgotPassword')}</span>
       </div>
     </div>
   );

@@ -39,4 +39,78 @@ const getClientIp = (req) => {
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-module.exports = { parseUserAgent, hashToken, getClientIp, escapeRegex };
+const verifyTOTP = (secret, token) => {
+  const window = 1;
+  const currentTime = Math.floor(Date.now() / 30000);
+  for (let i = -window; i <= window; i++) {
+    const time = currentTime + i;
+    const timeBuffer = Buffer.alloc(8);
+    timeBuffer.writeUInt32BE(Math.floor(time / 0x100000000), 0);
+    timeBuffer.writeUInt32BE(time & 0xffffffff, 4);
+
+    const hmac = crypto.createHmac('sha1', Buffer.from(secret, 'base64'));
+    hmac.update(timeBuffer);
+    const hash = hmac.digest();
+
+    const offset = hash[hash.length - 1] & 0xf;
+    const code = ((hash[offset] & 0x7f) << 24) |
+                 ((hash[offset + 1] & 0xff) << 16) |
+                 ((hash[offset + 2] & 0xff) << 8) |
+                 (hash[offset + 3] & 0xff);
+    const mod = code % 1000000;
+    const generatedToken = mod.toString().padStart(6, '0');
+
+    if (generatedToken === token) return true;
+  }
+  return false;
+};
+
+const generateTOTPSecret = () => {
+  return crypto.randomBytes(20).toString('base64');
+};
+
+const generateBackupCodes = () => {
+  const codes = [];
+  for (let i = 0; i < 10; i++) {
+    codes.push(crypto.randomBytes(4).toString('hex'));
+  }
+  return codes;
+};
+
+const buildDeviceInfo = (deviceInfo, parsed, ua, req) => ({
+  browser: deviceInfo?.browser || parsed.browser,
+  browserVersion: deviceInfo?.browserVersion || parsed.browserVersion,
+  os: deviceInfo?.os || parsed.os,
+  osVersion: deviceInfo?.osVersion || parsed.osVersion,
+  deviceType: deviceInfo?.deviceType || parsed.deviceType,
+  deviceModel: deviceInfo?.deviceModel || parsed.deviceModel || '',
+  screenWidth: deviceInfo?.screenWidth || 0,
+  screenHeight: deviceInfo?.screenHeight || 0,
+  language: deviceInfo?.language || req.headers['accept-language']?.split(',')[0] || '',
+  userAgent: ua,
+  carrier: deviceInfo?.carrier || ''
+});
+
+const createUserSession = async (userId, token, deviceInfo, parsed, ua, ip) => {
+  const UserSession = require('../models/UserSession');
+  const tokenHash = hashToken(token);
+  const sessionDeviceInfo = parseUserAgent(ua);
+  if (deviceInfo?.screenWidth) sessionDeviceInfo.screenWidth = deviceInfo.screenWidth;
+  if (deviceInfo?.screenHeight) sessionDeviceInfo.screenHeight = deviceInfo.screenHeight;
+  if (deviceInfo?.language) sessionDeviceInfo.language = deviceInfo.language;
+  sessionDeviceInfo.userAgent = ua;
+  await UserSession.create({ userId, tokenHash, deviceInfo: sessionDeviceInfo, ip });
+};
+
+const setAuthCookie = (res, token) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+};
+
+module.exports = { parseUserAgent, hashToken, getClientIp, escapeRegex, verifyTOTP, generateTOTPSecret, generateBackupCodes, buildDeviceInfo, createUserSession, setAuthCookie };

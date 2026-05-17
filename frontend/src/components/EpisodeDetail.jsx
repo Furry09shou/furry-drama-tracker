@@ -4,8 +4,16 @@ import { useNavigate, Link, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import ReportModal from './ReportModal';
 import ShareModal from './ShareModal';
+import { useI18n } from '../contexts/I18nContext';
+import useTranslation from '../hooks/useTranslation';
 
 const EpisodeDetail = ({ user }) => {
+  const { t, lang } = useI18n();
+  const { getLocalizedTitle, getLocalizedDescription } = useTranslation();
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
   const [episode, setEpisode] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -48,7 +56,7 @@ const EpisodeDetail = ({ user }) => {
     if (!user) return;
     const token = localStorage.getItem('token');
     if (!token) return;
-    const config = { headers: { Authorization: `Bearer ${token}` } };
+    const config = { headers: getAuthHeaders() };
     Promise.all([
       axios.get(`/api/follows/check/${episodeId}`, config).catch(() => null),
       axios.get(`/api/histories/check/${episodeId}`, config).catch(() => null),
@@ -115,8 +123,7 @@ const EpisodeDetail = ({ user }) => {
 
   const handleFollow = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const config = { headers: getAuthHeaders() };
       if (isFollowing) {
         await axios.post('/api/follows/remove', { episodeId }, config);
       } else {
@@ -130,8 +137,7 @@ const EpisodeDetail = ({ user }) => {
 
   const handleFavorite = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const config = { headers: getAuthHeaders() };
       if (isFavorite) {
         await axios.post('/api/favorites/remove', { episodeId }, config);
       } else {
@@ -146,9 +152,8 @@ const EpisodeDetail = ({ user }) => {
   const handleRate = async (score) => {
     if (!user) return;
     try {
-      const token = localStorage.getItem('token');
       const res = await axios.post('/api/ratings', { episodeId, score }, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
       setUserRating(score);
       if (episode) {
@@ -166,9 +171,8 @@ const EpisodeDetail = ({ user }) => {
   const handleDeleteRating = async () => {
     if (!user) return;
     try {
-      const token = localStorage.getItem('token');
       const res = await axios.delete(`/api/ratings/${episodeId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
       setUserRating(0);
       if (episode) {
@@ -186,8 +190,7 @@ const EpisodeDetail = ({ user }) => {
   const recordWatchProgress = async (episodeNumber) => {
     if (!user || watchedEpisodes.includes(episodeNumber)) return;
     try {
-      const token = localStorage.getItem('token');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const config = { headers: getAuthHeaders() };
       await axios.post('/api/histories/record', {
         episodeId, episodeNumber
       }, config);
@@ -211,42 +214,42 @@ const EpisodeDetail = ({ user }) => {
   const hasMoreEpisodes = sortedEpisodes.length > DEFAULT_SHOW_COUNT;
 
   if (loading) {
-    return <div className="container"><h2>加载中...</h2></div>;
+    return <div className="container"><h2>{t('common.loading')}</h2></div>;
   }
 
   if (!episode) {
-    return <div className="container"><h2>剧集不存在</h2></div>;
+    return <div className="container"><h2>{t('episode.notFound')}</h2></div>;
   }
 
   return (
     <div className="episode-detail">
       <div style={{marginBottom: '20px'}}>
         <button className="btn btn-secondary" onClick={() => navigate(-1)}>
-          返回上一步
+          {t('common.goBack')}
         </button>
       </div>
       <div className="episode-info">
         <img src={episode.coverImage} alt={episode.title} />
         <div className="episode-details">
-          <h2>{episode.title}</h2>
-          <p>{episode.description}</p>
+          <h2>{getLocalizedTitle(episode)}</h2>
+          <p>{getLocalizedDescription(episode)}</p>
           <div className="meta-info">
-            <p><strong>状态：</strong>{episode.status === 'ongoing' ? '连载中' : episode.status === 'completed' ? '已完结' : '即将上映'}</p>
+            <p><strong>{t('episode.status')}</strong>{episode.status === 'ongoing' ? t('home.statusOngoing') : episode.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}</p>
             {episode.status === 'upcoming' && episode.premiereDate && (
-              <p><strong>上映时间：</strong><span style={{ color: 'var(--primary)' }}>{new Date(episode.premiereDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
+              <p><strong>{t('episode.premiereDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(episode.premiereDate).toLocaleDateString(lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
             )}
             {(episode.status === 'ongoing' || episode.status === 'completed') && episode.episodes && episode.episodes.length > 0 && (() => {
               const firstEp = [...episode.episodes].sort((a, b) => a.episodeNumber - b.episodeNumber)[0];
               const premiereDate = firstEp.releaseDate || firstEp.createdAt;
               if (!premiereDate) return null;
               return (
-                <p><strong>首播日期：</strong><span style={{ color: 'var(--primary)' }}>{new Date(premiereDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
+                <p><strong>{t('episode.firstAirDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(premiereDate).toLocaleDateString(lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
               );
             })()}
-            <p><strong>集数：</strong>更新至第{episode.currentEpisodes}集，共{episode.totalEpisodes}集</p>
-            <p><strong>分类：</strong>{episode.category?.join(', ') || '无'}</p>
+            <p><strong>{t('episode.episodeCount')}</strong>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
+            <p><strong>{t('episode.category')}</strong>{episode.category?.join(', ') || t('common.none')}</p>
             {episode.tags && episode.tags.length > 0 && (
-              <p><strong>标签：</strong>{episode.tags.map((tag, i) => (
+              <p><strong>{t('episode.tags')}</strong>{episode.tags.map((tag, i) => (
                 <Link key={i} to={`/?tag=${encodeURIComponent(tag)}`} style={{
                   display: 'inline-block', padding: '2px 10px', marginRight: '6px',
                   background: 'var(--primary-bg)', color: 'var(--primary-light)',
@@ -255,17 +258,17 @@ const EpisodeDetail = ({ user }) => {
                 }}>{tag}</Link>
               ))}</p>
             )}
-            <p><strong>热度：</strong>{episode.views} 次浏览</p>
+            <p><strong>{t('episode.views')}</strong>{episode.views} {t('episode.viewCount')}</p>
             {episode.averageRating > 0 && (
-              <p><strong>评分：</strong>
+              <p><strong>{t('episode.ratingLabel')}</strong>
                 <span style={{color: 'var(--warning-text)'}}>⭐ {episode.averageRating}</span>
                 <span style={{color: 'var(--text-tertiary)', fontSize: '13px', marginLeft: '6px'}}>
-                  ({episode.ratingCount}人评分)
+                  ({episode.ratingCount}{t('episode.ratingCountLabel')})
                 </span>
               </p>
             )}
             {(episode.createdBy || (episode.allowedEditors && episode.allowedEditors.length > 0)) && (
-              <p><strong>作者：</strong>
+              <p><strong>{t('episode.author')}</strong>
                 {episode.createdBy && (
                   <Link
                     to={`/creator/${episode.createdBy._id}`}
@@ -288,7 +291,7 @@ const EpisodeDetail = ({ user }) => {
               </p>
             )}
             {user && isFollowing && (
-              <p><strong>观看进度：</strong>已看 {watchedEpisodes.length}/{episode.totalEpisodes} 集</p>
+              <p><strong>{t('episode.watchProgress')}</strong>{t('episode.watchedLabel')} {watchedEpisodes.length}/{episode.totalEpisodes} {t('episode.epSuffix')}</p>
             )}
           </div>
           <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center'}}>
@@ -297,7 +300,7 @@ const EpisodeDetail = ({ user }) => {
                 className={`btn ${isFollowing ? 'btn-secondary' : ''}`}
                 onClick={handleFollow}
               >
-                {isFollowing ? '取消追番' : '追番'}
+                {isFollowing ? t('episode.unfollow') : t('episode.follow')}
               </button>
             )}
             {user && (
@@ -306,7 +309,7 @@ const EpisodeDetail = ({ user }) => {
                 onClick={handleFavorite}
                 style={isFavorite ? {borderColor: 'var(--warning-text)', color: 'var(--warning-text)'} : {}}
               >
-                {isFavorite ? '⭐ 已收藏' : '☆ 收藏'}
+                {isFavorite ? t('episode.favorited') : t('episode.favoriteLabel')}
               </button>
             )}
             <button
@@ -314,7 +317,7 @@ const EpisodeDetail = ({ user }) => {
               onClick={() => setShowShare(true)}
               style={{fontSize: '13px', padding: '8px 14px'}}
             >
-              🔗 分享
+              {t('episode.shareLabel')}
             </button>
             {user && (
               <button
@@ -322,13 +325,13 @@ const EpisodeDetail = ({ user }) => {
                 onClick={() => setShowReport(true)}
                 style={{fontSize: '13px', padding: '8px 14px'}}
               >
-                🚨 举报
+                {t('episode.reportLabel')}
               </button>
             )}
             {user && (
               <div style={{display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px'}}>
                 <span style={{fontSize: '14px', color: 'var(--text-secondary)', marginRight: '4px'}}>
-                  {userRating > 0 ? '我的评分：' : '评分：'}
+                  {userRating > 0 ? t('episode.myRating') : t('episode.ratingLabel')}
                 </span>
                 {[1,2,3,4,5].map(star => (
                   <button key={star} onClick={() => handleRate(star)}
@@ -342,7 +345,7 @@ const EpisodeDetail = ({ user }) => {
                     }}>⭐</button>
                 ))}
                 {userRating > 0 && (
-                  <span style={{fontSize: '13px', color: 'var(--warning-text)', marginLeft: '4px'}}>{userRating}分</span>
+                  <span style={{fontSize: '13px', color: 'var(--warning-text)', marginLeft: '4px'}}>{userRating}{t('episode.scoreUnit')}</span>
                 )}
                 {userRating > 0 && (
                   <button onClick={handleDeleteRating} style={{
@@ -350,7 +353,7 @@ const EpisodeDetail = ({ user }) => {
                     background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
                     border: '1px solid var(--destructive-border)', cursor: 'pointer',
                     fontSize: '12px', transition: 'all 0.2s'
-                  }}>撤回评分</button>
+                  }}>{t('episode.withdrawRating')}</button>
                 )}
               </div>
             )}
@@ -359,14 +362,14 @@ const EpisodeDetail = ({ user }) => {
       </div>
 
       <div className="episodes-list">
-        <h3>剧集列表 
+        <h3>{t('episode.episodeList')}
           <button onClick={() => setEpisodeSortOrder(episodeSortOrder === 'asc' ? 'desc' : 'asc')} style={{
             marginLeft: '8px', padding: '4px 12px', borderRadius: '6px',
             background: 'var(--hover-bg)', border: '1px solid var(--border)',
             color: 'var(--foreground)', cursor: 'pointer', fontSize: '13px',
             transition: 'all 0.2s'
           }}>
-            {episodeSortOrder === 'asc' ? '↑ 正序' : '↓ 倒序'}
+            {episodeSortOrder === 'asc' ? t('episode.sortAsc') : t('episode.sortDesc')}
           </button>
         </h3>
         {displayedEpisodes.map(singleEpisode => (
@@ -374,41 +377,41 @@ const EpisodeDetail = ({ user }) => {
             opacity: watchedEpisodes.includes(singleEpisode.episodeNumber) ? 0.7 : 1
           }}>
             <div>
-              <span className="episode-number">第{singleEpisode.episodeNumber}集</span>
-              <span>{singleEpisode.title}</span>
+              <span className="episode-number">{t('episode.epPrefix')}{singleEpisode.episodeNumber}{t('episode.epSuffix')}</span>
+              <span>{getLocalizedTitle(singleEpisode)}</span>
               {singleEpisode.duration && <span> ({singleEpisode.duration})</span>}
               {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
                 <span style={{
                   fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
                   background: 'var(--warning-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--warning-border)'
-                }}>预告 {new Date(singleEpisode.scheduledDate).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}</span>
+                }}>{t('episode.preview')} {new Date(singleEpisode.scheduledDate).toLocaleDateString(lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'zh-CN', { month: 'long', day: 'numeric' })}</span>
               )}
               {!singleEpisode.isScheduled && user && watchedEpisodes.includes(singleEpisode.episodeNumber) ? (
                 <span style={{
                   fontSize: '12px', color: 'var(--success-text)', marginLeft: '8px',
                   background: 'var(--success-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--success-border)'
-                }}>已看</span>
+                }}>{t('episode.watchedLabel')}</span>
               ) : !singleEpisode.isScheduled && user && isFollowing && followedAtEpisodes !== null && singleEpisode.episodeNumber > followedAtEpisodes ? (
                 <span style={{
                   fontSize: '12px', color: 'var(--destructive-text)', marginLeft: '8px',
                   background: 'var(--destructive-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--destructive-border)'
-                }}>新更新</span>
+                }}>{t('episode.newUpdate')}</span>
               ) : !singleEpisode.isScheduled && user && !watchedEpisodes.includes(singleEpisode.episodeNumber) && (
                 <span style={{
                   fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
                   background: 'var(--warning-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--warning-border)'
-                }}>未看</span>
+                }}>{t('episode.unwatchedLabel')}</span>
               )}
             </div>
             <button
               className="btn"
               onClick={() => handleWatch(singleEpisode)}
             >
-              观看
+              {t('episode.watch')}
             </button>
           </div>
         ))}
@@ -422,7 +425,7 @@ const EpisodeDetail = ({ user }) => {
             }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)'; }}
             >
-              {episodesExpanded ? '收起' : `展开全部 (${sortedEpisodes.length}集)`}
+              {episodesExpanded ? t('episode.collapse') : `${t('episode.expandAll')} (${sortedEpisodes.length}${t('episode.epSuffix')})`}
             </button>
           </div>
         )}
@@ -430,7 +433,7 @@ const EpisodeDetail = ({ user }) => {
 
       {recommendations.length > 0 && (
         <div style={{marginTop: '32px'}}>
-          <h3 style={{marginBottom: '16px'}}>🎯 相关推荐</h3>
+          <h3 style={{marginBottom: '16px'}}>{t('episode.recommendations')}</h3>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
@@ -448,9 +451,9 @@ const EpisodeDetail = ({ user }) => {
               >
                 <img src={rec.coverImage} alt="" style={{width: '100%', aspectRatio: '3/4', objectFit: 'cover'}} />
                 <div style={{padding: '10px 12px'}}>
-                  <div style={{fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{rec.title}</div>
+                  <div style={{fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{getLocalizedTitle(rec)}</div>
                   <div style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px'}}>
-                    第{rec.currentEpisodes}/{rec.totalEpisodes}集
+                    {t('episode.epPrefix')}{rec.currentEpisodes}/{rec.totalEpisodes}{t('episode.epSuffix')}
                     {rec.averageRating > 0 && <span style={{color: 'var(--warning-text)', marginLeft: '6px'}}>⭐{rec.averageRating}</span>}
                   </div>
                 </div>
@@ -465,13 +468,13 @@ const EpisodeDetail = ({ user }) => {
         onClose={() => setShowReport(false)}
         targetType="episode"
         targetId={episodeId}
-        targetName={episode.title}
+        targetName={getLocalizedTitle(episode)}
       />
 
       <ShareModal
         show={showShare}
         onClose={() => setShowShare(false)}
-        title={episode.title}
+        title={getLocalizedTitle(episode)}
         episodeId={episodeId}
       />
 
@@ -493,7 +496,7 @@ const EpisodeDetail = ({ user }) => {
               padding: '16px', borderBottom: '1px solid var(--border)'
             }}>
               <h3 style={{margin: 0, color: 'var(--foreground)'}}>
-                第{watchModal.episodeNumber}集 - {watchModal.title}
+                {t('episode.epPrefix')}{watchModal.episodeNumber}{t('episode.epSuffix')} - {getLocalizedTitle(watchModal)}
               </h3>
               <button onClick={() => setWatchModal(null)} style={{
                 background: 'none', border: 'none', color: 'var(--foreground)',
@@ -522,21 +525,21 @@ const EpisodeDetail = ({ user }) => {
                           src={embedUrl}
                           style={{width: '100%', height: '100%', border: 'none'}}
                           allowFullScreen
-                          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                          sandbox="allow-scripts allow-presentation allow-popups"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           referrerPolicy="no-referrer"
                         />
                       ) : (
                         <div style={{textAlign: 'center', color: 'var(--text-secondary)'}}>
                           <div style={{fontSize: '48px', marginBottom: '12px'}}>🎬</div>
-                          <p>该集暂无可嵌入的预览视频</p>
-                          <p style={{fontSize: '13px'}}>请通过下方平台链接观看</p>
+                          <p>{t('episode.noEmbedVideo')}</p>
+                          <p style={{fontSize: '13px'}}>{t('episode.watchViaPlatform')}</p>
                         </div>
                       )}
                     </div>
                     <div>
                       <h4 style={{color: 'var(--foreground)', marginBottom: '12px', fontSize: '15px'}}>
-                        选择播放平台
+                        {t('episode.selectPlatform')}
                       </h4>
                       <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}>
                         {Object.keys(links).length > 0 ? Object.entries(links).map(([platform, url]) => (
@@ -573,7 +576,7 @@ const EpisodeDetail = ({ user }) => {
                           </a>
                         )) : (
                           <div style={{color: 'var(--text-secondary)', padding: '20px', textAlign: 'center', width: '100%'}}>
-                            暂无可用播放平台
+                            {t('episode.noPlatform')}
                           </div>
                         )}
                       </div>

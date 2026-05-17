@@ -6,6 +6,14 @@ const CategorySchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  nameEn: {
+    type: String,
+    default: ''
+  },
+  nameJa: {
+    type: String,
+    default: ''
+  },
   order: {
     type: Number,
     default: 0

@@ -12,7 +12,7 @@ const AdminBanners = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
-    title: '', subtitle: '', image: '', link: '', order: 0, active: true
+    title: '', titleEn: '', titleJa: '', subtitle: '', subtitleEn: '', subtitleJa: '', image: '', link: '', order: 0, active: true
   });
   const navigate = useNavigate();
 
@@ -53,7 +53,7 @@ const AdminBanners = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setShowAddForm(false);
-      setFormData({ title: '', subtitle: '', image: '', link: '', order: 0, active: true });
+      setFormData({ title: '', titleEn: '', titleJa: '', subtitle: '', subtitleEn: '', subtitleJa: '', image: '', link: '', order: 0, active: true });
       setSuccess('轮播图添加成功');
       fetchBanners();
     } catch (err) {
@@ -72,7 +72,7 @@ const AdminBanners = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEditingBanner(null);
-      setFormData({ title: '', subtitle: '', image: '', link: '', order: 0, active: true });
+      setFormData({ title: '', titleEn: '', titleJa: '', subtitle: '', subtitleEn: '', subtitleJa: '', image: '', link: '', order: 0, active: true });
       setSuccess('轮播图修改成功');
       fetchBanners();
     } catch (err) {
@@ -110,7 +110,11 @@ const AdminBanners = () => {
     setEditingBanner(banner);
     setFormData({
       title: banner.title,
+      titleEn: banner.titleEn || '',
+      titleJa: banner.titleJa || '',
       subtitle: banner.subtitle || '',
+      subtitleEn: banner.subtitleEn || '',
+      subtitleJa: banner.subtitleJa || '',
       image: banner.image || '',
       link: banner.link || '',
       order: banner.order || 0,
@@ -121,7 +125,7 @@ const AdminBanners = () => {
 
   const openAdd = () => {
     setShowAddForm(true);
-    setFormData({ title: '', subtitle: '', image: '', link: '', order: 0, active: true });
+    setFormData({ title: '', titleEn: '', titleJa: '', subtitle: '', subtitleEn: '', subtitleJa: '', image: '', link: '', order: 0, active: true });
     setError('');
   };
 
@@ -133,9 +137,29 @@ const AdminBanners = () => {
         <label>标题</label>
         <input type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} required />
       </div>
+      <div style={{display: 'flex', gap: '12px'}}>
+        <div className="form-group" style={{flex: 1}}>
+          <label>英文标题 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+          <input type="text" value={formData.titleEn} onChange={(e) => setFormData({...formData, titleEn: e.target.value})} placeholder="English title (optional)" />
+        </div>
+        <div className="form-group" style={{flex: 1}}>
+          <label>日文标题 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+          <input type="text" value={formData.titleJa} onChange={(e) => setFormData({...formData, titleJa: e.target.value})} placeholder="日本語タイトル (任意)" />
+        </div>
+      </div>
       <div className="form-group">
         <label>副标题</label>
         <input type="text" value={formData.subtitle} onChange={(e) => setFormData({...formData, subtitle: e.target.value})} placeholder="可选" />
+      </div>
+      <div style={{display: 'flex', gap: '12px'}}>
+        <div className="form-group" style={{flex: 1}}>
+          <label>英文副标题 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填)</span></label>
+          <input type="text" value={formData.subtitleEn} onChange={(e) => setFormData({...formData, subtitleEn: e.target.value})} placeholder="English subtitle (optional)" />
+        </div>
+        <div className="form-group" style={{flex: 1}}>
+          <label>日文副标题 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填)</span></label>
+          <input type="text" value={formData.subtitleJa} onChange={(e) => setFormData({...formData, subtitleJa: e.target.value})} placeholder="日本語サブタイトル (任意)" />
+        </div>
       </div>
       <div className="form-group">
         <label>轮播图片</label>

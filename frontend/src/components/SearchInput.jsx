@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import useTranslation from '../hooks/useTranslation';
 
 const SearchInput = () => {
+  const { getLocalizedTitle } = useTranslation();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -155,7 +157,7 @@ const SearchInput = () => {
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 500, fontSize: '14px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {highlightText(episode.title || '', query)}
+                  {highlightText(getLocalizedTitle(episode) || '', query)}
                 </div>
                 {episode.category && (
                   <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{episode.category}</span>

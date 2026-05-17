@@ -9,7 +9,10 @@ const AdminFriendLinks = () => {
   const [editingLink, setEditingLink] = useState(null);
   const [activeTab, setActiveTab] = useState('approved');
   const [formData, setFormData] = useState({
-    name: '', url: '', logo: '', description: '', order: 0, isActive: true
+    name: '', nameEn: '', nameJa: '',
+    url: '', logo: '',
+    description: '', descriptionEn: '', descriptionJa: '',
+    order: 0, isActive: true
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -50,7 +53,7 @@ const AdminFriendLinks = () => {
       }
       setShowForm(false);
       setEditingLink(null);
-      setFormData({ name: '', url: '', logo: '', description: '', order: 0, isActive: true });
+      setFormData({ name: '', nameEn: '', nameJa: '', url: '', logo: '', description: '', descriptionEn: '', descriptionJa: '', order: 0, isActive: true });
       fetchLinks();
     } catch (e) {
       setError(e.response?.data?.message || '操作失败');
@@ -60,8 +63,10 @@ const AdminFriendLinks = () => {
   const handleEdit = (link) => {
     setEditingLink(link);
     setFormData({
-      name: link.name, url: link.url, logo: link.logo || '',
-      description: link.description || '', order: link.order || 0,
+      name: link.name, nameEn: link.nameEn || '', nameJa: link.nameJa || '',
+      url: link.url, logo: link.logo || '',
+      description: link.description || '', descriptionEn: link.descriptionEn || '', descriptionJa: link.descriptionJa || '',
+      order: link.order || 0,
       isActive: link.isActive !== undefined ? link.isActive : true
     });
     setShowForm(true);
@@ -83,7 +88,7 @@ const AdminFriendLinks = () => {
   const handleCancel = () => {
     setShowForm(false);
     setEditingLink(null);
-    setFormData({ name: '', url: '', logo: '', description: '', order: 0, isActive: true });
+    setFormData({ name: '', nameEn: '', nameJa: '', url: '', logo: '', description: '', descriptionEn: '', descriptionJa: '', order: 0, isActive: true });
     setError('');
   };
 
@@ -125,7 +130,7 @@ const AdminFriendLinks = () => {
         <h2>友链管理</h2>
         <div style={{ display: 'flex', gap: '10px' }}>
           {!showForm && (
-            <button className="btn" onClick={() => { setShowForm(true); setEditingLink(null); setFormData({ name: '', url: '', logo: '', description: '', order: 0, isActive: true }); }}>添加友链</button>
+            <button className="btn" onClick={() => { setShowForm(true); setEditingLink(null); setFormData({ name: '', nameEn: '', nameJa: '', url: '', logo: '', description: '', descriptionEn: '', descriptionJa: '', order: 0, isActive: true }); }}>添加友链</button>
           )}
         </div>
       </div>
@@ -143,6 +148,16 @@ const AdminFriendLinks = () => {
               <label>名称 <span style={{ color: 'var(--destructive-text)' }}>*</span></label>
               <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required placeholder="友链名称" />
             </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>英文名称 <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>(选填，不填则自动翻译)</span></label>
+                <input type="text" value={formData.nameEn} onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })} placeholder="English name (optional)" />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>日文名称 <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>(选填，不填则自动翻译)</span></label>
+                <input type="text" value={formData.nameJa} onChange={(e) => setFormData({ ...formData, nameJa: e.target.value })} placeholder="日本語名 (任意)" />
+              </div>
+            </div>
             <div className="form-group">
               <label>链接 <span style={{ color: 'var(--destructive-text)' }}>*</span></label>
               <input type="url" value={formData.url} onChange={(e) => setFormData({ ...formData, url: e.target.value })} required placeholder="https://example.com" />
@@ -154,6 +169,16 @@ const AdminFriendLinks = () => {
             <div className="form-group">
               <label>描述</label>
               <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="简短描述（选填）" />
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>英文描述 <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>(选填)</span></label>
+                <input type="text" value={formData.descriptionEn} onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })} placeholder="English description (optional)" />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>日文描述 <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>(选填)</span></label>
+                <input type="text" value={formData.descriptionJa} onChange={(e) => setFormData({ ...formData, descriptionJa: e.target.value })} placeholder="日本語説明 (任意)" />
+              </div>
             </div>
             <div className="form-group">
               <label>排序</label>

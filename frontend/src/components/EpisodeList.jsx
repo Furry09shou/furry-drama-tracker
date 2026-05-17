@@ -1,6 +1,8 @@
 import React from 'react';
+import useTranslation from '../hooks/useTranslation';
 
 const EpisodeList = ({ episodes, onEdit, onDelete }) => {
+  const { getLocalizedTitle } = useTranslation();
   if (episodes.length === 0) {
     return (
       <div className="empty-state">
@@ -28,7 +30,7 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
             )}
           </div>
           <div className="episode-info">
-            <h3>{episode.title}</h3>
+            <h3>{getLocalizedTitle(episode)}</h3>
             <p className="episode-description" style={{ maxHeight: '40px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {episode.description}
             </p>

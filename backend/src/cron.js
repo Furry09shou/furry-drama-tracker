@@ -4,9 +4,9 @@ const SingleEpisode = require('../models/SingleEpisode');
 
 const checkExpiredAccountDeletion = async () => {
   try {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const usersToDelete = await User.find({
-      deletionRequestedAt: { $ne: null, $lte: thirtyDaysAgo }
+      deletionRequestedAt: { $ne: null, $lte: sevenDaysAgo }
     });
     for (const user of usersToDelete) {
       const Follow = require('../models/Follow');

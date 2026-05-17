@@ -4,11 +4,16 @@ const AuditLogSchema = new mongoose.Schema({
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin',
-    required: true
   },
   adminName: {
     type: String,
-    required: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  userName: {
+    type: String,
   },
   action: {
     type: String,
@@ -26,6 +31,9 @@ const AuditLogSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  userAgent: {
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -34,5 +42,6 @@ const AuditLogSchema = new mongoose.Schema({
 
 AuditLogSchema.index({ createdAt: -1 });
 AuditLogSchema.index({ adminId: 1 });
+AuditLogSchema.index({ userId: 1 });
 
 module.exports = mongoose.model('AuditLog', AuditLogSchema);

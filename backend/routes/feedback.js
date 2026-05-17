@@ -20,7 +20,7 @@ router.post('/', protect, feedbackLimiter, async (req, res) => {
     if (content.length > 2000) return res.status(400).json({ message: '内容不能超过2000字' });
     await Feedback.create({
       userId: req.user._id,
-      username: req.user.username || req.user.email,
+      username: req.user.username || req.user.accountId || req.user.email,
       type: type || 'suggestion',
       content: content.trim().slice(0, 2000)
     });

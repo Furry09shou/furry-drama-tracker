@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
 
 const VerifyEmail = () => {
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('verifying');
   const [message, setMessage] = useState('');
@@ -14,7 +16,7 @@ const VerifyEmail = () => {
     const token = searchParams.get('token');
     if (!token) {
       setStatus('error');
-      setMessage('无效的验证链接，缺少验证令牌');
+      setMessage(t('auth.invalidVerifyLinkMissingToken'));
       return;
     }
     const verifyEmail = async () => {
@@ -24,7 +26,7 @@ const VerifyEmail = () => {
         setMessage(res.data.message);
       } catch (err) {
         setStatus('error');
-        setMessage(err.response?.data?.message || '验证失败');
+        setMessage(err.response?.data?.message || t('auth.verifyFailed'));
       }
     };
     verifyEmail();
@@ -41,10 +43,10 @@ const VerifyEmail = () => {
         });
         setResendMsg(res.data.message);
       } else {
-        setResendMsg('请登录后在个人中心重新发送验证邮件，或在登录页面尝试登录时自动重发');
+        setResendMsg(t('auth.resendVerificationHint'));
       }
     } catch (err) {
-      setResendMsg(err.response?.data?.message || '发送失败');
+      setResendMsg(err.response?.data?.message || t('common.sendFailed'));
     }
     setResendLoading(false);
   };
@@ -54,27 +56,27 @@ const VerifyEmail = () => {
       {status === 'verifying' && (
         <>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-          <h2>邮箱验证中</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>正在验证您的邮箱地址，请稍候...</p>
+          <h2>{t('auth.emailVerifying')}</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>{t('auth.verifyingEmailPleaseWait')}</p>
         </>
       )}
       {status === 'success' && (
         <>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-          <h2 style={{ color: 'var(--success-text)' }}>验证成功</h2>
+          <h2 style={{ color: 'var(--success-text)' }}>{t('auth.verifySuccess')}</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>{message}</p>
           <button className="btn" onClick={() => navigate('/login')} style={{ marginRight: '8px' }}>
-            前往登录
+            {t('auth.goToLogin')}
           </button>
           <button className="btn btn-secondary" onClick={() => navigate('/')}>
-            返回首页
+            {t('common.backToHome')}
           </button>
         </>
       )}
       {status === 'error' && (
         <>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
-          <h2 style={{ color: 'var(--destructive-text)' }}>验证失败</h2>
+          <h2 style={{ color: 'var(--destructive-text)' }}>{t('auth.verifyFailed')}</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>{message}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
             <button
@@ -82,7 +84,7 @@ const VerifyEmail = () => {
               onClick={handleResend}
               disabled={resendLoading}
             >
-              {resendLoading ? '发送中...' : '重新发送验证邮件'}
+              {resendLoading ? t('auth.sending') : t('auth.resendVerification')}
             </button>
             {resendMsg && (
               <p style={{
@@ -92,8 +94,8 @@ const VerifyEmail = () => {
               }}>{resendMsg}</p>
             )}
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-              <Link to="/login" className="btn btn-secondary">前往登录</Link>
-              <Link to="/" className="btn btn-secondary">返回首页</Link>
+              <Link to="/login" className="btn btn-secondary">{t('auth.goToLogin')}</Link>
+              <Link to="/" className="btn btn-secondary">{t('common.backToHome')}</Link>
             </div>
           </div>
         </>

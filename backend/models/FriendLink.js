@@ -5,6 +5,14 @@ const FriendLinkSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  nameEn: {
+    type: String,
+    default: ''
+  },
+  nameJa: {
+    type: String,
+    default: ''
+  },
   url: {
     type: String,
     required: true
@@ -14,6 +22,14 @@ const FriendLinkSchema = new mongoose.Schema({
     default: ''
   },
   description: {
+    type: String,
+    default: ''
+  },
+  descriptionEn: {
+    type: String,
+    default: ''
+  },
+  descriptionJa: {
     type: String,
     default: ''
   },

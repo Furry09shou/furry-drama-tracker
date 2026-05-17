@@ -11,8 +11,8 @@ const sanitizeInput = (req, res, next) => {
     if (obj && typeof obj === 'object') {
       const sanitized = {};
       for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          if (key.startsWith('$')) {
+          if (obj.hasOwnProperty(key)) {
+          if (key.startsWith('$') || key.includes('.')) {
             continue;
           }
           sanitized[key] = sanitize(obj[key]);

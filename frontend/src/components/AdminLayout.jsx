@@ -62,6 +62,17 @@ const AdminLayout = () => {
         zIndex: 100
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={() => navigate('/admin/dashboard')} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--primary)', fontSize: '14px',
+            display: 'flex', alignItems: 'center', gap: '4px',
+            padding: '4px 8px', borderRadius: '6px',
+            transition: 'background 0.2s'
+          }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            🏠 控制台首页
+          </button>
           <button onClick={() => navigate(-1)} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--foreground)', fontSize: '14px',
@@ -73,24 +84,26 @@ const AdminLayout = () => {
           >
             ← 返回
           </button>
+        </div>
+        <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>管理后台</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <a href="/" style={{
             color: 'var(--primary)', fontSize: '14px', textDecoration: 'none',
             padding: '4px 8px', borderRadius: '6px', transition: 'background 0.2s'
           }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >首页</a>
+          >🌐 网站首页</a>
+          <button onClick={handleLogout} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--destructive-text)', fontSize: '14px',
+            padding: '4px 8px', borderRadius: '6px',
+            transition: 'background 0.2s'
+          }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--destructive-bg-subtle)'}
+             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            退出登录
+          </button>
         </div>
-        <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>管理后台</span>
-        <button onClick={handleLogout} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--destructive-text)', fontSize: '14px',
-          padding: '4px 8px', borderRadius: '6px',
-          transition: 'background 0.2s'
-        }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--destructive-bg-subtle)'}
-           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-        >
-          退出登录
-        </button>
       </div>
       <div style={{ padding: '24px' }} className="admin-main-content">
         <Outlet context={{ admin }} />

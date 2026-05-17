@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import useTranslation from '../hooks/useTranslation';
 
 const FriendLinks = () => {
+  const { getLocalizedName, getLocalizedDescription } = useTranslation();
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -190,14 +192,14 @@ const FriendLinks = () => {
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--foreground)', marginBottom: '2px' }}>
-                      {link.name}
+                      {getLocalizedName(link)}
                     </div>
                     {link.description && (
                       <div style={{
                         fontSize: '12px', color: 'var(--text-secondary)',
                         overflow: 'hidden', textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap'
-                      }}>{link.description}</div>
+                      }}>{getLocalizedDescription(link)}</div>
                     )}
                   </div>
                 </Wrapper>

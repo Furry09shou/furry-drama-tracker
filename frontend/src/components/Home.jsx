@@ -3,13 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import SearchInput from './SearchInput';
 import { EpisodeCardSkeletonFixed as EpisodeCardSkeleton } from './Skeleton';
-
-const STATUS_OPTIONS = [
-  { value: '', label: '全部' },
-  { value: 'ongoing', label: '连载中' },
-  { value: 'completed', label: '已完结' },
-  { value: 'upcoming', label: '即将上映' },
-];
+import { useI18n } from '../contexts/I18nContext';
+import useTranslation from '../hooks/useTranslation';
 
 const RATING_OPTIONS = [
   { value: '', label: '全部' },
@@ -27,19 +22,6 @@ const YEAR_OPTIONS = (() => {
   }
   return options;
 })();
-
-const SORT_OPTIONS = [
-  { value: 'latest', label: '最新更新' },
-  { value: 'views', label: '热门推荐' },
-  { value: 'premiere', label: '最新首播' },
-  { value: 'rating', label: '最高评分' },
-];
-
-const STATUS_MAP = {
-  ongoing: { text: '连载中', cls: 'ongoing' },
-  completed: { text: '已完结', cls: 'completed' },
-  upcoming: { text: '即将上映', cls: 'upcoming' },
-};
 
 const capsuleBtnStyle = (active) => ({
   padding: '6px 16px',
@@ -72,6 +54,25 @@ const filterLabelStyle = {
 };
 
 const Home = () => {
+  const { t } = useI18n();
+  const { getLocalizedTitle, getLocalizedSubtitle, getLocalizedName, getLocalizedDescription, getLocalizedContent } = useTranslation();
+  const STATUS_OPTIONS = [
+    { value: '', label: t('common.all') },
+    { value: 'ongoing', label: t('home.statusOngoing') },
+    { value: 'completed', label: t('home.statusCompleted') },
+    { value: 'upcoming', label: t('home.statusUpcoming') },
+  ];
+  const SORT_OPTIONS = [
+    { value: 'latest', label: t('home.sortLatest') },
+    { value: 'views', label: t('home.sortViews') },
+    { value: 'premiere', label: t('home.sortPremiere') },
+    { value: 'rating', label: t('home.sortRating') },
+  ];
+  const STATUS_MAP = {
+    ongoing: { text: t('home.statusOngoing'), cls: 'ongoing' },
+    completed: { text: t('home.statusCompleted'), cls: 'completed' },
+    upcoming: { text: t('home.statusUpcoming'), cls: 'upcoming' },
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [episodes, setEpisodes] = useState([]);
@@ -80,6 +81,7 @@ const Home = () => {
   const [banners, setBanners] = useState([]);
   const [total, setTotal] = useState(0);
   const [siteSettings, setSiteSettings] = useState({ welcomeTitle: '', welcomeSubtitle: '' });
+  const [siteSettingsRaw, setSiteSettingsRaw] = useState(null);
 
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
@@ -134,6 +136,7 @@ const Home = () => {
       try {
         const data = JSON.parse(res.data.content);
         setSiteSettings({ welcomeTitle: data.welcomeTitle || '', welcomeSubtitle: data.welcomeSubtitle || '' });
+        setSiteSettingsRaw(data);
       } catch (e) {}
     }).catch(() => {});
   }, []);
@@ -253,7 +256,7 @@ const Home = () => {
 
   // 截断描述
   const truncateDesc = (desc, maxLen = 50) => {
-    if (!desc) return '暂无简介';
+    if (!desc) return t('episode.noDescription');
     return desc.length > maxLen ? desc.slice(0, maxLen) + '...' : desc;
   };
 
@@ -281,14 +284,14 @@ const Home = () => {
             margin: 0,
             textShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
-            {siteSettings?.welcomeTitle || '欢迎来到追剧平台'}
+            {getLocalizedContent({content: siteSettingsRaw ? JSON.stringify(siteSettingsRaw) : JSON.stringify(siteSettings)}, 'welcomeTitle') || t('home.welcomeTitle')}
           </h2>
           <p style={{
             fontSize: '1rem',
             marginTop: '8px',
             opacity: 0.9,
           }}>
-            {siteSettings?.welcomeSubtitle || '发现精彩剧集，追番不迷路'}
+            {getLocalizedContent({content: siteSettingsRaw ? JSON.stringify(siteSettingsRaw) : JSON.stringify(siteSettings)}, 'welcomeSubtitle') || t('home.welcomeSubtitle')}
           </p>
         </div>
       );
@@ -325,14 +328,14 @@ const Home = () => {
             margin: 0,
             textShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}>
-            {siteSettings?.welcomeTitle || '欢迎来到追剧平台'}
+            {getLocalizedContent({content: siteSettingsRaw ? JSON.stringify(siteSettingsRaw) : JSON.stringify(siteSettings)}, 'welcomeTitle') || t('home.welcomeTitle')}
           </h2>
           <p style={{
             fontSize: '1rem',
             marginTop: '8px',
             opacity: 0.9,
           }}>
-            {siteSettings?.welcomeSubtitle || '发现精彩剧集，追番不迷路'}
+            {getLocalizedContent({content: siteSettingsRaw ? JSON.stringify(siteSettingsRaw) : JSON.stringify(siteSettings)}, 'welcomeSubtitle') || t('home.welcomeSubtitle')}
           </p>
         </div>
 
@@ -380,11 +383,11 @@ const Home = () => {
               color: '#fff',
             }}>
               <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>
-                {banner.title}
+                {getLocalizedTitle(banner)}
               </h3>
               {banner.subtitle && (
                 <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.9 }}>
-                  {banner.subtitle}
+                  {getLocalizedSubtitle(banner)}
                 </p>
               )}
             </div>
@@ -492,7 +495,7 @@ const Home = () => {
 
       {/* 分类 */}
       <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>分类</span>
+        <span style={filterLabelStyle}>{t('home.category')}</span>
         <button
           style={capsuleBtnStyle(filters.category === '')}
           onClick={() => handleFilterChange('category', '')}
@@ -507,7 +510,7 @@ const Home = () => {
               style={capsuleBtnStyle(filters.category === name)}
               onClick={() => handleFilterChange('category', name)}
             >
-              {name}
+              {getLocalizedName(c) || name}
             </button>
           );
         })}
@@ -515,7 +518,7 @@ const Home = () => {
 
       {/* 状态 */}
       <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>状态</span>
+        <span style={filterLabelStyle}>{t('home.status')}</span>
         {STATUS_OPTIONS.map(opt => (
           <button
             key={opt.value}
@@ -529,7 +532,7 @@ const Home = () => {
 
       {/* 评分 */}
       <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>评分</span>
+        <span style={filterLabelStyle}>{t('home.rating')}</span>
         {RATING_OPTIONS.map(opt => (
           <button
             key={opt.value}
@@ -543,7 +546,7 @@ const Home = () => {
 
       {/* 年份 */}
       <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>年份</span>
+        <span style={filterLabelStyle}>{t('home.year')}</span>
         {YEAR_OPTIONS.map(opt => (
           <button
             key={opt.value}
@@ -557,7 +560,7 @@ const Home = () => {
 
       {/* 排序 */}
       <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>排序</span>
+        <span style={filterLabelStyle}>{t('home.sort')}</span>
         {SORT_OPTIONS.map(opt => {
           const isActive = filters.sort === opt.value;
           return (
@@ -596,7 +599,7 @@ const Home = () => {
   const renderEpisodeCard = (episode) => {
     const statusInfo = STATUS_MAP[episode.status] || STATUS_MAP.ongoing;
     const authorName = episode.createdBy?.username || '';
-    const avgRating = episode.averageRating != null ? episode.averageRating.toFixed(1) : '暂无';
+    const avgRating = episode.averageRating != null ? episode.averageRating.toFixed(1) : t('episode.noDescription');
     const ratingCount = episode.ratingCount || 0;
 
     return (
@@ -629,8 +632,8 @@ const Home = () => {
           )}
         </div>
         <div className="card-content">
-          <h3>{episode.title}</h3>
-          <p>{truncateDesc(episode.description)}</p>
+          <h3>{getLocalizedTitle(episode)}</h3>
+          <p>{truncateDesc(getLocalizedDescription(episode))}</p>
 
           {/* 热度 + 评分 */}
           <div style={{
@@ -715,7 +718,7 @@ const Home = () => {
               color: 'var(--text-secondary)',
               marginTop: '4px',
             }}>
-              作者: {authorName}
+              {t('home.author')}: {authorName}
             </div>
           )}
         </div>
@@ -748,7 +751,7 @@ const Home = () => {
         }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
           <p style={{ fontSize: '16px', margin: 0 }}>
-            {searchQuery ? `没有找到与 "${searchQuery}" 相关的剧集` : '暂无剧集'}
+            {searchQuery ? `${t('home.noResults')}` : t('home.noResults')}
           </p>
         </div>
       ) : (

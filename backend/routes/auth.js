@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const xss = require('xss');
 const User = require('../models/User');
 const Admin = require('../models/Admin');
 const UserSession = require('../models/UserSession');
@@ -12,10 +13,17 @@ const Report = require('../models/Report');
 const Feedback = require('../models/Feedback');
 const jwt = require('jsonwebtoken');
 const https = require('https');
+const crypto = require('crypto');
 const { protect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
+const { logManual } = require('../middlewares/auditLog');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/email');
-const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
+const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie } = require('../utils/helpers');
+
+const escapeHtml = (str) => {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+};
 
 const getIpRegion = (ip) => {
   return new Promise((resolve) => {
@@ -50,11 +58,57 @@ const getIpRegion = (ip) => {
   });
 };
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         accountId:
+ *           type: string
+ *         username:
+ *           type: string
+ *         email:
+ *           type: string
+ *         isEmailVerified:
+ *           type: boolean
+ *         adminAccess:
+ *           type: boolean
+ *         token:
+ *           type: string
+ *     Error:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ */
+
 // 验证码存储（内存Map，5分钟过期，挂载到global以便其他路由共享）
 if (!global._captchaStore) global._captchaStore = new Map();
 const captchaStore = global._captchaStore;
 
-// 生成图形验证码
+/**
+ * @swagger
+ * /api/auth/captcha:
+ *   get:
+ *     tags: [认证]
+ *     summary: 获取图形验证码
+ *     responses:
+ *       200:
+ *         description: 返回验证码ID和SVG图片
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 captchaId:
+ *                   type: string
+ *                 svg:
+ *                   type: string
+ */
 router.get('/captcha', (req, res) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -106,6 +160,7 @@ router.get('/captcha', (req, res) => {
 
 // 验证验证码的辅助函数
 const verifyCaptcha = (captchaId, captchaAnswer) => {
+  captchaAnswer = captchaAnswer.toLowerCase(); // 小写化，避免大小写问题
   if (!captchaId || !captchaAnswer) return false;
   const stored = captchaStore.get(captchaId);
   if (!stored) return false;
@@ -118,34 +173,86 @@ const verifyCaptcha = (captchaId, captchaAnswer) => {
   return isCorrect;
 };
 
-router.get('/check-username', async (req, res) => {
+router.get('/check-accountId', async (req, res) => {
   try {
-    const { username } = req.query;
-    if (!username) {
-      return res.status(400).json({ message: 'Username is required' });
+    const { accountId } = req.query;
+    if (!accountId) {
+      return res.status(400).json({ message: 'accountId is required' });
     }
-    const existing = await User.findOne({ username });
+    const existing = await User.findOne({ accountId });
     res.json({ available: !existing });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     tags: [认证]
+ *     summary: 用户注册
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [accountId, username, email, password, captchaId, captchaAnswer]
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               captchaId:
+ *                 type: string
+ *               captchaAnswer:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 注册成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 needVerification:
+ *                   type: boolean
+ *       400:
+ *         description: 参数错误
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/register', async (req, res) => {
-  const { username, email, password, deviceInfo, captchaId, captchaAnswer } = req.body;
+  const accountId = xss(req.body.accountId?.trim());
+  const username = xss(req.body.username?.trim());
+  const email = xss(req.body.email?.trim());
+  const { password, deviceInfo, captchaId, captchaAnswer } = req.body;
   const ua = req.headers['user-agent'] || '';
   const parsed = parseUserAgent(ua);
 
   try {
-    // 验证验证码
     if (!verifyCaptcha(captchaId, captchaAnswer)) {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return res.status(400).json({ message: '邮箱格式不正确' });
-    if (username.length < 2 || username.length > 20) return res.status(400).json({ message: '用户名长度需在2-20个字符之间' });
-    if (!/^[\w\u4e00-\u9fa5]+$/.test(username)) return res.status(400).json({ message: '用户名只能包含字母、数字、下划线和中文' });
+
+    if (!accountId || accountId.length < 3 || accountId.length > 20) return res.status(400).json({ message: '账号ID长度需在3-20个字符之间' });
+    if (!/^[a-zA-Z0-9_]+$/.test(accountId)) return res.status(400).json({ message: '账号ID只能包含字母、数字和下划线' });
+
+    if (!username || username.length < 1 || username.length > 20) return res.status(400).json({ message: '昵称长度需在1-20个字符之间' });
 
     const passwordError = validatePassword(password);
     if (passwordError) {
@@ -153,15 +260,16 @@ router.post('/register', async (req, res) => {
     }
     const userExists = await User.findOne({ email });
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: '该邮箱已被注册' });
     }
 
-    const usernameExists = await User.findOne({ username });
-    if (usernameExists) {
-      return res.status(400).json({ message: 'Username already taken' });
+    const accountIdExists = await User.findOne({ accountId });
+    if (accountIdExists) {
+      return res.status(400).json({ message: '该账号ID已被占用' });
     }
 
     const user = await User.create({
+      accountId,
       username,
       email,
       password,
@@ -199,14 +307,53 @@ router.post('/register', async (req, res) => {
   } catch (error) {
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({ message: field === 'email' ? 'User already exists' : 'Username already taken' });
+      return res.status(400).json({ message: field === 'email' ? '该邮箱已被注册' : field === 'accountId' ? '该账号ID已被占用' : '该信息已被使用' });
     }
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     tags: [认证]
+ *     summary: 用户登录
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, captchaId, captchaAnswer]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               captchaId:
+ *                 type: string
+ *               captchaAnswer:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 登录成功，返回用户信息和JWT令牌
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: 凭证无效
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: 需要邮箱验证或新设备验证
+ */
 router.post('/login', async (req, res) => {
-  const { email, password, deviceInfo, captchaId, captchaAnswer } = req.body;
+  const email = xss(req.body.email?.trim());
+  const { password, deviceInfo, captchaId, captchaAnswer } = req.body;
   const ua = req.headers['user-agent'] || '';
   const parsed = parseUserAgent(ua);
 
@@ -271,9 +418,9 @@ router.post('/login', async (req, res) => {
             <h2 style="color:#333;text-align:center">新设备登录验证</h2>
             <p>检测到您的账号在新设备上尝试登录：</p>
             <div style="background:#f5f5f5;padding:12px;border-radius:8px;margin:12px 0">
-              <p style="margin:4px 0"><strong>浏览器：</strong>${parsed.browser || '未知'}</p>
-              <p style="margin:4px 0"><strong>操作系统：</strong>${parsed.os || '未知'}</p>
-              <p style="margin:4px 0"><strong>IP地址：</strong>${currentIp}</p>
+              <p style="margin:4px 0"><strong>浏览器：</strong>${escapeHtml(parsed.browser) || '未知'}</p>
+              <p style="margin:4px 0"><strong>操作系统：</strong>${escapeHtml(parsed.os) || '未知'}</p>
+              <p style="margin:4px 0"><strong>IP地址：</strong>${escapeHtml(currentIp)}</p>
             </div>
             <p>如非本人操作，请忽略此邮件。如确认是本人，请点击下方按钮确认登录：</p>
             <div style="text-align:center;margin:20px 0">
@@ -297,19 +444,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    user.deviceInfo = {
-      browser: deviceInfo?.browser || parsed.browser,
-      browserVersion: deviceInfo?.browserVersion || parsed.browserVersion,
-      os: deviceInfo?.os || parsed.os,
-      osVersion: deviceInfo?.osVersion || parsed.osVersion,
-      deviceType: deviceInfo?.deviceType || parsed.deviceType,
-      deviceModel: deviceInfo?.deviceModel || parsed.deviceModel || '',
-      screenWidth: deviceInfo?.screenWidth || 0,
-      screenHeight: deviceInfo?.screenHeight || 0,
-      language: deviceInfo?.language || req.headers['accept-language']?.split(',')[0] || '',
-      userAgent: ua,
-      carrier: deviceInfo?.carrier || ''
-    };
+    if (user.twoFactorEnabled) {
+      return res.json({
+        need2FA: true,
+        email: user.email
+      });
+    }
+
+    user.deviceInfo = buildDeviceInfo(deviceInfo, parsed, ua, req);
     user.lastLoginAt = new Date();
     user.lastLoginIp = getClientIp(req);
     user.lastLoginRegion = await getIpRegion(getClientIp(req));
@@ -319,24 +461,23 @@ router.post('/login', async (req, res) => {
       expiresIn: '30d'
     });
 
-    const tokenHash = hashToken(token);
-    const ip = getClientIp(req);
-    const sessionDeviceInfo = parseUserAgent(ua);
-    if (deviceInfo?.screenWidth) sessionDeviceInfo.screenWidth = deviceInfo.screenWidth;
-    if (deviceInfo?.screenHeight) sessionDeviceInfo.screenHeight = deviceInfo.screenHeight;
-    if (deviceInfo?.language) sessionDeviceInfo.language = deviceInfo.language;
-    sessionDeviceInfo.userAgent = ua;
+    await createUserSession(user._id, token, deviceInfo, parsed, ua, getClientIp(req));
 
-    const session = new UserSession({
+    setAuthCookie(res, token);
+
+    logManual({
       userId: user._id,
-      tokenHash,
-      deviceInfo: sessionDeviceInfo,
-      ip
+      userName: user.username || user.accountId,
+      action: 'LOGIN',
+      target: 'auth',
+      details: 'User login success',
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent'] || '',
     });
-    await session.save();
 
     res.json({
       _id: user._id,
+      accountId: user.accountId,
       username: user.username,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
@@ -357,14 +498,13 @@ router.post('/verify-device', async (req, res) => {
     const user = await User.findById(decoded.id);
     if (!user) return res.status(400).json({ message: 'User not found' });
     const loginToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    const tokenHash = hashToken(loginToken);
-    const ip = decoded.ip || '';
-    const sessionDeviceInfo = parseUserAgent(decoded.ua || '');
-    sessionDeviceInfo.userAgent = decoded.ua || '';
-    const session = new UserSession({ userId: user._id, tokenHash, deviceInfo: sessionDeviceInfo, ip });
-    await session.save();
+    const ua = decoded.ua || '';
+    const parsed = parseUserAgent(ua);
+    await createUserSession(user._id, loginToken, null, parsed, ua, decoded.ip || '');
+    setAuthCookie(res, loginToken);
+
     res.json({
-      _id: user._id, username: user.username, email: user.email,
+      _id: user._id, accountId: user.accountId, username: user.username, email: user.email,
       isEmailVerified: user.isEmailVerified, adminAccess: user.adminAccess || false,
       token: loginToken
     });
@@ -374,17 +514,105 @@ router.post('/verify-device', async (req, res) => {
   }
 });
 
+router.post('/login-2fa', async (req, res) => {
+  const { email, twoFactorToken, deviceInfo } = req.body;
+  const ua = req.headers['user-agent'] || '';
+  const parsed = parseUserAgent(ua);
+  try {
+    const user = await User.findOne({ email }).select('+twoFactorSecret +twoFactorBackupCodes');
+    if (!user || !user.twoFactorEnabled) {
+      return res.status(400).json({ message: '2FA not enabled for this account' });
+    }
+
+    if (!verifyTOTP(user.twoFactorSecret, twoFactorToken) && !user.twoFactorBackupCodes.includes(twoFactorToken)) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    if (user.twoFactorBackupCodes.includes(twoFactorToken)) {
+      user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => c !== twoFactorToken);
+    }
+
+    user.deviceInfo = buildDeviceInfo(deviceInfo, parsed, ua, req);
+    user.lastLoginAt = new Date();
+    user.lastLoginIp = getClientIp(req);
+    user.lastLoginRegion = await getIpRegion(getClientIp(req));
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    await createUserSession(user._id, token, deviceInfo, parsed, ua, getClientIp(req));
+
+    logManual({
+      userId: user._id,
+      userName: user.username || user.accountId,
+      action: 'LOGIN_2FA',
+      target: 'auth',
+      details: 'User login with 2FA',
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent'] || '',
+    });
+
+    setAuthCookie(res, token);
+
+    res.json({
+      _id: user._id,
+      accountId: user.accountId,
+      username: user.username,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      adminAccess: user.adminAccess || false,
+      token
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     tags: [认证]
+ *     summary: 退出登录（使当前令牌失效）
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 退出成功
+ *       401:
+ *         description: 未认证
+ */
 router.post('/logout', protect, async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const tokenHash = hashToken(token);
     await UserSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
+    res.clearCookie('token', { path: '/' });
     res.json({ message: '退出成功' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     tags: [认证]
+ *     summary: 获取当前登录用户信息
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 用户信息
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: 未认证
+ *       404:
+ *         description: 用户不存在
+ */
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
@@ -393,6 +621,7 @@ router.get('/me', protect, async (req, res) => {
     }
     res.json({
       _id: user._id,
+      accountId: user.accountId,
       username: user.username,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
@@ -421,6 +650,16 @@ router.put('/change-password', protect, async (req, res) => {
     }
     user.password = newPassword;
     await user.save();
+    await UserSession.updateMany({ userId: req.user._id, isActive: true }, { isActive: false });
+    logManual({
+      userId: req.user._id,
+      userName: req.user.username || req.user.accountId,
+      action: 'CHANGE_PASSWORD',
+      target: 'auth',
+      details: 'Password changed',
+      ip: req.ip || req.connection?.remoteAddress || '',
+      userAgent: req.headers['user-agent'] || '',
+    });
     res.json({ message: '密码修改成功' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -451,7 +690,8 @@ router.put('/admin/change-password', adminProtect, async (req, res) => {
 });
 
 router.post('/forgot-password', async (req, res) => {
-  const { email, captchaId, captchaAnswer } = req.body;
+  const email = xss(req.body.email?.trim());
+  const { captchaId, captchaAnswer } = req.body;
   try {
     if (!verifyCaptcha(captchaId, captchaAnswer)) {
       return res.status(400).json({ message: '验证码错误或已过期' });
@@ -493,6 +733,17 @@ router.post('/reset-password', async (req, res) => {
     user.password = newPassword;
     user.passwordChangedAt = new Date();
     await user.save();
+
+    logManual({
+      userId: user._id,
+      userName: user.username || user.accountId,
+      action: 'PASSWORD_RESET',
+      target: 'auth',
+      details: 'Password reset via email link',
+      ip: req.ip || req.connection?.remoteAddress || '',
+      userAgent: req.headers['user-agent'] || '',
+    });
+
     res.json({ message: '密码重置成功' });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -591,6 +842,17 @@ router.post('/request-deletion', protect, async (req, res) => {
     user.deletionRequestedAt = new Date();
     await user.save();
     const deleteAt = new Date(user.deletionRequestedAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    logManual({
+      userId: req.user._id,
+      userName: req.user.username || req.user.accountId,
+      action: 'ACCOUNT_DELETION_REQUESTED',
+      target: 'auth',
+      details: 'Account deletion requested',
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent'] || '',
+    });
+
     res.json({
       message: '注销申请已提交',
       deletionRequestedAt: user.deletionRequestedAt,
@@ -612,6 +874,17 @@ router.post('/cancel-deletion', protect, async (req, res) => {
     }
     user.deletionRequestedAt = null;
     await user.save();
+
+    logManual({
+      userId: req.user._id,
+      userName: req.user.username || req.user.accountId,
+      action: 'ACCOUNT_DELETION_CANCELLED',
+      target: 'auth',
+      details: 'Account deletion cancelled',
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent'] || '',
+    });
+
     res.json({ message: '注销申请已取消' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -633,6 +906,19 @@ router.get('/deletion-status', protect, async (req, res) => {
       deletionRequestedAt: user.deletionRequestedAt,
       deleteAt
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/sse-ticket', protect, async (req, res) => {
+  try {
+    const ticket = jwt.sign(
+      { id: req.user._id, purpose: 'sse-ticket' },
+      process.env.JWT_SECRET,
+      { expiresIn: '30s' }
+    );
+    res.json({ ticket });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

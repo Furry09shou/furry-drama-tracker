@@ -120,7 +120,7 @@ router.get('/all', adminProtect, async (req, res) => {
 
 router.post('/', adminProtect, async (req, res) => {
   try {
-    const { name, url, logo, description, order, isActive } = req.body;
+    const { name, nameEn, nameJa, url, logo, description, descriptionEn, descriptionJa, order, isActive } = req.body;
     if (!name || !url) {
       return res.status(400).json({ message: '名称和链接为必填项' });
     }
@@ -130,7 +130,7 @@ router.post('/', adminProtect, async (req, res) => {
     if (logo && !isValidUrl(logo)) {
       return res.status(400).json({ message: 'Logo URL 格式不合法' });
     }
-    const link = await FriendLink.create({ name, url, logo, description, order: order || 0, isActive: isActive !== undefined ? isActive : true });
+    const link = await FriendLink.create({ name, nameEn: nameEn || '', nameJa: nameJa || '', url, logo, description, descriptionEn: descriptionEn || '', descriptionJa: descriptionJa || '', order: order || 0, isActive: isActive !== undefined ? isActive : true });
     res.json(link);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -139,7 +139,7 @@ router.post('/', adminProtect, async (req, res) => {
 
 router.put('/:id', adminProtect, async (req, res) => {
   try {
-    const { name, url, logo, description, order, isActive, status } = req.body;
+    const { name, nameEn, nameJa, url, logo, description, descriptionEn, descriptionJa, order, isActive, status } = req.body;
     if (url && !isValidUrl(url)) {
       return res.status(400).json({ message: '链接格式不合法，仅支持 http/https 协议' });
     }
@@ -152,9 +152,13 @@ router.put('/:id', adminProtect, async (req, res) => {
     }
     const updateData = {};
     if (name !== undefined) updateData.name = name;
+    if (nameEn !== undefined) updateData.nameEn = nameEn;
+    if (nameJa !== undefined) updateData.nameJa = nameJa;
     if (url !== undefined) updateData.url = url;
     if (logo !== undefined) updateData.logo = logo;
     if (description !== undefined) updateData.description = description;
+    if (descriptionEn !== undefined) updateData.descriptionEn = descriptionEn;
+    if (descriptionJa !== undefined) updateData.descriptionJa = descriptionJa;
     if (order !== undefined) updateData.order = order;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (status !== undefined) {
