@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 
 const SearchInput = () => {
+  const { t } = useI18n();
   const { getLocalizedTitle } = useTranslation();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -104,7 +106,7 @@ const SearchInput = () => {
       <input
         ref={inputRef}
         type="text"
-        placeholder="搜索剧集..."
+        placeholder={t('home.searchPlaceholder')}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);

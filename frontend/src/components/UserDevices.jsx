@@ -13,6 +13,7 @@ const UserDevices = ({ user }) => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
+  const [msgIsError, setMsgIsError] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, type: 'danger' });
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -52,10 +53,12 @@ const UserDevices = ({ user }) => {
             headers: getAuthHeaders()
           });
           setMsg(t('devices.deviceLoggedOut'));
+          setMsgIsError(false);
           fetchSessions();
           setTimeout(() => setMsg(''), 3000);
         } catch (err) {
           setMsg(err.response?.data?.message || t('common.operationFailed'));
+          setMsgIsError(true);
           setTimeout(() => setMsg(''), 3000);
         }
       }
@@ -74,10 +77,11 @@ const UserDevices = ({ user }) => {
             headers: getAuthHeaders()
           });
           setMsg(res.data.message);
-          fetchSessions();
+          setMsgIsError(false);
           setTimeout(() => setMsg(''), 3000);
         } catch (err) {
-          setMsg(t('common.operationFailed'));
+          setMsg(err.response?.data?.message || t('common.operationFailed'));
+          setMsgIsError(true);
           setTimeout(() => setMsg(''), 3000);
         }
       }
@@ -96,6 +100,7 @@ const UserDevices = ({ user }) => {
       setTimeout(() => setMsg(''), 3000);
     } catch (err) {
       setMsg(err.response?.data?.message || t('common.updateFailed'));
+      setMsgIsError(true);
       setTimeout(() => setMsg(''), 3000);
     }
   };
@@ -146,9 +151,9 @@ const UserDevices = ({ user }) => {
       {msg && (
         <div style={{
           padding: '10px', marginBottom: '16px', borderRadius: '6px',
-          background: msg.includes('失败') ? 'var(--destructive-bg)' : 'var(--success-bg-strong)',
-          border: `1px solid ${msg.includes('失败') ? 'var(--destructive-border)' : 'var(--success-border)'}`,
-          color: msg.includes('失败') ? 'var(--destructive-text)' : 'var(--success-text)'
+          background: msgIsError ? 'var(--destructive-bg)' : 'var(--success-bg-strong)',
+          border: `1px solid ${msgIsError ? 'var(--destructive-border)' : 'var(--success-border)'}`,
+          color: msgIsError ? 'var(--destructive-text)' : 'var(--success-text)'
         }}>{msg}</div>
       )}
 

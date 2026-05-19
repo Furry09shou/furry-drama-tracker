@@ -354,7 +354,7 @@ const Login = ({ login }) => {
           </div>
         </div>
         <div className="form-group">
-          <label htmlFor="captcha">图形验证码</label>
+          <label htmlFor="captcha">{t('auth.captcha')}</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <input type="text" id="captcha" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} required placeholder={t('auth.enterCaptcha')} style={{ flex: 1, minWidth: 0 }} />
             {captchaData.svg && (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const typeStyles = {
   danger: {
@@ -29,6 +30,7 @@ const ConfirmModal = ({ show, onClose, onConfirm, title, message, confirmText, c
   const [password, setPassword] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useI18n();
 
   if (!show) return null;
 
@@ -47,7 +49,7 @@ const ConfirmModal = ({ show, onClose, onConfirm, title, message, confirmText, c
         setPassword('');
         onClose();
       } catch (e) {
-        setError(e.response?.data?.message || '验证失败');
+        setError(e.response?.data?.message || t('confirm.verifyFailed'));
       }
       setVerifying(false);
     } else {
@@ -66,17 +68,17 @@ const ConfirmModal = ({ show, onClose, onConfirm, title, message, confirmText, c
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--overlay-bg)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div style={{ background: 'var(--card)', borderRadius: '16px', maxWidth: '400px', width: '100%', border: '1px solid var(--border)', boxShadow: '0 25px 50px var(--shadow-strong)' }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ margin: 0, color: style.titleColor }}>{title || `${style.icon} 确认操作`}</h3>
+          <h3 style={{ margin: 0, color: style.titleColor }}>{title || `${style.icon} ${t('confirm.confirmAction')}`}</h3>
         </div>
         <div style={{ padding: '20px 24px' }}>
-          <p style={{ margin: '0 0 16px 0', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6 }}>{message || '此操作不可撤销，确定要继续吗？'}</p>
+          <p style={{ margin: '0 0 16px 0', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6 }}>{message || t('confirm.irreversible')}</p>
           {requirePassword && (
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="请输入管理员密码" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px', boxSizing: 'border-box' }} onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); }} />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('confirm.enterPassword')} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px', boxSizing: 'border-box' }} onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); }} />
           )}
           {error && <p style={{ margin: '8px 0 0', color: 'var(--destructive-text)', fontSize: '13px' }}>{error}</p>}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-            <button className="btn btn-secondary" onClick={handleClose}>{cancelText || '取消'}</button>
-            <button className="btn" style={{ background: style.confirmBg, borderColor: style.confirmBorder, color: style.confirmColor }} onClick={handleConfirm} disabled={requirePassword && (!password || verifying)}>{verifying ? '验证中...' : (confirmText || '确认')}</button>
+            <button className="btn btn-secondary" onClick={handleClose}>{cancelText || t('common.cancel')}</button>
+            <button className="btn" style={{ background: style.confirmBg, borderColor: style.confirmBorder, color: style.confirmColor }} onClick={handleConfirm} disabled={requirePassword && (!password || verifying)}>{verifying ? t('confirm.verifying') : (confirmText || t('confirm.confirm'))}</button>
           </div>
         </div>
       </div>

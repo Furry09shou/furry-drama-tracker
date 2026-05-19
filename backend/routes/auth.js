@@ -20,6 +20,8 @@ const { logManual } = require('../middlewares/auditLog');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/email');
 const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie } = require('../utils/helpers');
 
+const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
+
 const escapeHtml = (str) => {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -388,7 +390,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    if (!user.isEmailVerified) {
+    if (!user.isEmailVerified && !DEMO_EMAILS.includes(user.email.toLowerCase())) {
       const verifyToken = jwt.sign(
         { id: user._id, purpose: 'verify-email' },
         process.env.JWT_SECRET,
@@ -398,12 +400,17 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: '请先验证邮箱后再登录，验证邮件已重新发送至您的邮箱', needVerification: true, email: user.email });
     }
 
+    if (DEMO_EMAILS.includes(user.email.toLowerCase()) && !user.isEmailVerified) {
+      user.isEmailVerified = true;
+      await user.save();
+    }
+
     const currentIp = getClientIp(req);
     const currentUa = ua;
     const knownSessions = await UserSession.find({ userId: user._id, isActive: true });
     const isKnownDevice = knownSessions.some(s => s.deviceInfo?.userAgent === currentUa);
 
-    if (!isKnownDevice && knownSessions.length > 0) {
+    if (!isKnownDevice && knownSessions.length > 0 && !DEMO_EMAILS.includes(user.email.toLowerCase())) {
       const deviceVerifyToken = jwt.sign(
         { id: user._id, purpose: 'device-verify', ip: currentIp, ua: currentUa },
         process.env.JWT_SECRET,

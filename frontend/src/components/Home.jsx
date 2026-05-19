@@ -7,7 +7,7 @@ import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 
 const RATING_OPTIONS = [
-  { value: '', label: '全部' },
+  { value: '', labelKey: 'common.all' },
   { value: '4', label: '4+' },
   { value: '3', label: '3+' },
   { value: '2', label: '2+' },
@@ -16,7 +16,7 @@ const RATING_OPTIONS = [
 
 const YEAR_OPTIONS = (() => {
   const currentYear = new Date().getFullYear();
-  const options = [{ value: '', label: '全部' }, { value: 'recent5', label: '近5年' }];
+  const options = [{ value: '', labelKey: 'common.all' }, { value: 'recent5', labelKey: 'home.yearRecent5' }];
   for (let y = currentYear; y >= currentYear - 10; y--) {
     options.push({ value: String(y), label: String(y) });
   }
@@ -250,7 +250,7 @@ const Home = () => {
   // 格式化热度
   const formatViews = (views) => {
     if (!views && views !== 0) return '0';
-    if (views >= 10000) return (views / 10000).toFixed(1) + '万';
+    if (views >= 10000) return (views / 10000).toFixed(1) + t('common.tenThousand');
     return String(views);
   };
 
@@ -500,7 +500,7 @@ const Home = () => {
           style={capsuleBtnStyle(filters.category === '')}
           onClick={() => handleFilterChange('category', '')}
         >
-          全部
+          {t('common.all')}
         </button>
         {categories.map(c => {
           const name = c.name || c;
@@ -539,7 +539,7 @@ const Home = () => {
             style={capsuleBtnStyle(filters.rating === opt.value)}
             onClick={() => handleFilterChange('rating', opt.value)}
           >
-            {opt.label}
+            {opt.labelKey ? t(opt.labelKey) : opt.label}
           </button>
         ))}
       </div>
@@ -553,7 +553,7 @@ const Home = () => {
             style={capsuleBtnStyle(filters.year === opt.value)}
             onClick={() => handleFilterChange('year', opt.value)}
           >
-            {opt.label}
+            {opt.labelKey ? t(opt.labelKey) : opt.label}
           </button>
         ))}
       </div>
@@ -627,7 +627,7 @@ const Home = () => {
               fontSize: '11px',
               fontWeight: 500,
             }}>
-              第{episode.currentEpisodes}/{episode.totalEpisodes}集
+              {t('home.episodeProgress', { current: episode.currentEpisodes, total: episode.totalEpisodes })}
             </span>
           )}
         </div>
@@ -647,7 +647,7 @@ const Home = () => {
               🔥 {formatViews(episode.views)}
             </span>
             <span style={{ color: 'var(--warning-text, #f59e0b)' }}>
-              ⭐ {avgRating}{ratingCount > 0 ? ` (${ratingCount}人)` : ''}
+              ⭐ {avgRating}{ratingCount > 0 ? ` (${ratingCount}${t('common.people')})` : ''}
             </span>
           </div>
 
@@ -733,7 +733,7 @@ const Home = () => {
 
       {searchQuery && (
         <div style={{ marginBottom: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-          搜索 "<strong style={{ color: 'var(--foreground)' }}>{searchQuery}</strong>" 的结果，共 {total} 部
+          {t('home.searchResult', { query: searchQuery, count: total })}
         </div>
       )}
 

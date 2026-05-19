@@ -158,7 +158,7 @@ const Profile = ({ user, setUser, logout }) => {
   };
 
   if (loading) {
-    return <div className="container"><h2>加载中...</h2></div>;
+    return <div className="container"><h2>{t('common.loading')}</h2></div>;
   }
 
   const renderFollowCard = (follow) => {

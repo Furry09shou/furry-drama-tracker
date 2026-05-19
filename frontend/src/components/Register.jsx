@@ -183,7 +183,7 @@ const Register = () => {
           <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>{t('auth.passwordHint')}</span>
         </div>
         <div className="form-group">
-          <label htmlFor="captcha">图形验证码</label>
+          <label htmlFor="captcha">{t('auth.captcha')}</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <input
               type="text"

@@ -161,10 +161,11 @@ app.use((req, res, next) => {
 
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 300,
   message: { message: '请求过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/api/translate'),
 });
 app.use('/api/', globalLimiter);
 

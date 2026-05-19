@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useEpisodes } from '../hooks/useEpisodes';
+import { useI18n } from '../contexts/I18nContext';
 
 const SingleEpisodeManager = ({ episode, onClose }) => {
+  const { t } = useI18n();
   const { 
     fetchSingleEpisodes, 
     addSingleEpisode, 
@@ -84,7 +86,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
   };
 
   const handleDeleteSingleEpisode = async (id) => {
-    if (!window.confirm('确定要删除这个单集吗？')) return;
+    if (!window.confirm(t('singleEpisode.deleteConfirm'))) return;
     try {
       await deleteSingleEpisode(id);
       await loadSingleEpisodes();
@@ -98,7 +100,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
     const nextNum = singleEpisodes.length + 1;
     setNewSingleEpisode({
       episodeNumber: nextNum,
-      title: `第${nextNum}集`,
+      title: t('calendar.episodeNum', { num: nextNum }),
       duration: '',
       platformLinksList: [],
       scheduledDate: '',
@@ -158,7 +160,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
         alignItems: 'center', 
         marginBottom: '15px' 
       }}>
-        <h4>单集管理</h4>
+        <h4>{t('singleEpisode.title')}</h4>
         <button 
           style={{
             padding: '8px 16px',
@@ -179,7 +181,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
             }
           }}
         >
-          {showAddForm && !editingSingleEpisode ? '取消' : '添加单集'}
+          {showAddForm && !editingSingleEpisode ? t('common.cancel') : t('singleEpisode.addEpisode')}
         </button>
       </div>
 
@@ -191,10 +193,10 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
           borderRadius: '8px', 
           border: '1px solid var(--border)' 
         }}>
-          <h4>{editingSingleEpisode ? `编辑第${editingSingleEpisode.episodeNumber}集` : '添加单集'}</h4>
+          <h4>{editingSingleEpisode ? t('singleEpisode.editEpisode', { num: editingSingleEpisode.episodeNumber }) : t('singleEpisode.addEpisode')}</h4>
           <form onSubmit={handleAddSingleEpisode}>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>集数</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('singleEpisode.episodeNum')}</label>
               <input
                 type="number"
                 value={newSingleEpisode.episodeNumber}
@@ -212,7 +214,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
               />
             </div>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>标题</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('singleEpisode.episodeTitle')}</label>
               <input
                 type="text"
                 value={newSingleEpisode.title}
@@ -230,12 +232,12 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
               />
             </div>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>时长</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('singleEpisode.duration')}</label>
               <input
                 type="text"
                 value={newSingleEpisode.duration}
                 onChange={(e) => setNewSingleEpisode({...newSingleEpisode, duration: e.target.value})}
-                placeholder="例如：24分钟"
+                placeholder={t('singleEpisode.durationPlaceholder')}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -249,7 +251,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
             </div>
             {(episode.status === 'ongoing' || episode.status === 'completed') && (
               <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>发布日期 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>（选填，不填默认上传日期）</span></label>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('singleEpisode.publishDate')} <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('singleEpisode.publishDateNote')}</span></label>
                 <input
                   type="datetime-local"
                   value={newSingleEpisode.releaseDate}
@@ -265,7 +267,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   }}
                 />
                 <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                  适用于已上映但平台补充信息较晚的剧集
+                  {t('singleEpisode.latePublishNote')}
                 </p>
               </div>
             )}
@@ -277,11 +279,11 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isScheduled: e.target.checked, scheduledDate: e.target.checked ? newSingleEpisode.scheduledDate || '' : ''})}
                   style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
-                <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>设置为预告更新</label>
+                <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>{t('singleEpisode.setPreview')}</label>
               </div>
               {newSingleEpisode.isScheduled && (
                 <div>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>预告更新日期</label>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>{t('singleEpisode.previewDate')}</label>
                   <input
                     type="datetime-local"
                     value={newSingleEpisode.scheduledDate}
@@ -297,13 +299,13 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                     }}
                   />
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                    设置后将在更新日历中显示为预告
+                    {t('singleEpisode.previewNote')}
                   </p>
                 </div>
               )}
             </div>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>跳转链接</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>{t('singleEpisode.jumpLink')}</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {newSingleEpisode.platformLinksList.map((item, index) => (
                   <div key={index} style={{
@@ -329,15 +331,15 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                         cursor: 'pointer'
                       }}
                     >
-                      删除
+                      {t('common.delete')}
                     </button>
                     <div style={{ marginBottom: '8px' }}>
-                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px' }}>平台名称</label>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px' }}>{t('singleEpisode.platformName')}</label>
                       <input
                         type="text"
                         value={item.name}
                         onChange={(e) => updatePlatformLink(index, 'name', e.target.value)}
-                        placeholder="例如：优酷、腾讯视频"
+                        placeholder={t('singleEpisode.platformPlaceholder')}
                         style={{
                           width: '100%',
                           padding: '6px 10px',
@@ -350,12 +352,12 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px' }}>链接地址</label>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px' }}>{t('singleEpisode.linkUrl')}</label>
                       <input
                         type="text"
                         value={item.url}
                         onChange={(e) => updatePlatformLink(index, 'url', e.target.value)}
-                        placeholder="输入完整的URL地址"
+                        placeholder={t('singleEpisode.linkPlaceholder')}
                         style={{
                           width: '100%',
                           padding: '6px 10px',
@@ -382,7 +384,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                     fontSize: '13px'
                   }}
                 >
-                  添加平台链接
+                  {t('singleEpisode.addPlatform')}
                 </button>
               </div>
             </div>
@@ -408,7 +410,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   fontSize: '14px'
                 }}
               >
-                {editingSingleEpisode ? '更新单集' : '添加单集'}
+                {editingSingleEpisode ? t('singleEpisode.updateEpisode') : t('singleEpisode.addEpisode')}
               </button>
               <button 
                 type="button" 
@@ -427,7 +429,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   fontSize: '14px'
                 }}
               >
-                取消
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -436,7 +438,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
 
       <div className="single-episodes-list">
         {singleEpisodes.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>暂无单集，点击"添加单集"按钮开始添加</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{t('singleEpisode.noEpisodes')}</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
             {singleEpisodes.map(singleEpisode => (
@@ -447,7 +449,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 padding: '15px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <h5 style={{ margin: 0 }}>第{singleEpisode.episodeNumber}集</h5>
+                  <h5 style={{ margin: 0 }}>{t('calendar.episodeNum', { num: singleEpisode.episodeNumber })}</h5>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={() => handleEditSingleEpisode(singleEpisode)}
@@ -461,7 +463,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                         fontSize: '12px'
                       }}
                     >
-                      编辑
+                      {t('common.edit')}
                     </button>
                     <button
                       onClick={() => handleDeleteSingleEpisode(singleEpisode._id)}
@@ -475,27 +477,27 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                         fontSize: '12px'
                       }}
                     >
-                      删除
+                      {t('common.delete')}
                     </button>
                   </div>
                 </div>
                 <p style={{ margin: '8px 0', fontSize: '14px' }}>{singleEpisode.title}</p>
                 {singleEpisode.releaseDate && (
                   <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    📅 发布: {new Date(singleEpisode.releaseDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    📅 {t('singleEpisode.published')} {new Date(singleEpisode.releaseDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                 )}
                 {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
                   <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    🔔 预告: {new Date(singleEpisode.scheduledDate).toLocaleString('zh-CN')}
+                    🔔 {t('singleEpisode.previewLabel')} {new Date(singleEpisode.scheduledDate).toLocaleString('zh-CN')}
                   </p>
                 )}
                 {singleEpisode.duration && (
-                  <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>时长: {singleEpisode.duration}</p>
+                  <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>{t('singleEpisode.durationLabel')} {singleEpisode.duration}</p>
                 )}
                 {singleEpisode.platformLinks && Object.keys(singleEpisode.platformLinks).length > 0 && (
                   <div style={{ marginTop: '10px' }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>跳转链接:</p>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>{t('singleEpisode.jumpLinkLabel')}</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {Object.entries(singleEpisode.platformLinks).map(([name, url]) => (
                         <a 

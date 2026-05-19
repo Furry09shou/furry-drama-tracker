@@ -1,7 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
 
 const NotFound = () => {
+  const { t } = useI18n();
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -14,7 +16,7 @@ const NotFound = () => {
         WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
       }}>404</h1>
       <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '32px' }}>
-        页面不存在或已被移除
+        {t('notFound.description')}
       </p>
       <Link to="/" style={{
         padding: '12px 32px', borderRadius: '10px',
@@ -22,7 +24,7 @@ const NotFound = () => {
         color: 'var(--btn-text)', textDecoration: 'none', fontWeight: 600,
         fontSize: '16px', transition: 'transform 0.2s, box-shadow 0.2s'
       }}>
-        返回首页
+        {t('notFound.goHome')}
       </Link>
     </div>
   );

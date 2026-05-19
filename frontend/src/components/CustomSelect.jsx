@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '../contexts/I18nContext';
 
 const CustomSelect = ({ options, value, onChange, placeholder, className = '' }) => {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const selectRef = useRef(null);
@@ -73,7 +75,7 @@ const CustomSelect = ({ options, value, onChange, placeholder, className = '' })
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="select-value">
-          {selectedOption ? selectedOption.label : placeholder || '请选择'}
+          {selectedOption ? selectedOption.label : placeholder || t('common.selectPlaceholder')}
         </span>
         <span className={`select-arrow ${isOpen ? 'open' : ''}`}>
           ▼

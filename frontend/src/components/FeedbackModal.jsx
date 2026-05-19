@@ -8,6 +8,7 @@ const FeedbackModal = ({ show, onClose, user }) => {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState('');
+  const [msgIsSuccess, setMsgIsSuccess] = useState(false);
 
   if (!show) return null;
 
@@ -19,10 +20,12 @@ const FeedbackModal = ({ show, onClose, user }) => {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await axios.post('/api/feedback', { type, content }, { headers });
       setMsg(res.data.message);
+      setMsgIsSuccess(true);
       setContent('');
       setTimeout(() => { setMsg(''); onClose(); }, 1500);
     } catch (e) {
       setMsg(e.response?.data?.message || t('feedback.submitFailed'));
+      setMsgIsSuccess(false);
     }
     setSubmitting(false);
   };
@@ -57,7 +60,7 @@ const FeedbackModal = ({ show, onClose, user }) => {
             <button className="btn btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
             <button className="btn" onClick={handleSubmit} disabled={!content.trim() || submitting}>{submitting ? t('common.processing') : t('feedback.submit')}</button>
           </div>
-          {msg && <p style={{ marginTop: '8px', fontSize: '13px', color: msg.includes('感谢') ? 'var(--success-text)' : 'var(--destructive-text)', textAlign: 'center' }}>{msg}</p>}
+          {msg && <p style={{ marginTop: '8px', fontSize: '13px', color: msgIsSuccess ? 'var(--success-text)' : 'var(--destructive-text)', textAlign: 'center' }}>{msg}</p>}
         </div>
       </div>
     </div>

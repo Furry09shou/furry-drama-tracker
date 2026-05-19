@@ -3,8 +3,10 @@ import { useEpisodeForm } from '../hooks/useEpisodeForm';
 import { useCategories } from '../hooks/useCategories';
 import ImageUploader from './ImageUploader';
 import CustomSelect from './CustomSelect';
+import { useI18n } from '../contexts/I18nContext';
 
 const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
+  const { t } = useI18n();
   const { formData, errors, updateField, toggleCategory, validate } = useEpisodeForm(episode);
   const { categories } = useCategories();
   const [coverImageMode, setCoverImageMode] = useState('url');
@@ -58,7 +60,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
           alignItems: 'center', 
           marginBottom: '20px' 
         }}>
-          <h3>{episode ? '编辑剧集' : '添加新剧集'}</h3>
+          <h3>{episode ? t('episodeForm.editTitle') : t('episodeForm.addTitle')}</h3>
           <button 
             className="btn btn-secondary"
             onClick={onClose}
@@ -72,19 +74,19 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
               fontSize: '14px'
             }}
           >
-            关闭
+            {t('episodeForm.close')}
           </button>
         </div>
 
         {!episode && (
           <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>
-            添加剧集后将自动打开单集管理，您可以为每一集设置独立的跳转链接
+            {t('episodeForm.autoManageTip')}
           </p>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>标题</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('episodeForm.titleLabel')}</label>
             <input
               type="text"
               value={formData.title}
@@ -104,7 +106,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>描述</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('episodeForm.descLabel')}</label>
             <textarea
               value={formData.description}
               onChange={e => updateField('description', e.target.value)}
@@ -125,7 +127,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>封面图片</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('episodeForm.coverImage')}</label>
             <ImageUploader
               value={formData.coverImage}
               onChange={url => updateField('coverImage', url)}
@@ -139,7 +141,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>总集数</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('episodeForm.totalEpisodes')}</label>
             <input
               type="number"
               value={formData.totalEpisodes}
@@ -159,7 +161,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
           </div>
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>分类（可多选）</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>{t('episodeForm.categoryMulti')}</label>
             <div className="checkbox-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               {categories.map(category => (
                 <label key={category} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px' }}>
@@ -174,17 +176,17 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
               ))}
             </div>
             <p style={{fontSize: '14px', color: 'var(--text-secondary)', marginTop: '12px'}}>
-              已选择: {formData.categories.join(', ') || '无'}
+              {t('episodeForm.selected')} {formData.categories.join(', ') || t('episodeForm.none')}
             </p>
           </div>
 
           <div className="form-group" style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>状态</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('episodeForm.statusLabel')}</label>
             <CustomSelect
               options={[
-                { value: 'ongoing', label: '连载中' },
-                { value: 'completed', label: '已完结' },
-                { value: 'upcoming', label: '即将上映' }
+                { value: 'ongoing', label: t('home.statusOngoing') },
+                { value: 'completed', label: t('home.statusCompleted') },
+                { value: 'upcoming', label: t('home.statusUpcoming') }
               ]}
               value={formData.status}
               onChange={status => updateField('status', status)}
@@ -205,7 +207,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 fontSize: '14px'
               }}
             >
-              {episode ? '更新剧集信息' : '添加并管理单集'}
+              {episode ? t('episodeForm.updateBtn') : t('episodeForm.addBtn')}
             </button>
             <button 
               type="button" 
@@ -220,7 +222,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 fontSize: '14px'
               }}
             >
-              取消
+              {t('common.cancel')}
             </button>
           </div>
         </form>

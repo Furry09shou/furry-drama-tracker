@@ -1,5 +1,4 @@
-import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 
 const translations = {
   zh: {
@@ -43,6 +42,7 @@ const translations = {
       clickToRefresh: '点击刷新',
       pageLoadError: '页面加载出错',
       pleaseWait: '请稍候',
+      selectPlaceholder: '请选择',
     },
     nav: {
       home: '首页',
@@ -97,6 +97,8 @@ const translations = {
       yearRecent5: '近5年',
       noResults: '暂无剧集',
       searchResult: '搜索结果',
+      searchPlaceholder: '搜索剧集...',
+      episodeProgress: '第{current}/{total}集',
       hot: '🔥',
       star: '⭐',
       author: '作者',
@@ -401,6 +403,168 @@ const translations = {
       misleading: '误导信息',
       other: '其他',
     },
+    friendLink: {
+      title: '友情链接',
+      apply: '申请友链',
+      list: '友链列表',
+      myApplications: '我的申请',
+      noLinks: '暂无友链',
+      noApplications: '暂无友链申请记录',
+      applyTitle: '申请友情链接',
+      siteName: '站点名称',
+      siteNamePlaceholder: '请输入站点名称',
+      siteUrl: '站点链接',
+      logoLink: 'Logo 链接',
+      siteDesc: '站点描述',
+      siteDescPlaceholder: '简要描述您的站点',
+      captchaLabel: '图形验证码',
+      captchaPlaceholder: '请输入验证码',
+      clickToRefresh: '点击刷新',
+      submitApply: '提交申请',
+      submitting: '提交中...',
+      applySuccess: '申请已提交，等待管理员审核',
+      nameAndUrlRequired: '站点名称和链接为必填项',
+      captchaRequired: '请输入验证码',
+      submitFailed: '提交失败',
+      pending: '待审核',
+      approved: '已通过',
+      rejected: '已拒绝',
+      reason: '原因',
+    },
+    sitePage: {
+      loading: '加载中...',
+      goBack: '返回上一步',
+      version: '版本',
+      changelog: '更新日志',
+      comingSoon: '开发中',
+      latest: '最新',
+      prevPage: '上一页',
+      nextPage: '下一页',
+      license: 'GPL v3.0 / AGPL v3.0 许可协议',
+      githubProject: 'GitHub 开源项目',
+      frontendProject: '前端项目',
+      backendProject: '后端项目',
+      viewLicense: '查看许可协议',
+      openSourceLicense: '开源许可协议',
+      projectLicense: '项目协议',
+      frontendGPL: '前端 — GPL v3.0',
+      viewOriginal: '查看协议原文 →',
+      githubRepo: 'GitHub 仓库 →',
+      backendAGPL: '后端 — AGPL v3.0',
+      agplNote: 'AGPL 要求通过网络提供服务的后端也必须公开源代码',
+      licensePoints: '协议要点',
+      freeUse: '自由使用',
+      freeUseDesc: '允许任何目的的使用',
+      freeModify: '自由修改',
+      freeModifyDesc: '可以修改源代码',
+      freeDistribute: '自由分发',
+      freeDistributeDesc: '可以分发原版或修改版',
+      sameLicense: '相同协议',
+      sameLicenseDesc: '修改后必须使用相同协议',
+      openSourceReq: '开源要求',
+      openSourceReqDesc: '必须公开源代码',
+      networkService: '网络服务',
+      networkServiceDesc: '网络服务也需公开源代码',
+      stateChanges: '声明变更',
+      stateChangesDesc: '修改后必须声明变更内容',
+      disclaimer: '免责声明',
+      disclaimerText: '本软件按"原样"提供，不提供任何明示或暗示的保证',
+      thirdPartyDeps: '第三方依赖',
+      thirdPartyDepsDesc: '本项目使用了以下开源第三方库',
+      fullLicenseNote: '完整的 GPL v3 协议文本请参阅项目仓库中的 LICENSE.md 文件。',
+    },
+    notFound: {
+      title: '页面不存在',
+      description: '页面不存在或已被移除',
+      goHome: '返回首页',
+    },
+    share: {
+      title: '推荐《{title}》- 兽剧聚合平台',
+      wechat: '微信',
+      weibo: '微博',
+      share: '分享',
+      copied: '✓ 已复制',
+      copy: '复制',
+      systemShare: '系统分享',
+    },
+    confirm: {
+      verifyFailed: '验证失败',
+      confirmAction: '确认操作',
+      irreversible: '此操作不可撤销，确定要继续吗？',
+      enterPassword: '请输入管理员密码',
+      verifying: '验证中...',
+      confirm: '确认',
+    },
+    calendar: {
+      title: '更新日历',
+      today: '今天',
+      year: '年',
+      month: '月',
+      week: '周',
+      updated: '已更新',
+      preview: '预告',
+      premiere: '首播',
+      reminder: '提醒',
+      more: '更多',
+      myFollows: '我的追番',
+      swipeHint: '← 左右滑动查看日历 →',
+      monthlyDetails: '本月更新详情',
+      noUpdates: '本月暂无更新记录',
+      episodeNum: '第{num}集',
+      months: '一月,二月,三月,四月,五月,六月,七月,八月,九月,十月,十一月,十二月',
+      weekdays: '日,一,二,三,四,五,六',
+      weekdayNames: '周日,周一,周二,周三,周四,周五,周六',
+    },
+    creator: {
+      notFound: '创作者主页不存在',
+      works: '作品列表',
+      noWorks: '暂无作品',
+      episodeProgress: '更新至第{current}集，共{total}集',
+    },
+    episodeForm: {
+      editTitle: '编辑剧集',
+      addTitle: '添加新剧集',
+      close: '关闭',
+      autoManageTip: '添加剧集后将自动打开单集管理，您可以为每一集设置独立的跳转链接',
+      titleLabel: '标题',
+      descLabel: '描述',
+      coverImage: '封面图片',
+      totalEpisodes: '总集数',
+      categoryMulti: '分类（可多选）',
+      selected: '已选择:',
+      none: '无',
+      statusLabel: '状态',
+      updateBtn: '更新剧集信息',
+      addBtn: '添加并管理单集',
+    },
+    singleEpisode: {
+      title: '单集管理',
+      addEpisode: '添加单集',
+      editEpisode: '编辑第{num}集',
+      episodeNum: '集数',
+      episodeTitle: '标题',
+      duration: '时长',
+      durationPlaceholder: '例如：24分钟',
+      publishDate: '发布日期',
+      publishDateNote: '（选填，不填默认上传日期）',
+      latePublishNote: '适用于已上映但平台补充信息较晚的剧集',
+      setPreview: '设置为预告更新',
+      previewDate: '预告更新日期',
+      previewNote: '设置后将在更新日历中显示为预告',
+      jumpLink: '跳转链接',
+      platformName: '平台名称',
+      platformPlaceholder: '例如：优酷、腾讯视频',
+      linkUrl: '链接地址',
+      linkPlaceholder: '输入完整的URL地址',
+      addPlatform: '添加平台链接',
+      updateEpisode: '更新单集',
+      noEpisodes: '暂无单集，点击"添加单集"按钮开始添加',
+      published: '发布:',
+      previewLabel: '预告:',
+      durationLabel: '时长:',
+      jumpLinkLabel: '跳转链接:',
+      deleteConfirm: '确定要删除这个单集吗？',
+    },
   },
   en: {
     common: {
@@ -443,6 +607,7 @@ const translations = {
       clickToRefresh: 'Click to refresh',
       pageLoadError: 'Page load error',
       pleaseWait: 'Please wait',
+      selectPlaceholder: 'Please select',
     },
     nav: {
       home: 'Home',
@@ -496,7 +661,9 @@ const translations = {
       statusUpcoming: 'Upcoming',
       yearRecent5: 'Recent 5Y',
       noResults: 'No dramas found',
-      searchResult: 'Search results',
+      searchResult: 'Search results for "{query}", {count} found',
+      searchPlaceholder: 'Search dramas...',
+      episodeProgress: 'Ep {current}/{total}',
       hot: '🔥',
       star: '⭐',
       author: 'Author',
@@ -801,6 +968,168 @@ const translations = {
       misleading: 'Misleading information',
       other: 'Other',
     },
+    friendLink: {
+      title: 'Friend Links',
+      apply: 'Apply',
+      list: 'Link List',
+      myApplications: 'My Applications',
+      noLinks: 'No links yet',
+      noApplications: 'No application records',
+      applyTitle: 'Apply for Friend Link',
+      siteName: 'Site Name',
+      siteNamePlaceholder: 'Enter site name',
+      siteUrl: 'Site URL',
+      logoLink: 'Logo URL',
+      siteDesc: 'Site Description',
+      siteDescPlaceholder: 'Briefly describe your site',
+      captchaLabel: 'Captcha',
+      captchaPlaceholder: 'Enter captcha',
+      clickToRefresh: 'Click to refresh',
+      submitApply: 'Submit',
+      submitting: 'Submitting...',
+      applySuccess: 'Application submitted, awaiting review',
+      nameAndUrlRequired: 'Site name and URL are required',
+      captchaRequired: 'Please enter captcha',
+      submitFailed: 'Submission failed',
+      pending: 'Pending',
+      approved: 'Approved',
+      rejected: 'Rejected',
+      reason: 'Reason',
+    },
+    sitePage: {
+      loading: 'Loading...',
+      goBack: 'Go Back',
+      version: 'Version',
+      changelog: 'Changelog',
+      comingSoon: 'Coming Soon',
+      latest: 'Latest',
+      prevPage: 'Previous',
+      nextPage: 'Next',
+      license: 'GPL v3.0 / AGPL v3.0 License',
+      githubProject: 'GitHub Open Source',
+      frontendProject: 'Frontend Project',
+      backendProject: 'Backend Project',
+      viewLicense: 'View License',
+      openSourceLicense: 'Open Source License',
+      projectLicense: 'Project License',
+      frontendGPL: 'Frontend — GPL v3.0',
+      viewOriginal: 'View Original →',
+      githubRepo: 'GitHub Repo →',
+      backendAGPL: 'Backend — AGPL v3.0',
+      agplNote: 'AGPL requires backend services provided over the network to also make source code public',
+      licensePoints: 'License Key Points',
+      freeUse: 'Free Use',
+      freeUseDesc: 'Use for any purpose',
+      freeModify: 'Free Modification',
+      freeModifyDesc: 'Modify source code',
+      freeDistribute: 'Free Distribution',
+      freeDistributeDesc: 'Distribute original or modified',
+      sameLicense: 'Same License',
+      sameLicenseDesc: 'Modified versions must use the same license',
+      openSourceReq: 'Open Source Requirement',
+      openSourceReqDesc: 'Must make source code public',
+      networkService: 'Network Service',
+      networkServiceDesc: 'Network services must also be open source',
+      stateChanges: 'State Changes',
+      stateChangesDesc: 'Must state changes made',
+      disclaimer: 'Disclaimer',
+      disclaimerText: 'This software is provided "as is", without any warranty',
+      thirdPartyDeps: 'Third-party Dependencies',
+      thirdPartyDepsDesc: 'This project uses the following open-source libraries',
+      fullLicenseNote: 'For the full GPL v3 license text, see the LICENSE.md file in the project repository.',
+    },
+    notFound: {
+      title: 'Page Not Found',
+      description: 'The page does not exist or has been removed',
+      goHome: 'Go Home',
+    },
+    share: {
+      title: 'Recommend "{title}" - Drama Tracker',
+      wechat: 'WeChat',
+      weibo: 'Weibo',
+      share: 'Share',
+      copied: '✓ Copied',
+      copy: 'Copy',
+      systemShare: 'System Share',
+    },
+    confirm: {
+      verifyFailed: 'Verification Failed',
+      confirmAction: 'Confirm Action',
+      irreversible: 'This action is irreversible. Are you sure?',
+      enterPassword: 'Enter admin password',
+      verifying: 'Verifying...',
+      confirm: 'Confirm',
+    },
+    calendar: {
+      title: 'Update Calendar',
+      today: 'Today',
+      year: 'Year',
+      month: 'Month',
+      week: 'Week',
+      updated: 'Updated',
+      preview: 'Preview',
+      premiere: 'Premiere',
+      reminder: 'Reminder',
+      more: 'More',
+      myFollows: 'My Follows',
+      swipeHint: '← Swipe to browse calendar →',
+      monthlyDetails: 'Monthly Update Details',
+      noUpdates: 'No updates this month',
+      episodeNum: 'Ep {num}',
+      months: 'January,February,March,April,May,June,July,August,September,October,November,December',
+      weekdays: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat',
+      weekdayNames: 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
+    },
+    creator: {
+      notFound: 'Creator page not found',
+      works: 'Works',
+      noWorks: 'No works yet',
+      episodeProgress: 'Updated to Ep {current}, Total {total} eps',
+    },
+    episodeForm: {
+      editTitle: 'Edit Drama',
+      addTitle: 'Add New Drama',
+      close: 'Close',
+      autoManageTip: 'After adding, single episode management will open automatically',
+      titleLabel: 'Title',
+      descLabel: 'Description',
+      coverImage: 'Cover Image',
+      totalEpisodes: 'Total Episodes',
+      categoryMulti: 'Category (Multi-select)',
+      selected: 'Selected:',
+      none: 'None',
+      statusLabel: 'Status',
+      updateBtn: 'Update Drama Info',
+      addBtn: 'Add & Manage Episodes',
+    },
+    singleEpisode: {
+      title: 'Episode Management',
+      addEpisode: 'Add Episode',
+      editEpisode: 'Edit Ep {num}',
+      episodeNum: 'Episode #',
+      episodeTitle: 'Title',
+      duration: 'Duration',
+      durationPlaceholder: 'e.g. 24min',
+      publishDate: 'Publish Date',
+      publishDateNote: '(Optional, defaults to upload date)',
+      latePublishNote: 'For dramas already aired but with late info updates',
+      setPreview: 'Set as preview update',
+      previewDate: 'Preview Update Date',
+      previewNote: 'Will show as preview in calendar',
+      jumpLink: 'Jump Links',
+      platformName: 'Platform Name',
+      platformPlaceholder: 'e.g. Youku, Tencent Video',
+      linkUrl: 'Link URL',
+      linkPlaceholder: 'Enter full URL',
+      addPlatform: 'Add Platform Link',
+      updateEpisode: 'Update Episode',
+      noEpisodes: 'No episodes yet, click "Add Episode" to start',
+      published: 'Published:',
+      previewLabel: 'Preview:',
+      durationLabel: 'Duration:',
+      jumpLinkLabel: 'Links:',
+      deleteConfirm: 'Are you sure to delete this episode?',
+    },
   },
   ja: {
     common: {
@@ -843,6 +1172,7 @@ const translations = {
       clickToRefresh: 'クリックで更新',
       pageLoadError: 'ページ読み込みエラー',
       pleaseWait: 'お待ちください',
+      selectPlaceholder: '選択してください',
     },
     nav: {
       home: 'ホーム',
@@ -896,7 +1226,9 @@ const translations = {
       statusUpcoming: '放送予定',
       yearRecent5: '過去5年',
       noResults: 'ドラマがありません',
-      searchResult: '検索結果',
+      searchResult: '「{query}」の検索結果、{count}件',
+      searchPlaceholder: 'ドラマを検索...',
+      episodeProgress: '{current}/{total}話',
       hot: '🔥',
       star: '⭐',
       author: '作者',
@@ -1201,6 +1533,168 @@ const translations = {
       misleading: '誤解を招く情報',
       other: 'その他',
     },
+    friendLink: {
+      title: 'リンク',
+      apply: '申請',
+      list: 'リンク一覧',
+      myApplications: '申請履歴',
+      noLinks: 'リンクはありません',
+      noApplications: '申請履歴はありません',
+      applyTitle: 'リンク申請',
+      siteName: 'サイト名',
+      siteNamePlaceholder: 'サイト名を入力',
+      siteUrl: 'サイトURL',
+      logoLink: 'Logo URL',
+      siteDesc: 'サイト説明',
+      siteDescPlaceholder: 'サイトの簡単な説明',
+      captchaLabel: '認証コード',
+      captchaPlaceholder: '認証コードを入力',
+      clickToRefresh: 'クリックで更新',
+      submitApply: '申請を送信',
+      submitting: '送信中...',
+      applySuccess: '申請が送信されました',
+      nameAndUrlRequired: 'サイト名とURLは必須です',
+      captchaRequired: '認証コードを入力してください',
+      submitFailed: '送信に失敗しました',
+      pending: '審査中',
+      approved: '承認済み',
+      rejected: '却下',
+      reason: '理由',
+    },
+    sitePage: {
+      loading: '読み込み中...',
+      goBack: '戻る',
+      version: 'バージョン',
+      changelog: '更新履歴',
+      comingSoon: '開発中',
+      latest: '最新',
+      prevPage: '前へ',
+      nextPage: '次へ',
+      license: 'GPL v3.0 / AGPL v3.0 ライセンス',
+      githubProject: 'GitHub オープンソース',
+      frontendProject: 'フロントエンド',
+      backendProject: 'バックエンド',
+      viewLicense: 'ライセンスを見る',
+      openSourceLicense: 'オープンソースライセンス',
+      projectLicense: 'プロジェクトライセンス',
+      frontendGPL: 'フロントエンド — GPL v3.0',
+      viewOriginal: '原文を見る →',
+      githubRepo: 'GitHub リポジトリ →',
+      backendAGPL: 'バックエンド — AGPL v3.0',
+      agplNote: 'AGPLはネットワークサービスのバックエンドもソースコードを公開することを要求します',
+      licensePoints: 'ライセンス要点',
+      freeUse: '自由に使用',
+      freeUseDesc: 'いかなる目的でも使用可能',
+      freeModify: '自由に改変',
+      freeModifyDesc: 'ソースコードの改変が可能',
+      freeDistribute: '自由に配布',
+      freeDistributeDesc: '原版または改変版の配布が可能',
+      sameLicense: '同じライセンス',
+      sameLicenseDesc: '改変版は同じライセンスを使用',
+      openSourceReq: 'オープンソース要件',
+      openSourceReqDesc: 'ソースコードの公開が必要',
+      networkService: 'ネットワークサービス',
+      networkServiceDesc: 'ネットワークサービスもソースコード公開が必要',
+      stateChanges: '変更の明記',
+      stateChangesDesc: '変更内容を明記する必要があります',
+      disclaimer: '免責事項',
+      disclaimerText: '本ソフトウェアは「現状のまま」提供され、いかなる保証もありません',
+      thirdPartyDeps: 'サードパーティ依存',
+      thirdPartyDepsDesc: '以下のオープンソースライブラリを使用しています',
+      fullLicenseNote: '完全なGPL v3ライセンステキストはプロジェクトリポジトリのLICENSE.mdファイルを参照してください。',
+    },
+    notFound: {
+      title: 'ページが見つかりません',
+      description: 'ページが存在しないか削除されました',
+      goHome: 'ホームに戻る',
+    },
+    share: {
+      title: '「{title}」をおすすめ - ドラマトラッカー',
+      wechat: 'WeChat',
+      weibo: 'Weibo',
+      share: '共有',
+      copied: '✓ コピー済み',
+      copy: 'コピー',
+      systemShare: 'システム共有',
+    },
+    confirm: {
+      verifyFailed: '認証失敗',
+      confirmAction: '操作確認',
+      irreversible: 'この操作は取り消せません。続行しますか？',
+      enterPassword: '管理者パスワードを入力',
+      verifying: '認証中...',
+      confirm: '確認',
+    },
+    calendar: {
+      title: '更新カレンダー',
+      today: '今日',
+      year: '年',
+      month: '月',
+      week: '週',
+      updated: '更新済み',
+      preview: '予告',
+      premiere: '初放送',
+      reminder: 'リマインダー',
+      more: 'もっと',
+      myFollows: 'マイフォロー',
+      swipeHint: '← スワイプでカレンダー閲覧 →',
+      monthlyDetails: '今月の更新詳細',
+      noUpdates: '今月の更新はありません',
+      episodeNum: '第{num}話',
+      months: '1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月',
+      weekdays: '日,月,火,水,木,金,土',
+      weekdayNames: '日曜,月曜,火曜,水曜,木曜,金曜,土曜',
+    },
+    creator: {
+      notFound: 'クリエイターページが見つかりません',
+      works: '作品一覧',
+      noWorks: '作品はありません',
+      episodeProgress: '第{current}話まで更新、全{total}話',
+    },
+    episodeForm: {
+      editTitle: 'ドラマ編集',
+      addTitle: '新規ドラマ追加',
+      close: '閉じる',
+      autoManageTip: '追加後、自動的にエピソード管理が開きます',
+      titleLabel: 'タイトル',
+      descLabel: '説明',
+      coverImage: 'カバー画像',
+      totalEpisodes: '全話数',
+      categoryMulti: 'カテゴリ（複数選択）',
+      selected: '選択済み:',
+      none: 'なし',
+      statusLabel: 'ステータス',
+      updateBtn: 'ドラマ情報更新',
+      addBtn: '追加してエピソード管理',
+    },
+    singleEpisode: {
+      title: 'エピソード管理',
+      addEpisode: 'エピソード追加',
+      editEpisode: '第{num}話編集',
+      episodeNum: '話数',
+      episodeTitle: 'タイトル',
+      duration: '再生時間',
+      durationPlaceholder: '例：24分',
+      publishDate: '公開日',
+      publishDateNote: '（任意、未入力時はアップロード日）',
+      latePublishNote: '既に放送済みで情報更新が遅いドラマに適用',
+      setPreview: '予告更新に設定',
+      previewDate: '予告更新日',
+      previewNote: 'カレンダーに予告として表示されます',
+      jumpLink: 'ジャンプリンク',
+      platformName: 'プラットフォーム名',
+      platformPlaceholder: '例：Youku、Tencent Video',
+      linkUrl: 'リンクURL',
+      linkPlaceholder: '完全なURLを入力',
+      addPlatform: 'プラットフォームリンク追加',
+      updateEpisode: 'エピソード更新',
+      noEpisodes: 'エピソードはありません、「エピソード追加」をクリック',
+      published: '公開:',
+      previewLabel: '予告:',
+      durationLabel: '再生時間:',
+      jumpLinkLabel: 'リンク:',
+      deleteConfirm: 'このエピソードを削除しますか？',
+    },
   },
 };
 
@@ -1212,29 +1706,6 @@ const SUPPORTED_LANGUAGES = [
   { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ];
 
-const translationCache = {};
-const pendingRequests = {};
-
-const fetchTranslation = async (key, lang) => {
-  const cacheKey = `${lang}:${key}`;
-  if (translationCache[cacheKey]) return translationCache[cacheKey];
-  if (pendingRequests[cacheKey]) return pendingRequests[cacheKey];
-
-  pendingRequests[cacheKey] = axios.post('/api/translate', { key, targetLang: lang }, { skipRedirect: true })
-    .then(res => {
-      const translated = res.data.translation;
-      translationCache[cacheKey] = translated;
-      delete pendingRequests[cacheKey];
-      return translated;
-    })
-    .catch(() => {
-      delete pendingRequests[cacheKey];
-      return null;
-    });
-
-  return pendingRequests[cacheKey];
-};
-
 export const I18nProvider = ({ children }) => {
   const [lang, setLang] = useState(() => {
     const saved = localStorage.getItem('lang');
@@ -1243,30 +1714,25 @@ export const I18nProvider = ({ children }) => {
     if (browserLang && translations[browserLang]) return browserLang;
     return 'zh';
   });
-  const [dynamicTranslations, setDynamicTranslations] = useState({});
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => { mountedRef.current = false; };
-  }, []);
 
   useEffect(() => {
     localStorage.setItem('lang', lang);
     document.documentElement.lang = lang;
-    setDynamicTranslations({});
   }, [lang]);
 
-  const t = useCallback((key) => {
-    const cacheKey = `${lang}:${key}`;
-    if (dynamicTranslations[cacheKey]) return dynamicTranslations[cacheKey];
-
+  const t = useCallback((key, params) => {
     const keys = key.split('.');
     let value = translations[lang];
     for (const k of keys) {
       if (value === undefined) break;
       value = value[k];
     }
-    if (value !== undefined) return value;
+    if (value !== undefined) {
+      if (params && typeof value === 'string') {
+        return value.replace(/\{(\w+)\}/g, (_, k) => params[k] !== undefined ? params[k] : `{${k}}`);
+      }
+      return value;
+    }
 
     let fallback = translations['zh'];
     for (const k of keys) {
@@ -1274,20 +1740,13 @@ export const I18nProvider = ({ children }) => {
       fallback = fallback[k];
     }
     if (fallback !== undefined) {
-      if (lang !== 'zh') {
-        fetchTranslation(key, lang).then(translated => {
-          if (translated && mountedRef.current) {
-            setDynamicTranslations(prev => {
-              if (prev[cacheKey]) return prev;
-              return { ...prev, [cacheKey]: translated };
-            });
-          }
-        });
+      if (params && typeof fallback === 'string') {
+        return fallback.replace(/\{(\w+)\}/g, (_, k) => params[k] !== undefined ? params[k] : `{${k}}`);
       }
       return fallback;
     }
     return key;
-  }, [lang, dynamicTranslations]);
+  }, [lang]);
 
   const switchLang = useCallback((newLang) => {
     if (translations[newLang]) {

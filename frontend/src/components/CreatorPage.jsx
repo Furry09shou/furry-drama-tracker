@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
+import useTranslation from '../hooks/useTranslation';
 
 const CreatorPage = () => {
   const { id } = useParams();
@@ -8,6 +10,8 @@ const CreatorPage = () => {
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t } = useI18n();
+  const { getLocalizedTitle, getLocalizedDescription } = useTranslation();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -23,8 +27,8 @@ const CreatorPage = () => {
     fetchProfile();
   }, [id]);
 
-  if (loading) return <div className="container"><h2>加载中...</h2></div>;
-  if (!profile) return <div className="container"><h2>创作者主页不存在</h2></div>;
+  if (loading) return <div className="container"><h2>{t('common.loading')}</h2></div>;
+  if (!profile) return <div className="container"><h2>{t('creator.notFound')}</h2></div>;
 
   const socialLinks = profile.socialLinks
     ? (typeof profile.socialLinks === 'object' && !(profile.socialLinks instanceof Map)
@@ -35,7 +39,7 @@ const CreatorPage = () => {
   return (
     <div className="container" style={{paddingTop: '30px', paddingBottom: '60px'}}>
       <button className="btn btn-secondary" onClick={() => navigate(-1)} style={{marginBottom: '20px'}}>
-        返回上一步
+        {t('common.goBack')}
       </button>
 
       <div style={{
@@ -99,9 +103,9 @@ const CreatorPage = () => {
       </div>
 
       <div>
-        <h3 style={{marginBottom: '16px', color: 'var(--foreground)'}}>作品列表</h3>
+        <h3 style={{marginBottom: '16px', color: 'var(--foreground)'}}>{t('creator.works')}</h3>
         {episodes.length === 0 ? (
-          <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '40px'}}>暂无作品</p>
+          <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '40px'}}>{t('creator.noWorks')}</p>
         ) : (
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
@@ -132,11 +136,11 @@ const CreatorPage = () => {
                   style={{width: '100%', aspectRatio: '3/4', objectFit: 'cover'}}
                 />
                 <div style={{padding: '12px'}}>
-                  <h4 style={{margin: '0 0 6px 0', fontSize: '15px'}}>{ep.title}</h4>
+                  <h4 style={{margin: '0 0 6px 0', fontSize: '15px'}}>{getLocalizedTitle(ep)}</h4>
                   <p style={{margin: 0, fontSize: '13px', color: 'var(--text-secondary)'}}>
-                    更新至第{ep.currentEpisodes}集，共{ep.totalEpisodes}集
+                    {t('creator.episodeProgress', { current: ep.currentEpisodes, total: ep.totalEpisodes })}
                     <span style={{marginLeft: '8px'}}>
-                      {ep.status === 'ongoing' ? '连载中' : ep.status === 'completed' ? '已完结' : '即将上映'}
+                      {ep.status === 'ongoing' ? t('home.statusOngoing') : ep.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}
                     </span>
                   </p>
                 </div>

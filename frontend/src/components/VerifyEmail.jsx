@@ -10,6 +10,7 @@ const VerifyEmail = () => {
   const [message, setMessage] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
+  const [resendSuccess, setResendSuccess] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,6 +36,7 @@ const VerifyEmail = () => {
   const handleResend = async () => {
     setResendLoading(true);
     setResendMsg('');
+    setResendSuccess(false);
     try {
       const token = localStorage.getItem('token');
       if (token) {
@@ -42,11 +44,14 @@ const VerifyEmail = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setResendMsg(res.data.message);
+        setResendSuccess(true);
       } else {
         setResendMsg(t('auth.resendVerificationHint'));
+        setResendSuccess(true);
       }
     } catch (err) {
       setResendMsg(err.response?.data?.message || t('common.sendFailed'));
+      setResendSuccess(false);
     }
     setResendLoading(false);
   };
@@ -89,7 +94,7 @@ const VerifyEmail = () => {
             {resendMsg && (
               <p style={{
                 fontSize: '13px',
-                color: resendMsg.includes('已发送') ? 'var(--success-text)' : 'var(--destructive-text)',
+                color: resendSuccess ? 'var(--success-text)' : 'var(--destructive-text)',
                 margin: 0
               }}>{resendMsg}</p>
             )}

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
+import useTranslation from '../hooks/useTranslation';
 
 const UpdateCalendar = () => {
+  const { t } = useI18n();
+  const { getLocalizedTitle } = useTranslation();
   const [calendarData, setCalendarData] = useState({ year: 0, month: 0, calendar: {} });
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -36,8 +40,8 @@ const UpdateCalendar = () => {
     }
   }, []);
 
-  const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
-  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+  const monthNames = t('calendar.months').split(',');
+  const weekDays = t('calendar.weekdays').split(',');
 
   useEffect(() => {
     setLoading(true);
@@ -92,7 +96,7 @@ const UpdateCalendar = () => {
   };
 
   const renderWeekView = () => {
-    const weekDaysFull = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const weekDaysFull = t('calendar.weekdayNames').split(',');
     const days = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(currentWeekStart);
@@ -105,12 +109,12 @@ const UpdateCalendar = () => {
     return (
       <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>📅 更新日历</h2>
+          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>📅 {t('calendar.title')}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button onClick={prevWeek} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>‹</button>
-            <span style={{ fontSize: '16px', fontWeight: 600, minWidth: '160px', textAlign: 'center' }}>{weekYear}年{weekMonth}月</span>
+            <span style={{ fontSize: '16px', fontWeight: 600, minWidth: '160px', textAlign: 'center' }}>{weekYear}{t('calendar.year')}{weekMonth}{t('calendar.month')}</span>
             <button onClick={nextWeek} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>›</button>
-            <button onClick={goToday} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>今天</button>
+            <button onClick={goToday} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>{t('calendar.today')}</button>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
@@ -142,7 +146,7 @@ const UpdateCalendar = () => {
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                       }}>
                         {item.type === 'scheduled' && '🔔 '}{item.type === 'premiere' && '🎬 '}
-                        {item.title}{item.episodeNumber ? ` 第${item.episodeNumber}集` : ''}
+                        {getLocalizedTitle(item)}{item.episodeNumber ? ` ${t('calendar.episodeNum', { num: item.episodeNumber })}` : ''}
                       </Link>
                       {isFollowed && item.type === 'scheduled' && (
                         <button onClick={() => handleSubscribe(item._id)} disabled={subscribing === item._id} style={{
@@ -150,12 +154,12 @@ const UpdateCalendar = () => {
                           background: 'var(--primary-bg)', color: 'var(--primary)',
                           border: '1px solid var(--primary-border)', cursor: 'pointer',
                           marginTop: '2px', width: '100%'
-                        }}>{subscribing === item._id ? '...' : '🔔 提醒'}</button>
+                        }}>{subscribing === item._id ? '...' : `🔔 ${t('calendar.reminder')}`}</button>
                       )}
                     </div>
                   );
                 })}
-                {items.length > 5 && <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>+{items.length - 5}更多</div>}
+                {items.length > 5 && <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>+{items.length - 5}{t('calendar.more')}</div>}
               </div>
             );
           })}
@@ -164,18 +168,18 @@ const UpdateCalendar = () => {
     );
   };
 
-  if (loading) return <div style={{textAlign: 'center', padding: '60px', color: 'var(--text-secondary)'}}>加载中...</div>;
+  if (loading) return <div style={{textAlign: 'center', padding: '60px', color: 'var(--text-secondary)'}}>{t('common.loading')}</div>;
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>📅 更新日历</h2>
+        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>📅 {t('calendar.title')}</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={prevMonth} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>‹</button>
-          <span style={{ fontSize: '16px', fontWeight: 600, minWidth: '120px', textAlign: 'center' }}>{currentYear}年{monthNames[currentMonth - 1]}</span>
+          <span style={{ fontSize: '16px', fontWeight: 600, minWidth: '120px', textAlign: 'center' }}>{currentYear}{t('calendar.year')}{monthNames[currentMonth - 1]}</span>
           <button onClick={nextMonth} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>›</button>
           {!isCurrentMonth && (
-            <button onClick={goToday} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>今天</button>
+            <button onClick={goToday} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>{t('calendar.today')}</button>
           )}
         </div>
       </div>
@@ -183,20 +187,20 @@ const UpdateCalendar = () => {
       <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '13px' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--success)' }}></span>
-          <span style={{ color: 'var(--text-secondary)' }}>已更新</span>
+          <span style={{ color: 'var(--text-secondary)' }}>{t('calendar.updated')}</span>
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--warning)' }}></span>
-          <span style={{ color: 'var(--text-secondary)' }}>预告</span>
+          <span style={{ color: 'var(--text-secondary)' }}>{t('calendar.preview')}</span>
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)' }}></span>
-          <span style={{ color: 'var(--text-secondary)' }}>首播</span>
+          <span style={{ color: 'var(--text-secondary)' }}>{t('calendar.premiere')}</span>
         </span>
         {followingIds.length > 0 && (
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '10px', height: '10px', borderRadius: '2px', border: '2px solid var(--primary)' }}></span>
-            <span style={{ color: 'var(--text-secondary)' }}>我的追番</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('calendar.myFollows')}</span>
           </span>
         )}
       </div>
@@ -204,7 +208,7 @@ const UpdateCalendar = () => {
       <div style={{ background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
         {isMobile && (
           <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border)' }}>
-            ← 左右滑动查看日历 →
+            {t('calendar.swipeHint')}
           </div>
         )}
         <div style={{ overflowX: isMobile ? 'auto' : 'visible', WebkitOverflowScrolling: 'touch' }}>
@@ -240,11 +244,11 @@ const UpdateCalendar = () => {
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                   }}>
                     {item.type === 'scheduled' && '🔔 '}{item.type === 'premiere' && '🎬 '}
-                    {item.title}{item.episodeNumber ? ` 第${item.episodeNumber}集` : ''}
+                    {getLocalizedTitle(item)}{item.episodeNumber ? ` ${t('calendar.episodeNum', { num: item.episodeNumber })}` : ''}
                   </Link>
                   );
                 })}
-                {items && items.length > 3 && <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', paddingLeft: '4px' }}>+{items.length - 3}更多</div>}
+                {items && items.length > 3 && <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', paddingLeft: '4px' }}>+{items.length - 3}{t('calendar.more')}</div>}
               </div>
             );
           })}
@@ -256,9 +260,9 @@ const UpdateCalendar = () => {
       </div>
 
       <div style={{ marginTop: '24px' }}>
-        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: 'var(--foreground)' }}>本月更新详情</h3>
+        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: 'var(--foreground)' }}>{t('calendar.monthlyDetails')}</h3>
         {Object.keys(calendarData.calendar).length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', background: 'var(--hover-bg)', borderRadius: '12px', border: '1px solid var(--border)' }}>本月暂无更新记录</div>
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', background: 'var(--hover-bg)', borderRadius: '12px', border: '1px solid var(--border)' }}>{t('calendar.noUpdates')}</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {Object.entries(calendarData.calendar).sort(([a], [b]) => a.localeCompare(b)).map(([dateKey, dayData]) => {
@@ -273,11 +277,11 @@ const UpdateCalendar = () => {
               return (
                 <div key={dateKey} style={{ background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
                   <div style={{ padding: '12px 16px', background: 'var(--hover-bg)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{dateKey} 周{dayOfWeek}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{dateKey} {t('calendar.week')}{dayOfWeek}</span>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      {dayData.released?.length > 0 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: 'var(--success-bg)', color: 'var(--success-text)', border: '1px solid var(--success-border)' }}>已更新 {dayData.released.length}</span>}
-                      {dayData.scheduled?.length > 0 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: 'var(--warning-bg)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)' }}>预告 {dayData.scheduled.length}</span>}
-                      {dayData.premieres?.length > 0 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-bg)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }}>首播 {dayData.premieres.length}</span>}
+                      {dayData.released?.length > 0 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: 'var(--success-bg)', color: 'var(--success-text)', border: '1px solid var(--success-border)' }}>{t('calendar.updated')} {dayData.released.length}</span>}
+                      {dayData.scheduled?.length > 0 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: 'var(--warning-bg)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)' }}>{t('calendar.preview')} {dayData.scheduled.length}</span>}
+                      {dayData.premieres?.length > 0 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-bg)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }}>{t('calendar.premiere')} {dayData.premieres.length}</span>}
                     </div>
                   </div>
                   <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -290,14 +294,14 @@ const UpdateCalendar = () => {
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                             <img src={item.coverImage} alt="" style={{ width: '40px', height: '56px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
+                              <div style={{ fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getLocalizedTitle(item)}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                {item.type === 'scheduled' && '🔔 预告: '}{item.type === 'premiere' && '🎬 首播'}{item.type === 'released' && '✅ '}
-                                {item.episodeNumber ? `第${item.episodeNumber}集` : ''}
+                                {item.type === 'scheduled' && `🔔 ${t('calendar.preview')}: `}{item.type === 'premiere' && `🎬 ${t('calendar.premiere')}`}{item.type === 'released' && '✅ '}
+                                {item.episodeNumber ? t('calendar.episodeNum', { num: item.episodeNumber }) : ''}
                               </div>
                             </div>
                             <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: item.type === 'released' ? 'var(--success-bg-subtle)' : item.type === 'premiere' ? 'var(--primary-bg-subtle)' : 'var(--warning-bg-subtle)', color: item.type === 'released' ? 'var(--success-text)' : item.type === 'premiere' ? 'var(--primary)' : 'var(--warning-text)', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                              {item.type === 'released' ? '已更新' : item.type === 'premiere' ? '首播' : '预告'}
+                              {item.type === 'released' ? t('calendar.updated') : item.type === 'premiere' ? t('calendar.premiere') : t('calendar.preview')}
                             </span>
                           </Link>
                           {isFollowed && item.type === 'scheduled' && (
@@ -306,7 +310,7 @@ const UpdateCalendar = () => {
                               background: 'var(--primary-bg)', color: 'var(--primary)',
                               border: '1px solid var(--primary-border)', cursor: 'pointer',
                               whiteSpace: 'nowrap', flexShrink: 0
-                            }}>{subscribing === item._id ? '...' : '🔔 提醒'}</button>
+                            }}>{subscribing === item._id ? '...' : `🔔 ${t('calendar.reminder')}`}</button>
                           )}
                         </div>
                       );
