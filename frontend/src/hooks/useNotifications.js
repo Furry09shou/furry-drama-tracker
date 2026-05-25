@@ -3,26 +3,53 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
 const useNotifications = () => {
-  const { user, getAuthHeaders } = useAuth();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const sseRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    if (!user) return;
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
-    let reconnectTimer = null;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 10;
-    const getReconnectDelay = () => Math.min(3000 * Math.pow(1.5, reconnectAttempts), 30000);
-
-    const connectSSE = async () => {
+  useEffect(() => {
+    if (!user) {
       if (sseRef.current) {
         sseRef.current.close();
+        sseRef.current = null;
       }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      reconnectAttemptsRef.current = 0;
+      setUnreadCount(0);
+      setNotifications([]);
+      return;
+    }
+
+    const maxReconnectAttempts = 5;
+    const getReconnectDelay = () => Math.min(5000 * Math.pow(1.5, reconnectAttemptsRef.current), 60000);
+
+    const connectSSE = async () => {
+      if (!mountedRef.current || !user) return;
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
+
       try {
-        const ticketRes = await axios.get('/api/auth/sse-ticket', { headers: getAuthHeaders() });
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const ticketRes = await axios.get('/api/auth/sse-ticket', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const ticket = ticketRes.data.ticket;
         const eventSource = new EventSource(`/api/notifications/stream?ticket=${ticket}`);
         sseRef.current = eventSource;
@@ -42,17 +69,17 @@ const useNotifications = () => {
         eventSource.onerror = () => {
           eventSource.close();
           sseRef.current = null;
-          if (reconnectAttempts < maxReconnectAttempts) {
-            reconnectAttempts++;
-            reconnectTimer = setTimeout(connectSSE, getReconnectDelay());
+          if (mountedRef.current && reconnectAttemptsRef.current < maxReconnectAttempts) {
+            reconnectAttemptsRef.current++;
+            reconnectTimerRef.current = setTimeout(connectSSE, getReconnectDelay());
           }
         };
 
-        reconnectAttempts = 0;
+        reconnectAttemptsRef.current = 0;
       } catch (e) {
-        if (reconnectAttempts < maxReconnectAttempts) {
-          reconnectAttempts++;
-          reconnectTimer = setTimeout(connectSSE, getReconnectDelay());
+        if (mountedRef.current && reconnectAttemptsRef.current < maxReconnectAttempts) {
+          reconnectAttemptsRef.current++;
+          reconnectTimerRef.current = setTimeout(connectSSE, getReconnectDelay());
         }
       }
     };
@@ -60,59 +87,90 @@ const useNotifications = () => {
     connectSSE();
 
     const fetchUnread = () => {
-      axios.get('/api/notifications/unread-count', { headers: getAuthHeaders() })
-        .then(res => setUnreadCount(res.data.count))
+      if (!mountedRef.current || !user) return;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      axios.get('/api/notifications/unread-count', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => { if (mountedRef.current) setUnreadCount(res.data.count); })
         .catch(() => {});
     };
     fetchUnread();
-    const interval = setInterval(fetchUnread, 30000);
+    const interval = setInterval(fetchUnread, 60000);
 
     return () => {
       clearInterval(interval);
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       if (sseRef.current) {
         sseRef.current.close();
+        sseRef.current = null;
       }
     };
-  }, [user, getAuthHeaders]);
+  }, [user]);
 
   const refreshNotifications = useCallback(() => {
     if (!user) return;
     setLoading(true);
-    axios.get('/api/notifications/list', { headers: getAuthHeaders() })
+    const token = localStorage.getItem('token');
+    if (!token) { setLoading(false); return; }
+    axios.get('/api/notifications/list', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(res => {
-        setNotifications(res.data.list || res.data);
+        if (mountedRef.current) {
+          setNotifications(res.data.list || res.data);
+        }
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [user, getAuthHeaders]);
+      .finally(() => { if (mountedRef.current) setLoading(false); });
+  }, [user]);
 
   const markAllRead = useCallback(async () => {
     try {
-      await axios.put('/api/notifications/read-all', {}, { headers: getAuthHeaders() });
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      await axios.put('/api/notifications/read-all', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (e) {}
-  }, [getAuthHeaders]);
+  }, []);
 
   const markRead = useCallback(async (id) => {
     try {
-      await axios.put(`/api/notifications/${id}/read`, {}, { headers: getAuthHeaders() });
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      await axios.put(`/api/notifications/${id}/read`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {}
-  }, [getAuthHeaders]);
+  }, []);
 
   const clearRead = useCallback(async () => {
     try {
-      await axios.delete('/api/notifications/clear-read', { headers: getAuthHeaders() });
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      await axios.delete('/api/notifications/clear-read', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setNotifications(prev => prev.filter(n => !n.isRead));
     } catch (e) {}
-  }, [getAuthHeaders]);
+  }, []);
 
   const deleteNotification = useCallback(async (id) => {
     try {
-      await axios.delete(`/api/notifications/${id}`, { headers: getAuthHeaders() });
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      await axios.delete(`/api/notifications/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setNotifications(prev => {
         const target = prev.find(n => n._id === id);
         if (target && !target.isRead) {
@@ -121,7 +179,7 @@ const useNotifications = () => {
         return prev.filter(n => n._id !== id);
       });
     } catch (e) {}
-  }, [getAuthHeaders]);
+  }, []);
 
   return {
     notifications,

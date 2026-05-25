@@ -36,7 +36,7 @@ const NavBar = ({ onFeedback }) => {
   useEffect(() => {
     if (!showNotifPanel || !user) return;
     refreshNotifications();
-  }, [showNotifPanel, user, refreshNotifications]);
+  }, [showNotifPanel, user]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {

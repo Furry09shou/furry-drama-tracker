@@ -31,9 +31,10 @@ const UpdateCalendar = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get('/api/follows/my', { headers: { Authorization: `Bearer ${token}` } })
+      axios.get('/api/follows/list', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => {
-          const ids = (res.data || []).map(f => f.episodeId?._id || f.episodeId);
+          const list = res.data.list || res.data || [];
+          const ids = list.map(f => f.episodeId?._id || f.episodeId);
           setFollowingIds(ids);
         })
         .catch(() => {});

@@ -18,13 +18,18 @@ router.post('/create', protect, async (req, res) => {
     const userToken = req.headers.authorization?.replace('Bearer ', '');
     const tokenHash = hashToken(userToken);
 
-    const session = new UserSession({
-      userId: req.user._id,
-      tokenHash,
-      deviceInfo,
-      ip
-    });
-    await session.save();
+    const session = await UserSession.findOneAndUpdate(
+      { tokenHash },
+      {
+        userId: req.user._id,
+        deviceInfo,
+        ip,
+        isActive: true,
+        lastActiveAt: new Date(),
+        $setOnInsert: { loginAt: new Date() }
+      },
+      { upsert: true, new: true }
+    );
 
     res.json({ sessionId: session._id });
   } catch (error) {
