@@ -67,9 +67,24 @@ const Timeline = () => {
     return t('timeline.daysAgo').replace('{n}', Math.floor(diff / 86400000));
   };
 
+  const getStatusLabel = (status) => {
+    if (status === 'ongoing') return t('episode.statusOngoing');
+    if (status === 'completed') return t('episode.statusCompleted');
+    return t('episode.statusUpcoming');
+  };
+
   const getDescription = (activity) => {
-    if (lang === 'en' && activity.descriptionEn) return activity.descriptionEn;
-    return activity.description;
+    const title = getLocalizedTitle({ title: activity.episodeTitle, titleEn: activity.episodeTitleEn });
+    switch (activity.type) {
+      case 'new_episode':
+        return t('timeline.newEpisode', { title, ep: activity.metadata?.episodeNumber || '', epTitle: activity.metadata?.singleEpisodeTitleEn && lang === 'en' ? activity.metadata.singleEpisodeTitleEn : (activity.metadata?.singleEpisodeTitle || '') });
+      case 'status_change':
+        return t('timeline.statusChange', { title, status: getStatusLabel(activity.metadata?.status) });
+      case 'new_rating':
+        return t('timeline.newRating', { title, score: activity.metadata?.score || activity.metadata?.averageRating || 0, count: activity.metadata?.ratingCount || 0 });
+      default:
+        return activity.description;
+    }
   };
 
   const tabs = [

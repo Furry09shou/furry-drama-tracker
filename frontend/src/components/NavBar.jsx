@@ -9,6 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import useTranslation from '../hooks/useTranslation';
 import useNotifications from '../hooks/useNotifications';
 import LanguageSwitcher from './LanguageSwitcher';
+import TranslatableText from './TranslatableText';
 
 const NavBar = ({ onFeedback }) => {
   const { user, logout } = useAuth();
@@ -265,7 +266,7 @@ const NavBar = ({ onFeedback }) => {
                           >
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                               <span style={{fontSize: '14px', fontWeight: n.isRead ? 400 : 600}}>
-                                {n.message}
+                                <TranslatableText text={n.message} />
                               </span>
                               {!n.isRead && (
                                 <span style={{width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginLeft: '8px'}}></span>

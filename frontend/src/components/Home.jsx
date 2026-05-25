@@ -273,7 +273,7 @@ const Home = () => {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}>
-                      {ep.titleEn || ep.title}
+                      {getLocalizedTitle(ep)}
                     </div>
                     <div style={{
                       fontSize: '11px',
@@ -401,7 +401,7 @@ const Home = () => {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}>
-                      {rec.titleEn || rec.title}
+                      {getLocalizedTitle(rec)}
                     </div>
                     {rec.reason && (
                       <span style={{
