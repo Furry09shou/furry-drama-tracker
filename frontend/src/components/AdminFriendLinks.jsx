@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminFriendLinks = () => {
   const [links, setLinks] = useState([]);
@@ -9,13 +10,14 @@ const AdminFriendLinks = () => {
   const [editingLink, setEditingLink] = useState(null);
   const [activeTab, setActiveTab] = useState('approved');
   const [formData, setFormData] = useState({
-    name: '', nameEn: '', nameJa: '',
+    name: '', nameEn: '',
     url: '', logo: '',
-    description: '', descriptionEn: '', descriptionJa: '',
+    description: '', descriptionEn: '',
     order: 0, isActive: true
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -32,7 +34,7 @@ const AdminFriendLinks = () => {
       setLinks(res.data);
       setLoading(false);
     } catch (e) {
-      setError('获取友链列表失败');
+      setError(t('adminFriendLinks.fetchFailed'));
       setLoading(false);
     }
   };
@@ -53,19 +55,19 @@ const AdminFriendLinks = () => {
       }
       setShowForm(false);
       setEditingLink(null);
-      setFormData({ name: '', nameEn: '', nameJa: '', url: '', logo: '', description: '', descriptionEn: '', descriptionJa: '', order: 0, isActive: true });
+      setFormData({ name: '', nameEn: '', url: '', logo: '', description: '', descriptionEn: '', order: 0, isActive: true });
       fetchLinks();
     } catch (e) {
-      setError(e.response?.data?.message || '操作失败');
+      setError(e.response?.data?.message || t('adminFriendLinks.operationFailed'));
     }
   };
 
   const handleEdit = (link) => {
     setEditingLink(link);
     setFormData({
-      name: link.name, nameEn: link.nameEn || '', nameJa: link.nameJa || '',
+      name: link.name, nameEn: link.nameEn || '',
       url: link.url, logo: link.logo || '',
-      description: link.description || '', descriptionEn: link.descriptionEn || '', descriptionJa: link.descriptionJa || '',
+      description: link.description || '', descriptionEn: link.descriptionEn || '',
       order: link.order || 0,
       isActive: link.isActive !== undefined ? link.isActive : true
     });
@@ -73,7 +75,7 @@ const AdminFriendLinks = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('确定要删除此友链吗？')) return;
+    if (!window.confirm(t('adminFriendLinks.deleteConfirm'))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.delete(`/api/friend-links/${id}`, {
@@ -81,14 +83,14 @@ const AdminFriendLinks = () => {
       });
       fetchLinks();
     } catch (e) {
-      setError('删除失败');
+      setError(t('adminFriendLinks.deleteFailed'));
     }
   };
 
   const handleCancel = () => {
     setShowForm(false);
     setEditingLink(null);
-    setFormData({ name: '', nameEn: '', nameJa: '', url: '', logo: '', description: '', descriptionEn: '', descriptionJa: '', order: 0, isActive: true });
+    setFormData({ name: '', nameEn: '', url: '', logo: '', description: '', descriptionEn: '', order: 0, isActive: true });
     setError('');
   };
 
@@ -100,12 +102,12 @@ const AdminFriendLinks = () => {
       });
       fetchLinks();
     } catch (e) {
-      setError('审核操作失败');
+      setError(t('adminFriendLinks.reviewFailed'));
     }
   };
 
   const handleReject = async (id) => {
-    if (!window.confirm('确定要拒绝此友链申请吗？')) return;
+    if (!window.confirm(t('adminFriendLinks.rejectConfirm'))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.put(`/api/friend-links/${id}`, { status: 'rejected' }, {
@@ -113,7 +115,7 @@ const AdminFriendLinks = () => {
       });
       fetchLinks();
     } catch (e) {
-      setError('审核操作失败');
+      setError(t('adminFriendLinks.reviewFailed'));
     }
   };
 
@@ -122,15 +124,15 @@ const AdminFriendLinks = () => {
   const rejectedLinks = links.filter(l => l.status === 'rejected');
   const displayLinks = activeTab === 'pending' ? pendingLinks : activeTab === 'approved' ? approvedLinks : rejectedLinks;
 
-  if (loading) return <div className="container"><h2>加载中...</h2></div>;
+  if (loading) return <div className="container"><h2>{t('adminFriendLinks.loading')}</h2></div>;
 
   return (
     <div className="admin-page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-        <h2>友链管理</h2>
+        <h2>{t('adminFriendLinks.title')}</h2>
         <div style={{ display: 'flex', gap: '10px' }}>
           {!showForm && (
-            <button className="btn" onClick={() => { setShowForm(true); setEditingLink(null); setFormData({ name: '', nameEn: '', nameJa: '', url: '', logo: '', description: '', descriptionEn: '', descriptionJa: '', order: 0, isActive: true }); }}>添加友链</button>
+            <button className="btn" onClick={() => { setShowForm(true); setEditingLink(null); setFormData({ name: '', nameEn: '', url: '', logo: '', description: '', descriptionEn: '', order: 0, isActive: true }); }}>{t('adminFriendLinks.addLink')}</button>
           )}
         </div>
       </div>
@@ -142,55 +144,43 @@ const AdminFriendLinks = () => {
           background: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: '12px', padding: '20px', marginBottom: '20px'
         }}>
-          <h3 style={{ marginTop: 0, marginBottom: '16px' }}>{editingLink ? '编辑友链' : '添加友链'}</h3>
+          <h3 style={{ marginTop: 0, marginBottom: '16px' }}>{editingLink ? t('adminFriendLinks.editLink') : t('adminFriendLinks.addLink')}</h3>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>名称 <span style={{ color: 'var(--destructive-text)' }}>*</span></label>
-              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required placeholder="友链名称" />
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>英文名称 <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>(选填，不填则自动翻译)</span></label>
-                <input type="text" value={formData.nameEn} onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })} placeholder="English name (optional)" />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>日文名称 <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>(选填，不填则自动翻译)</span></label>
-                <input type="text" value={formData.nameJa} onChange={(e) => setFormData({ ...formData, nameJa: e.target.value })} placeholder="日本語名 (任意)" />
-              </div>
+              <label>{t('adminFriendLinks.name')} <span style={{ color: 'var(--destructive-text)' }}>*</span></label>
+              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required placeholder={t('adminFriendLinks.namePlaceholder')} />
             </div>
             <div className="form-group">
-              <label>链接 <span style={{ color: 'var(--destructive-text)' }}>*</span></label>
+              <label>{t('adminFriendLinks.nameEn')} <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>{t('adminFriendLinks.optionalAutoTranslate')}</span></label>
+              <input type="text" value={formData.nameEn} onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })} placeholder="English name (optional)" />
+            </div>
+            <div className="form-group">
+              <label>{t('adminFriendLinks.url')} <span style={{ color: 'var(--destructive-text)' }}>*</span></label>
               <input type="url" value={formData.url} onChange={(e) => setFormData({ ...formData, url: e.target.value })} required placeholder="https://example.com" />
             </div>
             <div className="form-group">
-              <label>Logo URL</label>
-              <input type="text" value={formData.logo} onChange={(e) => setFormData({ ...formData, logo: e.target.value })} placeholder="https://example.com/logo.png（选填）" />
+              <label>{t('adminFriendLinks.logoUrl')}</label>
+              <input type="text" value={formData.logo} onChange={(e) => setFormData({ ...formData, logo: e.target.value })} placeholder={t('adminFriendLinks.logoPlaceholder')} />
             </div>
             <div className="form-group">
-              <label>描述</label>
-              <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="简短描述（选填）" />
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>英文描述 <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>(选填)</span></label>
-                <input type="text" value={formData.descriptionEn} onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })} placeholder="English description (optional)" />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>日文描述 <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>(选填)</span></label>
-                <input type="text" value={formData.descriptionJa} onChange={(e) => setFormData({ ...formData, descriptionJa: e.target.value })} placeholder="日本語説明 (任意)" />
-              </div>
+              <label>{t('adminFriendLinks.description')}</label>
+              <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder={t('adminFriendLinks.descriptionPlaceholder')} />
             </div>
             <div className="form-group">
-              <label>排序</label>
-              <input type="number" value={formData.order} onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })} placeholder="数字越小越靠前" />
+              <label>{t('adminFriendLinks.descriptionEn')} <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px' }}>{t('adminFriendLinks.optional')}</span></label>
+              <input type="text" value={formData.descriptionEn} onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })} placeholder="English description (optional)" />
+            </div>
+            <div className="form-group">
+              <label>{t('adminFriendLinks.order')}</label>
+              <input type="number" value={formData.order} onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })} placeholder={t('adminFriendLinks.orderPlaceholder')} />
             </div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} style={{ accentColor: 'var(--primary)', cursor: 'pointer' }} />
-              <label style={{ cursor: 'pointer' }}>启用</label>
+              <label style={{ cursor: 'pointer' }}>{t('adminFriendLinks.active')}</label>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-              <button type="submit" className="btn">{editingLink ? '保存修改' : '添加'}</button>
-              <button type="button" className="btn btn-secondary" onClick={handleCancel}>取消</button>
+              <button type="submit" className="btn">{editingLink ? t('adminFriendLinks.saveChanges') : t('adminFriendLinks.add')}</button>
+              <button type="button" className="btn btn-secondary" onClick={handleCancel}>{t('adminFriendLinks.cancel')}</button>
             </div>
           </form>
         </div>
@@ -198,9 +188,9 @@ const AdminFriendLinks = () => {
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {[
-          { key: 'pending', label: '待审核', count: pendingLinks.length },
-          { key: 'approved', label: '已通过', count: approvedLinks.length },
-          { key: 'rejected', label: '已拒绝', count: rejectedLinks.length },
+          { key: 'pending', label: t('adminFriendLinks.pending'), count: pendingLinks.length },
+          { key: 'approved', label: t('adminFriendLinks.approved'), count: approvedLinks.length },
+          { key: 'rejected', label: t('adminFriendLinks.rejected'), count: rejectedLinks.length },
         ].map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
             padding: '8px 16px', borderRadius: '8px', fontSize: '14px',
@@ -215,7 +205,7 @@ const AdminFriendLinks = () => {
 
       {displayLinks.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-          {activeTab === 'pending' ? '暂无待审核的友链申请' : activeTab === 'approved' ? '暂无已通过的友链' : '暂无已拒绝的友链'}
+          {activeTab === 'pending' ? t('adminFriendLinks.noPendingLinks') : activeTab === 'approved' ? t('adminFriendLinks.noApprovedLinks') : t('adminFriendLinks.noRejectedLinks')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -245,27 +235,27 @@ const AdminFriendLinks = () => {
                       fontSize: '11px', color: '#f59e0b',
                       background: '#fef3c7', padding: '1px 8px',
                       borderRadius: '4px', border: '1px solid #fde68a'
-                    }}>待审核</span>
+                    }}>{t('adminFriendLinks.pending')}</span>
                   )}
                   {link.status === 'rejected' && (
                     <span style={{
                       fontSize: '11px', color: 'var(--destructive-text)',
                       background: 'var(--destructive-bg)', padding: '1px 8px',
                       borderRadius: '4px', border: '1px solid var(--destructive-border)'
-                    }}>已拒绝</span>
+                    }}>{t('adminFriendLinks.rejected')}</span>
                   )}
                   {!link.isActive && (link.status === 'approved' || !link.status) && (
                     <span style={{
                       fontSize: '11px', color: 'var(--text-tertiary)',
                       background: 'var(--hover-bg)', padding: '1px 8px',
                       borderRadius: '4px', border: '1px solid var(--border)'
-                    }}>已禁用</span>
+                    }}>{t('adminFriendLinks.disabled')}</span>
                   )}
                   <span style={{
                     fontSize: '11px', color: 'var(--text-tertiary)',
                     background: 'var(--hover-bg)', padding: '1px 8px',
                     borderRadius: '4px'
-                  }}>排序: {link.order}</span>
+                  }}>{t('adminFriendLinks.orderLabel')}: {link.order}</span>
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.url}</div>
                 {link.description && (
@@ -279,20 +269,20 @@ const AdminFriendLinks = () => {
                       background: 'var(--success-bg-subtle)', border: '1px solid var(--success-border)',
                       color: 'var(--success-text)', borderRadius: '6px', padding: '6px 14px',
                       cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s'
-                    }} onClick={() => handleApprove(link._id)}>通过</button>
+                    }} onClick={() => handleApprove(link._id)}>{t('adminFriendLinks.approve')}</button>
                     <button style={{
                       background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
                       color: 'var(--destructive-text)', borderRadius: '6px', padding: '6px 14px',
                       cursor: 'pointer', fontSize: '13px'
-                    }} onClick={() => handleReject(link._id)}>拒绝</button>
+                    }} onClick={() => handleReject(link._id)}>{t('adminFriendLinks.reject')}</button>
                   </>
                 )}
-                <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => handleEdit(link)}>编辑</button>
+                <button className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={() => handleEdit(link)}>{t('adminFriendLinks.edit')}</button>
                 <button style={{
                   background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
                   color: 'var(--destructive-text)', borderRadius: '6px', padding: '6px 14px',
                   cursor: 'pointer', fontSize: '13px'
-                }} onClick={() => handleDelete(link._id)}>删除</button>
+                }} onClick={() => handleDelete(link._id)}>{t('adminFriendLinks.delete')}</button>
               </div>
             </div>
           ))}

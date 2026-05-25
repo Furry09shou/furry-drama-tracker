@@ -35,6 +35,9 @@ const adminSessionRoutes = require('../routes/adminSessions');
 const userSessionRoutes = require('../routes/userSessions');
 const twoFactorRoutes = require('../routes/twoFactor');
 const translateRoutes = require('../routes/translate');
+const folderRoutes = require('../routes/folders');
+const activityRoutes = require('../routes/activity');
+const versionRoutes = require('../routes/versions');
 const { sanitizeInput } = require('../middlewares/security');
 const trackApiUsage = require('../middlewares/apiTracker');
 const { startCronJobs } = require('./cron');
@@ -116,6 +119,16 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    if (res.statusCode >= 400 || req.path.includes('/list') || req.path.includes('/histories') || req.path.includes('/follows')) {
+      console.log(`${req.method} ${req.path} - ${res.statusCode} - ${Date.now() - start}ms`);
+    }
+  });
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sanitizeInput);
@@ -141,8 +154,11 @@ app.use((req, res, next) => {
       if (cookieXsrf !== headerXsrf) {
         return res.status(403).json({ message: 'CSRF token mismatch' });
       }
-    } else if (!req.headers['x-requested-with']) {
-      return res.status(403).json({ message: 'CSRF protection: missing required headers' });
+    } else if (cookieXsrf && !headerXsrf) {
+      return res.status(403).json({ message: 'CSRF protection: missing X-XSRF-TOKEN header' });
+    } else {
+      const token = crypto.randomBytes(32).toString('hex');
+      res.cookie('XSRF-TOKEN', token, { httpOnly: false, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000, path: '/' });
     }
   }
   next();
@@ -244,12 +260,25 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
   etag: true,
 }));
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    await mongoose.connection.db.admin().ping();
+    res.json({
+      status: 'ok',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      db: 'connected'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      db: 'disconnected',
+      error: error.message
+    });
+  }
 });
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -299,6 +328,9 @@ const routeMounts = [
   ['/api/user-sessions', userSessionRoutes],
   ['/api/2fa', twoFactorRoutes],
   ['/api/translate', translateRoutes],
+  ['/api/folders', folderRoutes],
+  ['/api/activity', activityRoutes],
+  ['/api/versions', versionRoutes],
 ];
 
 for (const [mountPath, route] of routeMounts) {
@@ -322,6 +354,25 @@ startCronJobs();
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+const gracefulShutdown = (signal) => {
+  console.log(`Received ${signal}, shutting down gracefully...`);
+  server.close(() => {
+    console.log('HTTP server closed');
+    const mongoose = require('mongoose');
+    mongoose.connection.close(false, () => {
+      console.log('MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

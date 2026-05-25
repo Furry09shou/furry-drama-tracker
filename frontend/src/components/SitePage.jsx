@@ -32,6 +32,26 @@ const SitePage = ({ pageKey }) => {
 
   if (loading) return <div className="container"><h2>{t('common.loading')}</h2></div>;
 
+  const resolveContent = (rawContent, field) => {
+    if (!rawContent) return '';
+    try {
+      const parsed = JSON.parse(rawContent);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        if (field) {
+          return getLocalizedContent({ content: rawContent }, field) || parsed[field] || '';
+        }
+        if ('zh' in parsed || 'en' in parsed) {
+          const localizedContent = parsed[lang] || parsed['zh'] || parsed['en'] || '';
+          if (localizedContent) return localizedContent;
+        }
+        const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
+        const localizedContent = parsed[`content${suffix}`] || parsed['content'] || parsed['contentZh'] || '';
+        if (localizedContent) return localizedContent;
+      }
+    } catch (e) {}
+    return rawContent;
+  };
+
   if (pageKey === 'about' && content) {
     let aboutData = {};
     try {
@@ -39,12 +59,6 @@ const SitePage = ({ pageKey }) => {
     } catch (e) {
       aboutData = { copyright: content.content };
     }
-
-    const getLocVal = (data, field) => {
-      if (lang === 'zh') return data[field] || '';
-      const key = `${field}${lang.charAt(0).toUpperCase() + lang.slice(1)}`;
-      return data[key] || data[field] || '';
-    };
 
     return (
       <div className="container" style={{ paddingTop: '40px', paddingBottom: '60px', maxWidth: '800px' }}>
@@ -71,9 +85,9 @@ const SitePage = ({ pageKey }) => {
             <h1 style={{ margin: '0 0 8px 0', color: 'var(--foreground)' }}>
               <TranslatableText text={content.title} />
             </h1>
-            {(getLocVal(aboutData, 'description') || aboutData.description) && (
+            {getLocalizedContent({ content: content.content }, 'description') && (
               <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7, margin: '8px auto 0', maxWidth: '500px' }}>
-                <TranslatableText text={getLocVal(aboutData, 'description') || aboutData.description} />
+                <TranslatableText text={getLocalizedContent({ content: content.content }, 'description')} />
               </p>
             )}
             {aboutData.version && (
@@ -146,7 +160,7 @@ const SitePage = ({ pageKey }) => {
               );
             })()}
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 2 }}>
-              {(getLocVal(aboutData, 'copyright') || aboutData.copyright) && <p style={{ margin: '4px 0' }}><TranslatableText text={getLocVal(aboutData, 'copyright') || aboutData.copyright} /></p>}
+              {getLocalizedContent({ content: content.content }, 'copyright') && <p style={{ margin: '4px 0' }}><TranslatableText text={getLocalizedContent({ content: content.content }, 'copyright')} /></p>}
               {aboutData.icp && (
                 <p style={{ margin: '4px 0' }}>
                   <a href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{aboutData.icp}</a>
@@ -160,7 +174,7 @@ const SitePage = ({ pageKey }) => {
                   </a>
                 </p>
               )}
-              {(getLocVal(aboutData, 'aiDisclaimer') || aboutData.aiDisclaimer) && <p style={{ margin: '4px 0', fontStyle: 'italic', color: 'var(--text-tertiary)' }}><TranslatableText text={getLocVal(aboutData, 'aiDisclaimer') || aboutData.aiDisclaimer} /></p>}
+              {getLocalizedContent({ content: content.content }, 'aiDisclaimer') && <p style={{ margin: '4px 0', fontStyle: 'italic', color: 'var(--text-tertiary)' }}><TranslatableText text={getLocalizedContent({ content: content.content }, 'aiDisclaimer')} /></p>}
               <p style={{ margin: '4px 0' }}>
                 <Link to="/license" style={{ color: 'var(--text-tertiary)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{t('sitePage.license')}</Link>
               </p>
@@ -225,22 +239,10 @@ const SitePage = ({ pageKey }) => {
         <div style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
           {content ? (() => {
             const rawContent = content.content;
-            try {
-              const parsed = JSON.parse(rawContent);
-              if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-                if ('zh' in parsed || 'en' in parsed || 'ja' in parsed) {
-                  const localizedContent = parsed[lang] || parsed['zh'] || parsed['en'] || '';
-                  if (localizedContent) {
-                    return <TranslatableBlock text={localizedContent} />;
-                  }
-                }
-                const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
-                const localizedContent = parsed[`content${suffix}`] || parsed['content'] || parsed['contentZh'] || '';
-                if (localizedContent) {
-                  return <TranslatableBlock text={localizedContent} />;
-                }
-              }
-            } catch (e) {}
+            const resolved = resolveContent(rawContent);
+            if (resolved && resolved !== rawContent) {
+              return <TranslatableBlock text={resolved} />;
+            }
             return <TranslatableBlock text={rawContent} />;
           })() : ''}
         </div>

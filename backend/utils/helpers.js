@@ -33,8 +33,9 @@ const parseUserAgent = (ua) => {
 
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
+// In production, configure app.set('trust proxy', 1) so req.ip reflects the real client IP
 const getClientIp = (req) => {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.headers['x-real-ip'] || req.ip || '';
+  return req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.headers['x-real-ip'] || '';
 };
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -79,6 +79,7 @@ const EpisodeDetail = ({ user }) => {
     try {
       await axios.put(`/api/episodes/single/${singleEpisode._id}/view`);
     } catch (error) {}
+    recordWatchProgress(singleEpisode.episodeNumber);
     setWatchModal(singleEpisode);
   };
 
@@ -188,13 +189,15 @@ const EpisodeDetail = ({ user }) => {
   };
 
   const recordWatchProgress = async (episodeNumber) => {
-    if (!user || watchedEpisodes.includes(episodeNumber)) return;
+    if (!user) return;
     try {
       const config = { headers: getAuthHeaders() };
       await axios.post('/api/histories/record', {
         episodeId, episodeNumber
       }, config);
-      setWatchedEpisodes([...watchedEpisodes, episodeNumber]);
+      if (!watchedEpisodes.includes(episodeNumber)) {
+        setWatchedEpisodes([...watchedEpisodes, episodeNumber]);
+      }
       axios.put('/api/notifications/read-episode/' + episodeId, {}, config).catch(() => {});
     } catch (error) {
       console.error('Error recording progress:', error);
@@ -202,11 +205,11 @@ const EpisodeDetail = ({ user }) => {
   };
 
   // 剧集列表折叠逻辑
-  const sortedEpisodes = episode?.episodes
+  const sortedEpisodes = useMemo(() => episode?.episodes
     ? [...episode.episodes].sort((a, b) =>
         episodeSortOrder === 'asc' ? a.episodeNumber - b.episodeNumber : b.episodeNumber - a.episodeNumber
       )
-    : [];
+    : [], [episode?.episodes, episodeSortOrder]);
   const DEFAULT_SHOW_COUNT = 5;
   const displayedEpisodes = episodesExpanded
     ? sortedEpisodes
@@ -236,14 +239,14 @@ const EpisodeDetail = ({ user }) => {
           <div className="meta-info">
             <p><strong>{t('episode.status')}</strong>{episode.status === 'ongoing' ? t('home.statusOngoing') : episode.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}</p>
             {episode.status === 'upcoming' && episode.premiereDate && (
-              <p><strong>{t('episode.premiereDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(episode.premiereDate).toLocaleDateString(lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
+              <p><strong>{t('episode.premiereDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(episode.premiereDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
             )}
             {(episode.status === 'ongoing' || episode.status === 'completed') && episode.episodes && episode.episodes.length > 0 && (() => {
               const firstEp = [...episode.episodes].sort((a, b) => a.episodeNumber - b.episodeNumber)[0];
               const premiereDate = firstEp.releaseDate || firstEp.createdAt;
               if (!premiereDate) return null;
               return (
-                <p><strong>{t('episode.firstAirDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(premiereDate).toLocaleDateString(lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
+                <p><strong>{t('episode.firstAirDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(premiereDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
               );
             })()}
             <p><strong>{t('episode.episodeCount')}</strong>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
@@ -385,7 +388,7 @@ const EpisodeDetail = ({ user }) => {
                   fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
                   background: 'var(--warning-bg)', padding: '2px 8px',
                   borderRadius: '4px', border: '1px solid var(--warning-border)'
-                }}>{t('episode.preview')} {new Date(singleEpisode.scheduledDate).toLocaleDateString(lang === 'ja' ? 'ja-JP' : lang === 'en' ? 'en-US' : 'zh-CN', { month: 'long', day: 'numeric' })}</span>
+                }}>{t('episode.preview')} {new Date(singleEpisode.scheduledDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { month: 'long', day: 'numeric' })}</span>
               )}
               {!singleEpisode.isScheduled && user && watchedEpisodes.includes(singleEpisode.episodeNumber) ? (
                 <span style={{

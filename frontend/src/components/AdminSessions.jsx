@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminSessions = () => {
   const [sessions, setSessions] = useState([]);
@@ -9,6 +10,7 @@ const AdminSessions = () => {
   const [success, setSuccess] = useState('');
   const [filterAdmin, setFilterAdmin] = useState('');
   const navigate = useNavigate();
+  const { t, lang, locale } = useI18n();
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -34,38 +36,38 @@ const AdminSessions = () => {
       });
       setSessions(res.data);
     } catch (err) {
-      setError('加载失败');
+      setError(t('adminSessions.loadFailed'));
     }
     setLoading(false);
   };
 
   const handleLogoutSession = async (id) => {
-    if (!window.confirm('确定要下线该设备吗？')) return;
+    if (!window.confirm(t('adminSessions.confirmLogoutDevice'))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.delete(`/api/admin-sessions/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('已下线该设备');
+      setSuccess(t('adminSessions.deviceLoggedOut'));
       fetchSessions();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('操作失败');
+      setError(t('adminSessions.operationFailed'));
     }
   };
 
   const handleLogoutAllAdmin = async (adminId, username) => {
-    if (!window.confirm(`确定要下线 ${username} 的所有设备吗？`)) return;
+    if (!window.confirm(t('adminSessions.confirmLogoutAll', { username }))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.delete(`/api/admin-sessions/admin/${adminId}/all`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess(`已下线 ${username} 的所有设备`);
+      setSuccess(t('adminSessions.allDevicesLoggedOut', { username }));
       fetchSessions();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('操作失败');
+      setError(t('adminSessions.operationFailed'));
     }
   };
 
@@ -86,11 +88,11 @@ const AdminSessions = () => {
   const formatTime = (dateStr) => {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
-    return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
 
   const getRoleLabel = (role) => {
-    const map = { superadmin: '超级管理员', admin: '管理员', creator: '创作者' };
+    const map = { superadmin: t('adminUsers.superAdmin'), admin: t('adminUsers.admin'), creator: t('adminUsers.creator') };
     return map[role] || role;
   };
 
@@ -106,23 +108,23 @@ const AdminSessions = () => {
     <div className="admin-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h2 style={{ margin: 0 }}>设备管理</h2>
+          <h2 style={{ margin: 0 }}>{t('adminSessions.deviceManagement')}</h2>
         </div>
-        <button className="btn btn-secondary" onClick={fetchSessions}>刷新</button>
+        <button className="btn btn-secondary" onClick={fetchSessions}>{t('adminSessions.refresh')}</button>
       </div>
 
       {error && <div className="error-message" style={{ marginBottom: '16px' }}>{error}</div>}
       {success && <div style={{ padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)', marginBottom: '16px' }}>{success}</div>}
 
       <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>按账号筛选：</span>
+        <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{t('adminSessions.filterByAccount')}</span>
         <button onClick={() => setFilterAdmin('')} style={{
           padding: '6px 14px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer',
           border: '1px solid', transition: 'all 0.2s',
           background: !filterAdmin ? 'var(--primary-bg)' : 'var(--hover-bg)',
           color: !filterAdmin ? 'var(--primary)' : 'var(--text-secondary)',
           borderColor: !filterAdmin ? 'var(--primary)' : 'var(--border)'
-        }}>全部</button>
+        }}>{t('adminSessions.all')}</button>
         {uniqueAdmins.map(a => (
           <button key={a.id} onClick={() => setFilterAdmin(a.id)} style={{
             padding: '6px 14px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer',
@@ -135,9 +137,9 @@ const AdminSessions = () => {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>加载中...</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>{t('adminSessions.loading')}</div>
       ) : filteredSessions.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>暂无登录记录</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>{t('adminSessions.noLoginRecords')}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {filteredSessions.map(session => (
@@ -162,20 +164,20 @@ const AdminSessions = () => {
                       fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
                       background: 'var(--success-bg-subtle)', color: 'var(--success-text)',
                       border: '1px solid var(--success-border)'
-                    }}>在线</span>
+                    }}>{t('adminSessions.online')}</span>
                   ) : (
                     <span style={{
                       fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
                       background: 'var(--hover-bg)', color: 'var(--text-secondary)',
                       border: '1px solid var(--border)'
-                    }}>已离线</span>
+                    }}>{t('adminSessions.offline')}</span>
                   )}
                   {session.isCurrent && (
                     <span style={{
                       fontSize: '11px', padding: '2px 8px', borderRadius: '10px',
                       background: 'var(--primary-bg)', color: 'var(--primary)',
                       border: '1px solid var(--primary-border)', fontWeight: 600
-                    }}>本机</span>
+                    }}>{t('adminSessions.currentDevice')}</span>
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
@@ -187,9 +189,9 @@ const AdminSessions = () => {
                   {session.ip && <span>IP: {session.ip}</span>}
                 </div>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  <span>登录: {formatTime(session.loginAt)}</span>
-                  {session.isActive && <span>最后活跃: {formatTime(session.lastActiveAt)}</span>}
-                  {!session.isActive && session.logoutAt && <span>离线: {formatTime(session.logoutAt)}</span>}
+                  <span>{t('adminSessions.loginAt')}: {formatTime(session.loginAt)}</span>
+                  {session.isActive && <span>{t('adminSessions.lastActive')}: {formatTime(session.lastActiveAt)}</span>}
+                  {!session.isActive && session.logoutAt && <span>{t('adminSessions.offlineAt')}: {formatTime(session.logoutAt)}</span>}
                 </div>
               </div>
               <div style={{ flexShrink: 0, display: 'flex', gap: '8px' }}>
@@ -199,7 +201,7 @@ const AdminSessions = () => {
                     background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
                     border: '1px solid var(--destructive-border)', cursor: 'pointer',
                     transition: 'all 0.2s'
-                  }}>下线</button>
+                  }}>{t('adminSessions.logout')}</button>
                 )}
                 {session.isActive && !session.isCurrent && (
                   <button onClick={() => handleLogoutAllAdmin(session.adminId, session.adminUsername)} style={{
@@ -207,7 +209,7 @@ const AdminSessions = () => {
                     background: 'var(--hover-bg)', color: 'var(--text-secondary)',
                     border: '1px solid var(--border)', cursor: 'pointer',
                     transition: 'all 0.2s'
-                  }}>全部下线</button>
+                  }}>{t('adminSessions.logoutAll')}</button>
                 )}
               </div>
             </div>

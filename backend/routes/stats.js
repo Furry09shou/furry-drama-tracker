@@ -7,7 +7,8 @@ const Follow = require('../models/Follow');
 const Rating = require('../models/Rating');
 const Report = require('../models/Report');
 const History = require('../models/History');
-const { adminProtect } = require('../middlewares/authFactory');
+const UserSession = require('../models/UserSession');
+const { adminProtect, protect } = require('../middlewares/authFactory');
 const { setCache, getCache } = require('../middlewares/cache');
 
 const cacheMiddleware = (duration) => {
@@ -31,37 +32,48 @@ router.get('/overview', adminProtect, cacheMiddleware(300), async (req, res) => 
     const period = req.query.period || '7d';
     const days = period === '30d' ? 30 : 7;
     const periodAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-    const totalEpisodes = await Episode.countDocuments({ reviewStatus: 'approved' });
-    const pendingEpisodes = await Episode.countDocuments({ reviewStatus: 'pending' });
-    const totalUsers = await User.countDocuments();
-    const totalFollows = await Follow.countDocuments();
-    const totalRatings = await Rating.countDocuments();
-    const pendingReports = await Report.countDocuments({ status: 'pending' });
-
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const newUsers = await User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
-    const newEpisodes = await Episode.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
 
-    const totalViewsAgg = await Episode.aggregate([
-      { $group: { _id: null, total: { $sum: '$views' } } }
+    const [
+      totalEpisodes, pendingEpisodes, totalUsers, totalFollows,
+      totalRatings, pendingReports, newUsers, newEpisodes,
+      totalViewsAgg, ratingDistribution, episodeStatusDist
+    ] = await Promise.all([
+      Episode.countDocuments({ reviewStatus: 'approved' }),
+      Episode.countDocuments({ reviewStatus: 'pending' }),
+      User.countDocuments(),
+      Follow.countDocuments(),
+      Rating.countDocuments(),
+      Report.countDocuments({ status: 'pending' }),
+      User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      Episode.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      Episode.aggregate([
+        { $group: { _id: null, total: { $sum: '$views' } } }
+      ]),
+      Rating.aggregate([
+        { $group: { _id: '$score', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
+      Episode.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ])
     ]);
     const totalViews = totalViewsAgg.length > 0 ? totalViewsAgg[0].total : 0;
 
-    const topRated = await Episode.find({ reviewStatus: 'approved', ratingCount: { $gt: 0 } })
-      .sort({ averageRating: -1, ratingCount: -1 })
-      .limit(5)
-      .select('title averageRating ratingCount views');
-
-    const mostViewed = await Episode.find({ reviewStatus: 'approved' })
-      .sort({ views: -1 })
-      .limit(5)
-      .select('title views');
-
-    const mostFollowed = await Follow.aggregate([
-      { $group: { _id: '$episodeId', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 }
+    const [topRated, mostViewed, mostFollowed] = await Promise.all([
+      Episode.find({ reviewStatus: 'approved', ratingCount: { $gt: 0 } })
+        .sort({ averageRating: -1, ratingCount: -1 })
+        .limit(5)
+        .select('title averageRating ratingCount views'),
+      Episode.find({ reviewStatus: 'approved' })
+        .sort({ views: -1 })
+        .limit(5)
+        .select('title views'),
+      Follow.aggregate([
+        { $group: { _id: '$episodeId', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 }
+      ])
     ]);
     const followedEpIds = mostFollowed.map(f => f._id);
     const followedEps = await Episode.find({ _id: { $in: followedEpIds } }).select('title');
@@ -95,11 +107,6 @@ router.get('/overview', adminProtect, cacheMiddleware(300), async (req, res) => 
     const last7DaysActive = await History.distinct('userId', { watchedAt: { $gte: sevenDaysAgo } });
     const activeUsers7d = last7DaysActive.length;
 
-    const ratingDistribution = await Rating.aggregate([
-      { $group: { _id: '$score', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
-    ]);
-
     const sevenDaysAgoDate = new Date();
     sevenDaysAgoDate.setHours(0, 0, 0, 0);
     sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 6);
@@ -117,11 +124,6 @@ router.get('/overview', adminProtect, cacheMiddleware(300), async (req, res) => 
       dailyActiveUsers.push({ date: dateStr, count: found ? found.count : 0 });
     }
 
-    const episodeStatusDist = await Episode.aggregate([
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-
-    // 热门剧集排行（按浏览量/追番数/评分）
     const topEpisodesByViews = await Episode.find({ reviewStatus: 'approved' })
       .sort({ views: -1 }).limit(8).select('title views');
     const topEpisodesByFollows = await Follow.aggregate([
@@ -291,6 +293,222 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
   }
 });
 
+router.get('/recommendations/collaborative', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const myHighRatings = await Rating.find({ userId, score: { $gte: 4 } }).select('episodeId');
+    const myHighRatedIds = myHighRatings.map(r => r.episodeId);
+
+    if (myHighRatedIds.length === 0) {
+      return res.json([]);
+    }
+
+    const similarUserRatings = await Rating.find({
+      episodeId: { $in: myHighRatedIds },
+      score: { $gte: 4 },
+      userId: { $ne: userId }
+    }).select('userId episodeId');
+
+    const similarUserIds = [...new Set(similarUserRatings.map(r => r.userId.toString()))];
+
+    if (similarUserIds.length === 0) {
+      return res.json([]);
+    }
+
+    const myAllRatings = await Rating.find({ userId }).select('episodeId');
+    const myRatedIds = new Set(myAllRatings.map(r => r.episodeId.toString()));
+
+    const myFollows = await Follow.find({ userId }).select('episodeId');
+    const myFollowedIds = new Set(myFollows.map(f => f.episodeId.toString()));
+
+    const candidateRatings = await Rating.find({
+      userId: { $in: similarUserIds },
+      score: { $gte: 4 },
+      episodeId: { $nin: [...myRatedIds, ...myFollowedIds] }
+    }).select('episodeId userId score');
+
+    const episodeMap = {};
+    for (const r of candidateRatings) {
+      const eid = r.episodeId.toString();
+      if (!episodeMap[eid]) {
+        episodeMap[eid] = { matchScore: 0, totalScore: 0, count: 0 };
+      }
+      episodeMap[eid].matchScore += 1;
+      episodeMap[eid].totalScore += r.score;
+      episodeMap[eid].count += 1;
+    }
+
+    const sortedEpisodes = Object.entries(episodeMap)
+      .map(([episodeId, data]) => ({
+        episodeId,
+        matchScore: data.matchScore,
+        avgRating: data.totalScore / data.count
+      }))
+      .sort((a, b) => b.matchScore - a.matchScore || b.avgRating - a.avgRating)
+      .slice(0, 10);
+
+    if (sortedEpisodes.length === 0) {
+      return res.json([]);
+    }
+
+    const episodeIds = sortedEpisodes.map(e => e.episodeId);
+    const episodes = await Episode.find({
+      _id: { $in: episodeIds },
+      reviewStatus: 'approved'
+    }).select('title titleEn coverImage totalEpisodes currentEpisodes averageRating ratingCount');
+
+    const results = sortedEpisodes.map(se => {
+      const ep = episodes.find(e => e._id.toString() === se.episodeId);
+      if (!ep) return null;
+      return {
+        _id: ep._id,
+        title: ep.title,
+        titleEn: ep.titleEn,
+        coverImage: ep.coverImage,
+        totalEpisodes: ep.totalEpisodes,
+        currentEpisodes: ep.currentEpisodes,
+        averageRating: ep.averageRating,
+        ratingCount: ep.ratingCount,
+        matchScore: se.matchScore
+      };
+    }).filter(Boolean);
+
+    res.json(results);
+  } catch (error) {
+    console.error('Collaborative recommendations error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/recommendations/personalized', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const [myFollows, myRatings] = await Promise.all([
+      Follow.find({ userId }).select('episodeId'),
+      Rating.find({ userId }).select('episodeId score')
+    ]);
+
+    const myFollowedIds = myFollows.map(f => f.episodeId);
+    const myRatedIds = myRatings.map(r => r.episodeId);
+    const excludeIds = [...new Set([...myFollowedIds, ...myRatedIds.map(id => id.toString())])];
+
+    const interactedIds = [...myFollowedIds, ...myRatedIds];
+    const interactedEpisodes = interactedIds.length > 0
+      ? await Episode.find({ _id: { $in: interactedIds } }).select('tags category title')
+      : [];
+
+    const userTags = new Set();
+    const userCategories = new Set();
+    const followedTitles = [];
+
+    for (const ep of interactedEpisodes) {
+      if (ep.tags) ep.tags.forEach(t => userTags.add(t));
+      if (ep.category) ep.category.forEach(c => userCategories.add(c));
+      followedTitles.push(ep.title);
+    }
+
+    const tagBasedEpisodes = userTags.size > 0
+      ? await Episode.find({
+          tags: { $in: [...userTags] },
+          _id: { $nin: excludeIds },
+          reviewStatus: 'approved'
+        }).select('title titleEn coverImage totalEpisodes currentEpisodes averageRating ratingCount views tags category')
+      : [];
+
+    const categoryBasedEpisodes = userCategories.size > 0
+      ? await Episode.find({
+          category: { $in: [...userCategories] },
+          _id: { $nin: excludeIds },
+          reviewStatus: 'approved'
+        }).select('title titleEn coverImage totalEpisodes currentEpisodes averageRating ratingCount views tags category')
+      : [];
+
+    const popularEpisodes = await Episode.find({
+      _id: { $nin: excludeIds },
+      reviewStatus: 'approved',
+      ratingCount: { $gt: 0 }
+    }).sort({ averageRating: -1, views: -1 }).limit(20)
+      .select('title titleEn coverImage totalEpisodes currentEpisodes averageRating ratingCount views tags category');
+
+    const candidateMap = new Map();
+
+    for (const ep of tagBasedEpisodes) {
+      const id = ep._id.toString();
+      if (!candidateMap.has(id)) {
+        candidateMap.set(id, { ep, score: 0, reasons: [] });
+      }
+      const entry = candidateMap.get(id);
+      const commonTags = ep.tags.filter(t => userTags.has(t));
+      entry.score += commonTags.length * 2;
+      if (commonTags.length > 0) {
+        entry.reasons.push('tag');
+      }
+    }
+
+    for (const ep of categoryBasedEpisodes) {
+      const id = ep._id.toString();
+      if (!candidateMap.has(id)) {
+        candidateMap.set(id, { ep, score: 0, reasons: [] });
+      }
+      const entry = candidateMap.get(id);
+      const commonCats = ep.category.filter(c => userCategories.has(c));
+      entry.score += commonCats.length;
+      if (commonCats.length > 0 && !entry.reasons.includes('category')) {
+        entry.reasons.push('category');
+      }
+    }
+
+    for (const ep of popularEpisodes) {
+      const id = ep._id.toString();
+      if (!candidateMap.has(id)) {
+        candidateMap.set(id, { ep, score: 0, reasons: [] });
+      }
+      const entry = candidateMap.get(id);
+      entry.score += (ep.averageRating || 0) * 0.5 + (ep.views || 0) * 0.001;
+      if (!entry.reasons.includes('popular')) {
+        entry.reasons.push('popular');
+      }
+    }
+
+    const sorted = [...candidateMap.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+
+    const results = sorted.map(({ ep, reasons }) => {
+      let reason = '';
+      const firstFollowed = interactedEpisodes[0];
+
+      if (reasons.includes('tag') && firstFollowed) {
+        reason = 'becauseYouFollow';
+      } else if (reasons.includes('category')) {
+        reason = 'popularInCategory';
+      } else if (reasons.includes('popular')) {
+        reason = 'similarUsersLiked';
+      }
+
+      return {
+        _id: ep._id,
+        title: ep.title,
+        titleEn: ep.titleEn,
+        coverImage: ep.coverImage,
+        totalEpisodes: ep.totalEpisodes,
+        currentEpisodes: ep.currentEpisodes,
+        averageRating: ep.averageRating,
+        ratingCount: ep.ratingCount,
+        reason,
+        reasonName: firstFollowed ? firstFollowed.title : ''
+      };
+    });
+
+    res.json(results);
+  } catch (error) {
+    console.error('Personalized recommendations error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/recommendations/:episodeId', cacheMiddleware(300), async (req, res) => {
   try {
     const episode = await Episode.findById(req.params.episodeId);
@@ -298,11 +516,15 @@ router.get('/recommendations/:episodeId', cacheMiddleware(300), async (req, res)
       return res.status(404).json({ message: 'Episode not found' });
     }
 
-    // 获取所有已审核通过的剧集（排除自身）
+    const total = await Episode.countDocuments({
+      _id: { $ne: req.params.episodeId },
+      reviewStatus: 'approved'
+    });
+    const skip = total > 200 ? Math.floor(Math.random() * Math.max(1, total - 200)) : 0;
     const allEpisodes = await Episode.find({
       _id: { $ne: req.params.episodeId },
       reviewStatus: 'approved'
-    }).select('title coverImage currentEpisodes totalEpisodes status averageRating views category tags');
+    }).select('title coverImage currentEpisodes totalEpisodes status averageRating views category tags').skip(skip).limit(200);
 
     // 获取最大浏览量用于归一化
     const maxViews = Math.max(...allEpisodes.map(e => e.views || 0), 1);
@@ -341,6 +563,96 @@ router.get('/recommendations/:episodeId', cacheMiddleware(300), async (req, res)
     res.json(results);
   } catch (error) {
     console.error('Recommendations error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/activity-heatmap', adminProtect, cacheMiddleware(300), async (req, res) => {
+  try {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - 364);
+    startDate.setHours(0, 0, 0, 0);
+
+    const [followAgg, ratingAgg, episodeAgg] = await Promise.all([
+      Follow.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } }
+      ]),
+      Rating.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } }
+      ]),
+      Episode.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } }
+      ])
+    ]);
+
+    const dateMap = {};
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      dateMap[key] = 0;
+    }
+    followAgg.forEach(a => { if (dateMap[a._id] !== undefined) dateMap[a._id] += a.count; });
+    ratingAgg.forEach(a => { if (dateMap[a._id] !== undefined) dateMap[a._id] += a.count; });
+    episodeAgg.forEach(a => { if (dateMap[a._id] !== undefined) dateMap[a._id] += a.count; });
+
+    const result = Object.entries(dateMap).map(([date, count]) => ({ date, count }));
+    res.json(result);
+  } catch (error) {
+    console.error('Heatmap error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/episode-lifecycle', adminProtect, cacheMiddleware(300), async (req, res) => {
+  try {
+    const topEpisodes = await Episode.find({ reviewStatus: 'approved' })
+      .sort({ views: -1 })
+      .limit(20)
+      .select('title views createdAt');
+
+    const result = topEpisodes.map(ep => {
+      const now = new Date();
+      const created = new Date(ep.createdAt);
+      const totalWeeks = Math.max(1, Math.ceil((now - created) / (7 * 24 * 60 * 60 * 1000)));
+      const weeks = [];
+      for (let w = 1; w <= totalWeeks; w++) {
+        weeks.push({ week: w, views: Math.round(ep.views * (w / totalWeeks)) });
+      }
+      return {
+        episodeId: ep._id,
+        title: ep.title,
+        weeks
+      };
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Lifecycle error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/realtime', adminProtect, async (req, res) => {
+  try {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [onlineUsers, todayVisits, todayNewUsers, todayNewEpisodes] = await Promise.all([
+      UserSession.countDocuments({ isActive: true, lastActiveAt: { $gte: fiveMinAgo } }),
+      UserSession.countDocuments({ isActive: true, lastActiveAt: { $gte: todayStart } }),
+      User.countDocuments({ createdAt: { $gte: todayStart } }),
+      Episode.countDocuments({ createdAt: { $gte: todayStart } })
+    ]);
+
+    res.json({ onlineUsers, todayVisits, todayNewUsers, todayNewEpisodes });
+  } catch (error) {
+    console.error('Realtime error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

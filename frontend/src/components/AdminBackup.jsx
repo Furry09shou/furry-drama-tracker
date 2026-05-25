@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminBackup = () => {
   const [admin, setAdmin] = useState(null);
@@ -9,6 +10,7 @@ const AdminBackup = () => {
   const [message, setMessage] = useState('');
   const [overwrite, setOverwrite] = useState(false);
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -39,9 +41,9 @@ const AdminBackup = () => {
       a.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       window.URL.revokeObjectURL(url);
-      setMessage('导出成功');
+      setMessage(t('adminBackup.exportSuccess'));
     } catch (e) {
-      setMessage('导出失败');
+      setMessage(t('adminBackup.exportFailed'));
     }
     setExporting(false);
   };
@@ -58,9 +60,9 @@ const AdminBackup = () => {
       const res = await axios.post('/api/backup/import', { data, overwrite }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMessage('恢复成功：' + JSON.stringify(res.data.results));
+      setMessage(t('adminBackup.importSuccess') + JSON.stringify(res.data.results));
     } catch (e) {
-      setMessage('恢复失败：' + (e.response?.data?.message || e.message));
+      setMessage(t('adminBackup.importFailed') + (e.response?.data?.message || e.message));
     }
     setImporting(false);
     e.target.value = '';
@@ -69,34 +71,34 @@ const AdminBackup = () => {
   return (
     <div className="admin-panel">
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <h2>数据备份与恢复</h2>
+        <h2>{t('adminBackup.title')}</h2>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
         <div style={{ background: 'var(--card)', borderRadius: '12px', padding: '24px', border: '1px solid var(--border)' }}>
-          <h3 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '16px' }}>📦 导出备份</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6, margin: '0 0 16px 0' }}>将所有数据导出为 JSON 文件，可用于迁移或备份。</p>
+          <h3 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '16px' }}>{t('adminBackup.exportTitle')}</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6, margin: '0 0 16px 0' }}>{t('adminBackup.exportDesc')}</p>
           <button className="btn" onClick={handleExport} disabled={exporting}>
-            {exporting ? '导出中...' : '💾 导出数据'}
+            {exporting ? t('adminBackup.exporting') : t('adminBackup.exportData')}
           </button>
         </div>
 
         <div style={{ background: 'var(--card)', borderRadius: '12px', padding: '24px', border: '1px solid var(--border)' }}>
-          <h3 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '16px' }}>📥 恢复数据</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6, margin: '0 0 12px 0' }}>从备份文件恢复数据。</p>
+          <h3 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '16px' }}>{t('adminBackup.importTitle')}</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6, margin: '0 0 12px 0' }}>{t('adminBackup.importDesc')}</p>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}>
             <input type="checkbox" checked={overwrite} onChange={e => setOverwrite(e.target.checked)} />
-            覆盖现有数据
+            {t('adminBackup.overwriteData')}
           </label>
           <label className="btn" style={{ display: 'inline-block', cursor: importing ? 'wait' : 'pointer' }}>
-            {importing ? '恢复中...' : '📂 选择备份文件'}
+            {importing ? t('adminBackup.importing') : t('adminBackup.selectBackupFile')}
             <input type="file" accept=".json" onChange={handleImport} disabled={importing} style={{ display: 'none' }} />
           </label>
         </div>
       </div>
 
       {message && (
-        <div style={{ marginTop: '16px', padding: '12px 16px', borderRadius: '8px', background: message.includes('成功') ? 'var(--success-bg)' : 'var(--destructive-bg)', color: message.includes('成功') ? 'var(--success-text)' : 'var(--destructive-text)', border: `1px solid ${message.includes('成功') ? 'var(--success-border)' : 'var(--destructive-border)'}`, fontSize: '13px' }}>
+        <div style={{ marginTop: '16px', padding: '12px 16px', borderRadius: '8px', background: message.includes(t('adminBackup.successKeyword')) ? 'var(--success-bg)' : 'var(--destructive-bg)', color: message.includes(t('adminBackup.successKeyword')) ? 'var(--success-text)' : 'var(--destructive-text)', border: `1px solid ${message.includes(t('adminBackup.successKeyword')) ? 'var(--success-border)' : 'var(--destructive-border)'}`, fontSize: '13px' }}>
           {message}
         </div>
       )}

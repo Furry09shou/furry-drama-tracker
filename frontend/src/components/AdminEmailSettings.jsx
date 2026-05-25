@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminEmailSettings = () => {
   const [admin, setAdmin] = useState(null);
@@ -14,6 +15,7 @@ const AdminEmailSettings = () => {
   const [testing, setTesting] = useState(false);
   const [testMsg, setTestMsg] = useState('');
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -58,19 +60,19 @@ const AdminEmailSettings = () => {
     try {
       const token = localStorage.getItem('adminToken');
       await axios.put('/api/site-content/email', {
-        title: '邮件服务',
+        title: t('adminEmailSettings.emailService'),
         content: JSON.stringify(emailData)
       }, { headers: { Authorization: `Bearer ${token}` } });
-      setMessage('保存成功');
+      setMessage(t('adminEmailSettings.saveSuccess'));
     } catch (err) {
-      setMessage(err.response?.data?.message || '保存失败');
+      setMessage(err.response?.data?.message || t('adminEmailSettings.saveFailed'));
     }
     setSaving(false);
   };
 
   const handleTest = async () => {
     if (!testEmail) {
-      setTestMsg('请输入收件邮箱地址');
+      setTestMsg(t('adminEmailSettings.testEmailRequired'));
       return;
     }
     setTesting(true);
@@ -87,7 +89,7 @@ const AdminEmailSettings = () => {
       }, { headers: { Authorization: `Bearer ${token}` } });
       setTestMsg(res.data.message);
     } catch (err) {
-      setTestMsg(err.response?.data?.message || '测试发送失败');
+      setTestMsg(err.response?.data?.message || t('adminEmailSettings.testSendFailed'));
     }
     setTesting(false);
   };
@@ -98,7 +100,7 @@ const AdminEmailSettings = () => {
     <div className="admin-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <h2>📧 邮件服务设置</h2>
+          <h2>{t('adminEmailSettings.title')}</h2>
         </div>
       </div>
 
@@ -108,12 +110,12 @@ const AdminEmailSettings = () => {
           background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)',
           fontSize: '13px', lineHeight: 1.7, color: 'var(--text-secondary)'
         }}>
-          <p style={{ margin: '0 0 6px 0', fontWeight: 600, color: 'var(--foreground)' }}>ℹ️ 邮件服务说明</p>
+          <p style={{ margin: '0 0 6px 0', fontWeight: 600, color: 'var(--foreground)' }}>{t('adminEmailSettings.infoTitle')}</p>
           <ul style={{ margin: 0, paddingLeft: '16px' }}>
-            <li>配置SMTP邮件服务用于发送邮箱验证、密码重置等邮件</li>
-            <li>支持常见邮箱服务商：QQ邮箱、163邮箱、Gmail、阿里云企业邮箱等</li>
-            <li>配置后请点击"测试发送"验证是否正常工作</li>
-            <li>密码为SMTP授权码，非邮箱登录密码</li>
+            <li>{t('adminEmailSettings.infoItem1')}</li>
+            <li>{t('adminEmailSettings.infoItem2')}</li>
+            <li>{t('adminEmailSettings.infoItem3')}</li>
+            <li>{t('adminEmailSettings.infoItem4')}</li>
           </ul>
         </div>
 
@@ -125,54 +127,54 @@ const AdminEmailSettings = () => {
               onChange={(e) => setEmailData(prev => ({ ...prev, enabled: e.target.checked }))}
               style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
-            <span>启用邮件服务</span>
+            <span>{t('adminEmailSettings.enableEmail')}</span>
           </label>
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            启用后将使用下方配置发送邮件，关闭则回退到环境变量配置（如有）
+            {t('adminEmailSettings.enableEmailHint')}
           </p>
         </div>
 
         <div className="form-group">
-          <label>🖥️ SMTP服务器地址</label>
+          <label>{t('adminEmailSettings.smtpHost')}</label>
           <input
             type="text"
             value={emailData.host}
             onChange={(e) => setEmailData(prev => ({ ...prev, host: e.target.value }))}
-            placeholder="如：smtp.qq.com、smtp.163.com、smtp.gmail.com"
+            placeholder={t('adminEmailSettings.smtpHostPlaceholder')}
           />
         </div>
 
         <div className="form-group">
-          <label>🔌 SMTP端口</label>
+          <label>{t('adminEmailSettings.smtpPort')}</label>
           <input
             type="text"
             value={emailData.port}
             onChange={(e) => setEmailData(prev => ({ ...prev, port: e.target.value }))}
-            placeholder="通常为465（SSL）或587（TLS）"
+            placeholder={t('adminEmailSettings.smtpPortPlaceholder')}
           />
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            465为SSL加密连接，587为STARTTLS连接
+            {t('adminEmailSettings.smtpPortHint')}
           </p>
         </div>
 
         <div className="form-group">
-          <label>👤 SMTP用户名（邮箱地址）</label>
+          <label>{t('adminEmailSettings.smtpUser')}</label>
           <input
             type="email"
             value={emailData.user}
             onChange={(e) => setEmailData(prev => ({ ...prev, user: e.target.value }))}
-            placeholder="如：your@email.com"
+            placeholder="your@email.com"
           />
         </div>
 
         <div className="form-group">
-          <label>🔑 SMTP密码（授权码）</label>
+          <label>{t('adminEmailSettings.smtpPass')}</label>
           <div style={{ position: 'relative' }}>
             <input
               type={showPass ? 'text' : 'password'}
               value={emailData.pass}
               onChange={(e) => setEmailData(prev => ({ ...prev, pass: e.target.value }))}
-              placeholder="输入SMTP授权码"
+              placeholder={t('adminEmailSettings.smtpPassPlaceholder')}
               style={{ width: '100%', paddingRight: '80px' }}
             />
             <button
@@ -184,56 +186,56 @@ const AdminEmailSettings = () => {
                 cursor: 'pointer', fontSize: '13px', padding: '4px 8px'
               }}
             >
-              {showPass ? '隐藏' : '显示'}
+              {showPass ? t('adminEmailSettings.hide') : t('adminEmailSettings.show')}
             </button>
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            此处填写SMTP授权码，非邮箱登录密码。QQ邮箱需在设置中开启SMTP服务并获取授权码。
+            {t('adminEmailSettings.smtpPassHint')}
           </p>
         </div>
 
         <div className="form-group">
-          <label>📬 发件人名称</label>
+          <label>{t('adminEmailSettings.fromName')}</label>
           <input
             type="text"
             value={emailData.fromName}
             onChange={(e) => setEmailData(prev => ({ ...prev, fromName: e.target.value }))}
-            placeholder="如：兽剧聚合平台"
+            placeholder={t('adminEmailSettings.fromNamePlaceholder')}
           />
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            收件人看到的发件人名称
+            {t('adminEmailSettings.fromNameHint')}
           </p>
         </div>
 
         {message && (
           <div style={{
             padding: '10px 16px', borderRadius: '8px', marginBottom: '16px',
-            background: message.includes('成功') ? 'var(--success-bg)' : 'var(--destructive-bg)',
-            color: message.includes('成功') ? 'var(--success-text)' : 'var(--destructive-text)',
-            border: `1px solid ${message.includes('成功') ? 'var(--success-border)' : 'var(--destructive-border)'}`
+            background: message.includes(t('adminEmailSettings.successKeyword')) ? 'var(--success-bg)' : 'var(--destructive-bg)',
+            color: message.includes(t('adminEmailSettings.successKeyword')) ? 'var(--success-text)' : 'var(--destructive-text)',
+            border: `1px solid ${message.includes(t('adminEmailSettings.successKeyword')) ? 'var(--success-border)' : 'var(--destructive-border)'}`
           }}>
             {message}
           </div>
         )}
 
         <button className="btn" onClick={handleSave} disabled={saving} style={{ marginBottom: '30px' }}>
-          {saving ? '保存中...' : '💾 保存配置'}
+          {saving ? t('adminEmailSettings.saving') : t('adminEmailSettings.saveConfig')}
         </button>
 
         <div style={{
           padding: '20px', borderRadius: '12px',
           background: 'var(--card)', border: '1px solid var(--border)'
         }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--foreground)' }}>🧪 测试邮件发送</h3>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--foreground)' }}>{t('adminEmailSettings.testEmailTitle')}</h3>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.6 }}>
-            保存配置后，可在此输入收件邮箱地址进行测试，验证邮件服务是否正常工作。
+            {t('adminEmailSettings.testEmailDesc')}
           </p>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <input
               type="email"
               value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
-              placeholder="输入收件邮箱地址"
+              placeholder={t('adminEmailSettings.testEmailPlaceholder')}
               style={{ flex: 1, minWidth: '200px', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px' }}
             />
             <button
@@ -242,15 +244,15 @@ const AdminEmailSettings = () => {
               disabled={testing || !emailData.host || !emailData.user || !emailData.pass}
               style={{ whiteSpace: 'nowrap' }}
             >
-              {testing ? '发送中...' : '📤 测试发送'}
+              {testing ? t('adminEmailSettings.sending') : t('adminEmailSettings.testSend')}
             </button>
           </div>
           {testMsg && (
             <div style={{
               marginTop: '12px', padding: '10px 14px', borderRadius: '8px', fontSize: '13px',
-              background: testMsg.includes('成功') ? 'var(--success-bg)' : 'var(--destructive-bg)',
-              color: testMsg.includes('成功') ? 'var(--success-text)' : 'var(--destructive-text)',
-              border: `1px solid ${testMsg.includes('成功') ? 'var(--success-border)' : 'var(--destructive-border)'}`
+              background: testMsg.includes(t('adminEmailSettings.successKeyword')) ? 'var(--success-bg)' : 'var(--destructive-bg)',
+              color: testMsg.includes(t('adminEmailSettings.successKeyword')) ? 'var(--success-text)' : 'var(--destructive-text)',
+              border: `1px solid ${testMsg.includes(t('adminEmailSettings.successKeyword')) ? 'var(--success-border)' : 'var(--destructive-border)'}`
             }}>
               {testMsg}
             </div>
@@ -262,14 +264,14 @@ const AdminEmailSettings = () => {
           background: 'var(--hover-bg)', border: '1px solid var(--border)',
           fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.8
         }}>
-          <p style={{ margin: '0 0 8px 0', fontWeight: 600, color: 'var(--foreground)' }}>📋 常见邮箱SMTP配置</p>
+          <p style={{ margin: '0 0 8px 0', fontWeight: 600, color: 'var(--foreground)' }}>{t('adminEmailSettings.commonSmtpTitle')}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '8px' }}>
-            <div><strong>QQ邮箱</strong>：smtp.qq.com:465</div>
-            <div><strong>163邮箱</strong>：smtp.163.com:465</div>
+            <div><strong>{t('adminEmailSettings.qqMail')}</strong>：smtp.qq.com:465</div>
+            <div><strong>{t('adminEmailSettings.mail163')}</strong>：smtp.163.com:465</div>
             <div><strong>Gmail</strong>：smtp.gmail.com:587</div>
-            <div><strong>阿里云</strong>：smtp.mxhichina.com:465</div>
+            <div><strong>{t('adminEmailSettings.aliyun')}</strong>：smtp.mxhichina.com:465</div>
             <div><strong>Outlook</strong>：smtp.office365.com:587</div>
-            <div><strong>腾讯企业</strong>：smtp.exmail.qq.com:465</div>
+            <div><strong>{t('adminEmailSettings.tencentExmail')}</strong>：smtp.exmail.qq.com:465</div>
           </div>
         </div>
       </div>

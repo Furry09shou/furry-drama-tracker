@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outputHeight, uploadEndpoint }) => {
+  const { t } = useI18n();
   const [mode, setMode] = useState('url');
   const [urlInput, setUrlInput] = useState(value || '');
   const [uploading, setUploading] = useState(false);
@@ -142,7 +144,7 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
   const uploadCroppedImage = async (canvas) => {
     return new Promise((resolve, reject) => {
       canvas.toBlob(async (blob) => {
-        if (!blob) { reject(new Error('裁剪失败')); return; }
+        if (!blob) { reject(new Error(t('imageUploader.cropFailed'))); return; }
         try {
           const formData = new FormData();
           formData.append('image', blob, 'cropped.jpg');
@@ -157,7 +159,7 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             resolve(dataUrl);
           } catch (e2) {
-            reject(new Error('裁剪结果保存失败'));
+            reject(new Error(t('imageUploader.cropSaveFailed')));
           }
         }
       }, 'image/jpeg', 0.9);
@@ -187,8 +189,8 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
         onChange(uploadedUrl);
       }
     } catch (err) {
-      console.error('上传失败', err);
-      alert('上传失败，请重试');
+      console.error('Upload failed', err);
+      alert(t('imageUploader.uploadFailedRetry'));
     }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -240,13 +242,13 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
         setUrlInput(url);
         setShowCropper(false);
       } catch (err) {
-        setCropError(err.message || '裁剪失败，可能是跨域限制。请尝试下载图片后本地上传');
+        setCropError(err.message || t('imageUploader.cropCrossOriginError'));
       }
       setCropLoading(false);
     };
-    img.onerror = () => { setCropError('图片加载失败，请检查URL是否正确'); setCropLoading(false); };
+    img.onerror = () => { setCropError(t('imageUploader.imageLoadError')); setCropLoading(false); };
     img.src = cropImageUrl;
-  }, [cropRect, cropImageUrl, outputWidth, outputHeight, onChange, uploadEndpoint]);
+  }, [cropRect, cropImageUrl, outputWidth, outputHeight, onChange, uploadEndpoint, t]);
 
   const handleUseOriginal = () => { onChange(cropImageUrl); setUrlInput(cropImageUrl); setShowCropper(false); };
   const handleCancelCrop = () => { setShowCropper(false); setCropRect(null); setCropError(''); };
@@ -265,14 +267,14 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
 
     return (
       <div style={{ marginBottom: '16px' }}>
-        {label && <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--foreground)' }}>{label} - 裁剪编辑</label>}
+        {label && <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--foreground)' }}>{label} - {t('imageUploader.cropEdit')}</label>}
         <div style={{
           background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)',
           borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '13px', color: 'var(--primary-light)'
         }}>
-          <div style={{ marginBottom: '4px' }}>📌 在图片上拖动鼠标选择裁剪区域</div>
-          {aspectRatio && <div>📐 固定比例 {outputWidth}:{outputHeight}，点击已选区域可拖动移动</div>}
-          {!aspectRatio && <div>点击已选区域可拖动移动</div>}
+          <div style={{ marginBottom: '4px' }}>{t('imageUploader.cropDragHint')}</div>
+          {aspectRatio && <div>{t('imageUploader.cropFixedRatio', { w: outputWidth, h: outputHeight })}</div>}
+          {!aspectRatio && <div>{t('imageUploader.cropMoveHint')}</div>}
         </div>
         <div
           ref={containerRef}
@@ -280,7 +282,7 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
           onMouseDown={handlePointerDown}
           onTouchStart={handlePointerDown}
         >
-          <img src={cropImageUrl} alt="裁剪" style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} draggable={false} />
+          <img src={cropImageUrl} alt={t('imageUploader.crop')} style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} draggable={false} />
           {cropDisplay && cropDisplay.width > 0.5 && cropDisplay.height > 0.5 && (
             <div style={{
               position: 'absolute', left: `${cropDisplay.left}%`, top: `${cropDisplay.top}%`,
@@ -306,9 +308,9 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
           <div style={{ padding: '8px 12px', marginTop: '8px', borderRadius: '6px', background: 'var(--destructive-bg)', color: 'var(--destructive-text)', border: '1px solid var(--destructive-border)', fontSize: '13px' }}>{cropError}</div>
         )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-          <button className="btn" onClick={handleCropConfirm} disabled={cropLoading}>{cropLoading ? '处理中...' : '✓ 确认裁剪'}</button>
-          <button className="btn btn-secondary" onClick={handleUseOriginal}>使用原图</button>
-          <button className="btn btn-secondary" onClick={handleCancelCrop}>取消</button>
+          <button className="btn" onClick={handleCropConfirm} disabled={cropLoading}>{cropLoading ? t('common.processing') : `✓ ${t('imageUploader.confirmCrop')}`}</button>
+          <button className="btn btn-secondary" onClick={handleUseOriginal}>{t('imageUploader.useOriginal')}</button>
+          <button className="btn btn-secondary" onClick={handleCancelCrop}>{t('common.cancel')}</button>
         </div>
       </div>
     );
@@ -318,33 +320,33 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
     <div style={{ marginBottom: '16px' }}>
       {label && <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--foreground)' }}>{label}</label>}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-        <button type="button" className={mode === 'url' ? 'btn' : 'btn btn-secondary'} onClick={() => setMode('url')} style={{ fontSize: '13px', padding: '6px 14px' }}>URL输入</button>
-        <button type="button" className={mode === 'upload' ? 'btn' : 'btn btn-secondary'} onClick={() => setMode('upload')} style={{ fontSize: '13px', padding: '6px 14px' }}>本地上传</button>
+        <button type="button" className={mode === 'url' ? 'btn' : 'btn btn-secondary'} onClick={() => setMode('url')} style={{ fontSize: '13px', padding: '6px 14px' }}>{t('imageUploader.urlInput')}</button>
+        <button type="button" className={mode === 'upload' ? 'btn' : 'btn btn-secondary'} onClick={() => setMode('upload')} style={{ fontSize: '13px', padding: '6px 14px' }}>{t('imageUploader.localUpload')}</button>
       </div>
       {mode === 'url' ? (
         <div>
-          <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="输入图片URL地址" style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px', marginBottom: '8px' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUrlConfirm(); } }} />
+          <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder={t('imageUploader.urlPlaceholder')} style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px', marginBottom: '8px' }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUrlConfirm(); } }} />
           <button type="button" className="btn" style={{ fontSize: '13px', padding: '6px 14px', whiteSpace: 'nowrap' }} onClick={handleUrlConfirm}>
-            {aspectRatio ? '裁剪' : '确认'}
+            {aspectRatio ? t('imageUploader.crop') : t('common.confirm')}
           </button>
         </div>
       ) : (
         <div>
           <input type="file" ref={fileInputRef} accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onChange={handleFileUpload} style={{ display: 'none' }} />
           <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-            {uploading ? '上传中...' : '📁 选择图片文件'}
+            {uploading ? t('common.saving') : `📁 ${t('imageUploader.selectFile')}`}
           </button>
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>支持 JPEG、PNG、GIF、WebP，最大5MB</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>{t('imageUploader.fileSupport')}</span>
         </div>
       )}
       {value && (
         <div style={{ marginTop: '10px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-          <img src={value} alt="预览" style={{ maxWidth: '200px', maxHeight: '120px', borderRadius: '8px', border: '1px solid var(--border)', objectFit: 'cover' }} />
+          <img src={value} alt={t('imageUploader.preview')} style={{ maxWidth: '200px', maxHeight: '120px', borderRadius: '8px', border: '1px solid var(--border)', objectFit: 'cover' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {aspectRatio && (
-              <button type="button" onClick={handleStartCrop} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary-light)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px' }}>✂️ 裁剪</button>
+              <button type="button" onClick={handleStartCrop} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary-light)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px' }}>{`✂️ ${t('imageUploader.crop')}`}</button>
             )}
-            <button type="button" onClick={handleRemove} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px' }}>🗑️ 移除</button>
+            <button type="button" onClick={handleRemove} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontSize: '12px' }}>{`🗑️ ${t('imageUploader.remove')}`}</button>
           </div>
         </div>
       )}

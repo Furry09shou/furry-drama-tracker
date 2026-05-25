@@ -16,6 +16,7 @@ const SearchInput = () => {
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
   const debounceTimer = useRef(null);
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -30,7 +31,14 @@ const SearchInput = () => {
       setSuggestions([]);
       return;
     }
-    axios.get(`/api/episodes/search?q=${encodeURIComponent(debouncedQuery)}&limit=10`)
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    axios.get(`/api/episodes/search?q=${encodeURIComponent(debouncedQuery)}&limit=10`, {
+      signal: controller.signal
+    })
       .then(res => {
         const data = res.data;
         const list = Array.isArray(data) ? data : (data.episodes || data.results || []);
@@ -38,9 +46,11 @@ const SearchInput = () => {
         setShowSuggestions(list.length > 0);
         setActiveIndex(-1);
       })
-      .catch(() => {
+      .catch((err) => {
+        if (axios.isCancel(err) || err.name === 'AbortError' || err.code === 'ERR_CANCELED') return;
         setSuggestions([]);
       });
+    return () => { controller.abort(); };
   }, [debouncedQuery]);
 
   useEffect(() => {

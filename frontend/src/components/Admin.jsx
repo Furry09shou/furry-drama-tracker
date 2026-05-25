@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
 
 const Admin = () => {
+  const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -49,17 +51,17 @@ const Admin = () => {
       }
       navigate('/admin/dashboard', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || '登录失败');
+      setError(err.response?.data?.message || t('admin.loginFailed'));
     }
   };
 
   return (
     <div className="auth-form">
-      <h2>管理员登录</h2>
+      <h2>{t('admin.adminLogin')}</h2>
       {error && <div className="error-message">{error}</div>}
       <form onSubmit={handleLogin}>
         <div className="form-group">
-          <label>用户名</label>
+          <label>{t('admin.username')}</label>
           <input
             type="text"
             value={username}
@@ -68,7 +70,7 @@ const Admin = () => {
           />
         </div>
         <div className="form-group">
-          <label>密码</label>
+          <label>{t('admin.password')}</label>
           <input
             type="password"
             value={password}
@@ -77,7 +79,7 @@ const Admin = () => {
           />
         </div>
         <div className="form-group">
-          <button type="submit">登录</button>
+          <button type="submit">{t('admin.login')}</button>
         </div>
       </form>
     </div>

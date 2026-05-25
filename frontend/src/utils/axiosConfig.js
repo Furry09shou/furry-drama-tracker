@@ -32,14 +32,16 @@ axios.interceptors.response.use(
       if (url.includes('/admin')) {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminData');
+        window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'admin' } }));
         if (!window.location.pathname.startsWith('/admin')) {
           window.location.href = '/admin';
         }
       } else {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
         if (window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/reset-password') {
-          window.location.href = '/login';
+          setTimeout(() => { window.location.href = '/login'; }, 100);
         }
       }
     }

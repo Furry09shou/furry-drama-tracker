@@ -3,7 +3,7 @@ import { useEpisodes } from '../hooks/useEpisodes';
 import { useI18n } from '../contexts/I18nContext';
 
 const SingleEpisodeManager = ({ episode, onClose }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { 
     fetchSingleEpisodes, 
     addSingleEpisode, 
@@ -63,7 +63,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       resetForm();
       setError('');
     } catch (err) {
-      setError(editingSingleEpisode ? '编辑单集失败' : '添加单集失败');
+      setError(editingSingleEpisode ? t('singleEpisode.editFailed') : t('singleEpisode.addFailed'));
     }
   };
 
@@ -92,7 +92,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       await loadSingleEpisodes();
       setError('');
     } catch (err) {
-      setError('删除单集失败');
+      setError(t('singleEpisode.deleteFailed'));
     }
   };
 
@@ -484,12 +484,12 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 <p style={{ margin: '8px 0', fontSize: '14px' }}>{singleEpisode.title}</p>
                 {singleEpisode.releaseDate && (
                   <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--primary-light)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    📅 {t('singleEpisode.published')} {new Date(singleEpisode.releaseDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    📅 {t('singleEpisode.published')} {new Date(singleEpisode.releaseDate).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                 )}
                 {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
                   <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    🔔 {t('singleEpisode.previewLabel')} {new Date(singleEpisode.scheduledDate).toLocaleString('zh-CN')}
+                    🔔 {t('singleEpisode.previewLabel')} {new Date(singleEpisode.scheduledDate).toLocaleString(locale)}
                   </p>
                 )}
                 {singleEpisode.duration && (

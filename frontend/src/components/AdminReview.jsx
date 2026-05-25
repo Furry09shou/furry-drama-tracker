@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminReview = () => {
   const [admin, setAdmin] = useState(null);
@@ -14,6 +15,7 @@ const AdminReview = () => {
   const [detailEpisode, setDetailEpisode] = useState(null);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -79,13 +81,13 @@ const AdminReview = () => {
       fetchPendingEpisodes();
       fetchAllEpisodes();
     } catch (err) {
-      setError(err.response?.data?.message || '审核失败');
+      setError(err.response?.data?.message || t('adminReview.reviewFailed'));
     }
   };
 
   const handleReject = async (id) => {
     if (!reviewNote.trim()) {
-      setError('拒绝时请填写原因');
+      setError(t('adminReview.rejectReasonRequired'));
       return;
     }
     try {
@@ -97,13 +99,13 @@ const AdminReview = () => {
       fetchPendingEpisodes();
       fetchAllEpisodes();
     } catch (err) {
-      setError(err.response?.data?.message || '审核失败');
+      setError(err.response?.data?.message || t('adminReview.reviewFailed'));
     }
   };
 
   const handleAssignEditor = async () => {
     if (!assignEpisodeId || !assignEditorId) {
-      setError('请选择剧集和创作者');
+      setError(t('adminReview.selectEpisodeAndCreator'));
       return;
     }
     try {
@@ -116,7 +118,7 @@ const AdminReview = () => {
       fetchAllEpisodes();
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || '分配失败');
+      setError(err.response?.data?.message || t('adminReview.assignFailed'));
     }
   };
 
@@ -128,7 +130,7 @@ const AdminReview = () => {
       });
       fetchAllEpisodes();
     } catch (err) {
-      setError(err.response?.data?.message || '移除失败');
+      setError(err.response?.data?.message || t('adminReview.removeFailed'));
     }
   };
 
@@ -138,7 +140,7 @@ const AdminReview = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <h2>审核管理</h2>
+          <h2>{t('adminReview.reviewManagement')}</h2>
         </div>
       </div>
 
@@ -146,15 +148,15 @@ const AdminReview = () => {
         <button
           className={`btn ${activeTab === 'pending' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('pending')}
-        >待审核 ({pendingEpisodes.length})</button>
+        >{t('adminReview.pendingReview')} ({pendingEpisodes.length})</button>
         <button
           className={`btn ${activeTab === 'all' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('all')}
-        >所有剧集</button>
+        >{t('adminReview.allEpisodes')}</button>
         <button
           className={`btn ${activeTab === 'assign' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('assign')}
-        >权限分配</button>
+        >{t('adminReview.permissionAssignment')}</button>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -162,17 +164,17 @@ const AdminReview = () => {
       {activeTab === 'pending' && (
         <div>
           {pendingEpisodes.length === 0 ? (
-            <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '40px'}}>暂无待审核剧集</p>
+            <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '40px'}}>{t('adminReview.noPendingEpisodes')}</p>
           ) : (
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>标题</th>
-                  <th>创建者</th>
-                  <th>集数</th>
-                  <th>状态</th>
-                  <th>提交时间</th>
-                  <th>操作</th>
+                  <th>{t('adminReview.title')}</th>
+                  <th>{t('adminReview.creator')}</th>
+                  <th>{t('adminReview.episodeCount')}</th>
+                  <th>{t('adminReview.status')}</th>
+                  <th>{t('adminReview.submitTime')}</th>
+                  <th>{t('adminReview.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,21 +195,21 @@ const AdminReview = () => {
                         fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
                         background: 'var(--warning-bg)', color: 'var(--warning-text)',
                         border: '1px solid var(--warning-border)'
-                      }}>待审核</span>
+                      }}>{t('adminReview.pending')}</span>
                     </td>
                     <td>{new Date(ep.updatedAt).toLocaleDateString()}</td>
                     <td>
                       <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                         <input
                           type="text"
-                          placeholder="审核备注（拒绝时必填）"
+                          placeholder={t('adminReview.reviewNotePlaceholder')}
                           value={reviewNote}
                           onChange={(e) => setReviewNote(e.target.value)}
                           style={{fontSize: '13px', padding: '6px 10px'}}
                         />
                         <div style={{display: 'flex', gap: '8px'}}>
-                          <button className="btn" style={{fontSize: '13px', padding: '6px 14px'}} onClick={() => handleApprove(ep._id)}>通过</button>
-                          <button className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 14px', background: 'var(--destructive-bg)', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}} onClick={() => handleReject(ep._id)}>拒绝</button>
+                          <button className="btn" style={{fontSize: '13px', padding: '6px 14px'}} onClick={() => handleApprove(ep._id)}>{t('adminReview.approve')}</button>
+                          <button className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 14px', background: 'var(--destructive-bg)', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}} onClick={() => handleReject(ep._id)}>{t('adminReview.reject')}</button>
                         </div>
                       </div>
                     </td>
@@ -224,11 +226,11 @@ const AdminReview = () => {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>标题</th>
-                <th>创建者</th>
-                <th>审核状态</th>
-                <th>授权编辑</th>
-                <th>操作</th>
+                <th>{t('adminReview.title')}</th>
+                <th>{t('adminReview.creator')}</th>
+                <th>{t('adminReview.reviewStatus')}</th>
+                <th>{t('adminReview.authorizedEdit')}</th>
+                <th>{t('adminReview.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -242,7 +244,7 @@ const AdminReview = () => {
                       onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
                     >{ep.title}</span>
                   </td>
-                  <td>{ep.createdBy ? ep.createdBy.username : '系统'}</td>
+                  <td>{ep.createdBy ? ep.createdBy.username : t('adminReview.system')}</td>
                   <td>
                     <span style={{
                       fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
@@ -253,8 +255,8 @@ const AdminReview = () => {
                       border: `1px solid ${ep.reviewStatus === 'approved' ? 'var(--success-border)' :
                                         ep.reviewStatus === 'rejected' ? 'var(--destructive-border)' : 'var(--warning-border)'}`
                     }}>
-                      {ep.reviewStatus === 'approved' ? '已通过' :
-                       ep.reviewStatus === 'rejected' ? '已拒绝' : '待审核'}
+                      {ep.reviewStatus === 'approved' ? t('adminReview.approved') :
+                       ep.reviewStatus === 'rejected' ? t('adminReview.rejected') : t('adminReview.pending')}
                     </span>
                     {ep.reviewNote && <span style={{fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px'}}>({ep.reviewNote})</span>}
                   </td>
@@ -277,14 +279,14 @@ const AdminReview = () => {
                         ))}
                       </div>
                     ) : (
-                      <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>无</span>
+                      <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('adminReview.none')}</span>
                     )}
                   </td>
                   <td>
                     {ep.reviewStatus === 'pending' && (
                       <div style={{display: 'flex', gap: '8px'}}>
-                        <button className="btn" style={{fontSize: '13px', padding: '6px 14px'}} onClick={() => handleApprove(ep._id)}>通过</button>
-                        <button className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 14px'}} onClick={() => handleReject(ep._id)}>拒绝</button>
+                        <button className="btn" style={{fontSize: '13px', padding: '6px 14px'}} onClick={() => handleApprove(ep._id)}>{t('adminReview.approve')}</button>
+                        <button className="btn btn-secondary" style={{fontSize: '13px', padding: '6px 14px'}} onClick={() => handleReject(ep._id)}>{t('adminReview.reject')}</button>
                       </div>
                     )}
                   </td>
@@ -297,35 +299,35 @@ const AdminReview = () => {
 
       {activeTab === 'assign' && (
         <div className="form-container" style={{maxWidth: '600px'}}>
-          <h3 style={{marginBottom: '15px'}}>分配剧集编辑权限</h3>
-          <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>选择剧集和创作者，授予该创作者编辑此剧集的权限</p>
+          <h3 style={{marginBottom: '15px'}}>{t('adminReview.assignEditPermission')}</h3>
+          <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>{t('adminReview.assignEditPermissionDesc')}</p>
           <div className="form-group">
-            <label>选择剧集</label>
+            <label>{t('adminReview.selectEpisode')}</label>
             <select
               value={assignEpisodeId}
               onChange={(e) => setAssignEpisodeId(e.target.value)}
               style={{width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)'}}
             >
-              <option value="">-- 选择剧集 --</option>
+              <option value="">{t('adminReview.selectEpisodePlaceholder')}</option>
               {allEpisodes.map(ep => (
                 <option key={ep._id} value={ep._id}>{ep.title}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label>选择创作者</label>
+            <label>{t('adminReview.selectCreator')}</label>
             <select
               value={assignEditorId}
               onChange={(e) => setAssignEditorId(e.target.value)}
               style={{width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)'}}
             >
-              <option value="">-- 选择创作者 --</option>
+              <option value="">{t('adminReview.selectCreatorPlaceholder')}</option>
               {creators.map(c => (
                 <option key={c._id} value={c._id}>{c.username}</option>
               ))}
             </select>
           </div>
-          <button className="btn" onClick={handleAssignEditor}>分配权限</button>
+          <button className="btn" onClick={handleAssignEditor}>{t('adminReview.assignPermission')}</button>
         </div>
       )}
 
@@ -355,14 +357,14 @@ const AdminReview = () => {
               {detailEpisode.coverImage && (
                 <img src={detailEpisode.coverImage} alt={detailEpisode.title} style={{width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px'}} />
               )}
-              <p style={{color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px'}}>{detailEpisode.description || '暂无描述'}</p>
+              <p style={{color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px'}}>{detailEpisode.description || t('adminReview.noDescription')}</p>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px'}}>
-                <p><strong>集数：</strong>{detailEpisode.currentEpisodes}/{detailEpisode.totalEpisodes}</p>
-                <p><strong>状态：</strong>{detailEpisode.status === 'ongoing' ? '连载中' : detailEpisode.status === 'completed' ? '已完结' : '即将上映'}</p>
-                <p><strong>分类：</strong>{detailEpisode.category ? detailEpisode.category.join('、') : '无'}</p>
-                <p><strong>热度：</strong>{detailEpisode.views} 次浏览</p>
-                <p><strong>创建者：</strong>{detailEpisode.createdBy ? detailEpisode.createdBy.username : '系统'}</p>
-                <p><strong>审核：</strong>
+                <p><strong>{t('adminReview.episodes')}</strong>{detailEpisode.currentEpisodes}/{detailEpisode.totalEpisodes}</p>
+                <p><strong>{t('adminReview.status')}</strong>{detailEpisode.status === 'ongoing' ? t('home.statusOngoing') : detailEpisode.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}</p>
+                <p><strong>{t('adminReview.categories')}</strong>{detailEpisode.category ? detailEpisode.category.join('、') : t('adminReview.none')}</p>
+                <p><strong>{t('adminReview.views')}</strong>{detailEpisode.views}</p>
+                <p><strong>{t('adminReview.creator')}</strong>{detailEpisode.createdBy ? detailEpisode.createdBy.username : t('adminReview.system')}</p>
+                <p><strong>{t('adminReview.reviewStatus')}</strong>
                   <span style={{
                     fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
                     background: detailEpisode.reviewStatus === 'approved' ? 'var(--success-bg)' :
@@ -370,16 +372,16 @@ const AdminReview = () => {
                     color: detailEpisode.reviewStatus === 'approved' ? 'var(--success-text)' :
                            detailEpisode.reviewStatus === 'rejected' ? 'var(--destructive-text)' : 'var(--warning-text)'
                   }}>
-                    {detailEpisode.reviewStatus === 'approved' ? '已通过' :
-                     detailEpisode.reviewStatus === 'rejected' ? '已拒绝' : '待审核'}
+                    {detailEpisode.reviewStatus === 'approved' ? t('adminReview.approved') :
+                     detailEpisode.reviewStatus === 'rejected' ? t('adminReview.rejected') : t('adminReview.pending')}
                   </span>
                 </p>
               </div>
               {detailEpisode.reviewNote && (
-                <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '12px'}}><strong>审核备注：</strong>{detailEpisode.reviewNote}</p>
+                <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '12px'}}><strong>{t('adminReview.reviewNoteLabel')}</strong>{detailEpisode.reviewNote}</p>
               )}
               {detailEpisode.allowedEditors && detailEpisode.allowedEditors.length > 0 && (
-                <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px'}}><strong>授权编辑：</strong>{detailEpisode.allowedEditors.map(e => e.username).join('、')}</p>
+                <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px'}}><strong>{t('adminReview.authorizedEditLabel')}</strong>{detailEpisode.allowedEditors.map(e => e.username).join('、')}</p>
               )}
             </div>
           </div>

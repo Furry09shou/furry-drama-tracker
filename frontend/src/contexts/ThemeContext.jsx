@@ -4,6 +4,39 @@ const ThemeContext = createContext();
 
 export const useTheme = () => useContext(ThemeContext);
 
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+};
+
+export const generateColorShades = (hex) => {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const { r, g, b } = rgb;
+  const lr = Math.round(r + (255 - r) * 0.3);
+  const lg = Math.round(g + (255 - g) * 0.3);
+  const lb = Math.round(b + (255 - b) * 0.3);
+  const dr = Math.round(r * 0.85);
+  const dg = Math.round(g * 0.85);
+  const db = Math.round(b * 0.85);
+  return {
+    primary: hex,
+    primaryLight: `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`,
+    primaryBg: `rgba(${r}, ${g}, ${b}, 0.15)`,
+    primaryBorder: `rgba(${r}, ${g}, ${b}, 0.3)`,
+    primaryHover: `#${dr.toString(16).padStart(2, '0')}${dg.toString(16).padStart(2, '0')}${db.toString(16).padStart(2, '0')}`,
+  };
+};
+
+export const PRESET_COLORS = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
+  '#eab308', '#22c55e', '#06b6d4', '#3b82f6'
+];
+
 const themes = {
   dark: {
     '--primary': '#6366f1',
@@ -14,6 +47,7 @@ const themes = {
     '--primary-bg-strong': 'rgba(99, 102, 241, 0.2)',
     '--primary-border': 'rgba(99, 102, 241, 0.3)',
     '--primary-border-subtle': 'rgba(99, 102, 241, 0.2)',
+    '--primary-hover': '#4f46e5',
     '--secondary': '#10b981',
     '--secondary-dark': '#059669',
     '--accent': '#f59e0b',
@@ -108,6 +142,7 @@ const themes = {
     '--primary-bg-strong': 'rgba(99, 102, 241, 0.15)',
     '--primary-border': 'rgba(99, 102, 241, 0.25)',
     '--primary-border-subtle': 'rgba(99, 102, 241, 0.15)',
+    '--primary-hover': '#4f46e5',
     '--secondary': '#10b981',
     '--secondary-dark': '#059669',
     '--accent': '#f59e0b',
@@ -202,6 +237,31 @@ const getSystemTheme = () => {
   return 'dark';
 };
 
+const applyAccentColor = (hex, currentTheme) => {
+  const shades = generateColorShades(hex);
+  if (!shades) return;
+  const rgb = hexToRgb(hex);
+  if (!rgb) return;
+  const root = document.documentElement;
+  const isDark = currentTheme === 'dark';
+
+  root.style.setProperty('--primary', shades.primary);
+  root.style.setProperty('--primary-light', shades.primaryLight);
+  root.style.setProperty('--primary-dark', shades.primaryHover);
+  root.style.setProperty('--primary-hover', shades.primaryHover);
+  root.style.setProperty('--primary-bg', isDark ? shades.primaryBg : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
+  root.style.setProperty('--primary-bg-subtle', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.08 : 0.05})`);
+  root.style.setProperty('--primary-bg-strong', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.2 : 0.15})`);
+  root.style.setProperty('--primary-border', isDark ? shades.primaryBorder : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`);
+  root.style.setProperty('--primary-border-subtle', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.2 : 0.15})`);
+  root.style.setProperty('--ring', hex);
+  root.style.setProperty('--selection-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.3 : 0.2})`);
+  root.style.setProperty('--gradient-bg1', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.1 : 0.06})`);
+  root.style.setProperty('--btn-gradient', `linear-gradient(135deg, ${hex}, #10b981)`);
+  root.style.setProperty('--btn-gradient-primary', `linear-gradient(135deg, ${hex}, ${shades.primaryHover})`);
+  root.style.setProperty('--btn-gradient-purple', `linear-gradient(135deg, ${hex}, #8b5cf6)`);
+};
+
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
@@ -210,6 +270,11 @@ export const ThemeProvider = ({ children }) => {
   });
   const [themeMode, setThemeMode] = useState(() => {
     return localStorage.getItem('theme') || 'dark';
+  });
+  const [accentColor, setAccentColorState] = useState(() => {
+    const saved = localStorage.getItem('accent_color');
+    if (saved && /^#[0-9a-fA-F]{6}$/.test(saved)) return saved;
+    return '#6366f1';
   });
 
   useEffect(() => {
@@ -220,6 +285,10 @@ export const ThemeProvider = ({ children }) => {
     }
     root.setAttribute('data-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    applyAccentColor(accentColor, theme);
+  }, [accentColor, theme]);
 
   useEffect(() => {
     if (themeMode !== 'system') return;
@@ -244,11 +313,17 @@ export const ThemeProvider = ({ children }) => {
     });
   };
 
+  const setAccentColor = (color) => {
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) return;
+    setAccentColorState(color);
+    localStorage.setItem('accent_color', color);
+  };
+
   const themeIcon = themeMode === 'dark' ? '☀️' : themeMode === 'light' ? '🌙' : '💻';
-  const themeTitle = themeMode === 'dark' ? '切换亮色' : themeMode === 'light' ? '跟随系统' : '切换暗色';
+  const themeTitle = themeMode === 'dark' ? 'Switch to light' : themeMode === 'light' ? 'Follow system' : 'Switch to dark';
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, themeMode, themeIcon, themeTitle }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, themeMode, themeIcon, themeTitle, accentColor, setAccentColor, presetColors: PRESET_COLORS }}>
       {children}
     </ThemeContext.Provider>
   );

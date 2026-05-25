@@ -5,7 +5,7 @@ import ConfirmModal from './ConfirmModal';
 import { useI18n } from '../contexts/I18nContext';
 
 const UserDevices = ({ user }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -119,7 +119,7 @@ const UserDevices = ({ user }) => {
   const formatTime = (dateStr) => {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
-    return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
 
   const activeCount = sessions.filter(s => s.isActive).length;

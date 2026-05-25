@@ -1,136 +1,79 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useI18n } from '../contexts/I18nContext';
+import translationCache, { setCache } from '../utils/translationCache';
 
-const translationCache = {};
-const pendingMap = new Map();
-const failureCooldown = new Map();
-let batchTimer = null;
-const batchQueue = [];
-const BATCH_DELAY = 200;
-const BATCH_MAX = 20;
-const MAX_CONCURRENT_BATCHES = 2;
-const FAILURE_COOLDOWN_MS = 60000;
-let activeBatchCount = 0;
-let updateTimer = null;
-const pendingUpdates = new Set();
+const MAX_CONCURRENT = 6;
+const REQUEST_TIMEOUT = 15000;
+let activeRequests = 0;
+const requestQueue = [];
+const inFlightRequests = new Map();
 
-const isValidTranslation = (text) => {
-  if (!text || typeof text !== 'string') return false;
-  const upper = text.toUpperCase();
-  return !upper.includes('MYMEMORY') && !upper.includes('USAGE LIMITS') && !upper.includes('VISIT HTTPS');
-};
-
-Object.keys(translationCache).forEach(key => {
-  if (!isValidTranslation(translationCache[key])) {
-    delete translationCache[key];
-  }
-});
-
-const scheduleUpdate = (callback) => {
-  pendingUpdates.add(callback);
-  if (!updateTimer) {
-    updateTimer = setTimeout(() => {
-      const updates = [...pendingUpdates];
-      pendingUpdates.clear();
-      updateTimer = null;
-      updates.forEach(cb => cb());
-    }, 100);
-  }
-};
-
-const flushBatch = (lang) => {
-  if (batchQueue.length === 0) return;
-  if (activeBatchCount >= MAX_CONCURRENT_BATCHES) {
-    batchTimer = setTimeout(() => flushBatch(lang), BATCH_DELAY);
-    return;
-  }
-
-  const items = batchQueue.splice(0, BATCH_MAX);
-  const texts = items.map(i => i.text);
-  activeBatchCount++;
-
-  axios.post('/api/translate/batch', { texts, targetLang: lang }, {
-    timeout: 10000,
-    skipRedirect: true,
-  })
-    .then(res => {
-      activeBatchCount = Math.max(0, activeBatchCount - 1);
-      if (res.data?.translations) {
-        res.data.translations.forEach((translated, i) => {
-          const cacheKey = items[i].cacheKey;
-          if (translated && translated !== items[i].text && isValidTranslation(translated)) {
-            translationCache[cacheKey] = translated;
-          } else if (translated && !isValidTranslation(translated)) {
-            translated = null;
-          }
-          pendingMap.delete(cacheKey);
-          items[i].resolve(translated);
-        });
-      } else {
-        items.forEach(item => {
-          pendingMap.delete(item.cacheKey);
-          item.resolve(null);
-        });
-      }
-    })
-    .catch((err) => {
-      activeBatchCount = Math.max(0, activeBatchCount - 1);
-      const isRateLimit = err.response?.status === 429;
-      const cooldownMs = isRateLimit ? 120000 : FAILURE_COOLDOWN_MS;
-      items.forEach(item => {
-        failureCooldown.set(item.cacheKey, Date.now() + cooldownMs);
-        pendingMap.delete(item.cacheKey);
-        item.resolve(null);
+const processQueue = () => {
+  while (activeRequests < MAX_CONCURRENT && requestQueue.length > 0) {
+    const { text, lang, resolve, cacheKey, promise } = requestQueue.shift();
+    activeRequests++;
+    inFlightRequests.set(cacheKey, { resolve, promise });
+    axios.post('/api/translate', { key: text, targetLang: lang }, { timeout: REQUEST_TIMEOUT, skipRedirect: true })
+      .then(res => {
+        activeRequests--;
+        inFlightRequests.delete(cacheKey);
+        if (res.data?.translation) {
+          setCache(cacheKey, res.data.translation);
+        }
+        resolve(res.data?.translation || null);
+        processQueue();
+      })
+      .catch(() => {
+        activeRequests--;
+        inFlightRequests.delete(cacheKey);
+        resolve(null);
+        processQueue();
       });
-    });
-
-  if (batchQueue.length > 0) {
-    batchTimer = setTimeout(() => flushBatch(lang), BATCH_DELAY);
-  } else {
-    batchTimer = null;
   }
 };
 
-const queueTranslation = (text, lang) => {
+const requestTranslation = (text, lang) => {
   const cacheKey = `${lang}:${text}`;
   if (translationCache[cacheKey]) return Promise.resolve(translationCache[cacheKey]);
-  if (pendingMap.has(cacheKey)) return pendingMap.get(cacheKey);
 
-  const cooldown = failureCooldown.get(cacheKey);
-  if (cooldown && Date.now() < cooldown) {
-    return Promise.resolve(null);
-  }
-  if (cooldown) {
-    failureCooldown.delete(cacheKey);
-  }
+  if (inFlightRequests.has(cacheKey)) return inFlightRequests.get(cacheKey).promise;
 
+  const existing = requestQueue.find(item => item.cacheKey === cacheKey);
+  if (existing) return existing.promise;
+
+  let resolvePromise;
   const promise = new Promise((resolve) => {
-    batchQueue.push({ text, cacheKey, resolve });
+    resolvePromise = resolve;
   });
-  pendingMap.set(cacheKey, promise);
-
-  if (!batchTimer) {
-    batchTimer = setTimeout(() => flushBatch(lang), BATCH_DELAY);
-  }
-
+  requestQueue.push({ text, lang, resolve: resolvePromise, cacheKey, promise });
+  processQueue();
   return promise;
 };
 
 const useTranslation = () => {
   const { lang } = useI18n();
-  const [translationVersion, setTranslationVersion] = useState(0);
+  const pendingRef = useRef({});
+  const [tick, setTick] = useState(0);
   const mountedRef = useRef(true);
-  const translationsRef = useRef({});
+  const pendingScheduleRef = useRef(null);
 
   useEffect(() => {
     return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {
-    translationsRef.current = {};
-    setTranslationVersion(v => v + 1);
+    pendingRef.current = {};
+    setTick(t => t + 1);
   }, [lang]);
+
+  const scheduleTick = useCallback(() => {
+    if (pendingScheduleRef.current) return;
+    pendingScheduleRef.current = setTimeout(() => {
+      pendingScheduleRef.current = null;
+      if (mountedRef.current) setTick(t => t + 1);
+    }, 0);
+  }, []);
 
   const getLocalizedField = useCallback((item, field) => {
     if (!item) return '';
@@ -143,37 +86,19 @@ const useTranslation = () => {
 
     const cacheKey = `${lang}:${originalText}`;
     if (translationCache[cacheKey]) return translationCache[cacheKey];
+    if (pendingRef.current[cacheKey]) return originalText;
 
-    const refKey = `${item._id || ''}:${field}:${lang}:${originalText}`;
-    if (translationsRef.current[refKey] !== undefined) return translationsRef.current[refKey];
-
-    const cooldown = failureCooldown.get(cacheKey);
-    if (cooldown && Date.now() < cooldown) {
-      return originalText;
-    }
-
-    if (!pendingMap.has(cacheKey)) {
-      queueTranslation(originalText, lang).then(result => {
-        if (result && mountedRef.current) {
-          translationsRef.current[refKey] = result;
-          scheduleUpdate(() => {
-            if (mountedRef.current) setTranslationVersion(v => v + 1);
-          });
-        }
-      });
-    } else {
-      pendingMap.get(cacheKey).then(result => {
-        if (result && mountedRef.current) {
-          translationsRef.current[refKey] = result;
-          scheduleUpdate(() => {
-            if (mountedRef.current) setTranslationVersion(v => v + 1);
-          });
-        }
-      });
-    }
+    const currentLang = lang;
+    pendingRef.current[cacheKey] = true;
+    requestTranslation(originalText, currentLang).then(() => {
+      if (mountedRef.current) {
+        delete pendingRef.current[cacheKey];
+        scheduleTick();
+      }
+    });
 
     return originalText;
-  }, [lang, translationVersion]);
+  }, [lang, tick, scheduleTick]);
 
   const getLocalizedTitle = useCallback((item) => getLocalizedField(item, 'title'), [getLocalizedField]);
   const getLocalizedDescription = useCallback((item) => getLocalizedField(item, 'description'), [getLocalizedField]);
@@ -193,42 +118,24 @@ const useTranslation = () => {
       const originalText = parsed[field] || '';
       if (!originalText) return '';
 
-      const cacheKey = `${lang}:siteContent:${field}:${originalText}`;
+      const cacheKey = `${lang}:${originalText}`;
       if (translationCache[cacheKey]) return translationCache[cacheKey];
+      if (pendingRef.current[cacheKey]) return originalText;
 
-      const refKey = `siteContent:${field}:${lang}:${originalText}`;
-      if (translationsRef.current[refKey] !== undefined) return translationsRef.current[refKey];
-
-      const cooldown = failureCooldown.get(cacheKey);
-      if (cooldown && Date.now() < cooldown) {
-        return originalText;
-      }
-
-      if (!pendingMap.has(cacheKey)) {
-        queueTranslation(originalText, lang).then(result => {
-          if (result && mountedRef.current) {
-            translationsRef.current[refKey] = result;
-            scheduleUpdate(() => {
-              if (mountedRef.current) setTranslationVersion(v => v + 1);
-            });
-          }
-        });
-      } else {
-        pendingMap.get(cacheKey).then(result => {
-          if (result && mountedRef.current) {
-            translationsRef.current[refKey] = result;
-            scheduleUpdate(() => {
-              if (mountedRef.current) setTranslationVersion(v => v + 1);
-            });
-          }
-        });
-      }
+      const currentLang = lang;
+      pendingRef.current[cacheKey] = true;
+      requestTranslation(originalText, currentLang).then(() => {
+        if (mountedRef.current) {
+          delete pendingRef.current[cacheKey];
+          scheduleTick();
+        }
+      });
 
       return originalText;
     } catch {
       return '';
     }
-  }, [lang, translationVersion]);
+  }, [lang, tick, scheduleTick]);
 
   const translateText = useCallback(async (text, targetLang) => {
     if (!text) return text;
@@ -237,11 +144,42 @@ const useTranslation = () => {
     const cacheKey = `${tLang}:${text}`;
     if (translationCache[cacheKey]) return translationCache[cacheKey];
     try {
-      const result = await queueTranslation(text, tLang);
+      const result = await requestTranslation(text, tLang);
       return result || text;
     } catch {
       return text;
     }
+  }, [lang]);
+
+  const translateBatch = useCallback(async (texts, targetLang) => {
+    if (!texts || texts.length === 0) return texts;
+    const tLang = targetLang || lang;
+    if (tLang === 'zh') return texts;
+    const uncached = [];
+    const uncachedIndices = [];
+    const results = [...texts];
+    texts.forEach((text, i) => {
+      const cacheKey = `${tLang}:${text}`;
+      if (translationCache[cacheKey]) {
+        results[i] = translationCache[cacheKey];
+      } else {
+        uncached.push(text);
+        uncachedIndices.push(i);
+      }
+    });
+    if (uncached.length === 0) return results;
+    try {
+      const res = await axios.post('/api/translate/batch', { texts: uncached, targetLang: tLang }, { timeout: 30000, skipRedirect: true });
+      if (res.data?.translations) {
+        res.data.translations.forEach((translated, i) => {
+          const originalIndex = uncachedIndices[i];
+          results[originalIndex] = translated;
+          const cacheKey = `${tLang}:${uncached[i]}`;
+          setCache(cacheKey, translated);
+        });
+      }
+    } catch {}
+    return results;
   }, [lang]);
 
   return {
@@ -252,9 +190,10 @@ const useTranslation = () => {
     getLocalizedSubtitle,
     getLocalizedContent,
     translateText,
+    translateBatch,
     lang,
   };
 };
 
-export { translationCache, pendingMap, failureCooldown, queueTranslation };
 export default useTranslation;
+export { requestTranslation };

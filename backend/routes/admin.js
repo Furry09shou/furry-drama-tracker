@@ -3,7 +3,9 @@ const router = express.Router();
 const Admin = require('../models/Admin');
 const AdminSession = require('../models/AdminSession');
 const User = require('../models/User');
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const { superAdminProtect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
@@ -27,9 +29,26 @@ router.get('/pending-counts', adminProtect, async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-  const { username, password, screenWidth, screenHeight, language } = req.body;
+  const { username, password, screenWidth, screenHeight, language, captchaId, captchaAnswer } = req.body;
 
   try {
+    if (!global._captchaStore || !captchaId || !captchaAnswer) {
+      return res.status(400).json({ message: '请输入验证码' });
+    }
+    const stored = global._captchaStore.get(captchaId);
+    if (!stored) {
+      return res.status(400).json({ message: '验证码无效或已过期' });
+    }
+    if (stored.expires < Date.now()) {
+      global._captchaStore.delete(captchaId);
+      return res.status(400).json({ message: '验证码已过期' });
+    }
+    if (String(stored.answer) !== String(captchaAnswer).trim().toLowerCase()) {
+      global._captchaStore.delete(captchaId);
+      return res.status(400).json({ message: '验证码错误' });
+    }
+    global._captchaStore.delete(captchaId);
+
     const admin = await Admin.findOne({ username });
     if (!admin) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -163,10 +182,11 @@ router.get('/users', adminProtect, async (req, res) => {
     const limitNum = parseInt(limit);
     const query = {};
     if (search) {
+      const escapedSearch = escapeRegex(search);
       query.$or = [
-        { accountId: { $regex: search, $options: 'i' } },
-        { username: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
+        { accountId: { $regex: escapedSearch, $options: 'i' } },
+        { username: { $regex: escapedSearch, $options: 'i' } },
+        { email: { $regex: escapedSearch, $options: 'i' } }
       ];
     }
     const total = await User.countDocuments(query);
@@ -206,18 +226,20 @@ router.delete('/users/:id', superAdminProtect, async (req, res) => {
     await UserSession.deleteMany({ userId: req.params.id });
     const userRatings = await Rating.find({ userId: req.params.id });
     await Rating.deleteMany({ userId: req.params.id });
-    for (const r of userRatings) {
+    const affectedEpisodeIds = [...new Set(userRatings.map(r => r.episodeId.toString()))];
+    const Episode = require('../models/Episode');
+    for (const epId of affectedEpisodeIds) {
       const stats = await Rating.aggregate([
-        { $match: { episodeId: r.episodeId } },
+        { $match: { episodeId: mongoose.Types.ObjectId(epId) } },
         { $group: { _id: '$episodeId', avg: { $avg: '$score' }, count: { $sum: 1 } } }
       ]);
       if (stats.length > 0) {
-        await require('../models/Episode').findByIdAndUpdate(r.episodeId, {
+        await Episode.findByIdAndUpdate(epId, {
           averageRating: Math.round(stats[0].avg * 10) / 10,
           ratingCount: stats[0].count
         });
       } else {
-        await require('../models/Episode').findByIdAndUpdate(r.episodeId, {
+        await Episode.findByIdAndUpdate(epId, {
           averageRating: 0,
           ratingCount: 0
         });

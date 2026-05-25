@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminReports = () => {
+  const { locale, t } = useI18n();
   const [reports, setReports] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -52,13 +54,16 @@ const AdminReports = () => {
   };
 
   const reasonLabels = {
-    inappropriate: '不当内容', copyright: '版权侵权',
-    spam: '垃圾信息', misleading: '误导信息', other: '其他'
+    inappropriate: t('adminReports.reasonInappropriate'),
+    copyright: t('adminReports.reasonCopyright'),
+    spam: t('adminReports.reasonSpam'),
+    misleading: t('adminReports.reasonMisleading'),
+    other: t('adminReports.reasonOther')
   };
   const statusLabels = {
-    pending: { text: '待处理', color: 'var(--warning-text)' },
-    resolved: { text: '已处理', color: 'var(--secondary)' },
-    dismissed: { text: '已驳回', color: 'var(--text-tertiary)' }
+    pending: { text: t('adminReports.statusPending'), color: 'var(--warning-text)' },
+    resolved: { text: t('adminReports.statusResolved'), color: 'var(--secondary)' },
+    dismissed: { text: t('adminReports.statusDismissed'), color: 'var(--text-tertiary)' }
   };
 
   const totalPages = Math.ceil(total / 10);
@@ -66,7 +71,7 @@ const AdminReports = () => {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <h2 style={{ margin: 0 }}>🚨 举报管理</h2>
+        <h2 style={{ margin: 0 }}>{t('adminReports.title')}</h2>
       </div>
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
@@ -74,16 +79,16 @@ const AdminReports = () => {
           <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
             className={statusFilter === s ? 'btn' : 'btn btn-secondary'}
             style={{ fontSize: '14px' }}>
-            {s === '' ? '全部' : statusLabels[s].text}
+            {s === '' ? t('adminReports.all') : statusLabels[s].text}
             {s === 'pending' && ` (${total})`}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>加载中...</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>{t('adminReports.loading')}</div>
       ) : reports.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>暂无举报</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>{t('adminReports.noReports')}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {reports.map(r => (
@@ -104,11 +109,11 @@ const AdminReports = () => {
                       background: 'var(--primary-bg)', color: 'var(--primary)', fontWeight: 600
                     }}>{reasonLabels[r.reason]}</span>
                     <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                      {r.targetType === 'episode' ? '剧集' : '创作者'}
+                      {r.targetType === 'episode' ? t('adminReports.episode') : t('adminReports.creator')}
                     </span>
                   </div>
                   <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                    举报人：{r.reporterId?.username || '未知'}
+                    {t('adminReports.reporter')}{r.reporterId?.username || t('adminReports.unknown')}
                     {r.reporterId?.email && ` (${r.reporterId.email})`}
                   </div>
                   {r.description && (
@@ -117,13 +122,13 @@ const AdminReports = () => {
                     </div>
                   )}
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
-                    {new Date(r.createdAt).toLocaleString('zh-CN')}
+                    {new Date(r.createdAt).toLocaleString(locale)}
                   </div>
                 </div>
                 {r.status === 'pending' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                     <input value={resolveNote} onChange={e => setResolveNote(e.target.value)}
-                      placeholder="处理备注" style={{
+                      placeholder={t('adminReports.resolveNotePlaceholder')} style={{
                         padding: '8px 12px', borderRadius: '6px', fontSize: '13px',
                         background: 'var(--hover-bg-strong)', border: '1px solid var(--border)',
                         color: 'var(--foreground)', width: '100%'
@@ -131,11 +136,11 @@ const AdminReports = () => {
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => handleResolve(r._id, 'resolved')}
                         className="btn" style={{ fontSize: '13px', padding: '6px 12px', background: 'var(--secondary)' }}>
-                        处理
+                        {t('adminReports.resolve')}
                       </button>
                       <button onClick={() => handleResolve(r._id, 'dismissed')}
                         className="btn btn-secondary" style={{ fontSize: '13px', padding: '6px 12px' }}>
-                        驳回
+                        {t('adminReports.dismiss')}
                       </button>
                     </div>
                   </div>
@@ -149,12 +154,12 @@ const AdminReports = () => {
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="btn btn-secondary" style={{ fontSize: '13px' }}>上一页</button>
+            className="btn btn-secondary" style={{ fontSize: '13px' }}>{t('adminReports.prevPage')}</button>
           <span style={{ color: 'var(--text-secondary)', lineHeight: '36px', fontSize: '14px' }}>
             {page} / {totalPages}
           </span>
           <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-            className="btn btn-secondary" style={{ fontSize: '13px' }}>下一页</button>
+            className="btn btn-secondary" style={{ fontSize: '13px' }}>{t('adminReports.nextPage')}</button>
         </div>
       )}
     </div>

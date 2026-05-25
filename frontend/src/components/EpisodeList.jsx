@@ -1,12 +1,14 @@
 import React from 'react';
 import useTranslation from '../hooks/useTranslation';
+import { useI18n } from '../contexts/I18nContext';
 
 const EpisodeList = ({ episodes, onEdit, onDelete }) => {
-  const { getLocalizedTitle } = useTranslation();
+  const { getLocalizedTitle, getLocalizedDescription } = useTranslation();
+  const { t } = useI18n();
   if (episodes.length === 0) {
     return (
       <div className="empty-state">
-        <p>暂无剧集，点击上方按钮添加新剧集</p>
+        <p>{t('episodeList.noEpisodes')}</p>
       </div>
     );
   }
@@ -32,11 +34,11 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
           <div className="episode-info">
             <h3>{getLocalizedTitle(episode)}</h3>
             <p className="episode-description" style={{ maxHeight: '40px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {episode.description}
+              {getLocalizedDescription(episode)}
             </p>
             <div className="episode-meta" style={{ display: 'flex', gap: '15px', margin: '10px 0' }}>
-              <span>总集数: {episode.totalEpisodes}</span>
-              <span>当前: {episode.currentEpisodes}</span>
+              <span>{t('episodeList.totalEpisodes')}: {episode.totalEpisodes}</span>
+              <span>{t('episodeList.currentEpisodes')}: {episode.currentEpisodes}</span>
               <span style={{ 
                 padding: '2px 8px', 
                 borderRadius: '10px', 
@@ -48,8 +50,8 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
                        episode.status === 'completed' ? 'var(--info)' : 
                        'var(--warning-text)'
               }}>
-                {episode.status === 'ongoing' ? '连载中' : 
-                 episode.status === 'completed' ? '已完结' : '即将上映'}
+                {episode.status === 'ongoing' ? t('home.statusOngoing') : 
+                 episode.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}
               </span>
             </div>
             {episode.category && episode.category.length > 0 && (
@@ -81,7 +83,7 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
               }}
               onClick={() => onEdit(episode)}
             >
-              编辑
+              {t('common.edit')}
             </button>
             <button 
               style={{
@@ -95,7 +97,7 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
               }}
               onClick={() => onDelete(episode._id)}
             >
-              删除
+              {t('common.delete')}
             </button>
           </div>
         </div>

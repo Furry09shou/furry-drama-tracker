@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Episode = require('../models/Episode');
 const SingleEpisode = require('../models/SingleEpisode');
+const cleanupUser = require('../utils/userCleanup');
 
 const checkExpiredAccountDeletion = async () => {
   try {
@@ -9,19 +10,7 @@ const checkExpiredAccountDeletion = async () => {
       deletionRequestedAt: { $ne: null, $lte: sevenDaysAgo }
     });
     for (const user of usersToDelete) {
-      const Follow = require('../models/Follow');
-      const History = require('../models/History');
-      const Notification = require('../models/Notification');
-      const Favorite = require('../models/Favorite');
-      const Rating = require('../models/Rating');
-      const UserSession = require('../models/UserSession');
-      await Follow.deleteMany({ userId: user._id });
-      await History.deleteMany({ userId: user._id });
-      await Notification.deleteMany({ userId: user._id });
-      await Favorite.deleteMany({ userId: user._id });
-      await Rating.deleteMany({ userId: user._id });
-      await UserSession.deleteMany({ userId: user._id });
-      await User.findByIdAndDelete(user._id);
+      await cleanupUser(user._id);
       console.log(`[Cron] Deleted expired user: ${user._id}`);
     }
   } catch (error) {

@@ -10,6 +10,11 @@ const FavoriteSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Episode',
     required: true
+  },
+  folderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Folder',
+    default: null
   }
 }, { timestamps: true });
 

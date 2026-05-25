@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminCategories = () => {
   const [admin, setAdmin] = useState(null);
@@ -10,11 +11,11 @@ const AdminCategories = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryNameEn, setNewCategoryNameEn] = useState('');
-  const [newCategoryNameJa, setNewCategoryNameJa] = useState('');
   const [newCategoryOrder, setNewCategoryOrder] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -43,7 +44,7 @@ const AdminCategories = () => {
     e.preventDefault();
     setError('');
     if (!newCategoryName.trim()) {
-      setError('分类名称不能为空');
+      setError(t('adminCategories.nameRequired'));
       return;
     }
     try {
@@ -51,20 +52,18 @@ const AdminCategories = () => {
       await axios.post('/api/categories', {
         name: newCategoryName.trim(),
         nameEn: newCategoryNameEn.trim(),
-        nameJa: newCategoryNameJa.trim(),
         order: newCategoryOrder
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNewCategoryName('');
       setNewCategoryNameEn('');
-      setNewCategoryNameJa('');
       setNewCategoryOrder(0);
       setShowAddForm(false);
-      setSuccess('分类添加成功');
+      setSuccess(t('adminCategories.addSuccess'));
       fetchCategories();
     } catch (err) {
-      setError(err.response?.data?.message || '添加失败');
+      setError(err.response?.data?.message || t('adminCategories.addFailed'));
     }
   };
 
@@ -72,7 +71,7 @@ const AdminCategories = () => {
     e.preventDefault();
     setError('');
     if (!newCategoryName.trim()) {
-      setError('分类名称不能为空');
+      setError(t('adminCategories.nameRequired'));
       return;
     }
     try {
@@ -80,7 +79,6 @@ const AdminCategories = () => {
       await axios.put(`/api/categories/${editingCategory._id}`, {
         name: newCategoryName.trim(),
         nameEn: newCategoryNameEn.trim(),
-        nameJa: newCategoryNameJa.trim(),
         order: newCategoryOrder
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -88,26 +86,25 @@ const AdminCategories = () => {
       setEditingCategory(null);
       setNewCategoryName('');
       setNewCategoryNameEn('');
-      setNewCategoryNameJa('');
       setNewCategoryOrder(0);
-      setSuccess('分类修改成功');
+      setSuccess(t('adminCategories.editSuccess'));
       fetchCategories();
     } catch (err) {
-      setError(err.response?.data?.message || '修改失败');
+      setError(err.response?.data?.message || t('adminCategories.editFailed'));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('确定要删除该分类吗？')) return;
+    if (!window.confirm(t('adminCategories.deleteConfirm'))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.delete(`/api/categories/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('分类已删除');
+      setSuccess(t('adminCategories.deleteSuccess'));
       fetchCategories();
     } catch (err) {
-      setError(err.response?.data?.message || '删除失败');
+      setError(err.response?.data?.message || t('adminCategories.deleteFailed'));
     }
   };
 
@@ -115,7 +112,6 @@ const AdminCategories = () => {
     setEditingCategory(cat);
     setNewCategoryName(cat.name);
     setNewCategoryNameEn(cat.nameEn || '');
-    setNewCategoryNameJa(cat.nameJa || '');
     setNewCategoryOrder(cat.order || 0);
   };
 
@@ -125,23 +121,22 @@ const AdminCategories = () => {
     <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setShowAddForm(false); }}>
       <div className="modal-content" style={{maxWidth: '520px'}}>
         <div className="modal-header">
-          <h3>添加分类</h3>
-          <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>关闭</button>
+          <h3>{t('adminCategories.addCategory')}</h3>
+          <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('adminCategories.close')}</button>
         </div>
         <form onSubmit={handleAdd}>
           <div className="form-group">
-            <label>分类名称</label>
+            <label>{t('adminCategories.categoryName')}</label>
             <input
               type="text"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="输入分类名称"
+              placeholder={t('adminCategories.categoryNamePlaceholder')}
               required
             />
           </div>
-          <div style={{display: 'flex', gap: '12px'}}>
-            <div className="form-group" style={{flex: 1}}>
-              <label>英文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+          <div className="form-group">
+              <label>{t('adminCategories.nameEn')} <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>{t('adminCategories.optionalAutoTranslate')}</span></label>
               <input
                 type="text"
                 value={newCategoryNameEn}
@@ -149,18 +144,8 @@ const AdminCategories = () => {
                 placeholder="English name (optional)"
               />
             </div>
-            <div className="form-group" style={{flex: 1}}>
-              <label>日文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
-              <input
-                type="text"
-                value={newCategoryNameJa}
-                onChange={(e) => setNewCategoryNameJa(e.target.value)}
-                placeholder="日本語名 (任意)"
-              />
-            </div>
-          </div>
           <div className="form-group">
-            <label>排序（数字越小越靠前）</label>
+            <label>{t('adminCategories.orderLabel')}</label>
             <input
               type="number"
               value={newCategoryOrder}
@@ -170,7 +155,7 @@ const AdminCategories = () => {
           </div>
           {error && <div className="error-message">{error}</div>}
           <div className="form-group">
-            <button type="submit">添加</button>
+            <button type="submit">{t('adminCategories.add')}</button>
           </div>
         </form>
       </div>
@@ -181,23 +166,22 @@ const AdminCategories = () => {
     <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setEditingCategory(null); }}>
       <div className="modal-content" style={{maxWidth: '520px'}}>
         <div className="modal-header">
-          <h3>编辑分类</h3>
-          <button className="btn btn-secondary" onClick={() => setEditingCategory(null)}>关闭</button>
+          <h3>{t('adminCategories.editCategory')}</h3>
+          <button className="btn btn-secondary" onClick={() => setEditingCategory(null)}>{t('adminCategories.close')}</button>
         </div>
         <form onSubmit={handleEdit}>
           <div className="form-group">
-            <label>分类名称</label>
+            <label>{t('adminCategories.categoryName')}</label>
             <input
               type="text"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="输入分类名称"
+              placeholder={t('adminCategories.categoryNamePlaceholder')}
               required
             />
           </div>
-          <div style={{display: 'flex', gap: '12px'}}>
-            <div className="form-group" style={{flex: 1}}>
-              <label>英文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
+          <div className="form-group">
+              <label>{t('adminCategories.nameEn')} <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>{t('adminCategories.optionalAutoTranslate')}</span></label>
               <input
                 type="text"
                 value={newCategoryNameEn}
@@ -205,18 +189,8 @@ const AdminCategories = () => {
                 placeholder="English name (optional)"
               />
             </div>
-            <div className="form-group" style={{flex: 1}}>
-              <label>日文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
-              <input
-                type="text"
-                value={newCategoryNameJa}
-                onChange={(e) => setNewCategoryNameJa(e.target.value)}
-                placeholder="日本語名 (任意)"
-              />
-            </div>
-          </div>
           <div className="form-group">
-            <label>排序（数字越小越靠前）</label>
+            <label>{t('adminCategories.orderLabel')}</label>
             <input
               type="number"
               value={newCategoryOrder}
@@ -226,7 +200,7 @@ const AdminCategories = () => {
           </div>
           {error && <div className="error-message">{error}</div>}
           <div className="form-group">
-            <button type="submit">保存</button>
+            <button type="submit">{t('adminCategories.save')}</button>
           </div>
         </form>
       </div>
@@ -237,10 +211,10 @@ const AdminCategories = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <h2>分类管理</h2>
+          <h2>{t('adminCategories.title')}</h2>
         </div>
-        <button className="btn" onClick={() => { setShowAddForm(true); setNewCategoryName(''); setNewCategoryNameEn(''); setNewCategoryNameJa(''); setNewCategoryOrder(0); setError(''); }}>
-          添加分类
+        <button className="btn" onClick={() => { setShowAddForm(true); setNewCategoryName(''); setNewCategoryNameEn(''); setNewCategoryOrder(0); setError(''); }}>
+          {t('adminCategories.addCategoryBtn')}
         </button>
       </div>
 
@@ -249,23 +223,22 @@ const AdminCategories = () => {
 
       <div style={{background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
         <div style={{padding: '15px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <h3 style={{margin: 0}}>分类列表</h3>
-          <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>共 {categories.length} 个分类</span>
+          <h3 style={{margin: 0}}>{t('adminCategories.categoryList')}</h3>
+          <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>{t('adminCategories.categoryCount', { count: categories.length })}</span>
         </div>
         {categories.length === 0 ? (
           <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-secondary)'}}>
-            暂无分类，请添加
+            {t('adminCategories.noCategories')}
           </div>
         ) : (
           <div style={{overflowX: 'auto'}}>
             <table style={{width: '100%', borderCollapse: 'collapse'}}>
               <thead>
                 <tr style={{borderBottom: '1px solid var(--border)'}}>
-                  <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>分类名称</th>
-                  <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>英文名称</th>
-                  <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>日文名称</th>
-                  <th style={{padding: '12px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>排序</th>
-                  <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>操作</th>
+                  <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminCategories.categoryNameCol')}</th>
+                  <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminCategories.nameEnCol')}</th>
+                  <th style={{padding: '12px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminCategories.orderCol')}</th>
+                  <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminCategories.actionsCol')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -285,9 +258,6 @@ const AdminCategories = () => {
                     <td style={{padding: '12px 20px', color: cat.nameEn ? 'var(--foreground)' : 'var(--text-tertiary)', fontSize: '14px'}}>
                       {cat.nameEn || '—'}
                     </td>
-                    <td style={{padding: '12px 20px', color: cat.nameJa ? 'var(--foreground)' : 'var(--text-tertiary)', fontSize: '14px'}}>
-                      {cat.nameJa || '—'}
-                    </td>
                     <td style={{padding: '12px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px'}}>
                       {cat.order || 0}
                     </td>
@@ -298,14 +268,14 @@ const AdminCategories = () => {
                           style={{padding: '6px 14px', fontSize: '13px'}}
                           onClick={() => { setError(''); openEdit(cat); }}
                         >
-                          编辑
+                          {t('adminCategories.edit')}
                         </button>
                         <button
                           className="btn btn-secondary"
                           style={{padding: '6px 14px', fontSize: '13px', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}}
                           onClick={() => handleDelete(cat._id)}
                         >
-                          删除
+                          {t('adminCategories.delete')}
                         </button>
                       </div>
                     </td>

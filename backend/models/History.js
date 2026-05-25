@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 
 const HistorySchema = new mongoose.Schema({
   userId: {
@@ -14,6 +14,10 @@ const HistorySchema = new mongoose.Schema({
   watchedEpisodes: {
     type: [Number],
     default: []
+  },
+  lastWatchedEpisodeNumber: {
+    type: Number,
+    default: null
   },
   lastWatched: {
     type: Date,

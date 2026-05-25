@@ -6,7 +6,7 @@ import useTranslation from '../hooks/useTranslation';
 import TwoFactorAuth from './TwoFactorAuth';
 
 const Profile = ({ user, setUser, logout }) => {
-  const { t, lang } = useI18n();
+  const { t, lang, locale } = useI18n();
   const { getLocalizedTitle } = useTranslation();
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -41,22 +41,30 @@ const Profile = ({ user, setUser, logout }) => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-      if (!token) { setLoading(false); return; }
-      const config = { headers: getAuthHeaders() };
+        if (!token) { setLoading(false); return; }
+        const config = { headers: getAuthHeaders() };
         let followData = [];
         let historyData = [];
         try {
           const followRes = await axios.get('/api/follows/list', config);
           followData = followRes.data.list || followRes.data || [];
-        } catch (e) { console.error(t('profile.fetchFollowsFailed') + ':', e.response?.data || e.message); }
+        } catch (e) {
+          if (e.response?.status === 401) { setLoading(false); return; }
+          console.error(t('profile.fetchFollowsFailed') + ':', e.response?.data || e.message);
+        }
         try {
           const historyRes = await axios.get('/api/histories/list', config);
           historyData = historyRes.data.list || historyRes.data || [];
-        } catch (e) { console.error(t('profile.fetchHistoryFailed') + ':', e.response?.data || e.message); }
+        } catch (e) {
+          if (e.response?.status === 401) { setLoading(false); return; }
+          console.error(t('profile.fetchHistoryFailed') + ':', e.response?.data || e.message);
+        }
         try {
           const favRes = await axios.get('/api/favorites/list', config);
           setFavoriteEpisodes(favRes.data.list || favRes.data || []);
-        } catch (e) {}
+        } catch (e) {
+          if (e.response?.status === 401) { setLoading(false); return; }
+        }
 
         setFollowedEpisodes(followData);
         setHistoryEpisodes(historyData);
@@ -204,7 +212,7 @@ const Profile = ({ user, setUser, logout }) => {
               </div>
               <p>{t('profile.watched')} {watchedEps.length} {t('episode.epSuffix')}</p>
               <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>
-                {t('profile.watchedEps')}{[...watchedEps].sort((a, b) => a - b).join(`${lang === 'zh' || lang === 'ja' ? '、' : ', '}`)}{t('episode.epSuffix')}
+                {t('profile.watchedEps')}{[...watchedEps].sort((a, b) => a - b).join(`${lang === 'zh' ? '、' : ', '}`)}{t('episode.epSuffix')}
               </p>
             </>
           )}
@@ -247,7 +255,7 @@ const Profile = ({ user, setUser, logout }) => {
           <p>{t('profile.watched')} {history.watchedEpisodes.length} {t('episode.epSuffix')}</p>
           {history.watchedEpisodes.length > 0 && (
             <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>
-              {t('profile.watchedEps')}{[...history.watchedEpisodes].sort((a, b) => a - b).join(`${lang === 'zh' || lang === 'ja' ? '、' : ', '}`)}{t('episode.epSuffix')}
+              {t('profile.watchedEps')}{[...history.watchedEpisodes].sort((a, b) => a - b).join(`${lang === 'zh' ? '、' : ', '}`)}{t('episode.epSuffix')}
             </p>
           )}
           <div style={{display: 'flex', gap: '8px', marginTop: '8px'}}>
@@ -299,7 +307,7 @@ const Profile = ({ user, setUser, logout }) => {
             {t('profile.deletionCountdown')} <strong style={{ color: 'var(--destructive-text)' }}>{formatCountdown(deletionStatus.deleteAt)}</strong> {t('profile.deletionCountdownAfter')}
           </p>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
-            {t('profile.estimatedDeleteTime')}{new Date(deletionStatus.deleteAt).toLocaleString('zh-CN')}
+            {t('profile.estimatedDeleteTime')}{new Date(deletionStatus.deleteAt).toLocaleString(locale)}
           </p>
           <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '16px' }}>
             {t('profile.cancelHint')}

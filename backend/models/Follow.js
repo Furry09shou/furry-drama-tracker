@@ -11,6 +11,11 @@ const FollowSchema = new mongoose.Schema({
     ref: 'Episode',
     required: true
   },
+  folderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Folder',
+    default: null
+  },
   followedAtEpisodes: {
     type: Number,
     default: 0

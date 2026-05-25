@@ -65,13 +65,13 @@ router.post('/apply', optionalProtect, async (req, res) => {
     if (!captchaVerified) {
       return res.status(400).json({ message: '验证码无效或已过期' });
     }
-    if (String(captchaVerified.answer) !== String(captchaAnswer).trim()) {
-      global._captchaStore.delete(captchaId);
-      return res.status(400).json({ message: '验证码错误' });
-    }
     if (captchaVerified.expires < Date.now()) {
       global._captchaStore.delete(captchaId);
       return res.status(400).json({ message: '验证码已过期' });
+    }
+    if (String(captchaVerified.answer) !== String(captchaAnswer).trim().toLowerCase()) {
+      global._captchaStore.delete(captchaId);
+      return res.status(400).json({ message: '验证码错误' });
     }
     global._captchaStore.delete(captchaId);
     if (!isValidUrl(url)) {

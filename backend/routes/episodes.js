@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const Episode = require('../models/Episode');
+const EpisodeVersion = require('../models/EpisodeVersion');
 const SingleEpisode = require('../models/SingleEpisode');
 const Follow = require('../models/Follow');
 const Notification = require('../models/Notification');
@@ -154,6 +155,70 @@ router.get('/', async (req, res) => {
     }
   } catch (error) {
     console.error('Get episodes error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/search-suggestions', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 1) {
+      return res.json({ titles: [], tags: [] });
+    }
+    const escapedSearch = escapeRegex(q.trim());
+    const episodes = await Episode.find({
+      $and: [
+        { $or: [{ reviewStatus: 'approved' }, { reviewStatus: { $exists: false } }] },
+        {
+          $or: [
+            { title: { $regex: escapedSearch, $options: 'i' } },
+            { titleEn: { $regex: escapedSearch, $options: 'i' } }
+          ]
+        }
+      ]
+    }).sort({ views: -1 }).limit(5).select('title titleEn');
+
+    const titles = episodes.map(ep => ({
+      title: ep.title,
+      titleEn: ep.titleEn || ''
+    }));
+
+    const tagDocs = await Episode.find({
+      $and: [
+        { $or: [{ reviewStatus: 'approved' }, { reviewStatus: { $exists: false } }] },
+        { tags: { $regex: escapedSearch, $options: 'i' } }
+      ]
+    }).limit(5).select('tags');
+
+    const matchedTags = new Set();
+    tagDocs.forEach(ep => {
+      if (ep.tags) {
+        ep.tags.forEach(tag => {
+          if (new RegExp(escapedSearch, 'i').test(tag)) {
+            matchedTags.add(tag);
+          }
+        });
+      }
+    });
+
+    res.json({ titles, tags: Array.from(matchedTags).slice(0, 5) });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/popular-tags', async (req, res) => {
+  try {
+    const result = await Episode.aggregate([
+      { $match: { $or: [{ reviewStatus: 'approved' }, { reviewStatus: { $exists: false } }] } },
+      { $unwind: '$tags' },
+      { $group: { _id: '$tags', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 20 },
+      { $project: { _id: 0, name: '$_id', count: 1 } }
+    ]);
+    res.json(result);
+  } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -434,6 +499,17 @@ router.put('/:id', creatorProtect, async (req, res) => {
     }
 
     const oldCurrentEpisodes = episode.currentEpisodes;
+
+    const lastVersion = await EpisodeVersion.findOne({ episodeId: req.params.id }).sort({ version: -1 });
+    const newVersionNum = (lastVersion ? lastVersion.version : 0) + 1;
+    await EpisodeVersion.create({
+      episodeId: req.params.id,
+      version: newVersionNum,
+      data: episode.toObject(),
+      changedBy: req.admin._id,
+      changeSummary: req.body.changeSummary || ''
+    });
+
     const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks'];
     const updateData = { updatedAt: Date.now() };
     for (const field of allowedFields) {

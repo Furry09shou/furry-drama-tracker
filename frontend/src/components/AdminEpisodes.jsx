@@ -5,8 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
 import ImageUploader from './ImageUploader';
+import { useI18n } from '../contexts/I18nContext';
+import EpisodeVersionHistory from './EpisodeVersionHistory';
 
 const AdminEpisodes = () => {
+  const { locale, t } = useI18n();
   const [admin, setAdmin] = useState(null);
   const [episodes, setEpisodes] = useState([]);
   const [filteredEpisodes, setFilteredEpisodes] = useState([]);
@@ -24,10 +27,8 @@ const AdminEpisodes = () => {
   const [newEpisode, setNewEpisode] = useState({
     title: '',
     titleEn: '',
-    titleJa: '',
     description: '',
     descriptionEn: '',
-    descriptionJa: '',
     coverImage: '',
     totalEpisodes: 0,
     status: 'ongoing',
@@ -46,6 +47,7 @@ const AdminEpisodes = () => {
     releaseDate: ''
   });
   const [error, setError] = useState('');
+  const [historyEpisodeId, setHistoryEpisodeId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -107,19 +109,19 @@ const AdminEpisodes = () => {
     e.preventDefault();
     setError('');
     if (!newEpisode.coverImage.trim()) {
-      setError('请上传或输入封面图片');
+      setError(t('adminEpisodes.coverRequired'));
       return;
     }
     if (!newEpisode.title.trim()) {
-      setError('请输入标题');
+      setError(t('adminEpisodes.titleRequired'));
       return;
     }
     if (!newEpisode.description.trim()) {
-      setError('请输入描述');
+      setError(t('adminEpisodes.descriptionRequired'));
       return;
     }
     if (newEpisode.totalEpisodes <= 0) {
-      setError('总集数必须大于0');
+      setError(t('adminEpisodes.totalEpisodesRequired'));
       return;
     }
     try {
@@ -127,10 +129,8 @@ const AdminEpisodes = () => {
       const episodeData = {
         title: newEpisode.title,
         titleEn: newEpisode.titleEn || '',
-        titleJa: newEpisode.titleJa || '',
         description: newEpisode.description,
         descriptionEn: newEpisode.descriptionEn || '',
-        descriptionJa: newEpisode.descriptionJa || '',
         coverImage: newEpisode.coverImage,
         totalEpisodes: newEpisode.totalEpisodes,
         currentEpisodes: 0,
@@ -142,11 +142,11 @@ const AdminEpisodes = () => {
           ? new Date(newEpisode.premiereDate).toISOString()
           : null
       };
-      
+
       const response = await axios.post('/api/episodes', episodeData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setShowAddForm(false);
       resetEpisodeForm();
       fetchEpisodes();
@@ -156,10 +156,8 @@ const AdminEpisodes = () => {
         setNewEpisode({
           title: response.data.title,
           titleEn: response.data.titleEn || '',
-          titleJa: response.data.titleJa || '',
           description: response.data.description,
           descriptionEn: response.data.descriptionEn || '',
-          descriptionJa: response.data.descriptionJa || '',
           coverImage: response.data.coverImage,
           totalEpisodes: response.data.totalEpisodes,
           status: response.data.status,
@@ -173,7 +171,7 @@ const AdminEpisodes = () => {
         setShowSingleEpisodeForm(true);
         setNewSingleEpisode({
           episodeNumber: 1,
-          title: '第1集',
+          title: t('adminEpisodes.episodePrefix', { num: 1 }),
           duration: '',
           platformLinksList: [],
           scheduledDate: '',
@@ -183,7 +181,7 @@ const AdminEpisodes = () => {
         });
       }
     } catch (error) {
-      setError(error.response?.data?.message || '添加剧集失败');
+      setError(error.response?.data?.message || t('adminEpisodes.addEpisodeFailed'));
     }
   };
 
@@ -192,10 +190,8 @@ const AdminEpisodes = () => {
     setNewEpisode({
       title: episode.title,
       titleEn: episode.titleEn || '',
-      titleJa: episode.titleJa || '',
       description: episode.description,
       descriptionEn: episode.descriptionEn || '',
-      descriptionJa: episode.descriptionJa || '',
       coverImage: episode.coverImage,
       totalEpisodes: episode.totalEpisodes,
       status: episode.status,
@@ -214,7 +210,7 @@ const AdminEpisodes = () => {
     e.preventDefault();
     setError('');
     if (!newEpisode.coverImage.trim()) {
-      setError('请上传或输入封面图片');
+      setError(t('adminEpisodes.coverRequired'));
       return;
     }
     try {
@@ -222,10 +218,8 @@ const AdminEpisodes = () => {
       const episodeData = {
         title: newEpisode.title,
         titleEn: newEpisode.titleEn || '',
-        titleJa: newEpisode.titleJa || '',
         description: newEpisode.description,
         descriptionEn: newEpisode.descriptionEn || '',
-        descriptionJa: newEpisode.descriptionJa || '',
         coverImage: newEpisode.coverImage,
         totalEpisodes: newEpisode.totalEpisodes,
         status: newEpisode.status,
@@ -240,16 +234,16 @@ const AdminEpisodes = () => {
       await axios.put(`/api/episodes/${editingEpisode._id}`, episodeData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       fetchEpisodes();
       setError('');
     } catch (error) {
-      setError(error.response?.data?.message || '编辑剧集失败');
+      setError(error.response?.data?.message || t('adminEpisodes.editEpisodeFailed'));
     }
   };
 
   const handleDeleteEpisode = async (id) => {
-    if (!window.confirm('确定要删除这个剧集吗？')) return;
+    if (!window.confirm(t('adminEpisodes.deleteConfirm'))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.delete(`/api/episodes/${id}`, {
@@ -257,7 +251,7 @@ const AdminEpisodes = () => {
       });
       fetchEpisodes();
     } catch (error) {
-      setError('删除失败');
+      setError(t('adminEpisodes.deleteFailed'));
     }
   };
 
@@ -287,7 +281,7 @@ const AdminEpisodes = () => {
           : null
       };
       delete submitData.platformLinksList;
-      
+
       if (editingSingleEpisode) {
         await axios.put(`/api/episodes/single/${editingSingleEpisode._id}`, submitData, {
           headers: { Authorization: `Bearer ${token}` }
@@ -297,12 +291,12 @@ const AdminEpisodes = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
-      
+
       setEditingSingleEpisode(null);
       const nextNum = singleEpisodes.length + 1;
       setNewSingleEpisode({
         episodeNumber: nextNum,
-        title: `第${nextNum}集`,
+        title: t('adminEpisodes.episodePrefix', { num: nextNum }),
         duration: '',
         platformLinksList: [],
         scheduledDate: '',
@@ -312,7 +306,7 @@ const AdminEpisodes = () => {
       fetchSingleEpisodes(episodeId);
       fetchEpisodes();
     } catch (error) {
-      setError(error.response?.data?.message || (editingSingleEpisode ? '编辑单集失败' : '添加单集失败'));
+      setError(error.response?.data?.message || (editingSingleEpisode ? t('adminEpisodes.editSingleEpisodeFailed') : t('adminEpisodes.addSingleEpisodeFailed')));
     }
   };
 
@@ -335,7 +329,7 @@ const AdminEpisodes = () => {
   };
 
   const handleDeleteSingleEpisode = async (id) => {
-    if (!window.confirm('确定要删除这个单集吗？')) return;
+    if (!window.confirm(t('adminEpisodes.deleteSingleEpisodeConfirm'))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.delete(`/api/episodes/single/${id}`, {
@@ -344,7 +338,7 @@ const AdminEpisodes = () => {
       fetchSingleEpisodes(editingEpisode._id);
       fetchEpisodes();
     } catch (error) {
-      setError('删除单集失败');
+      setError(t('adminEpisodes.deleteSingleEpisodeFailed'));
     }
   };
 
@@ -360,10 +354,8 @@ const AdminEpisodes = () => {
     setNewEpisode({
       title: '',
       titleEn: '',
-      titleJa: '',
       description: '',
       descriptionEn: '',
-      descriptionJa: '',
       coverImage: '',
       totalEpisodes: 0,
       status: 'ongoing',
@@ -414,13 +406,13 @@ const AdminEpisodes = () => {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('图片大小不能超过5MB');
+      setError(t('adminEpisodes.imageSizeExceeded'));
       return;
     }
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      setError('只支持 JPEG、PNG、GIF、WebP 格式的图片');
+      setError(t('adminEpisodes.imageFormatUnsupported'));
       return;
     }
 
@@ -438,7 +430,7 @@ const AdminEpisodes = () => {
       });
       setNewEpisode(prev => ({ ...prev, coverImage: response.data.url }));
     } catch (err) {
-      setError(err.response?.data?.message || '图片上传失败');
+      setError(err.response?.data?.message || t('adminEpisodes.imageUploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -449,7 +441,7 @@ const AdminEpisodes = () => {
   const renderEpisodeForm = (isEdit) => (
     <form onSubmit={isEdit ? handleUpdateEpisode : handleAddEpisode}>
       <div className="form-group">
-        <label>标题 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
+        <label>{t('adminEpisodes.titleLabel')} <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <input
           type="text"
           value={newEpisode.title}
@@ -457,28 +449,17 @@ const AdminEpisodes = () => {
           required
         />
       </div>
-      <div style={{display: 'flex', gap: '12px'}}>
-        <div className="form-group" style={{flex: 1}}>
-          <label>英文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
-          <input
-            type="text"
-            value={newEpisode.titleEn}
-            onChange={(e) => setNewEpisode({...newEpisode, titleEn: e.target.value})}
-            placeholder="English title (optional)"
-          />
-        </div>
-        <div className="form-group" style={{flex: 1}}>
-          <label>日文名称 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填，不填则自动翻译)</span></label>
-          <input
-            type="text"
-            value={newEpisode.titleJa}
-            onChange={(e) => setNewEpisode({...newEpisode, titleJa: e.target.value})}
-            placeholder="日本語タイトル (任意)"
-          />
-        </div>
+      <div className="form-group">
+        <label>{t('adminEpisodes.englishName')} <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>{t('adminEpisodes.englishNameHint')}</span></label>
+        <input
+          type="text"
+          value={newEpisode.titleEn}
+          onChange={(e) => setNewEpisode({...newEpisode, titleEn: e.target.value})}
+          placeholder="English title (optional)"
+        />
       </div>
       <div className="form-group">
-        <label>描述 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
+        <label>{t('adminEpisodes.descriptionLabel')} <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <textarea
           value={newEpisode.description}
           onChange={(e) => setNewEpisode({...newEpisode, description: e.target.value})}
@@ -486,28 +467,17 @@ const AdminEpisodes = () => {
           rows="3"
         />
       </div>
-      <div style={{display: 'flex', gap: '12px'}}>
-        <div className="form-group" style={{flex: 1}}>
-          <label>英文描述 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填)</span></label>
-          <textarea
-            value={newEpisode.descriptionEn}
-            onChange={(e) => setNewEpisode({...newEpisode, descriptionEn: e.target.value})}
-            rows="2"
-            placeholder="English description (optional)"
-          />
-        </div>
-        <div className="form-group" style={{flex: 1}}>
-          <label>日文描述 <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>(选填)</span></label>
-          <textarea
-            value={newEpisode.descriptionJa}
-            onChange={(e) => setNewEpisode({...newEpisode, descriptionJa: e.target.value})}
-            rows="2"
-            placeholder="日本語説明 (任意)"
-          />
-        </div>
+      <div className="form-group">
+        <label>{t('adminEpisodes.englishDescription')} <span style={{color: 'var(--text-tertiary)', fontWeight: 'normal', fontSize: '12px'}}>{t('adminEpisodes.englishDescriptionHint')}</span></label>
+        <textarea
+          value={newEpisode.descriptionEn}
+          onChange={(e) => setNewEpisode({...newEpisode, descriptionEn: e.target.value})}
+          rows="2"
+          placeholder="English description (optional)"
+        />
       </div>
       <div className="form-group">
-        <label>封面图片 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
+        <label>{t('adminEpisodes.coverImage')} <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <ImageUploader
           value={newEpisode.coverImage}
           onChange={(url) => setNewEpisode({...newEpisode, coverImage: url})}
@@ -519,7 +489,7 @@ const AdminEpisodes = () => {
         />
       </div>
       <div className="form-group">
-        <label>总集数 <span style={{color: 'var(--destructive-text)'}}>*</span></label>
+        <label>{t('adminEpisodes.totalEpisodesLabel')} <span style={{color: 'var(--destructive-text)'}}>*</span></label>
         <input
           type="number"
           value={newEpisode.totalEpisodes}
@@ -528,7 +498,7 @@ const AdminEpisodes = () => {
         />
       </div>
       <div className="form-group">
-        <label>分类（可多选）</label>
+        <label>{t('adminEpisodes.categories')}</label>
         <div className="checkbox-group">
           {availableCategories.map(category => (
             <label key={category}>
@@ -541,33 +511,33 @@ const AdminEpisodes = () => {
             </label>
           ))}
         </div>
-        <p style={{fontSize: '14px', color: 'var(--text-secondary)', marginTop: '12px'}}>已选择: {newEpisode.categories.join(', ')}</p>
+        <p style={{fontSize: '14px', color: 'var(--text-secondary)', marginTop: '12px'}}>{t('adminEpisodes.selected')} {newEpisode.categories.join(', ')}</p>
       </div>
       <div className="form-group">
-        <label>状态</label>
+        <label>{t('adminEpisodes.statusLabel')}</label>
         <CustomSelect
           options={[
-            { value: 'ongoing', label: '连载中' },
-            { value: 'completed', label: '已完结' },
-            { value: 'upcoming', label: '即将上映' }
+            { value: 'ongoing', label: t('adminEpisodes.ongoing') },
+            { value: 'completed', label: t('adminEpisodes.completed') },
+            { value: 'upcoming', label: t('adminEpisodes.upcoming') }
           ]}
           value={newEpisode.status}
           onChange={(status) => setNewEpisode({...newEpisode, status})}
-          placeholder="选择状态"
+          placeholder={t('adminEpisodes.selectStatus')}
         />
       </div>
       <div className="form-group">
-        <label>标签（逗号分隔）</label>
+        <label>{t('adminEpisodes.tags')}</label>
         <input
           type="text"
           value={newEpisode.tags.join(', ')}
           onChange={(e) => setNewEpisode({...newEpisode, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)})}
-          placeholder="如：3D, 系列, 风格"
+          placeholder={t('adminEpisodes.tagsPlaceholder')}
         />
       </div>
       {newEpisode.status === 'upcoming' && (
         <div className="form-group">
-          <label>🎬 首播日期</label>
+          <label>{t('adminEpisodes.premiereDate')}</label>
           <input
             type="datetime-local"
             value={newEpisode.premiereDate}
@@ -578,12 +548,12 @@ const AdminEpisodes = () => {
               color: 'var(--text-light)', fontSize: '14px'
             }}
           />
-          <p style={{fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px'}}>设置后将在更新日历中显示为首播预告</p>
+          <p style={{fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px'}}>{t('adminEpisodes.premiereHint')}</p>
         </div>
       )}
       {error && <div className="error-message">{error}</div>}
       <div className="form-group">
-        <button type="submit">{isEdit ? '更新剧集信息' : '添加并管理单集'}</button>
+        <button type="submit">{isEdit ? t('adminEpisodes.updateEpisode') : t('adminEpisodes.addAndManage')}</button>
       </div>
     </form>
   );
@@ -592,10 +562,10 @@ const AdminEpisodes = () => {
     <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setShowAddForm(false); }}>
       <div className="modal-content">
         <div className="modal-header">
-          <h3>添加新剧集</h3>
-          <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>关闭</button>
+          <h3>{t('adminEpisodes.addNewEpisode')}</h3>
+          <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('adminEpisodes.close')}</button>
         </div>
-        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>添加剧集后将自动打开单集管理，您可以为每一集设置独立的跳转链接</p>
+        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>{t('adminEpisodes.addEpisodeHint')}</p>
         {renderEpisodeForm(false)}
       </div>
     </div>
@@ -605,14 +575,14 @@ const AdminEpisodes = () => {
     <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') handleCloseEditForm(); }}>
       <div className="modal-content">
         <div className="modal-header">
-          <h3>编辑剧集 - {editingEpisode.title}</h3>
-          <button className="btn btn-secondary" onClick={handleCloseEditForm}>关闭</button>
+          <h3>{t('adminEpisodes.editEpisode')} - {editingEpisode.title}</h3>
+          <button className="btn btn-secondary" onClick={handleCloseEditForm}>{t('adminEpisodes.close')}</button>
         </div>
         {renderEpisodeForm(true)}
 
         <div style={{marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '20px'}}>
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-            <h4>单集管理</h4>
+            <h4>{t('adminEpisodes.singleEpisodeManagement')}</h4>
             <button className="btn" onClick={() => {
               if (showSingleEpisodeForm && !editingSingleEpisode) {
                 setShowSingleEpisodeForm(false);
@@ -622,7 +592,7 @@ const AdminEpisodes = () => {
                 const nextNum = singleEpisodes.length + 1;
                 setNewSingleEpisode({
                   episodeNumber: nextNum,
-                  title: `第${nextNum}集`,
+                  title: t('adminEpisodes.episodePrefix', { num: nextNum }),
                   duration: '',
                   platformLinksList: [],
                   scheduledDate: '',
@@ -631,16 +601,16 @@ const AdminEpisodes = () => {
                 });
               }
             }}>
-              {showSingleEpisodeForm && !editingSingleEpisode ? '取消' : '添加单集'}
+              {showSingleEpisodeForm && !editingSingleEpisode ? t('adminEpisodes.cancel') : t('adminEpisodes.addSingleEpisode')}
             </button>
           </div>
 
           {showSingleEpisodeForm && (
             <div className="form-container" style={{marginBottom: '15px', background: 'var(--hover-bg)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border)'}}>
-              <h4>{editingSingleEpisode ? `编辑第${editingSingleEpisode.episodeNumber}集` : '添加单集'}</h4>
+              <h4>{editingSingleEpisode ? t('adminEpisodes.editEpisodeNum', { num: editingSingleEpisode.episodeNumber }) : t('adminEpisodes.addSingleEpisode')}</h4>
               <form onSubmit={handleAddSingleEpisode}>
                 <div className="form-group">
-                  <label>集数</label>
+                  <label>{t('adminEpisodes.episodeNumberLabel')}</label>
                   <input
                     type="number"
                     value={newSingleEpisode.episodeNumber}
@@ -649,7 +619,7 @@ const AdminEpisodes = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>标题</label>
+                  <label>{t('adminEpisodes.titleLabel')}</label>
                   <input
                     type="text"
                     value={newSingleEpisode.title}
@@ -658,17 +628,17 @@ const AdminEpisodes = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>时长</label>
+                  <label>{t('adminEpisodes.duration')}</label>
                   <input
                     type="text"
                     value={newSingleEpisode.duration}
                     onChange={(e) => setNewSingleEpisode({...newSingleEpisode, duration: e.target.value})}
-                    placeholder="例如：24分钟"
+                    placeholder={t('adminEpisodes.durationPlaceholder')}
                   />
                 </div>
                 {editingEpisode && (editingEpisode.status === 'ongoing' || editingEpisode.status === 'completed') && (
                   <div className="form-group">
-                    <label>发布日期 <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>（选填，不填默认上传日期）</span></label>
+                    <label>{t('adminEpisodes.publishDate')} <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('adminEpisodes.publishDateHint')}</span></label>
                     <input
                       type="datetime-local"
                       value={newSingleEpisode.releaseDate}
@@ -679,7 +649,7 @@ const AdminEpisodes = () => {
                         color: 'var(--text-light)', fontSize: '14px'
                       }}
                     />
-                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>适用于已上映但平台补充信息较晚的剧集</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminEpisodes.latePublishNote')}</p>
                   </div>
                 )}
                 <div className="form-group" style={{ padding: '12px', background: 'var(--hover-bg-strong)', borderRadius: '8px', border: '1px solid var(--border)' }}>
@@ -690,11 +660,11 @@ const AdminEpisodes = () => {
                       onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isScheduled: e.target.checked, scheduledDate: e.target.checked ? newSingleEpisode.scheduledDate || '' : ''})}
                       style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                     />
-                    <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>设置为预告更新</label>
+                    <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>{t('adminEpisodes.scheduledPreview')}</label>
                   </div>
                   {newSingleEpisode.isScheduled && (
                     <div>
-                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>预告更新日期</label>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>{t('adminEpisodes.scheduledDate')}</label>
                       <input
                         type="datetime-local"
                         value={newSingleEpisode.scheduledDate}
@@ -705,12 +675,12 @@ const AdminEpisodes = () => {
                           color: 'var(--text-light)', fontSize: '14px'
                         }}
                       />
-                      <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>设置后将在更新日历中显示为预告</p>
+                      <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminEpisodes.scheduledHint')}</p>
                     </div>
                   )}
                 </div>
                 <div className="form-group">
-                  <label>跳转链接</label>
+                  <label>{t('adminEpisodes.videoUrl')}</label>
                   <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                     {newSingleEpisode.platformLinksList.map((item, index) => (
                       <div key={index} style={{
@@ -718,7 +688,7 @@ const AdminEpisodes = () => {
                         borderRadius: '8px', padding: '12px'
                       }}>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
-                          <span style={{fontSize: '13px', color: 'var(--text-secondary)'}}>平台 {index + 1}</span>
+                          <span style={{fontSize: '13px', color: 'var(--text-secondary)'}}>{t('adminEpisodes.platformNum', { num: index + 1 })}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -730,7 +700,7 @@ const AdminEpisodes = () => {
                               color: 'var(--destructive-text)', borderRadius: '6px', padding: '4px 10px',
                               cursor: 'pointer', fontSize: '12px', lineHeight: 1
                             }}
-                          >删除</button>
+                          >{t('adminEpisodes.deleteBtn')}</button>
                         </div>
                         <div style={{marginBottom: '8px'}}>
                           <input
@@ -741,7 +711,7 @@ const AdminEpisodes = () => {
                               newList[index] = {...newList[index], name: e.target.value};
                               setNewSingleEpisode({...newSingleEpisode, platformLinksList: newList});
                             }}
-                            placeholder="平台名称，如：B站、YouTube、网盘"
+                            placeholder={t('adminEpisodes.platformNamePlaceholder')}
                           />
                         </div>
                         <div>
@@ -753,7 +723,7 @@ const AdminEpisodes = () => {
                               newList[index] = {...newList[index], url: e.target.value};
                               setNewSingleEpisode({...newSingleEpisode, platformLinksList: newList});
                             }}
-                            placeholder="链接地址，如：https://www.bilibili.com/video/..."
+                            placeholder={t('adminEpisodes.linkUrlPlaceholder')}
                           />
                         </div>
                       </div>
@@ -771,25 +741,25 @@ const AdminEpisodes = () => {
                         color: 'var(--primary)', borderRadius: '8px', padding: '10px',
                         cursor: 'pointer', fontSize: '14px'
                       }}
-                    >+ 添加平台链接</button>
+                    >{t('adminEpisodes.addPlatformLink')}</button>
                   </div>
-                  <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px'}}>支持添加多个平台，如：B站、YouTube、网盘等</p>
+                  <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px'}}>{t('adminEpisodes.platformHint')}</p>
                 </div>
                 <div className="form-group" style={{display: 'flex', gap: '10px'}}>
-                  <button type="submit">{editingSingleEpisode ? '更新' : '添加'}</button>
+                  <button type="submit">{editingSingleEpisode ? t('adminEpisodes.updateBtn') : t('adminEpisodes.addBtn')}</button>
                   {editingSingleEpisode && (
                     <button type="button" className="btn btn-secondary" onClick={() => {
                       setEditingSingleEpisode(null);
                       const nextNum = singleEpisodes.length + 1;
                       setNewSingleEpisode({
                         episodeNumber: nextNum,
-                        title: `第${nextNum}集`,
+                        title: t('adminEpisodes.episodePrefix', { num: nextNum }),
                         duration: '',
                         platformLinksList: [],
                         scheduledDate: '',
                         isScheduled: false
                       });
-                    }}>取消编辑</button>
+                    }}>{t('adminEpisodes.cancelEdit')}</button>
                   )}
                 </div>
               </form>
@@ -797,18 +767,18 @@ const AdminEpisodes = () => {
           )}
 
           {singleEpisodes.length === 0 ? (
-            <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '20px'}}>暂无单集，点击上方"添加单集"按钮为每一集设置跳转链接</p>
+            <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '20px'}}>{t('adminEpisodes.noSingleEpisodes')}</p>
           ) : (
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table className="admin-table">
               <thead>
                 <tr>
-                    <th>集数</th>
-                    <th>标题</th>
-                  <th>时长</th>
-                  <th>跳转链接</th>
-                  <th>热度</th>
-                  <th>操作</th>
+                    <th>{t('adminEpisodes.episodeNumber')}</th>
+                    <th>{t('adminEpisodes.titleLabel')}</th>
+                  <th>{t('adminEpisodes.duration')}</th>
+                  <th>{t('adminEpisodes.videoUrl')}</th>
+                  <th>{t('adminEpisodes.views')}</th>
+                  <th>{t('adminEpisodes.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -820,7 +790,7 @@ const AdminEpisodes = () => {
                       {se.duration || '-'}
                       {se.isScheduled && se.scheduledDate && (
                         <div style={{ fontSize: '12px', color: 'var(--warning-text)', marginTop: '2px' }}>
-                          🔔 预告: {new Date(se.scheduledDate).toLocaleString('zh-CN')}
+                          {t('adminEpisodes.previewLabel')} {new Date(se.scheduledDate).toLocaleString(locale)}
                         </div>
                       )}
                     </td>
@@ -844,8 +814,8 @@ const AdminEpisodes = () => {
                     <td>{se.views}</td>
                     <td>
                       <div className="action-buttons">
-                        <button className="btn btn-small" onClick={() => handleEditSingleEpisode(se)}>编辑</button>
-                        <button className="btn btn-secondary btn-small" onClick={() => handleDeleteSingleEpisode(se._id)}>删除</button>
+                        <button className="btn btn-small" onClick={() => handleEditSingleEpisode(se)}>{t('adminEpisodes.editBtn')}</button>
+                        <button className="btn btn-secondary btn-small" onClick={() => handleDeleteSingleEpisode(se._id)}>{t('adminEpisodes.deleteBtn')}</button>
                       </div>
                     </td>
                   </tr>
@@ -863,25 +833,25 @@ const AdminEpisodes = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <h2>剧集管理</h2>
+          <h2>{t('adminEpisodes.episodeManagement')}</h2>
         </div>
         <button className="btn" onClick={() => { resetEpisodeForm(); setError(''); setShowAddForm(true); }}>
-          添加新剧集
+          {t('adminEpisodes.addNewEpisode')}
         </button>
       </div>
 
-      <h3>剧集列表</h3>
+      <h3>{t('adminEpisodes.episodeList')}</h3>
       <div style={{marginBottom: '15px'}}>
         <SearchInput
           data={episodes}
           searchKey={['title']}
-          placeholder="搜索剧集名称..."
+          placeholder={t('adminEpisodes.searchPlaceholder')}
           onSearch={setEpisodeSearch}
           onSelect={(item) => setEpisodeSearch(item.title)}
           displayRender={(item) => (
             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
               <span style={{fontWeight: '500'}}>{item.title}</span>
-              <span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>{item.currentEpisodes}/{item.totalEpisodes}集</span>
+              <span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>{t('adminEpisodes.episodeProgress', { current: item.currentEpisodes, total: item.totalEpisodes })}</span>
             </div>
           )}
         />
@@ -890,32 +860,32 @@ const AdminEpisodes = () => {
       <table className="admin-table">
           <thead>
             <tr>
-            <th>标题</th>
-            <th>状态</th>
-            <th>集数</th>
-            <th>热度</th>
-            {admin && admin.role !== 'creator' && <th>创建者</th>}
-            {admin && admin.role !== 'creator' && <th>授权编辑</th>}
-            {admin && admin.role === 'creator' && <th>审核</th>}
-            <th>操作</th>
+            <th>{t('adminEpisodes.titleLabel')}</th>
+            <th>{t('adminEpisodes.statusLabel')}</th>
+            <th>{t('adminEpisodes.episodeNumber')}</th>
+            <th>{t('adminEpisodes.views')}</th>
+            {admin && admin.role !== 'creator' && <th>{t('adminEpisodes.creator')}</th>}
+            {admin && admin.role !== 'creator' && <th>{t('adminEpisodes.authorizedEdit')}</th>}
+            {admin && admin.role === 'creator' && <th>{t('adminEpisodes.review')}</th>}
+            <th>{t('adminEpisodes.actions')}</th>
           </tr>
         </thead>
         <tbody>
           {filteredEpisodes.length === 0 ? (
-            <tr><td colSpan={admin && admin.role === 'creator' ? 6 : 7} style={{textAlign: 'center'}}>{episodeSearch ? '没有匹配的剧集' : '暂无剧集'}</td></tr>
+            <tr><td colSpan={admin && admin.role === 'creator' ? 6 : 7} style={{textAlign: 'center'}}>{episodeSearch ? t('adminEpisodes.noMatch') : t('adminEpisodes.noEpisodes')}</td></tr>
           ) : (
             filteredEpisodes.map(episode => (
               <tr key={episode._id}>
                 <td>{episode.title}</td>
                 <td>
                   <span className={`status ${episode.status}`}>
-                    {episode.status === 'ongoing' ? '连载中' : episode.status === 'completed' ? '已完结' : '即将上映'}
+                    {episode.status === 'ongoing' ? t('adminEpisodes.ongoing') : episode.status === 'completed' ? t('adminEpisodes.completed') : t('adminEpisodes.upcoming')}
                   </span>
                 </td>
                 <td>{episode.currentEpisodes}/{episode.totalEpisodes}</td>
                 <td>{episode.views}</td>
                 {admin && admin.role !== 'creator' && (
-                  <td style={{fontSize: '13px'}}>{episode.createdBy ? episode.createdBy.username : '系统'}</td>
+                  <td style={{fontSize: '13px'}}>{episode.createdBy ? episode.createdBy.username : t('adminEpisodes.system')}</td>
                 )}
                 {admin && admin.role !== 'creator' && (
                   <td style={{fontSize: '13px'}}>
@@ -935,8 +905,8 @@ const AdminEpisodes = () => {
                       border: `1px solid ${episode.reviewStatus === 'approved' ? 'var(--success-border)' :
                                         episode.reviewStatus === 'rejected' ? 'var(--destructive-border)' : 'var(--warning-border)'}`
                     }}>
-                      {episode.reviewStatus === 'approved' ? '已通过' :
-                       episode.reviewStatus === 'rejected' ? '已拒绝' : '待审核'}
+                      {episode.reviewStatus === 'approved' ? t('adminEpisodes.approved') :
+                       episode.reviewStatus === 'rejected' ? t('adminEpisodes.rejected') : t('adminEpisodes.pendingReview')}
                     </span>
                     {episode.reviewNote && (
                       <span style={{fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px'}}>({episode.reviewNote})</span>
@@ -945,9 +915,10 @@ const AdminEpisodes = () => {
                 )}
                 <td>
                   <div className="action-buttons">
-                    <button className="btn" onClick={() => { setError(''); handleEditEpisode(episode); }}>编辑</button>
+                    <button className="btn" onClick={() => { setError(''); handleEditEpisode(episode); }}>{t('adminEpisodes.editBtn')}</button>
+                    <button className="btn btn-secondary" onClick={() => setHistoryEpisodeId(episode._id)}>{t('version.history')}</button>
                     {admin && admin.role !== 'creator' && (
-                      <button className="btn btn-secondary" onClick={() => handleDeleteEpisode(episode._id)}>删除</button>
+                      <button className="btn btn-secondary" onClick={() => handleDeleteEpisode(episode._id)}>{t('adminEpisodes.deleteBtn')}</button>
                     )}
                   </div>
                 </td>
@@ -960,6 +931,13 @@ const AdminEpisodes = () => {
 
       {createPortal(addFormModal, document.body)}
       {createPortal(editFormModal, document.body)}
+
+      {historyEpisodeId && (
+        <EpisodeVersionHistory
+          episodeId={historyEpisodeId}
+          onClose={() => setHistoryEpisodeId(null)}
+        />
+      )}
     </div>
   );
 };

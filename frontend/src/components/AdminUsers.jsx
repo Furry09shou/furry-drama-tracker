@@ -4,8 +4,10 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminUsers = () => {
+  const { t, locale } = useI18n();
   const [admin, setAdmin] = useState(null);
   const [users, setUsers] = useState([]);
   const [admins, setAdmins] = useState([]);
@@ -106,49 +108,49 @@ const AdminUsers = () => {
       });
       setShowAddForm(false);
       setNewUser({ username: '', password: '', role: 'admin' });
-      setSuccess('管理员创建成功');
+      setSuccess(t('adminUsers.adminCreated'));
       fetchAdmins();
     } catch (error) {
-      setError(error.response?.data?.message || '创建用户失败');
+      setError(error.response?.data?.message || t('adminUsers.createFailed'));
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('确定要删除该用户吗？删除后不可恢复！')) return;
+    if (!window.confirm(t('adminUsers.deleteUserConfirm'))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.delete(`/api/admin/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('用户已删除');
+      setSuccess(t('adminUsers.userDeleted'));
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.message || '删除失败');
+      setError(err.response?.data?.message || t('adminUsers.deleteFailed'));
     }
   };
 
   const handleDeleteAdmin = async (adminId) => {
     if (admin && admin._id === adminId) {
-      setError('不能删除自己的账号');
+      setError(t('adminUsers.cannotDeleteSelf'));
       return;
     }
-    if (!window.confirm('确定要删除该管理员账号吗？')) return;
+    if (!window.confirm(t('adminUsers.deleteAdminConfirm'))) return;
     try {
       const token = localStorage.getItem('adminToken');
       await axios.delete(`/api/admin/${adminId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('管理员账号已删除');
+      setSuccess(t('adminUsers.adminDeleted'));
       fetchAdmins();
     } catch (err) {
-      setError(err.response?.data?.message || '删除失败');
+      setError(err.response?.data?.message || t('adminUsers.deleteFailed'));
     }
   };
 
   if (!admin) return null;
 
   const getRoleLabel = (role) => {
-    return role === 'superadmin' ? '超级管理员' : role === 'creator' ? '创作者' : '管理员';
+    return role === 'superadmin' ? t('adminUsers.superAdmin') : role === 'creator' ? t('adminUsers.creator') : t('adminUsers.admin');
   };
 
   const getRoleBadgeStyle = (role) => {
@@ -161,12 +163,12 @@ const AdminUsers = () => {
     <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setShowAddForm(false); }}>
       <div className="modal-content">
         <div className="modal-header">
-          <h3>添加管理员账号</h3>
-          <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>关闭</button>
+          <h3>{t('adminUsers.addAdminAccount')}</h3>
+          <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('adminUsers.close')}</button>
         </div>
         <form onSubmit={handleAddUser}>
           <div className="form-group">
-            <label>用户名</label>
+            <label>{t('adminUsers.username')}</label>
             <input
               type="text"
               value={newUser.username}
@@ -175,7 +177,7 @@ const AdminUsers = () => {
             />
           </div>
           <div className="form-group">
-            <label>密码</label>
+            <label>{t('adminUsers.password')}</label>
             <input
               type="password"
               value={newUser.password}
@@ -184,21 +186,21 @@ const AdminUsers = () => {
             />
           </div>
           <div className="form-group">
-            <label>角色</label>
+            <label>{t('adminUsers.role')}</label>
             <CustomSelect
               options={[
-                { value: 'admin', label: '管理员' },
-                { value: 'superadmin', label: '超级管理员' },
-                { value: 'creator', label: '创作者' }
+                { value: 'admin', label: t('adminUsers.admin') },
+                { value: 'superadmin', label: t('adminUsers.superAdmin') },
+                { value: 'creator', label: t('adminUsers.creator') }
               ]}
               value={newUser.role}
               onChange={(role) => setNewUser({...newUser, role})}
-              placeholder="选择角色"
+              placeholder={t('adminUsers.selectRole')}
             />
           </div>
           {error && <div className="error-message">{error}</div>}
           <div className="form-group">
-            <button type="submit">添加</button>
+            <button type="submit">{t('adminUsers.add')}</button>
           </div>
         </form>
       </div>
@@ -224,11 +226,11 @@ const AdminUsers = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-        <h2>用户管理</h2>
+        <h2>{t('adminUsers.userManagement')}</h2>
         </div>
         {activeTab === 'admins' && (
           <button className="btn" onClick={() => setShowAddForm(true)}>
-            添加管理员账号
+            {t('adminUsers.addAdminAccount')}
           </button>
         )}
       </div>
@@ -238,24 +240,24 @@ const AdminUsers = () => {
 
       <div style={{display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '1px solid var(--border)'}}>
         <button style={tabStyle(activeTab === 'users')} onClick={() => setActiveTab('users')}>
-          普通用户 ({users.length})
+          {t('adminUsers.normalUsers')} ({users.length})
         </button>
         <button style={tabStyle(activeTab === 'admins')} onClick={() => setActiveTab('admins')}>
-          管理员 ({admins.length})
+          {t('adminUsers.admins')} ({admins.length})
         </button>
       </div>
 
       {activeTab === 'users' && (
         <div style={{background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
           <div style={{padding: '15px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <h3 style={{margin: 0}}>普通用户列表</h3>
-            <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>共 {filteredUsers.length} 个用户</span>
+            <h3 style={{margin: 0}}>{t('adminUsers.normalUserList')}</h3>
+            <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>{t('adminUsers.userCount', { count: filteredUsers.length })}</span>
           </div>
           <div style={{padding: '12px 20px', borderBottom: '1px solid var(--border)'}}>
             <SearchInput
               data={users}
               searchKey={['accountId', 'username', 'email']}
-              placeholder="搜索账号ID、昵称或邮箱..."
+              placeholder={t('adminUsers.searchPlaceholder')}
               onSearch={setUserSearch}
               onSelect={(item) => setUserSearch(item.username)}
               displayRender={(item) => (
@@ -269,19 +271,19 @@ const AdminUsers = () => {
           </div>
           {filteredUsers.length === 0 ? (
             <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-secondary)'}}>
-              {userSearch ? '没有匹配的用户' : '暂无普通用户'}
+              {userSearch ? t('adminUsers.noMatch') : t('adminUsers.noNormalUsers')}
             </div>
           ) : (
             <div style={{overflowX: 'auto'}}>
               <table style={{width: '100%', borderCollapse: 'collapse'}}>
                 <thead>
                   <tr style={{borderBottom: '1px solid var(--border)'}}>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>昵称</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>账号ID</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>邮箱</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>后台权限</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>注册时间</th>
-                    <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>操作</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.nickname')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.accountId')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.email')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.adminAccess')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.registerTime')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -310,16 +312,16 @@ const AdminUsers = () => {
                         <button
                           onClick={async () => {
                             const newVal = !u.adminAccess;
-                            if (!window.confirm(newVal ? `确定授予 ${u.username} 管理后台权限吗？` : `确定撤销 ${u.username} 的管理后台权限吗？`)) return;
+                            if (!window.confirm(newVal ? t('adminUsers.grantConfirm', { name: u.username }) : t('adminUsers.revokeConfirm', { name: u.username }))) return;
                             try {
                               const token = localStorage.getItem('adminToken');
                               await axios.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: newVal }, {
                                 headers: { Authorization: `Bearer ${token}` }
                               });
                               fetchUsers();
-                              setSuccess(newVal ? '已授予管理后台权限' : '已撤销管理后台权限');
+                              setSuccess(newVal ? t('adminUsers.accessGranted') : t('adminUsers.accessRevoked'));
                             } catch (err) {
-                              setError(err.response?.data?.message || '操作失败');
+                              setError(err.response?.data?.message || t('adminUsers.operationFailed'));
                             }
                           }}
                           style={{
@@ -331,11 +333,11 @@ const AdminUsers = () => {
                             transition: 'all 0.2s'
                           }}
                         >
-                          {u.adminAccess ? '已授权' : '未授权'}
+                          {u.adminAccess ? t('adminUsers.authorised') : t('adminUsers.unauthorised')}
                         </button>
                       </td>
                       <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
-                        {new Date(u.createdAt).toLocaleDateString('zh-CN')}
+                        {new Date(u.createdAt).toLocaleDateString(locale)}
                       </td>
                       <td style={{padding: '12px 20px', textAlign: 'right'}}>
                         <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end'}}>
@@ -344,14 +346,14 @@ const AdminUsers = () => {
                             style={{padding: '6px 14px', fontSize: '13px'}}
                             onClick={() => setDetailUser(u)}
                           >
-                            详细信息
+                            {t('adminUsers.details')}
                           </button>
                           <button
                             className="btn btn-secondary"
                             style={{padding: '6px 14px', fontSize: '13px', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}}
                             onClick={() => handleDeleteUser(u._id)}
                           >
-                            删除
+                            {t('adminUsers.delete')}
                           </button>
                         </div>
                       </td>
@@ -367,37 +369,37 @@ const AdminUsers = () => {
       {activeTab === 'admins' && (
         <div style={{background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden'}}>
           <div style={{padding: '15px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <h3 style={{margin: 0}}>管理员列表</h3>
-            <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>共 {filteredAdmins.length} 个账号</span>
+            <h3 style={{margin: 0}}>{t('adminUsers.adminList')}</h3>
+            <span style={{color: 'var(--text-secondary)', fontSize: '14px'}}>{t('adminUsers.adminCount', { count: filteredAdmins.length })}</span>
           </div>
           <div style={{padding: '12px 20px', borderBottom: '1px solid var(--border)'}}>
             <SearchInput
               data={admins}
               searchKey={['username']}
-              placeholder="搜索管理员用户名..."
+              placeholder={t('adminUsers.searchAdminPlaceholder')}
               onSearch={setAdminSearch}
               onSelect={(item) => setAdminSearch(item.username)}
               displayRender={(item) => (
                 <div>
                   <span style={{fontWeight: '500'}}>{item.username}</span>
-                  <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px'}}>{item.role === 'superadmin' ? '超级管理员' : '管理员'}</span>
+                  <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px'}}>{item.role === 'superadmin' ? t('adminUsers.superAdmin') : t('adminUsers.admin')}</span>
                 </div>
               )}
             />
           </div>
           {filteredAdmins.length === 0 ? (
             <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-secondary)'}}>
-              {adminSearch ? '没有匹配的管理员' : '暂无管理员账号'}
+              {adminSearch ? t('adminUsers.noMatchAdmin') : t('adminUsers.noAdminAccounts')}
             </div>
           ) : (
             <div style={{overflowX: 'auto'}}>
               <table style={{width: '100%', borderCollapse: 'collapse'}}>
                 <thead>
                   <tr style={{borderBottom: '1px solid var(--border)'}}>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>用户名</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>角色</th>
-                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>创建时间</th>
-                    <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>操作</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.username')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.role')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.createTime')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -415,7 +417,7 @@ const AdminUsers = () => {
                           </div>
                           <span style={{fontWeight: '500'}}>{a.username}</span>
                           {admin._id === a._id && (
-                            <span style={{fontSize: '12px', color: 'var(--success-text)', background: 'var(--success-bg-subtle)', padding: '2px 8px', borderRadius: '4px'}}>当前</span>
+                            <span style={{fontSize: '12px', color: 'var(--success-text)', background: 'var(--success-bg-subtle)', padding: '2px 8px', borderRadius: '4px'}}>{t('adminUsers.current')}</span>
                           )}
                         </div>
                       </td>
@@ -428,7 +430,7 @@ const AdminUsers = () => {
                         </span>
                       </td>
                       <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
-                        {new Date(a.createdAt).toLocaleDateString('zh-CN')}
+                        {new Date(a.createdAt).toLocaleDateString(locale)}
                       </td>
                       <td style={{padding: '12px 20px', textAlign: 'right'}}>
                         {admin._id !== a._id && (
@@ -436,16 +438,16 @@ const AdminUsers = () => {
                             <select
                               value={a.role}
                               onChange={async (e) => {
-                                if (!window.confirm(`确定将 ${a.username} 的角色更改为 ${getRoleLabel(e.target.value)} 吗？`)) return;
+                                if (!window.confirm(t('adminUsers.roleChangeConfirm', { name: a.username, role: getRoleLabel(e.target.value) }))) return;
                                 try {
                                   const token = localStorage.getItem('adminToken');
                                   await axios.put(`/api/admin/role/${a._id}`, { role: e.target.value }, {
                                     headers: { Authorization: `Bearer ${token}` }
                                   });
                                   fetchAdmins();
-                                  setSuccess('角色已更新');
+                                  setSuccess(t('adminUsers.roleUpdated'));
                                 } catch (err) {
-                                  setError(err.response?.data?.message || '更新角色失败');
+                                  setError(err.response?.data?.message || t('adminUsers.updateRoleFailed'));
                                 }
                               }}
                               style={{
@@ -454,16 +456,16 @@ const AdminUsers = () => {
                                 border: '1px solid var(--border)', cursor: 'pointer'
                               }}
                             >
-                              <option value="admin">管理员</option>
-                              <option value="superadmin">超级管理员</option>
-                              <option value="creator">创作者</option>
+                              <option value="admin">{t('adminUsers.admin')}</option>
+                              <option value="superadmin">{t('adminUsers.superAdmin')}</option>
+                              <option value="creator">{t('adminUsers.creator')}</option>
                             </select>
                             <button
                               className="btn btn-secondary"
                               style={{padding: '6px 14px', fontSize: '13px', color: 'var(--destructive-text)', borderColor: 'var(--destructive-border)'}}
                               onClick={() => handleDeleteAdmin(a._id)}
                             >
-                              删除
+                              {t('adminUsers.delete')}
                             </button>
                           </div>
                         )}
@@ -482,29 +484,29 @@ const AdminUsers = () => {
         <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setDetailUser(null); }}>
           <div className="modal-content" style={{maxWidth: '520px'}}>
             <div className="modal-header">
-              <h3>用户详细信息 - {detailUser.username}</h3>
-              <button className="btn btn-secondary" onClick={() => setDetailUser(null)}>关闭</button>
+              <h3>{t('adminUsers.userDetails', { username: detailUser.username })}</h3>
+              <button className="btn btn-secondary" onClick={() => setDetailUser(null)}>{t('adminUsers.close')}</button>
             </div>
             <div style={{display: 'flex', flexDirection: 'column', gap: '0'}}>
-              <InfoRow label="账号ID" value={detailUser.accountId || '-'} />
-              <InfoRow label="昵称" value={detailUser.username} />
-              <InfoRow label="邮箱" value={detailUser.email} />
-              <InfoRow label="注册时间" value={new Date(detailUser.createdAt).toLocaleString('zh-CN')} />
-              <InfoRow label="最后登录" value={detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString('zh-CN') : '从未登录'} />
-              <InfoRow label="最后登录IP" value={detailUser.lastLoginIp || '未知'} />
-              <InfoRow label="IP地区" value={detailUser.lastLoginRegion || '未知'} icon="🌍" />
-              <InfoRow label="运营商" value={detailUser.deviceInfo?.carrier || '未知'} icon="📡" />
+              <InfoRow label={t('adminUsers.accountId')} value={detailUser.accountId || '-'} />
+              <InfoRow label={t('adminUsers.nickname')} value={detailUser.username} />
+              <InfoRow label={t('adminUsers.email')} value={detailUser.email} />
+              <InfoRow label={t('adminUsers.registerTime')} value={new Date(detailUser.createdAt).toLocaleString(locale)} />
+              <InfoRow label={t('adminUsers.lastLogin')} value={detailUser.lastLoginAt ? new Date(detailUser.lastLoginAt).toLocaleString(locale) : t('adminUsers.neverLoggedIn')} />
+              <InfoRow label={t('adminUsers.lastLoginIP')} value={detailUser.lastLoginIp || t('adminUsers.unknown')} />
+              <InfoRow label={t('adminUsers.ipRegion')} value={detailUser.lastLoginRegion || t('adminUsers.unknown')} icon="🌍" />
+              <InfoRow label={t('adminUsers.isp')} value={detailUser.deviceInfo?.carrier || t('adminUsers.unknown')} icon="📡" />
 
               <div style={{padding: '12px 0', borderTop: '1px solid var(--border)', marginTop: '8px'}}>
-                <h4 style={{color: 'var(--primary)', marginBottom: '8px'}}>设备信息</h4>
+                <h4 style={{color: 'var(--primary)', marginBottom: '8px'}}>{t('adminUsers.deviceInfo')}</h4>
               </div>
-              <InfoRow label="设备类型" value={detailUser.deviceInfo?.deviceType || '未知'} icon={detailUser.deviceInfo?.deviceType === '移动端' ? '📱' : detailUser.deviceInfo?.deviceType === '平板' ? '📟' : '🖥️'} />
-              <InfoRow label="设备型号" value={detailUser.deviceInfo?.deviceModel || '未知'} icon="📲" />
-              <InfoRow label="操作系统" value={detailUser.deviceInfo?.os ? `${detailUser.deviceInfo.os} ${detailUser.deviceInfo.osVersion || ''}`.trim() : '未知'} />
-              <InfoRow label="浏览器" value={detailUser.deviceInfo?.browser ? `${detailUser.deviceInfo.browser} ${detailUser.deviceInfo.browserVersion || ''}`.trim() : '未知'} />
-              <InfoRow label="屏幕分辨率" value={detailUser.deviceInfo?.screenWidth ? `${detailUser.deviceInfo.screenWidth} × ${detailUser.deviceInfo.screenHeight}` : '未知'} />
-              <InfoRow label="语言" value={detailUser.deviceInfo?.language || '未知'} />
-              <InfoRow label="User-Agent" value={detailUser.deviceInfo?.userAgent || '未知'} isLong />
+              <InfoRow label={t('adminUsers.deviceType')} value={detailUser.deviceInfo?.deviceType || t('adminUsers.unknown')} icon={detailUser.deviceInfo?.deviceType === '移动端' ? '📱' : detailUser.deviceInfo?.deviceType === '平板' ? '📟' : '🖥️'} />
+              <InfoRow label={t('adminUsers.deviceModel')} value={detailUser.deviceInfo?.deviceModel || t('adminUsers.unknown')} icon="📲" />
+              <InfoRow label={t('adminUsers.os')} value={detailUser.deviceInfo?.os ? `${detailUser.deviceInfo.os} ${detailUser.deviceInfo.osVersion || ''}`.trim() : t('adminUsers.unknown')} />
+              <InfoRow label={t('adminUsers.browser')} value={detailUser.deviceInfo?.browser ? `${detailUser.deviceInfo.browser} ${detailUser.deviceInfo.browserVersion || ''}`.trim() : t('adminUsers.unknown')} />
+              <InfoRow label={t('adminUsers.screenResolution')} value={detailUser.deviceInfo?.screenWidth ? `${detailUser.deviceInfo.screenWidth} × ${detailUser.deviceInfo.screenHeight}` : t('adminUsers.unknown')} />
+              <InfoRow label={t('adminUsers.language')} value={detailUser.deviceInfo?.language || t('adminUsers.unknown')} />
+              <InfoRow label={t('adminUsers.userAgent')} value={detailUser.deviceInfo?.userAgent || t('adminUsers.unknown')} isLong />
             </div>
           </div>
         </div>,

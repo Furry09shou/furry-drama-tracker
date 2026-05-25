@@ -22,6 +22,9 @@ const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, cre
 
 const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
 
+const usedDeviceTokens = new Set();
+setInterval(() => { usedDeviceTokens.clear(); }, 30 * 60 * 1000);
+
 const escapeHtml = (str) => {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -492,6 +495,7 @@ router.post('/login', async (req, res) => {
       token
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -500,8 +504,13 @@ router.post('/verify-device', async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) return res.status(400).json({ message: 'Token is required' });
+    const tokenHash = hashToken(token);
+    if (usedDeviceTokens.has(tokenHash)) {
+      return res.status(400).json({ message: '该验证链接已被使用' });
+    }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== 'device-verify') return res.status(400).json({ message: 'Invalid token' });
+    usedDeviceTokens.add(tokenHash);
     const user = await User.findById(decoded.id);
     if (!user) return res.status(400).json({ message: 'User not found' });
     const loginToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminApiUsage = () => {
+  const { t } = useI18n();
   const [admin, setAdmin] = useState(null);
   const [data, setData] = useState({ dailyTotals: {}, topEndpoints: [] });
   const [days, setDays] = useState(7);
@@ -36,7 +38,7 @@ const AdminApiUsage = () => {
   return (
     <div className="admin-panel">
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <h2>API 用量监控</h2>
+        <h2>{t('adminApiUsage.title')}</h2>
       </div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
@@ -46,16 +48,16 @@ const AdminApiUsage = () => {
             border: days === d ? '1px solid var(--primary)' : '1px solid var(--border)',
             background: days === d ? 'var(--primary-bg)' : 'var(--hover-bg)',
             color: days === d ? 'var(--primary)' : 'var(--foreground)'
-          }}>近 {d} 天</button>
+          }}>{t('adminApiUsage.recentDays', { d })}</button>
         ))}
       </div>
 
       <div style={{ background: 'var(--card)', borderRadius: '12px', padding: '20px', border: '1px solid var(--border)', marginBottom: '24px' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--foreground)' }}>每日请求总量</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--foreground)' }}>{t('adminApiUsage.dailyRequests')}</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '120px' }}>
           {dailyEntries.map(([date, count]) => (
             <div key={date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-              <div style={{ width: '100%', background: 'var(--btn-gradient)', borderRadius: '4px 4px 0 0', height: `${(count / maxDaily) * 100}px`, minHeight: '2px', transition: 'height 0.3s' }} title={`${count} 次`} />
+              <div style={{ width: '100%', background: 'var(--btn-gradient)', borderRadius: '4px 4px 0 0', height: `${(count / maxDaily) * 100}px`, minHeight: '2px', transition: 'height 0.3s' }} title={t('adminApiUsage.requestCount', { count })} />
               <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', writingMode: dailyEntries.length > 14 ? 'vertical-rl' : 'horizontal-tb' }}>{date.slice(5)}</span>
             </div>
           ))}
@@ -63,7 +65,7 @@ const AdminApiUsage = () => {
       </div>
 
       <div style={{ background: 'var(--card)', borderRadius: '12px', padding: '20px', border: '1px solid var(--border)' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--foreground)' }}>热门接口 Top 20</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--foreground)' }}>{t('adminApiUsage.topEndpoints')}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {(data.topEndpoints || []).map(([endpoint, count], i) => (
             <div key={endpoint} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -72,7 +74,7 @@ const AdminApiUsage = () => {
               <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600 }}>{count.toLocaleString()}</span>
             </div>
           ))}
-          {(data.topEndpoints || []).length === 0 && <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>暂无数据</p>}
+          {(data.topEndpoints || []).length === 0 && <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>{t('adminApiUsage.noData')}</p>}
         </div>
       </div>
     </div>

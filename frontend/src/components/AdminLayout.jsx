@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate, Outlet } from 'react-router-dom';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminLayout = () => {
+  const { t } = useI18n();
   const [admin, setAdmin] = useState(null);
   const navigate = useNavigate();
 
@@ -21,10 +23,10 @@ const AdminLayout = () => {
       navigate('/admin', { replace: true });
     }
     const heartbeat = setInterval(() => {
-      const t = localStorage.getItem('adminToken');
-      if (t) {
+      const adminToken = localStorage.getItem('adminToken');
+      if (adminToken) {
         axios.post('/api/admin-sessions/heartbeat', {}, {
-          headers: { Authorization: `Bearer ${t}` }
+          headers: { Authorization: `Bearer ${adminToken}` }
         }).catch(() => {});
       }
     }, 5 * 60 * 1000);
@@ -71,7 +73,7 @@ const AdminLayout = () => {
           }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
-            🏠 控制台首页
+            {t('adminLayout.consoleHome')}
           </button>
           <button onClick={() => navigate(-1)} style={{
             background: 'none', border: 'none', cursor: 'pointer',
@@ -82,17 +84,17 @@ const AdminLayout = () => {
           }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
-            ← 返回
+            {t('adminLayout.back')}
           </button>
         </div>
-        <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>管理后台</span>
+        <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>{t('adminLayout.adminBackend')}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <a href="/" style={{
             color: 'var(--primary)', fontSize: '14px', textDecoration: 'none',
             padding: '4px 8px', borderRadius: '6px', transition: 'background 0.2s'
           }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >🌐 网站首页</a>
+          >{t('adminLayout.websiteHome')}</a>
           <button onClick={handleLogout} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--destructive-text)', fontSize: '14px',
@@ -101,7 +103,7 @@ const AdminLayout = () => {
           }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--destructive-bg-subtle)'}
              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
-            退出登录
+            {t('adminLayout.logout')}
           </button>
         </div>
       </div>

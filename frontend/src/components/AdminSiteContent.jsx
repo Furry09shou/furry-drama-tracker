@@ -7,7 +7,6 @@ import { useI18n } from '../contexts/I18nContext';
 const LANGS = [
   { code: 'zh', label: '中文', flag: '🇨🇳' },
   { code: 'en', label: 'English', flag: '🇺🇸' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ];
 
 const getLocKey = (field, lang) => lang === 'zh' ? field : `${field}${lang.charAt(0).toUpperCase() + lang.slice(1)}`;
@@ -16,36 +15,36 @@ const getLocVal = (data, field, lang) => data[getLocKey(field, lang)] || '';
 const parseI18nContent = (raw) => {
   try {
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && ('zh' in parsed || 'en' in parsed || 'ja' in parsed)) {
-      return { zh: parsed.zh || '', en: parsed.en || '', ja: parsed.ja || '' };
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && ('zh' in parsed || 'en' in parsed)) {
+      return { zh: parsed.zh || '', en: parsed.en || '' };
     }
   } catch (e) {}
-  return { zh: raw || '', en: '', ja: '' };
+  return { zh: raw || '', en: '' };
 };
 
 const AdminSiteContent = () => {
-  const { lang: uiLang } = useI18n();
+  const { lang: uiLang, t } = useI18n();
   const [admin, setAdmin] = useState(null);
   const [contents, setContents] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
   const [editLang, setEditLang] = useState('zh');
   const [editTitle, setEditTitle] = useState('');
-  const [editContentI18n, setEditContentI18n] = useState({ zh: '', en: '', ja: '' });
+  const [editContentI18n, setEditContentI18n] = useState({ zh: '', en: '' });
   const [aboutData, setAboutData] = useState({
     banner: '', logo: '', description: '', version: '1.0.0',
     updates: [], changelog: [], icp: '', policeRecord: '',
     aiDisclaimer: '本网站部分内容由AI生成', copyright: '© 2026 09兽',
-    descriptionEn: '', descriptionJa: '',
-    aiDisclaimerEn: '', aiDisclaimerJa: '',
-    copyrightEn: '', copyrightJa: '',
+    descriptionEn: '',
+    aiDisclaimerEn: '',
+    copyrightEn: '',
   });
   const [settingsData, setSettingsData] = useState({
     siteName: '兽剧聚合平台', navLogo: '', welcomeTitle: '欢迎来到兽剧聚合平台',
     welcomeSubtitle: '发现和追踪你喜爱的兽剧内容', favicon: '', browserTitle: '兽剧聚合平台',
-    siteNameEn: '', siteNameJa: '',
-    welcomeTitleEn: '', welcomeTitleJa: '',
-    welcomeSubtitleEn: '', welcomeSubtitleJa: '',
-    browserTitleEn: '', browserTitleJa: '',
+    siteNameEn: '',
+    welcomeTitleEn: '',
+    welcomeSubtitleEn: '',
+    browserTitleEn: '',
   });
   const [newUpdate, setNewUpdate] = useState('');
   const [changelogInputs, setChangelogInputs] = useState({});
@@ -76,7 +75,7 @@ const AdminSiteContent = () => {
       });
       setContents(res.data);
     } catch (err) {
-      console.error('获取网站内容失败', err);
+      console.error(t('adminContent.fetchFailed'), err);
     }
   };
 
@@ -100,20 +99,17 @@ const AdminSiteContent = () => {
           aiDisclaimer: data.aiDisclaimer || '本网站部分内容由AI生成',
           copyright: data.copyright || '© 2026 09兽',
           descriptionEn: data.descriptionEn || '',
-          descriptionJa: data.descriptionJa || '',
           aiDisclaimerEn: data.aiDisclaimerEn || '',
-          aiDisclaimerJa: data.aiDisclaimerJa || '',
           copyrightEn: data.copyrightEn || '',
-          copyrightJa: data.copyrightJa || '',
         });
       } catch (e) {
         setAboutData({
           banner: '', logo: '', description: '', version: '1.0.0',
           updates: [], changelog: [], icp: '', policeRecord: '',
           aiDisclaimer: '本网站部分内容由AI生成', copyright: '© 2026 09兽',
-          descriptionEn: '', descriptionJa: '',
-          aiDisclaimerEn: '', aiDisclaimerJa: '',
-          copyrightEn: '', copyrightJa: '',
+          descriptionEn: '',
+          aiDisclaimerEn: '',
+          copyrightEn: '',
         });
       }
     } else if (item.key === 'settings') {
@@ -127,13 +123,9 @@ const AdminSiteContent = () => {
           favicon: data.favicon || '',
           browserTitle: data.browserTitle || '兽剧聚合平台',
           siteNameEn: data.siteNameEn || '',
-          siteNameJa: data.siteNameJa || '',
           welcomeTitleEn: data.welcomeTitleEn || '',
-          welcomeTitleJa: data.welcomeTitleJa || '',
           welcomeSubtitleEn: data.welcomeSubtitleEn || '',
-          welcomeSubtitleJa: data.welcomeSubtitleJa || '',
           browserTitleEn: data.browserTitleEn || '',
-          browserTitleJa: data.browserTitleJa || '',
         });
       } catch (e) {
         setSettingsData({
@@ -141,10 +133,9 @@ const AdminSiteContent = () => {
           welcomeTitle: '欢迎来到兽剧聚合平台',
           welcomeSubtitle: '发现和追踪你喜爱的兽剧内容',
           favicon: '', browserTitle: '兽剧聚合平台',
-          siteNameEn: '', siteNameJa: '',
-          welcomeTitleEn: '', welcomeTitleJa: '',
-          welcomeSubtitleEn: '', welcomeSubtitleJa: '',
-          browserTitleEn: '', browserTitleJa: '',
+          siteNameEn: '', welcomeTitleEn: '',
+          welcomeSubtitleEn: '',
+          browserTitleEn: '',
         });
       }
     } else {
@@ -168,10 +159,10 @@ const AdminSiteContent = () => {
       await axios.put(`/api/site-content/${editingKey}`, {
         title: editTitle, content: contentToSave
       }, { headers: { Authorization: `Bearer ${token}` } });
-      setMessage('保存成功');
+      setMessage(t('adminContent.saveSuccess'));
       fetchContents(token);
     } catch (err) {
-      setMessage(err.response?.data?.message || '保存失败');
+      setMessage(err.response?.data?.message || t('adminContent.saveFailed'));
     }
     setSaving(false);
   };
@@ -239,7 +230,7 @@ const AdminSiteContent = () => {
                 editingKey === 'about' ? aboutData : editingKey === 'settings' ? settingsData : {},
                 editingKey === 'about' ? 'description' : editingKey === 'settings' ? 'siteName' : '',
                 l.code
-              ) ? '已填写' : '未填写'}
+              ) ? t('adminContent.filled') : t('adminContent.notFilled')}
             </span>
           )}
         </button>
@@ -281,14 +272,14 @@ const AdminSiteContent = () => {
               background: 'var(--card)', padding: '0 6px',
               fontSize: '10px', color: 'var(--text-tertiary)',
               border: '1px solid var(--border)', borderRadius: '3px',
-            }}>🇨🇳 中文参考</span>
+            }}>🇨🇳 {t('adminContent.chineseRef')}</span>
             <div style={{ marginTop: '4px' }}>{zhValue}</div>
           </div>
         )}
         {multiline ? (
-          <textarea value={locValue} onChange={(e) => setter(prev => ({ ...prev, [locKey]: e.target.value }))} placeholder={placeholder || `${currentLang.label}翻译...`} rows={3} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', fontSize: '14px', lineHeight: 1.6, resize: 'vertical' }} />
+          <textarea value={locValue} onChange={(e) => setter(prev => ({ ...prev, [locKey]: e.target.value }))} placeholder={placeholder || t('adminContent.translationPlaceholder')} rows={3} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', fontSize: '14px', lineHeight: 1.6, resize: 'vertical' }} />
         ) : (
-          <input type="text" value={locValue} onChange={(e) => setter(prev => ({ ...prev, [locKey]: e.target.value }))} placeholder={placeholder || `${currentLang.label}翻译...`} />
+          <input type="text" value={locValue} onChange={(e) => setter(prev => ({ ...prev, [locKey]: e.target.value }))} placeholder={placeholder || t('adminContent.translationPlaceholder')} />
         )}
       </div>
     );
@@ -304,32 +295,32 @@ const AdminSiteContent = () => {
             borderRadius: '12px', padding: '16px', marginBottom: '20px',
           }}>
             <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>
-              🌐 {currentLang.flag} {currentLang.label} 翻译
+              🌐 {currentLang.flag} {currentLang.label} {t('adminContent.translationTitle')}
             </h4>
             <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-              编辑 {currentLang.label} 版本的站点设置文本，图片等资源各语言共享
+              {t('adminContent.translationDesc', { lang: currentLang.label })}
             </p>
           </div>
-          {renderLocalizedField('网站名称', '📝', settingsData, setSettingsData, 'siteName', '如：Furry Drama Hub')}
-          {renderLocalizedField('欢迎页标题', '🎉', settingsData, setSettingsData, 'welcomeTitle', '如：Welcome to Furry Drama Hub')}
-          {renderLocalizedField('欢迎页副标题', '💬', settingsData, setSettingsData, 'welcomeSubtitle', '如：Discover and track your favorite dramas')}
-          {renderLocalizedField('标签栏标题', '🌐', settingsData, setSettingsData, 'browserTitle', '如：Furry Drama Hub')}
+          {renderLocalizedField(t('adminContent.siteName'), '📝', settingsData, setSettingsData, 'siteName', 'e.g., Furry Drama Hub')}
+          {renderLocalizedField(t('adminContent.welcomeTitle'), '🎉', settingsData, setSettingsData, 'welcomeTitle', 'e.g., Welcome to Furry Drama Hub')}
+          {renderLocalizedField(t('adminContent.welcomeSubtitle'), '💬', settingsData, setSettingsData, 'welcomeSubtitle', 'e.g., Discover and track your favorite dramas')}
+          {renderLocalizedField(t('adminContent.browserTitle'), '🌐', settingsData, setSettingsData, 'browserTitle', 'e.g., Furry Drama Hub')}
 
           <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
-            <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ 效果预览（{currentLang.label}）</h4>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ {t('adminContent.effectPreview')}（{currentLang.label}）</h4>
             <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                 {settingsData.navLogo && <img src={settingsData.navLogo} alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'cover' }} />}
                 <span style={{ fontWeight: 700, fontSize: '16px', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  {getLocVal(settingsData, 'siteName', editLang) || settingsData.siteName || '网站名称'}
+                  {getLocVal(settingsData, 'siteName', editLang) || settingsData.siteName || t('adminContent.siteName')}
                 </span>
               </div>
               <div style={{ textAlign: 'center', padding: '24px 16px' }}>
                 <h3 style={{ margin: '0 0 6px 0', color: 'var(--foreground)', fontSize: '16px' }}>
-                  {getLocVal(settingsData, 'welcomeTitle', editLang) || settingsData.welcomeTitle || '欢迎标题'}
+                  {getLocVal(settingsData, 'welcomeTitle', editLang) || settingsData.welcomeTitle || t('adminContent.welcomeTitle')}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>
-                  {getLocVal(settingsData, 'welcomeSubtitle', editLang) || settingsData.welcomeSubtitle || '欢迎副标题'}
+                  {getLocVal(settingsData, 'welcomeSubtitle', editLang) || settingsData.welcomeSubtitle || t('adminContent.welcomeSubtitle')}
                 </p>
               </div>
             </div>
@@ -341,17 +332,17 @@ const AdminSiteContent = () => {
     return (
       <div>
         <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🌐 浏览器标签栏</h4>
-          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>设置浏览器标签页显示的图标和标题</p>
+          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🌐 {t('adminContent.browserTab')}</h4>
+          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('adminContent.browserTabDesc')}</p>
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>标签栏图标（Favicon）</label>
+            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>{t('adminContent.favicon')}</label>
             <ImageUploader label="Favicon" value={settingsData.favicon} onChange={(url) => setSettingsData(prev => ({ ...prev, favicon: url }))} aspectRatio={1} outputWidth={32} outputHeight={32} />
-            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '6px' }}>建议使用 32x32 或 64x64 的正方形图标（.ico/.png）</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '6px' }}>{t('adminContent.faviconHint')}</p>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>标签栏标题</label>
-            <input type="text" value={settingsData.browserTitle} onChange={(e) => setSettingsData(prev => ({ ...prev, browserTitle: e.target.value }))} placeholder="如：兽剧聚合平台" />
-            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>显示在浏览器标签页上的文字</p>
+            <label>{t('adminContent.browserTitleLabel')}</label>
+            <input type="text" value={settingsData.browserTitle} onChange={(e) => setSettingsData(prev => ({ ...prev, browserTitle: e.target.value }))} placeholder={t('adminContent.browserTitlePlaceholder')} />
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.browserTitleHint')}</p>
           </div>
           <div style={{
             marginTop: '16px', padding: '12px', borderRadius: '8px',
@@ -370,43 +361,43 @@ const AdminSiteContent = () => {
               )}
             </div>
             <span style={{ fontSize: '13px', color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {settingsData.browserTitle || '网站标题'}
+              {settingsData.browserTitle || t('adminContent.browserTitle')}
             </span>
           </div>
         </div>
 
         <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🏷️ 导航栏Logo</h4>
-          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>显示在导航栏左上角，建议使用正方形小图标</p>
-          <ImageUploader label="导航栏Logo" value={settingsData.navLogo} onChange={(url) => setSettingsData(prev => ({ ...prev, navLogo: url }))} aspectRatio={1} outputWidth={64} outputHeight={64} />
+          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🏷️ {t('adminContent.navLogo')}</h4>
+          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('adminContent.navLogoDesc')}</p>
+          <ImageUploader label={t('adminContent.navLogoLabel')} value={settingsData.navLogo} onChange={(url) => setSettingsData(prev => ({ ...prev, navLogo: url }))} aspectRatio={1} outputWidth={64} outputHeight={64} />
         </div>
 
         <div className="form-group">
-          <label>📝 网站名称</label>
-          <input type="text" value={settingsData.siteName} onChange={(e) => setSettingsData(prev => ({ ...prev, siteName: e.target.value }))} placeholder="如：兽剧聚合平台" />
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>显示在导航栏左上角</p>
+          <label>📝 {t('adminContent.siteNameLabel')}</label>
+          <input type="text" value={settingsData.siteName} onChange={(e) => setSettingsData(prev => ({ ...prev, siteName: e.target.value }))} placeholder={t('adminContent.siteNamePlaceholder')} />
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>{t('adminContent.siteNameHint')}</p>
         </div>
 
         <div className="form-group">
-          <label>🎉 欢迎页标题</label>
-          <input type="text" value={settingsData.welcomeTitle} onChange={(e) => setSettingsData(prev => ({ ...prev, welcomeTitle: e.target.value }))} placeholder="如：欢迎来到兽剧聚合平台" />
+          <label>🎉 {t('adminContent.welcomeTitleLabel')}</label>
+          <input type="text" value={settingsData.welcomeTitle} onChange={(e) => setSettingsData(prev => ({ ...prev, welcomeTitle: e.target.value }))} placeholder={t('adminContent.welcomeTitlePlaceholder')} />
         </div>
 
         <div className="form-group">
-          <label>💬 欢迎页副标题</label>
-          <input type="text" value={settingsData.welcomeSubtitle} onChange={(e) => setSettingsData(prev => ({ ...prev, welcomeSubtitle: e.target.value }))} placeholder="如：发现和追踪你喜爱的兽剧内容" />
+          <label>💬 {t('adminContent.welcomeSubtitleLabel')}</label>
+          <input type="text" value={settingsData.welcomeSubtitle} onChange={(e) => setSettingsData(prev => ({ ...prev, welcomeSubtitle: e.target.value }))} placeholder={t('adminContent.welcomeSubtitlePlaceholder')} />
         </div>
 
         <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
-          <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ 效果预览</h4>
+          <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ {t('adminContent.effectPreview')}</h4>
           <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
               {settingsData.navLogo && <img src={settingsData.navLogo} alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'cover' }} />}
-              <span style={{ fontWeight: 700, fontSize: '16px', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{settingsData.siteName || '网站名称'}</span>
+              <span style={{ fontWeight: 700, fontSize: '16px', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{settingsData.siteName || t('adminContent.siteName')}</span>
             </div>
             <div style={{ textAlign: 'center', padding: '24px 16px' }}>
-              <h3 style={{ margin: '0 0 6px 0', color: 'var(--foreground)', fontSize: '16px' }}>{settingsData.welcomeTitle || '欢迎标题'}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>{settingsData.welcomeSubtitle || '欢迎副标题'}</p>
+              <h3 style={{ margin: '0 0 6px 0', color: 'var(--foreground)', fontSize: '16px' }}>{settingsData.welcomeTitle || t('adminContent.welcomeTitle')}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>{settingsData.welcomeSubtitle || t('adminContent.welcomeSubtitle')}</p>
             </div>
           </div>
         </div>
@@ -424,18 +415,18 @@ const AdminSiteContent = () => {
             borderRadius: '12px', padding: '16px', marginBottom: '20px',
           }}>
             <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>
-              🌐 {currentLang.flag} {currentLang.label} 翻译
+              🌐 {currentLang.flag} {currentLang.label} {t('adminContent.translationTitle')}
             </h4>
             <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-              编辑 {currentLang.label} 版本的关于页面文本，图片、版本号、更新日志等各语言共享
+              {t('adminContent.translationDesc', { lang: currentLang.label })}
             </p>
           </div>
-          {renderLocalizedField('网站简介', '📝', aboutData, setAboutData, 'description', '输入网站简介描述...', true)}
-          {renderLocalizedField('AI生成声明', '🤖', aboutData, setAboutData, 'aiDisclaimer', '如：Some content on this site is generated by AI')}
-          {renderLocalizedField('版权信息', '©', aboutData, setAboutData, 'copyright', '如：© 2026 09兽')}
+          {renderLocalizedField(t('adminContent.siteDesc'), '📝', aboutData, setAboutData, 'description', t('adminContent.siteDescPlaceholder'), true)}
+          {renderLocalizedField(t('adminContent.aiDisclaimer'), '🤖', aboutData, setAboutData, 'aiDisclaimer', 'e.g., Some content on this site is generated by AI')}
+          {renderLocalizedField(t('adminContent.copyright'), '©', aboutData, setAboutData, 'copyright', 'e.g., © 2026 09兽')}
 
           <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
-            <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ 页面预览（{currentLang.label}）</h4>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ {t('adminContent.pagePreview')}（{currentLang.label}）</h4>
             <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
               {aboutData.banner && (
                 <div style={{ height: '100px', overflow: 'hidden' }}>
@@ -444,13 +435,13 @@ const AdminSiteContent = () => {
               )}
               <div style={{ textAlign: 'center', padding: '20px 16px' }}>
                 {aboutData.logo && (<img src={aboutData.logo} alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', marginBottom: '10px' }} />)}
-                <h3 style={{ margin: '0 0 4px 0', color: 'var(--foreground)', fontSize: '15px' }}>关于我们</h3>
+                <h3 style={{ margin: '0 0 4px 0', color: 'var(--foreground)', fontSize: '15px' }}>{t('adminContent.aboutUs')}</h3>
                 {(getLocVal(aboutData, 'description', editLang) || aboutData.description) && (
                   <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: '6px 0 0 0', lineHeight: 1.5 }}>
                     {getLocVal(aboutData, 'description', editLang) || aboutData.description}
                   </p>
                 )}
-                {aboutData.version && <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', margin: '6px 0 0 0' }}>版本 {aboutData.version}</p>}
+                {aboutData.version && <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', margin: '6px 0 0 0' }}>{t('adminContent.version')} {aboutData.version}</p>}
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '10px', fontSize: '10px', color: 'var(--text-tertiary)' }}>
                   {(getLocVal(aboutData, 'copyright', editLang) || aboutData.copyright) && <p style={{ margin: '1px 0' }}>{getLocVal(aboutData, 'copyright', editLang) || aboutData.copyright}</p>}
                   {(getLocVal(aboutData, 'aiDisclaimer', editLang) || aboutData.aiDisclaimer) && <p style={{ margin: '1px 0', fontStyle: 'italic' }}>{getLocVal(aboutData, 'aiDisclaimer', editLang) || aboutData.aiDisclaimer}</p>}
@@ -465,40 +456,40 @@ const AdminSiteContent = () => {
     return (
       <div>
         <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🖼️ 横幅图片</h4>
-          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>显示在关于我们页面顶部，建议使用宽幅图片</p>
-          <ImageUploader label="横幅图片" value={aboutData.banner} onChange={(url) => setAboutData(prev => ({ ...prev, banner: url }))} aspectRatio={3} outputWidth={1200} outputHeight={400} />
+          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🖼️ {t('adminContent.bannerImage')}</h4>
+          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('adminContent.bannerImageDesc')}</p>
+          <ImageUploader label={t('adminContent.bannerImage')} value={aboutData.banner} onChange={(url) => setAboutData(prev => ({ ...prev, banner: url }))} aspectRatio={3} outputWidth={1200} outputHeight={400} />
         </div>
 
         <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🏷️ 网站Logo</h4>
-          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>网站标志图标，建议使用正方形图片</p>
-          <ImageUploader label="网站Logo" value={aboutData.logo} onChange={(url) => setAboutData(prev => ({ ...prev, logo: url }))} aspectRatio={1} outputWidth={200} outputHeight={200} />
+          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🏷️ {t('adminContent.siteLogo')}</h4>
+          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('adminContent.siteLogoDesc')}</p>
+          <ImageUploader label={t('adminContent.siteLogo')} value={aboutData.logo} onChange={(url) => setAboutData(prev => ({ ...prev, logo: url }))} aspectRatio={1} outputWidth={200} outputHeight={200} />
         </div>
 
         <div className="form-group">
-          <label>📝 网站简介</label>
-          <textarea value={aboutData.description} onChange={(e) => setAboutData(prev => ({ ...prev, description: e.target.value }))} placeholder="输入网站简介描述..." rows={3} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', fontSize: '14px', lineHeight: 1.6, resize: 'vertical' }} />
+          <label>📝 {t('adminContent.siteDesc')}</label>
+          <textarea value={aboutData.description} onChange={(e) => setAboutData(prev => ({ ...prev, description: e.target.value }))} placeholder={t('adminContent.siteDescPlaceholder')} rows={3} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', fontSize: '14px', lineHeight: 1.6, resize: 'vertical' }} />
         </div>
 
         <div className="form-group">
-          <label>🔢 版本号</label>
-          <input type="text" value={aboutData.version} onChange={(e) => setAboutData(prev => ({ ...prev, version: e.target.value }))} placeholder="如：1.0.0" />
+          <label>🔢 {t('adminContent.versionNumber')}</label>
+          <input type="text" value={aboutData.version} onChange={(e) => setAboutData(prev => ({ ...prev, version: e.target.value }))} placeholder="e.g., 1.0.0" />
         </div>
 
         <div className="form-group">
-          <label>📋 版本更新日志</label>
+          <label>📋 {t('adminContent.changelog')}</label>
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 12px 0', lineHeight: 1.6 }}>
-            每个版本的更新日志独立保存，发布新版本后旧版本日志仍可查看。点击"发布新版本"将当前版本号和更新内容写入日志。
+            {t('adminContent.changelogDesc')}
           </p>
           <div style={{
             padding: '14px', borderRadius: '10px', marginBottom: '12px',
             background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)'
           }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>当前版本更新内容</h4>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>{t('adminContent.currentVersionUpdates')}</h4>
             <div style={{ marginBottom: '10px' }}>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder="输入更新内容后回车添加" style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px', minWidth: 0 }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
+                <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder={t('adminContent.updateInputPlaceholder')} style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px', minWidth: 0 }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
                 <button type="button" style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary-light)', cursor: 'pointer', fontSize: '14px', width: '26px', height: '26px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1 }} onClick={addUpdate}>+</button>
               </div>
             </div>
@@ -522,7 +513,7 @@ const AdminSiteContent = () => {
               </div>
             )}
             <button type="button" className="btn" style={{ fontSize: '13px', padding: '8px 16px' }} onClick={() => {
-              if (aboutData.updates.length === 0) { setMessage('请先添加更新内容'); return; }
+              if (aboutData.updates.length === 0) { setMessage(t('adminContent.addUpdatesFirst')); return; }
               const newEntry = {
                 version: aboutData.version,
                 date: new Date().toISOString().split('T')[0],
@@ -539,15 +530,15 @@ const AdminSiteContent = () => {
               }
               setAboutData(prev => ({ ...prev, changelog: newChangelog, updates: [] }));
               setNewUpdate('');
-              setMessage('版本日志已发布，更新内容已归档到 v' + aboutData.version);
+              setMessage(t('adminContent.versionLogPublished', { version: aboutData.version }));
             }}>
-              📦 发布 v{aboutData.version} 版本日志
+              📦 {t('adminContent.publishVersionLog', { version: aboutData.version })}
             </button>
           </div>
 
           {aboutData.changelog.length > 0 && (
             <div>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>历史版本日志</h4>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>{t('adminContent.historyChangelog')}</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {aboutData.changelog.map((entry, idx) => (
                   <div key={idx} style={{
@@ -562,7 +553,7 @@ const AdminSiteContent = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ color: 'var(--primary-light)', fontSize: '12px', fontWeight: 700, background: 'var(--primary-bg)', borderRadius: '4px', padding: '2px 8px' }}>v{entry.version}</span>
                         <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{entry.date}</span>
-                        {idx === 0 && <span style={{ fontSize: '10px', color: 'var(--success-text)', background: 'var(--success-bg)', padding: '1px 6px', borderRadius: '3px' }}>最新</span>}
+                        {idx === 0 && <span style={{ fontSize: '10px', color: 'var(--success-text)', background: 'var(--success-bg)', padding: '1px 6px', borderRadius: '3px' }}>{t('adminContent.latest')}</span>}
                       </div>
                       <button type="button" onClick={() => {
                         setAboutData(prev => ({ ...prev, changelog: prev.changelog.filter((_, i) => i !== idx) }));
@@ -590,7 +581,7 @@ const AdminSiteContent = () => {
                         </div>
                       ))}
                       <div style={{ display: 'flex', gap: '6px', marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed var(--border)' }}>
-                        <input type="text" value={changelogInputs[idx] || ''} onChange={(e) => setChangelogInputs(prev => ({ ...prev, [idx]: e.target.value }))} placeholder="输入追加内容后回车添加" style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '12px', minWidth: 0 }} onKeyDown={(e) => {
+                        <input type="text" value={changelogInputs[idx] || ''} onChange={(e) => setChangelogInputs(prev => ({ ...prev, [idx]: e.target.value }))} placeholder={t('adminContent.appendInputPlaceholder')} style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '12px', minWidth: 0 }} onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             const val = (changelogInputs[idx] || '').trim();
@@ -626,27 +617,27 @@ const AdminSiteContent = () => {
         </div>
 
         <div className="form-group">
-          <label>🌐 ICP备案号</label>
-          <input type="text" value={aboutData.icp} onChange={(e) => setAboutData(prev => ({ ...prev, icp: e.target.value }))} placeholder="如：京ICP备XXXXXXXX号" />
+          <label>🌐 {t('adminContent.icpFiling')}</label>
+          <input type="text" value={aboutData.icp} onChange={(e) => setAboutData(prev => ({ ...prev, icp: e.target.value }))} placeholder={t('adminContent.icpPlaceholder')} />
         </div>
 
         <div className="form-group">
-          <label>🛡️ 公安联网备案号</label>
-          <input type="text" value={aboutData.policeRecord} onChange={(e) => setAboutData(prev => ({ ...prev, policeRecord: e.target.value }))} placeholder="如：京公网安备XXXXXXXXXXXXXX号" />
+          <label>🛡️ {t('adminContent.policeFiling')}</label>
+          <input type="text" value={aboutData.policeRecord} onChange={(e) => setAboutData(prev => ({ ...prev, policeRecord: e.target.value }))} placeholder={t('adminContent.policePlaceholder')} />
         </div>
 
         <div className="form-group">
-          <label>🤖 AI生成声明</label>
-          <input type="text" value={aboutData.aiDisclaimer} onChange={(e) => setAboutData(prev => ({ ...prev, aiDisclaimer: e.target.value }))} placeholder="如：本网站部分内容由AI生成" />
+          <label>🤖 {t('adminContent.aiDisclaimer')}</label>
+          <input type="text" value={aboutData.aiDisclaimer} onChange={(e) => setAboutData(prev => ({ ...prev, aiDisclaimer: e.target.value }))} placeholder={t('adminContent.aiDisclaimerPlaceholder')} />
         </div>
 
         <div className="form-group">
-          <label>© 版权信息</label>
-          <input type="text" value={aboutData.copyright} onChange={(e) => setAboutData(prev => ({ ...prev, copyright: e.target.value }))} placeholder="如：© 2026 09兽" />
+          <label>© {t('adminContent.copyright')}</label>
+          <input type="text" value={aboutData.copyright} onChange={(e) => setAboutData(prev => ({ ...prev, copyright: e.target.value }))} placeholder={t('adminContent.copyrightPlaceholder')} />
         </div>
 
         <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '20px', marginTop: '20px' }}>
-          <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ 页面预览</h4>
+          <h4 style={{ margin: '0 0 12px 0', color: 'var(--foreground)', fontSize: '14px' }}>👁️ {t('adminContent.pagePreview')}</h4>
           <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
             {aboutData.banner && (
               <div style={{ height: '100px', overflow: 'hidden' }}>
@@ -655,12 +646,12 @@ const AdminSiteContent = () => {
             )}
             <div style={{ textAlign: 'center', padding: '20px 16px' }}>
               {aboutData.logo && (<img src={aboutData.logo} alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', marginBottom: '10px' }} />)}
-              <h3 style={{ margin: '0 0 4px 0', color: 'var(--foreground)', fontSize: '15px' }}>关于我们</h3>
+              <h3 style={{ margin: '0 0 4px 0', color: 'var(--foreground)', fontSize: '15px' }}>{t('adminContent.aboutUs')}</h3>
               {aboutData.description && (<p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: '6px 0 0 0', lineHeight: 1.5 }}>{aboutData.description}</p>)}
-              {aboutData.version && <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', margin: '6px 0 0 0' }}>版本 {aboutData.version}</p>}
+              {aboutData.version && <p style={{ color: 'var(--text-tertiary)', fontSize: '11px', margin: '6px 0 0 0' }}>{t('adminContent.version')} {aboutData.version}</p>}
               {aboutData.changelog.length > 0 && (
                 <div style={{ textAlign: 'left', marginTop: '10px' }}>
-                  <p style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 600, margin: '0 0 4px 0' }}>更新日志</p>
+                  <p style={{ color: 'var(--foreground)', fontSize: '12px', fontWeight: 600, margin: '0 0 4px 0' }}>{t('adminContent.updateLog')}</p>
                   {aboutData.changelog.slice(0, 2).map((entry, idx) => (
                     <div key={idx} style={{ marginBottom: '6px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--primary-light)' }}>v{entry.version}</span>
@@ -689,7 +680,7 @@ const AdminSiteContent = () => {
     const currentLang = LANGS.find(l => l.code === editLang);
     return (
       <div className="form-group">
-        <label>内容{editLang !== 'zh' ? `（${currentLang.flag} ${currentLang.label}）` : ''}</label>
+        <label>{t('adminContent.contentLabel')}{editLang !== 'zh' ? `（${currentLang.flag} ${currentLang.label}）` : ''}</label>
         {editLang !== 'zh' && editContentI18n.zh && (
           <div style={{
             marginBottom: '8px', padding: '10px 12px', borderRadius: '8px',
@@ -702,7 +693,7 @@ const AdminSiteContent = () => {
               background: 'var(--card)', padding: '0 6px',
               fontSize: '10px', color: 'var(--text-tertiary)',
               border: '1px solid var(--border)', borderRadius: '3px', marginBottom: '4px',
-            }}>🇨🇳 中文参考</span>
+            }}>🇨🇳 {t('adminContent.chineseRef')}</span>
             <div>{editContentI18n.zh}</div>
           </div>
         )}
@@ -710,7 +701,7 @@ const AdminSiteContent = () => {
           value={editContentI18n[editLang] || ''}
           onChange={(e) => setEditContentI18n(prev => ({ ...prev, [editLang]: e.target.value }))}
           rows={20}
-          placeholder={editLang === 'zh' ? '请输入内容...' : `${currentLang.label}翻译内容...`}
+          placeholder={editLang === 'zh' ? t('adminContent.contentPlaceholder') : t('adminContent.contentTranslationPlaceholder', { lang: currentLang.label })}
           style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', fontSize: '14px', lineHeight: 1.8, resize: 'vertical' }}
         />
       </div>
@@ -721,7 +712,7 @@ const AdminSiteContent = () => {
     <div className="admin-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <h2>网站内容管理</h2>
+          <h2>{t('adminContent.contentManagement')}</h2>
         </div>
       </div>
 
@@ -734,25 +725,25 @@ const AdminSiteContent = () => {
             >
               <h3 style={{ margin: '0 0 8px 0', color: 'var(--foreground)' }}>{item.title}</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 12px 0' }}>
-                {item.key === 'about' ? '网站横幅、Logo、版本、更新日志、备案等' : item.key === 'settings' ? '网站名称、导航栏Logo、欢迎页文字' : item.key === 'privacy' ? '网站隐私政策内容' : '网站用户协议内容'}
+                {item.key === 'about' ? t('adminContent.aboutDesc') : item.key === 'settings' ? t('adminContent.settingsDesc') : item.key === 'privacy' ? t('adminContent.privacyDesc') : t('adminContent.termsDesc')}
               </p>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '12px', margin: 0 }}>最后更新：{new Date(item.updatedAt).toLocaleDateString()}</p>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '12px', margin: 0 }}>{t('adminContent.lastUpdated')}{new Date(item.updatedAt).toLocaleDateString()}</p>
             </div>
           ))}
         </div>
       ) : (
         <div className="form-container" style={{ maxWidth: '800px' }}>
-          <button className="btn btn-secondary" onClick={() => { setEditingKey(null); setMessage(''); }} style={{ marginBottom: '20px' }}>← 返回列表</button>
+          <button className="btn btn-secondary" onClick={() => { setEditingKey(null); setMessage(''); }} style={{ marginBottom: '20px' }}>{t('adminContent.backToList')}</button>
           <div className="form-group">
-            <label>标题</label>
+            <label>{t('adminContent.titleLabel')}</label>
             <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
           </div>
           {renderLangTabs()}
           {editingKey === 'about' ? renderAboutEditor() : editingKey === 'settings' ? renderSettingsEditor() : renderContentEditor()}
           {message && (
-            <div style={{ padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', background: message.includes('成功') ? 'var(--success-bg)' : 'var(--destructive-bg)', color: message.includes('成功') ? 'var(--success-text)' : 'var(--destructive-text)', border: `1px solid ${message.includes('成功') ? 'var(--success-border)' : 'var(--destructive-border)'}` }}>{message}</div>
+            <div style={{ padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', background: message.includes(t('adminContent.saveSuccess')) ? 'var(--success-bg)' : 'var(--destructive-bg)', color: message.includes(t('adminContent.saveSuccess')) ? 'var(--success-text)' : 'var(--destructive-text)', border: `1px solid ${message.includes(t('adminContent.saveSuccess')) ? 'var(--success-border)' : 'var(--destructive-border)'}` }}>{message}</div>
           )}
-          <button className="btn" onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '💾 保存'}</button>
+          <button className="btn" onClick={handleSave} disabled={saving}>{saving ? t('adminContent.saving') : `💾 ${t('adminContent.saveBtn')}`}</button>
         </div>
       )}
     </div>

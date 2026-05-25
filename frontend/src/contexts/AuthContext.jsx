@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async (storedToken, storedUser) => {
       const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
       try {
-        const res = await axios.get('/api/auth/me', { headers, skipRedirect: true });
+        const res = await axios.get('/api/auth/me', { headers, skipRedirect: true, params: { _t: Date.now() } });
         const freshUser = res.data;
         setUser(freshUser);
         localStorage.setItem('user', JSON.stringify(freshUser));
@@ -44,7 +44,6 @@ export const AuthProvider = ({ children }) => {
     if (token && userData) {
       try {
         const parsed = JSON.parse(userData);
-        setUser(parsed);
         initAuth(token, parsed);
       } catch {
         localStorage.removeItem('token');
@@ -54,6 +53,16 @@ export const AuthProvider = ({ children }) => {
     } else {
       initAuth(null, null);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleSessionExpired = (e) => {
+      if (e.detail?.type === 'user') {
+        setUser(null);
+      }
+    };
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    return () => window.removeEventListener('auth:session-expired', handleSessionExpired);
   }, []);
 
   useEffect(() => {
@@ -89,8 +98,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   }, []);
 
+  const updateUser = useCallback((updatedData) => {
+    setUser(prev => {
+      const newUser = typeof updatedData === 'function' ? updatedData(prev) : updatedData;
+      if (newUser) {
+        localStorage.setItem('user', JSON.stringify(newUser));
+      }
+      return newUser;
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, initializing, getAuthHeaders }}>
+    <AuthContext.Provider value={{ user, login, logout, initializing, getAuthHeaders, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

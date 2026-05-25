@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import { useI18n } from '../contexts/I18nContext';
 
 const Badge = ({ count }) => {
   if (!count) return null;
@@ -19,6 +20,7 @@ const Badge = ({ count }) => {
 const AdminDashboard = () => {
   const { admin } = useOutletContext();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [statusMsg, setStatusMsg] = useState('');
   const [pendingCounts, setPendingCounts] = useState({ episodes: 0, reports: 0, feedbacks: 0, friendLinks: 0 });
   const statusTimerRef = useRef(null);
@@ -52,25 +54,25 @@ const AdminDashboard = () => {
   return (
     <>
       <div style={{marginBottom: '30px'}}>
-        <h2>欢迎，{admin.username}</h2>
+        <h2>{t('adminDashboard.welcome', { name: admin.username })}</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-          角色权限：{admin.role === 'superadmin' ? '超级管理员' : admin.role === 'admin' ? '管理员' : '创作者'}
+          {t('adminDashboard.roleLabel')}{admin.role === 'superadmin' ? t('adminDashboard.roleSuperadmin') : admin.role === 'admin' ? t('adminDashboard.roleAdmin') : t('adminDashboard.roleCreator')}
         </p>
       </div>
 
       <div className="dashboard-cards">
         <Link to="/admin/episodes" className="dashboard-card" style={{ position: 'relative' }}>
           <div className="card-icon">🎬</div>
-          <h3>剧集管理</h3>
-          <p>{admin.role === 'creator' ? '创建和管理我的剧集' : '添加、编辑和管理剧集'}</p>
+          <h3>{t('adminDashboard.episodeManagement')}</h3>
+          <p>{admin.role === 'creator' ? t('adminDashboard.episodeManagementDescCreator') : t('adminDashboard.episodeManagementDesc')}</p>
           <Badge count={pendingCounts.episodes} />
         </Link>
 
         {admin.role === 'creator' && (
           <Link to="/admin/creator-profile" className="dashboard-card">
             <div className="card-icon">👤</div>
-            <h3>管理主页</h3>
-            <p>编辑我的创作者主页</p>
+            <h3>{t('adminDashboard.creatorProfile')}</h3>
+            <p>{t('adminDashboard.creatorProfileDesc')}</p>
           </Link>
         )}
 
@@ -78,14 +80,14 @@ const AdminDashboard = () => {
           <>
             <Link to="/admin/categories" className="dashboard-card">
               <div className="card-icon">🏷️</div>
-              <h3>分类管理</h3>
-              <p>添加、编辑和管理分类</p>
+              <h3>{t('adminDashboard.categoryManagement')}</h3>
+              <p>{t('adminDashboard.categoryManagementDesc')}</p>
             </Link>
 
             <Link to="/admin/banners" className="dashboard-card">
               <div className="card-icon">🖼️</div>
-              <h3>轮播图管理</h3>
-              <p>管理首页轮播图内容</p>
+              <h3>{t('adminDashboard.bannerManagement')}</h3>
+              <p>{t('adminDashboard.bannerManagementDesc')}</p>
             </Link>
           </>
         )}
@@ -93,48 +95,48 @@ const AdminDashboard = () => {
         {admin.role === 'superadmin' && (
           <Link to="/admin/users" className="dashboard-card">
             <div className="card-icon">👥</div>
-            <h3>用户管理</h3>
-            <p>添加和管理账号</p>
+            <h3>{t('adminDashboard.userManagement')}</h3>
+            <p>{t('adminDashboard.userManagementDesc')}</p>
           </Link>
         )}
 
         {admin.role === 'superadmin' && (
           <Link to="/admin/site-content" className="dashboard-card">
             <div className="card-icon">📝</div>
-            <h3>网站内容管理</h3>
-            <p>编辑隐私政策、用户协议、关于我们</p>
+            <h3>{t('adminDashboard.siteContentManagement')}</h3>
+            <p>{t('adminDashboard.siteContentManagementDesc')}</p>
           </Link>
         )}
 
         {admin.role === 'superadmin' && (
           <Link to="/admin/email-settings" className="dashboard-card">
             <div className="card-icon">📧</div>
-            <h3>邮件服务设置</h3>
-            <p>配置SMTP邮件发送服务</p>
+            <h3>{t('adminDashboard.emailSettings')}</h3>
+            <p>{t('adminDashboard.emailSettingsDesc')}</p>
           </Link>
         )}
 
         {admin.role === 'superadmin' && (
           <Link to="/admin/audit-logs" className="dashboard-card">
             <div className="card-icon">📋</div>
-            <h3>操作日志</h3>
-            <p>查看管理员操作记录</p>
+            <h3>{t('adminDashboard.auditLogs')}</h3>
+            <p>{t('adminDashboard.auditLogsDesc')}</p>
           </Link>
         )}
 
         {admin.role === 'superadmin' && (
           <Link to="/admin/backup" className="dashboard-card">
             <div className="card-icon">💾</div>
-            <h3>数据备份与恢复</h3>
-            <p>导出和恢复数据库</p>
+            <h3>{t('adminDashboard.backup')}</h3>
+            <p>{t('adminDashboard.backupDesc')}</p>
           </Link>
         )}
 
         {admin.role === 'superadmin' && (
           <Link to="/admin/friend-links" className="dashboard-card" style={{ position: 'relative' }}>
             <div className="card-icon">🔗</div>
-            <h3>友链管理</h3>
-            <p>添加、编辑和管理友情链接</p>
+            <h3>{t('adminDashboard.friendLinks')}</h3>
+            <p>{t('adminDashboard.friendLinksDesc')}</p>
             <Badge count={pendingCounts.friendLinks} />
           </Link>
         )}
@@ -142,32 +144,32 @@ const AdminDashboard = () => {
         {admin.role === 'superadmin' && (
           <Link to="/admin/sessions" className="dashboard-card">
             <div className="card-icon">📱</div>
-            <h3>设备管理</h3>
-            <p>管理账号登录设备</p>
+            <h3>{t('adminDashboard.deviceManagement')}</h3>
+            <p>{t('adminDashboard.deviceManagementDesc')}</p>
           </Link>
         )}
 
         {admin.role === 'superadmin' && (
           <Link to="/admin/api-usage" className="dashboard-card">
             <div className="card-icon">📊</div>
-            <h3>API用量监控</h3>
-            <p>查看接口调用统计</p>
+            <h3>{t('adminDashboard.apiUsage')}</h3>
+            <p>{t('adminDashboard.apiUsageDesc')}</p>
           </Link>
         )}
 
         {(admin.role === 'admin' || admin.role === 'superadmin') && (
           <Link to="/admin/analytics" className="dashboard-card">
             <div className="card-icon">📈</div>
-            <h3>数据分析</h3>
-            <p>用户活跃度、热门剧集、留存率</p>
+            <h3>{t('adminDashboard.analytics')}</h3>
+            <p>{t('adminDashboard.analyticsDesc')}</p>
           </Link>
         )}
 
         {(admin.role === 'admin' || admin.role === 'superadmin') && (
           <Link to="/admin/feedback" className="dashboard-card" style={{ position: 'relative' }}>
             <div className="card-icon">💬</div>
-            <h3>用户反馈</h3>
-            <p>查看和回复用户反馈</p>
+            <h3>{t('adminDashboard.feedback')}</h3>
+            <p>{t('adminDashboard.feedbackDesc')}</p>
             <Badge count={pendingCounts.feedbacks} />
           </Link>
         )}
@@ -175,8 +177,8 @@ const AdminDashboard = () => {
         {(admin.role === 'admin' || admin.role === 'superadmin') && (
           <Link to="/admin/review" className="dashboard-card" style={{ position: 'relative' }}>
             <div className="card-icon">✅</div>
-            <h3>审核管理</h3>
-            <p>审核创作者提交的剧集</p>
+            <h3>{t('adminDashboard.reviewManagement')}</h3>
+            <p>{t('adminDashboard.reviewManagementDesc')}</p>
             <Badge count={pendingCounts.episodes} />
           </Link>
         )}
@@ -184,39 +186,39 @@ const AdminDashboard = () => {
         {(admin.role === 'admin' || admin.role === 'superadmin') && (
           <Link to="/admin/reports" className="dashboard-card" style={{ position: 'relative' }}>
             <div className="card-icon">🚨</div>
-            <h3>举报管理</h3>
-            <p>处理用户举报</p>
+            <h3>{t('adminDashboard.reportManagement')}</h3>
+            <p>{t('adminDashboard.reportManagementDesc')}</p>
             <Badge count={pendingCounts.reports} />
           </Link>
         )}
 
         <Link to="/admin/change-password" className="dashboard-card">
           <div className="card-icon">🔐</div>
-          <h3>修改密码</h3>
-          <p>修改登录密码</p>
+          <h3>{t('adminDashboard.changePassword')}</h3>
+          <p>{t('adminDashboard.changePasswordDesc')}</p>
         </Link>
       </div>
 
       {admin.role === 'superadmin' && (
         <div style={{ marginTop: '24px', background: 'var(--card)', borderRadius: '12px', padding: '20px', border: '1px solid var(--border)' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--foreground)' }}>⚙️ 自动状态流转</h3>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--foreground)' }}>{t('adminDashboard.autoStatusFlow')}</h3>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={async () => {
               try {
                 const token = localStorage.getItem('adminToken');
                 const res = await axios.post('/api/auto-status/auto-complete', {}, { headers: { Authorization: `Bearer ${token}` } });
                 setStatusMsg(res.data.message);
-              } catch (e) { setStatusMsg('操作失败'); }
+              } catch (e) { setStatusMsg(t('adminDashboard.operationFailed')); }
               clearStatusMsg();
-            }}>🔄 自动标记已完结</button>
+            }}>{t('adminDashboard.autoMarkCompleted')}</button>
             <button className="btn btn-secondary" onClick={async () => {
               try {
                 const token = localStorage.getItem('adminToken');
                 const res = await axios.post('/api/auto-status/check-premieres', {}, { headers: { Authorization: `Bearer ${token}` } });
                 setStatusMsg(res.data.message);
-              } catch (e) { setStatusMsg('操作失败'); }
+              } catch (e) { setStatusMsg(t('adminDashboard.operationFailed')); }
               clearStatusMsg();
-            }}>🎬 发布到期预告</button>
+            }}>{t('adminDashboard.publishDuePremieres')}</button>
           </div>
           {statusMsg && <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--success-text)' }}>{statusMsg}</p>}
         </div>

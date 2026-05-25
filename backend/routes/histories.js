@@ -16,16 +16,30 @@ router.post('/record', protect, async (req, res) => {
         userId: req.user._id,
         episodeId,
         watchedEpisodes: [epNum],
+        lastWatchedEpisodeNumber: epNum,
         lastWatched: Date.now()
       });
     } else {
       if (!history.watchedEpisodes.includes(epNum)) {
         history.watchedEpisodes.push(epNum);
       }
+      history.lastWatchedEpisodeNumber = epNum;
       history.lastWatched = Date.now();
       await history.save();
     }
     res.json(history);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/continue-watching', protect, async (req, res) => {
+  try {
+    const list = await History.find({ userId: req.user._id })
+      .populate('episodeId', 'title titleEn titleJa coverImage totalEpisodes currentEpisodes status category tags views averageRating')
+      .sort({ lastWatched: -1 })
+      .limit(10);
+    res.json(list);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -39,7 +53,7 @@ router.get('/list', protect, async (req, res) => {
     const total = await History.countDocuments({ userId: req.user._id });
     const totalPages = Math.ceil(total / limitNum);
     const list = await History.find({ userId: req.user._id })
-      .populate('episodeId')
+      .populate('episodeId', 'title titleEn titleJa coverImage totalEpisodes currentEpisodes status category tags views averageRating')
       .sort({ lastWatched: -1 })
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum);
@@ -52,7 +66,15 @@ router.get('/list', protect, async (req, res) => {
 router.get('/check/:episodeId', protect, async (req, res) => {
   try {
     const history = await History.findOne({ userId: req.user._id, episodeId: req.params.episodeId });
-    res.json(history ? { watchedEpisodes: history.watchedEpisodes } : { watchedEpisodes: [] });
+    if (history) {
+      res.json({
+        watchedEpisodes: history.watchedEpisodes,
+        lastWatchedEpisodeNumber: history.lastWatchedEpisodeNumber,
+        lastWatched: history.lastWatched
+      });
+    } else {
+      res.json({ watchedEpisodes: [], lastWatchedEpisodeNumber: null, lastWatched: null });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

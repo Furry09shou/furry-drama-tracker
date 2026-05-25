@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ImageUploader from './ImageUploader';
+import { useI18n } from '../contexts/I18nContext';
 
 const AdminCreatorProfile = () => {
   const [admin, setAdmin] = useState(null);
@@ -13,6 +14,7 @@ const AdminCreatorProfile = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -63,9 +65,9 @@ const AdminCreatorProfile = () => {
         displayName, avatar, bio, socialLinks: linksObj
       }, { headers: { Authorization: `Bearer ${token}` } });
       setProfile(res.data);
-      setMessage('保存成功');
+      setMessage(t('adminCreatorProfile.saveSuccess'));
     } catch (err) {
-      setMessage(err.response?.data?.message || '保存失败');
+      setMessage(err.response?.data?.message || t('adminCreatorProfile.saveFailed'));
     }
     setSaving(false);
   };
@@ -76,23 +78,23 @@ const AdminCreatorProfile = () => {
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <h2>管理我的主页</h2>
+          <h2>{t('adminCreatorProfile.title')}</h2>
         </div>
       </div>
 
       <div className="form-container" style={{maxWidth: '700px'}}>
         <div className="form-group">
-          <label>显示名称</label>
+          <label>{t('adminCreatorProfile.displayName')}</label>
           <input
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="创作者显示名称"
+            placeholder={t('adminCreatorProfile.displayNamePlaceholder')}
           />
         </div>
 
         <div className="form-group">
-          <label>头像</label>
+          <label>{t('adminCreatorProfile.avatar')}</label>
           <ImageUploader
             value={avatar}
             onChange={setAvatar}
@@ -104,18 +106,18 @@ const AdminCreatorProfile = () => {
         </div>
 
         <div className="form-group">
-          <label>个人简介</label>
+          <label>{t('adminCreatorProfile.bio')}</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="介绍一下自己..."
+            placeholder={t('adminCreatorProfile.bioPlaceholder')}
             rows={4}
             style={{width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', resize: 'vertical'}}
           />
         </div>
 
         <div className="form-group">
-          <label>社交链接</label>
+          <label>{t('adminCreatorProfile.socialLinks')}</label>
           <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
             {socialLinks.map((item, index) => (
               <div key={index} style={{
@@ -123,7 +125,7 @@ const AdminCreatorProfile = () => {
                 borderRadius: '8px', padding: '12px'
               }}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
-                  <span style={{fontSize: '13px', color: 'var(--text-secondary)'}}>链接 {index + 1}</span>
+                  <span style={{fontSize: '13px', color: 'var(--text-secondary)'}}>{t('adminCreatorProfile.linkIndex')} {index + 1}</span>
                   <button
                     type="button"
                     onClick={() => setSocialLinks(socialLinks.filter((_, i) => i !== index))}
@@ -132,7 +134,7 @@ const AdminCreatorProfile = () => {
                       color: 'var(--destructive-text)', borderRadius: '6px', padding: '4px 10px',
                       cursor: 'pointer', fontSize: '12px', lineHeight: 1
                     }}
-                  >删除</button>
+                  >{t('adminCreatorProfile.delete')}</button>
                 </div>
                 <div style={{display: 'flex', flexDirection: 'column', gap: '6px'}}>
                   <input
@@ -143,7 +145,7 @@ const AdminCreatorProfile = () => {
                       newList[index] = {...newList[index], name: e.target.value};
                       setSocialLinks(newList);
                     }}
-                    placeholder="平台名称，如：Twitter、B站"
+                    placeholder={t('adminCreatorProfile.platformNamePlaceholder')}
                     style={{width: '100%'}}
                   />
                   <input
@@ -154,7 +156,7 @@ const AdminCreatorProfile = () => {
                       newList[index] = {...newList[index], url: e.target.value};
                       setSocialLinks(newList);
                     }}
-                    placeholder="链接地址"
+                    placeholder={t('adminCreatorProfile.linkUrlPlaceholder')}
                     style={{width: '100%'}}
                   />
                 </div>
@@ -168,31 +170,31 @@ const AdminCreatorProfile = () => {
                 color: 'var(--primary)', borderRadius: '8px', padding: '10px',
                 cursor: 'pointer', fontSize: '14px'
               }}
-            >+ 添加社交链接</button>
+            >{t('adminCreatorProfile.addSocialLink')}</button>
           </div>
         </div>
 
         {message && (
           <div style={{
             padding: '10px 16px', borderRadius: '8px', marginBottom: '16px',
-            background: message.includes('成功') ? 'var(--success-bg)' : 'var(--destructive-bg)',
-            color: message.includes('成功') ? 'var(--success-text)' : 'var(--destructive-text)',
-            border: `1px solid ${message.includes('成功') ? 'var(--success-border)' : 'var(--destructive-border)'}`
+            background: message.includes(t('adminCreatorProfile.successKeyword')) ? 'var(--success-bg)' : 'var(--destructive-bg)',
+            color: message.includes(t('adminCreatorProfile.successKeyword')) ? 'var(--success-text)' : 'var(--destructive-text)',
+            border: `1px solid ${message.includes(t('adminCreatorProfile.successKeyword')) ? 'var(--success-border)' : 'var(--destructive-border)'}`
           }}>{message}</div>
         )}
 
         <button className="btn" onClick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存主页'}
+          {saving ? t('adminCreatorProfile.saving') : t('adminCreatorProfile.saveProfile')}
         </button>
 
         {profile && (
           <div style={{marginTop: '20px', padding: '16px', background: 'var(--primary-bg-subtle)', borderRadius: '8px', border: '1px solid var(--primary-border-subtle)'}}>
             <p style={{margin: '0 0 8px 0', fontSize: '14px', color: 'var(--foreground)'}}>
-              <strong>主页链接：</strong>
+              <strong>{t('adminCreatorProfile.profileLinkLabel')}</strong>
               <Link
                 to={`/creator/${admin._id}`}
                 style={{color: 'var(--primary)', textDecoration: 'none', marginLeft: '8px'}}
-              >点击查看我的主页</Link>
+              >{t('adminCreatorProfile.viewMyProfile')}</Link>
             </p>
           </div>
         )}

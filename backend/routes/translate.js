@@ -2,51 +2,128 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const https = require('https');
+const { translate: bingTranslate } = require('bing-translate-api');
 
 const translateLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 200,
   message: { message: 'Too many translation requests' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-const LANG_MAP = { zh: 'zh-CN', en: 'en', ja: 'ja' };
+const LANG_MAP = { zh: 'zh-Hans', en: 'en' };
+
+const AZURE_TRANSLATOR_KEY = process.env.AZURE_TRANSLATOR_KEY || '';
+const AZURE_TRANSLATOR_REGION = process.env.AZURE_TRANSLATOR_REGION || '';
+const AZURE_TRANSLATOR_ENDPOINT = 'api.cognitive.microsofttranslator.com';
 
 const translations = {
-  'twoFactor.title': { en: '🔐 Two-Factor Authentication (2FA)', ja: '🔐 二段階認証 (2FA)' },
-  'twoFactor.enableDesc': { en: 'Enable 2FA to require a verification code in addition to your password when logging in, greatly improving account security.', ja: '二段階認証を有効にすると、ログイン時にパスワードに加えて認証コードが必要になり、アカウントの安全性が大幅に向上します。' },
-  'twoFactor.enable': { en: 'Enable 2FA', ja: '2FAを有効にする' },
-  'twoFactor.setupStep1': { en: '1. Scan the QR code below with an authenticator app (e.g., Google Authenticator, Microsoft Authenticator) or enter the key manually:', ja: '1. 認証アプリで下のQRコードをスキャンするか、キーを手動で入力してください：' },
-  'twoFactor.manualKey': { en: 'Manual entry key:', ja: '手動入力キー：' },
-  'twoFactor.setupStep2': { en: '2. Save these backup codes carefully (each can only be used once). Use them to login when you cannot access your authenticator:', ja: '2. 以下のバックアップコードを保存してください：' },
-  'twoFactor.showBackupCodes': { en: 'Show backup codes', ja: 'バックアップコードを表示' },
-  'twoFactor.setupStep3': { en: '3. Enter the 6-digit code from your authenticator app to confirm:', ja: '3. 認証アプリの6桁のコードを入力して有効化を確認してください：' },
-  'twoFactor.confirmEnable': { en: 'Confirm Enable', ja: '有効化を確認' },
-  'twoFactor.enabled': { en: '✅ Two-Factor Authentication Enabled', ja: '✅ 二段階認証が有効です' },
-  'twoFactor.disableDesc': { en: 'Enter the 6-digit code from your authenticator app to disable 2FA:', ja: '認証アプリの6桁のコードを入力して二段階認証を無効にしてください：' },
-  'twoFactor.disable': { en: 'Disable 2FA', ja: '2FAを無効にする' },
-  'twoFactor.verifying': { en: 'Verifying...', ja: '確認中...' },
-  'twoFactor.invalidCode': { en: 'Invalid verification code', ja: '認証コードが正しくありません' },
-  'twoFactor.code': { en: 'Code', ja: 'コード' },
-  'twoFactor.loginDesc': { en: 'Enter the 6-digit code from your authenticator app to complete login.', ja: '認証アプリの6桁のコードを入力してログインを完了してください。' },
-  'twoFactor.verify': { en: 'Verify', ja: '確認' },
-  'twoFactor.enterCode': { en: 'Enter 6-digit code', ja: '6桁のコードを入力' },
-  'report.title': { en: 'Report "{targetName}"', ja: '「{targetName}」を報告' },
-  'report.reasonLabel': { en: 'Reason *', ja: '報告理由 *' },
-  'report.selectReasonPlaceholder': { en: 'Select a reason', ja: '理由を選択' },
-  'report.descriptionLabel': { en: 'Additional details', ja: '補足説明' },
-  'report.descriptionPlaceholder': { en: 'Please describe the situation...', ja: '詳しい状況を入力してください...' },
-  'report.submit': { en: 'Submit Report', ja: '報告を送信' },
-  'report.submitted': { en: 'Report submitted', ja: '報告を送信しました' },
-  'report.willProcess': { en: 'We will process it as soon as possible', ja: 'できるだけ早く対応いたします' },
-  'report.selectReason': { en: 'Please select a reason', ja: '報告理由を選択してください' },
-  'report.submitFailed': { en: 'Report failed', ja: '報告に失敗しました' },
-  'report.inappropriate': { en: 'Inappropriate content', ja: '不適切なコンテンツ' },
-  'report.copyright': { en: 'Copyright infringement', ja: '著作権侵害' },
-  'report.spam': { en: 'Spam', ja: 'スパム' },
-  'report.misleading': { en: 'Misleading information', ja: '誤解を招く情報' },
-  'report.other': { en: 'Other', ja: 'その他' },
+  'twoFactor.title': { en: '🔐 Two-Factor Authentication (2FA)' },
+  'twoFactor.enableDesc': { en: 'Enable 2FA to require a verification code in addition to your password when logging in, greatly improving account security.' },
+  'twoFactor.enable': { en: 'Enable 2FA' },
+  'twoFactor.setupStep1': { en: '1. Scan the QR code below with an authenticator app (e.g., Google Authenticator, Microsoft Authenticator) or enter the key manually:' },
+  'twoFactor.manualKey': { en: 'Manual entry key:' },
+  'twoFactor.setupStep2': { en: '2. Save these backup codes carefully (each can only be used once). Use them to login when you cannot access your authenticator:' },
+  'twoFactor.showBackupCodes': { en: 'Show backup codes' },
+  'twoFactor.setupStep3': { en: '3. Enter the 6-digit code from your authenticator app to confirm:' },
+  'twoFactor.confirmEnable': { en: 'Confirm Enable' },
+  'twoFactor.enabled': { en: '✅ Two-Factor Authentication Enabled' },
+  'twoFactor.disableDesc': { en: 'Enter the 6-digit code from your authenticator app to disable 2FA:' },
+  'twoFactor.disable': { en: 'Disable 2FA' },
+  'twoFactor.verifying': { en: 'Verifying...' },
+  'twoFactor.invalidCode': { en: 'Invalid verification code' },
+  'twoFactor.code': { en: 'Code' },
+  'twoFactor.loginDesc': { en: 'Enter the 6-digit code from your authenticator app to complete login.' },
+  'twoFactor.verify': { en: 'Verify' },
+  'twoFactor.enterCode': { en: 'Enter 6-digit code' },
+  'report.title': { en: 'Report "{targetName}"' },
+  'report.reasonLabel': { en: 'Reason *' },
+  'report.selectReasonPlaceholder': { en: 'Select a reason' },
+  'report.descriptionLabel': { en: 'Additional details' },
+  'report.descriptionPlaceholder': { en: 'Please describe the situation...' },
+  'report.submit': { en: 'Submit Report' },
+  'report.submitted': { en: 'Report submitted' },
+  'report.willProcess': { en: 'We will process it as soon as possible' },
+  'report.selectReason': { en: 'Please select a reason' },
+  'report.submitFailed': { en: 'Report failed' },
+  'report.inappropriate': { en: 'Inappropriate content' },
+  'report.copyright': { en: 'Copyright infringement' },
+  'report.spam': { en: 'Spam' },
+  'report.misleading': { en: 'Misleading information' },
+  'report.other': { en: 'Other' },
+  '追番': { en: 'Following' },
+  '追番列表': { en: 'My List' },
+  '兽剧': { en: 'Furry Drama' },
+  '兽剧聚合平台': { en: 'Furry Drama Hub' },
+  '友链': { en: 'Friend Links' },
+  '友链申请': { en: 'Friend Link Request' },
+  '注销账号': { en: 'Delete Account' },
+  '注销': { en: 'Delete' },
+  '连载中': { en: 'Ongoing' },
+  '已完结': { en: 'Completed' },
+  '即将上映': { en: 'Upcoming' },
+  '单集': { en: 'Episode' },
+  '集': { en: 'Ep' },
+  '第': { en: 'Ep ' },
+  '评分': { en: 'Rating' },
+  '热度': { en: 'Views' },
+  '分类': { en: 'Categories' },
+  '标签': { en: 'Tags' },
+  '创作者': { en: 'Creator' },
+  '管理员': { en: 'Admin' },
+  '超级管理员': { en: 'Super Admin' },
+  '审核': { en: 'Review' },
+  '待审核': { en: 'Pending Review' },
+  '已通过': { en: 'Approved' },
+  '已拒绝': { en: 'Rejected' },
+  '举报': { en: 'Report' },
+  '本网站部分内容由AI生成': { en: 'Some content on this site is generated by AI' },
+  '欢迎来到兽剧聚合平台': { en: 'Welcome to Furry Drama Hub' },
+  '发现和追踪你喜爱的兽剧内容': { en: 'Discover and track your favorite furry drama content' },
+  '隐私政策': { en: 'Privacy Policy' },
+  '用户协议': { en: 'User Agreement' },
+  '关于我们': { en: 'About Us' },
+  '版权声明': { en: 'Copyright Notice' },
+  '联系我们': { en: 'Contact Us' },
+  '免责声明': { en: 'Disclaimer' },
+  '服务条款': { en: 'Terms of Service' },
+  '使用条款': { en: 'Terms of Use' },
+  '更新日志': { en: 'Changelog' },
+  '最新版本': { en: 'Latest Version' },
+  '账号注册': { en: 'Account Registration' },
+  '个人隐私信息保护': { en: 'Personal Privacy Protection' },
+  '用户发布内容规范': { en: 'User Content Guidelines' },
+  '使用规则': { en: 'Usage Rules' },
+  '您的权利': { en: 'Your Rights' },
+  '本政策如何更新': { en: 'How This Policy Is Updated' },
+  '如何联系我们': { en: 'How to Contact Us' },
+  '儿童个人信息保护': { en: "Children's Privacy Protection" },
+  '用户信息如何储存': { en: 'How User Information Is Stored' },
+  '我们如何共享': { en: 'How We Share' },
+  '我们如何保护': { en: 'How We Protect' },
+  '我们如何使用': { en: 'How We Use' },
+  '本网站部分代码由生成式AI生成': { en: 'Some code on this website is generated by AI' },
+  '请勿追踪': { en: 'Do Not Track' },
+  '网站信标和像素标签': { en: 'Web Beacons and Pixel Tags' },
+  '征得授权同意的例外': { en: 'Exceptions to Consent' },
+  '共享、转让、公开披露信息时事先征得授权同意的例外': { en: 'Exceptions to Prior Consent for Sharing, Transfer, and Public Disclosure' },
+  '用户信息主体注销账户': { en: 'Account Deletion' },
+  '用户信息主体获取用户信息副本': { en: 'Obtain a Copy of Your Information' },
+  '约束信息系统自动决策': { en: 'Restrict Automated Decision-Making' },
+  '响应您的上述请求': { en: 'Responding to Your Requests' },
+  '改变您授权同意的范围': { en: 'Change the Scope of Your Consent' },
+  '访问您的用户信息': { en: 'Access Your Information' },
+  '更正您的用户信息': { en: 'Correct Your Information' },
+  '删除您的用户信息': { en: 'Delete Your Information' },
+  '开源许可': { en: 'Open Source License' },
+  '前端项目': { en: 'Frontend Project' },
+  '后端项目': { en: 'Backend Project' },
+  '查看许可': { en: 'View License' },
+  'GitHub项目': { en: 'GitHub Project' },
+  '即将推出': { en: 'Coming Soon' },
+  '上一页': { en: 'Previous' },
+  '下一页': { en: 'Next' },
 };
 
 const machineTranslationCache = new Map();
@@ -60,11 +137,112 @@ const isValidTranslation = (text) => {
   return !upper.includes('MYMEMORY WARNING') && !upper.includes('USAGE LIMITS') && !upper.includes('VISIT HTTPS');
 };
 
-for (const [key, value] of machineTranslationCache) {
-  if (!isValidTranslation(value.translation)) {
-    machineTranslationCache.delete(key);
+const ENGLISH_STOP_WORDS = new Set(['the','is','a','an','of','in','to','for','and','or','with','by','on','at','from','that','this','it','are','be','has','have','will','can','may','we','you','your','our','their','not','no','all','any','each','every','which','who','what','when','where','how','do','does','did','shall','should','would','could','must','if','then','than','so','as','but','however','therefore','thus','also','only','just','more','most','such','other','some','any','many','much','few','less']);
+
+const isPlausibleTranslation = (sourceText, targetLang, result) => {
+  if (!result || typeof result !== 'string') return false;
+  if (!isValidTranslation(result)) return false;
+  if (targetLang === 'en') {
+    const cjkChars = result.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g);
+    const cjkRatio = cjkChars ? cjkChars.length / result.length : 0;
+    if (cjkRatio > 0.3) return false;
+    if (sourceText.length > 4) {
+      const words = result.toLowerCase().split(/\s+/);
+      const hasEnglishWord = words.some(w => ENGLISH_STOP_WORDS.has(w) || (w.length > 2 && /^[a-z]+$/.test(w)));
+      if (!hasEnglishWord) return false;
+    }
   }
-}
+  return true;
+};
+
+const fetchBingTranslation = async (text, sourceLang, targetLang) => {
+  try {
+    const sl = sourceLang === 'zh' ? 'zh-Hans' : sourceLang;
+    const tl = targetLang === 'zh' ? 'zh-Hans' : targetLang;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const result = await Promise.race([
+          bingTranslate(text, sl, tl, false),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Bing timeout')), 8000))
+        ]);
+        if (result?.translation && result.translation !== text) {
+          return result.translation;
+        }
+      } catch (e) {
+        if (attempt === 0) continue;
+      }
+    }
+  } catch (e) {}
+  return null;
+};
+
+const fetchBingTranslationBatch = async (texts, sourceLang, targetLang) => {
+  const results = [];
+  for (const text of texts) {
+    const result = await fetchBingTranslation(text, sourceLang, targetLang);
+    results.push(result);
+  }
+  return results;
+};
+
+const fetchAzureTranslation = (texts, sourceLang, targetLang) => {
+  return new Promise((resolve) => {
+    if (!AZURE_TRANSLATOR_KEY) {
+      resolve(null);
+      return;
+    }
+
+    const sl = LANG_MAP[sourceLang] || sourceLang;
+    const tl = LANG_MAP[targetLang] || targetLang;
+    const body = texts.map(t => ({ text: t }));
+    const postData = JSON.stringify(body);
+
+    const options = {
+      hostname: AZURE_TRANSLATOR_ENDPOINT,
+      port: 443,
+      path: `/translate?api-version=3.0&from=${sl}&to=${tl}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData),
+        'Ocp-Apim-Subscription-Key': AZURE_TRANSLATOR_KEY,
+        'Ocp-Apim-Subscription-Region': AZURE_TRANSLATOR_REGION || 'global',
+      },
+      timeout: 10000,
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error) {
+            console.error('Azure Translator error:', parsed.error.message);
+            resolve(null);
+            return;
+          }
+          if (Array.isArray(parsed)) {
+            const results = parsed.map(item => item.translations?.[0]?.text || null);
+            resolve(results);
+            return;
+          }
+          resolve(null);
+        } catch {
+          resolve(null);
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error('Azure Translator request error:', e.message);
+      resolve(null);
+    });
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.write(postData);
+    req.end();
+  });
+};
 
 const fetchTranslation = (text, sourceLang, targetLang) => {
   return new Promise((resolve) => {
@@ -84,9 +262,12 @@ const fetchTranslation = (text, sourceLang, targetLang) => {
           }
           if (parsed?.responseData?.translatedText) {
             const translated = parsed.responseData.translatedText;
+            const matchQuality = parseFloat(parsed.responseData.match) || 0;
             if (translated.toUpperCase() === text.toUpperCase()) {
               resolve(null);
             } else if (translated.startsWith('MYMEMORY') || translated.includes('USAGE LIMITS')) {
+              resolve(null);
+            } else if (matchQuality < 0.5 && text.length > 10) {
               resolve(null);
             } else {
               resolve(translated);
@@ -103,53 +284,6 @@ const fetchTranslation = (text, sourceLang, targetLang) => {
     req.on('error', () => resolve(null));
     req.on('timeout', () => { req.destroy(); resolve(null); });
   });
-};
-
-const LIBRE_MIRRORS = [
-  { hostname: 'libretranslate.com', path: '/translate' },
-  { hostname: 'translate.argosopentech.com', path: '/translate' },
-  { hostname: 'translate.terraprint.co', path: '/translate' },
-];
-
-const fetchLibreTranslation = async (text, sourceLang, targetLang) => {
-  const sl = sourceLang === 'zh' ? 'zh' : sourceLang;
-  const tl = targetLang === 'zh' ? 'zh' : targetLang;
-  const postData = JSON.stringify({ q: text, source: sl, target: tl, format: 'text' });
-
-  for (const mirror of LIBRE_MIRRORS) {
-    const result = await new Promise((resolve) => {
-      const options = {
-        hostname: mirror.hostname,
-        port: 443,
-        path: mirror.path,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
-        timeout: 8000,
-      };
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => {
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed?.translatedText && !parsed.error) {
-              resolve(parsed.translatedText);
-            } else {
-              resolve(null);
-            }
-          } catch {
-            resolve(null);
-          }
-        });
-      });
-      req.on('error', () => resolve(null));
-      req.on('timeout', () => { req.destroy(); resolve(null); });
-      req.write(postData);
-      req.end();
-    });
-    if (result) return result;
-  }
-  return null;
 };
 
 const fetchGoogleTranslation = (text, sourceLang, targetLang) => {
@@ -220,20 +354,39 @@ const getMachineTranslation = async (text, sourceLang, targetLang) => {
   if (sourceLang === targetLang) return text;
   if (!text) return null;
 
+  const cacheKey = `${sourceLang}:${targetLang}:${text}`;
+  const cached = machineTranslationCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.translation;
+  }
+
+  if (AZURE_TRANSLATOR_KEY) {
+    const results = await fetchAzureTranslation([text], sourceLang, targetLang);
+    if (results && results[0] && isPlausibleTranslation(text, targetLang, results[0])) {
+      const result = results[0];
+      if (machineTranslationCache.size > MAX_CACHE_SIZE) {
+        const oldestKey = machineTranslationCache.keys().next().value;
+        machineTranslationCache.delete(oldestKey);
+      }
+      machineTranslationCache.set(cacheKey, { translation: result, timestamp: Date.now() });
+      return result;
+    }
+  }
+
   const segments = splitLongText(text);
   if (segments.length === 1) {
-    return getMachineTranslationSingle(segments[0], sourceLang, targetLang);
+    return getMachineTranslationFallback(segments[0], sourceLang, targetLang);
   }
 
   const translatedSegments = [];
   for (const segment of segments) {
-    const result = await getMachineTranslationSingle(segment, sourceLang, targetLang);
+    const result = await getMachineTranslationFallback(segment, sourceLang, targetLang);
     translatedSegments.push(result || segment);
   }
   return translatedSegments.join('');
 };
 
-const getMachineTranslationSingle = async (text, sourceLang, targetLang) => {
+const getMachineTranslationFallback = async (text, sourceLang, targetLang) => {
   if (!text || text.length > 500) return null;
 
   const cacheKey = `${sourceLang}:${targetLang}:${text}`;
@@ -243,7 +396,7 @@ const getMachineTranslationSingle = async (text, sourceLang, targetLang) => {
   }
 
   const tryCacheResult = (result) => {
-    if (result && isValidTranslation(result)) {
+    if (result && isPlausibleTranslation(text, targetLang, result)) {
       if (machineTranslationCache.size > MAX_CACHE_SIZE) {
         const oldestKey = machineTranslationCache.keys().next().value;
         machineTranslationCache.delete(oldestKey);
@@ -265,7 +418,7 @@ const getMachineTranslationSingle = async (text, sourceLang, targetLang) => {
   } catch {}
 
   try {
-    const result = await fetchLibreTranslation(text, sourceLang, targetLang);
+    const result = await fetchBingTranslation(text, sourceLang, targetLang);
     if (result) return tryCacheResult(result);
   } catch {}
 
@@ -273,31 +426,51 @@ const getMachineTranslationSingle = async (text, sourceLang, targetLang) => {
 };
 
 const translateWithConcurrencyLimit = async (texts, sourceLang, targetLang) => {
+  if (AZURE_TRANSLATOR_KEY) {
+    const batchSize = 100;
+    const allResults = [];
+    for (let i = 0; i < texts.length; i += batchSize) {
+      const batch = texts.slice(i, i + batchSize);
+      const results = await fetchAzureTranslation(batch, sourceLang, targetLang);
+      if (results) {
+        allResults.push(...results);
+      } else {
+        const fallbackResults = [];
+        for (const text of batch) {
+          const result = await getMachineTranslationFallback(text, sourceLang, targetLang);
+          fallbackResults.push(result);
+        }
+        allResults.push(...fallbackResults);
+      }
+    }
+    return allResults;
+  }
+
   const results = new Array(texts.length).fill(null);
   const queue = texts.map((text, index) => ({ text, index }));
   const workers = [];
-
   for (let i = 0; i < Math.min(CONCURRENT_LIMIT, queue.length); i++) {
     workers.push((async () => {
       while (queue.length > 0) {
         const item = queue.shift();
         if (!item) break;
-        const result = await getMachineTranslation(item.text, sourceLang, targetLang);
+        const result = await getMachineTranslationFallback(item.text, sourceLang, targetLang);
         results[item.index] = result;
       }
     })());
   }
-
   await Promise.all(workers);
   return results;
 };
 
 router.post('/', translateLimiter, async (req, res) => {
+  let timedOut = false;
   const timeoutId = setTimeout(() => {
+    timedOut = true;
     if (!res.headersSent) {
       res.status(504).json({ message: 'Translation request timeout' });
     }
-  }, 10000);
+  }, 20000);
 
   try {
     const { key, targetLang } = req.body;
@@ -319,12 +492,14 @@ router.post('/', translateLimiter, async (req, res) => {
     }
     const machineResult = await getMachineTranslation(key, 'zh', targetLang);
     clearTimeout(timeoutId);
+    if (timedOut) return;
     if (machineResult) {
       return res.json({ translation: machineResult });
     }
     return res.json({ translation: null });
   } catch (error) {
     clearTimeout(timeoutId);
+    if (timedOut) return;
     console.error('Translation error:', error.message);
     if (!res.headersSent) {
       res.status(500).json({ message: 'Translation failed' });
@@ -332,12 +507,57 @@ router.post('/', translateLimiter, async (req, res) => {
   }
 });
 
+let batchQueue = [];
+let batchProcessing = false;
+
+const processBatchQueue = () => {
+  if (batchProcessing || batchQueue.length === 0) return;
+  batchProcessing = true;
+  const { texts, targetLang, res, timeoutId, resolved, needTranslation } = batchQueue.shift();
+
+  const releaseAndContinue = () => {
+    batchProcessing = false;
+    if (batchQueue.length > 0) {
+      setImmediate(processBatchQueue);
+    }
+  };
+
+  translateWithConcurrencyLimit(texts, 'zh', targetLang)
+    .then(machineResults => {
+      clearTimeout(timeoutId);
+      if (!res.headersSent) {
+        if (resolved && needTranslation) {
+          const finalResults = [...resolved];
+          machineResults.forEach((result, i) => {
+            const originalIndex = needTranslation[i].index;
+            finalResults[originalIndex] = result || needTranslation[i].text;
+          });
+          res.json({ translations: finalResults });
+        } else {
+          const finalResults = machineResults.map((result, i) => result || texts[i]);
+          res.json({ translations: finalResults });
+        }
+      }
+    })
+    .catch(error => {
+      clearTimeout(timeoutId);
+      console.error('Batch translation error:', error.message);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Batch translation failed' });
+      }
+    })
+    .finally(releaseAndContinue);
+};
+
 router.post('/batch', translateLimiter, async (req, res) => {
+  let timedOut = false;
   const timeoutId = setTimeout(() => {
+    timedOut = true;
+    batchQueue = batchQueue.filter(item => item.res !== res);
     if (!res.headersSent) {
       res.status(504).json({ message: 'Translation request timeout' });
     }
-  }, 15000);
+  }, 30000);
 
   try {
     const { texts, targetLang } = req.body;
@@ -353,14 +573,33 @@ router.post('/batch', translateLimiter, async (req, res) => {
       clearTimeout(timeoutId);
       return res.json({ translations: texts });
     }
-    const limitedTexts = texts.slice(0, 30);
-    const machineResults = await translateWithConcurrencyLimit(limitedTexts, 'zh', targetLang);
-    const finalResults = machineResults.map((result, i) => result || limitedTexts[i]);
-    clearTimeout(timeoutId);
-    res.json({ translations: finalResults });
+    const limitedTexts = texts.slice(0, 100);
+    const resolved = new Array(limitedTexts.length).fill(null);
+    const needTranslation = [];
+    for (let i = 0; i < limitedTexts.length; i++) {
+      const text = limitedTexts[i];
+      if (translations[text] && translations[text][targetLang]) {
+        resolved[i] = translations[text][targetLang];
+      } else {
+        needTranslation.push({ text, index: i });
+      }
+    }
+    if (needTranslation.length === 0) {
+      clearTimeout(timeoutId);
+      return res.json({ translations: resolved });
+    }
+    const textsToTranslate = needTranslation.map(item => item.text);
+    batchQueue.push({
+      texts: textsToTranslate,
+      targetLang,
+      res,
+      timeoutId,
+      resolved,
+      needTranslation
+    });
+    processBatchQueue();
   } catch (error) {
     clearTimeout(timeoutId);
-    console.error('Batch translation error:', error.message);
     if (!res.headersSent) {
       res.status(500).json({ message: 'Batch translation failed' });
     }
