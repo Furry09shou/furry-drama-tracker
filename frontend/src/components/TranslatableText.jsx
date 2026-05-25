@@ -195,7 +195,7 @@ const TranslatableBlock = ({ text, style, className }) => {
     setProgress(Math.round((allChunks.length - uncachedTexts.length) / allChunks.length * 100));
     let cancelled = false;
 
-    const BATCH_SIZE = 20;
+    const BATCH_SIZE = 10;
     const translateInBatches = async () => {
       for (let batchStart = 0; batchStart < uncachedTexts.length; batchStart += BATCH_SIZE) {
         if (cancelled || !mountedRef.current) return;
@@ -203,8 +203,8 @@ const TranslatableBlock = ({ text, style, className }) => {
         const batchIndices = uncachedIndices.slice(batchStart, batchStart + BATCH_SIZE);
         try {
           const res = await Promise.race([
-            axios.post('/api/translate/batch', { texts: batchTexts, targetLang: lang }, { timeout: 30000, skipRedirect: true }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Batch timeout')), 35000))
+            axios.post('/api/translate/batch', { texts: batchTexts, targetLang: lang }, { timeout: 120000, skipRedirect: true }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Batch timeout')), 130000))
           ]);
           if (res.data?.translations) {
             res.data.translations.forEach((translated, i) => {

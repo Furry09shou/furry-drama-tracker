@@ -129,7 +129,7 @@ const translations = {
 const machineTranslationCache = new Map();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 const MAX_CACHE_SIZE = 5000;
-const CONCURRENT_LIMIT = 3;
+const CONCURRENT_LIMIT = 6;
 
 const isValidTranslation = (text) => {
   if (!text || typeof text !== 'string') return false;
@@ -407,20 +407,23 @@ const getMachineTranslationFallback = async (text, sourceLang, targetLang) => {
     return null;
   };
 
-  try {
-    const result = await fetchTranslation(text, sourceLang, targetLang);
-    if (result) return tryCacheResult(result);
-  } catch {}
+  const tryService = async (fetchFn) => {
+    try {
+      const result = await fetchFn(text, sourceLang, targetLang);
+      return tryCacheResult(result);
+    } catch {
+      return null;
+    }
+  };
 
-  try {
-    const result = await fetchGoogleTranslation(text, sourceLang, targetLang);
-    if (result) return tryCacheResult(result);
-  } catch {}
+  const myMemoryResult = await tryService(fetchTranslation);
+  if (myMemoryResult) return myMemoryResult;
 
-  try {
-    const result = await fetchBingTranslation(text, sourceLang, targetLang);
-    if (result) return tryCacheResult(result);
-  } catch {}
+  const googlePromise = tryService(fetchGoogleTranslation);
+  const bingPromise = tryService(fetchBingTranslation);
+  const [googleResult, bingResult] = await Promise.all([googlePromise, bingPromise]);
+  if (googleResult) return googleResult;
+  if (bingResult) return bingResult;
 
   return null;
 };
@@ -557,7 +560,7 @@ router.post('/batch', translateLimiter, async (req, res) => {
     if (!res.headersSent) {
       res.status(504).json({ message: 'Translation request timeout' });
     }
-  }, 30000);
+  }, 120000);
 
   try {
     const { texts, targetLang } = req.body;
@@ -573,7 +576,7 @@ router.post('/batch', translateLimiter, async (req, res) => {
       clearTimeout(timeoutId);
       return res.json({ translations: texts });
     }
-    const limitedTexts = texts.slice(0, 100);
+    const limitedTexts = texts.slice(0, 200);
     const resolved = new Array(limitedTexts.length).fill(null);
     const needTranslation = [];
     for (let i = 0; i < limitedTexts.length; i++) {
