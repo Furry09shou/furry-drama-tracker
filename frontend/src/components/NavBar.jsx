@@ -67,10 +67,21 @@ const NavBar = ({ onFeedback }) => {
   const getNotificationMessage = (n) => {
     const title = getLocalizedTitle({ title: n.episodeTitle, titleEn: n.episodeTitleEn }) || n.episodeTitle || '';
     switch (n.type) {
-      case 'new_episode':
-        return t('notification.newEpisode', { title, ep: n.metadata?.episodeNumber || '' });
-      case 'status_change':
-        return t('notification.statusChange', { title, status: n.metadata?.status || '' });
+      case 'new_episode': {
+        let ep = n.metadata?.episodeNumber;
+        if (ep === undefined || ep === null) {
+          const match = n.message?.match(/第(\d+)集/);
+          ep = match ? match[1] : '';
+        }
+        return t('notification.newEpisode', { title, ep: ep ?? '' });
+      }
+      case 'status_change': {
+        const status = n.metadata?.status || '';
+        if (status) {
+          return t('notification.statusChange', { title, status });
+        }
+        return <TranslatableText text={n.message} />;
+      }
       case 'feedback_reply':
         return t('notification.feedbackReply', { reply: n.metadata?.reply || n.message || '' });
       case 'friend_link_apply':

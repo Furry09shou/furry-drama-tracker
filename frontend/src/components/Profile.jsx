@@ -176,11 +176,12 @@ const Profile = ({ user, setUser, logout }) => {
     const historyRecord = historyEpisodes.find(h => h.episodeId && String(h.episodeId._id) === eid);
     const watchedEps = historyRecord ? historyRecord.watchedEpisodes : [];
     const progress = episode.totalEpisodes > 0 ? (watchedEps.length / episode.totalEpisodes) * 100 : 0;
-    const unwatchedCount = episode.currentEpisodes - watchedEps.length;
-    const hasUpdate = unwatchedCount > 0;
     const followedAtEps = follow.followedAtEpisodes || 0;
-    const newUnwatchedCount = Math.max(0, episode.currentEpisodes - Math.max(watchedEps.length, followedAtEps));
-    const hasNewUpdate = newUnwatchedCount > 0;
+    const allEpNumbers = Array.from({ length: episode.currentEpisodes || 0 }, (_, i) => i + 1);
+    const unwatchedNewEps = allEpNumbers.filter(epNum => epNum > followedAtEps && !watchedEps.includes(epNum));
+    const unwatchedAllEps = allEpNumbers.filter(epNum => !watchedEps.includes(epNum));
+    const hasNewUpdate = unwatchedNewEps.length > 0;
+    const hasUpdate = unwatchedAllEps.length > 0;
     return (
       <div key={episode._id} className="followed-episode-card">
         <Link to={`/episode/${episode._id}`}>
@@ -194,14 +195,14 @@ const Profile = ({ user, setUser, logout }) => {
                 fontSize: '12px', color: 'var(--destructive-text)', marginLeft: '8px',
                 background: 'var(--destructive-bg)', padding: '2px 8px',
                 borderRadius: '4px', border: '1px solid var(--destructive-border)'
-              }}>{t('profile.hasUpdate')} +{newUnwatchedCount}{t('profile.episodesUnwatched')}</span>
+              }}>{t('profile.hasUpdate')} +{unwatchedNewEps.length}{t('profile.episodesUnwatched')}</span>
             )}
-            {hasUpdate && (
+            {hasUpdate && !hasNewUpdate && (
               <span style={{
                 fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
                 background: 'var(--warning-bg)', padding: '2px 8px',
                 borderRadius: '4px', border: '1px solid var(--warning-border)'
-              }}>{unwatchedCount}{t('profile.episodesUnwatched')}</span>
+              }}>{unwatchedAllEps.length}{t('profile.episodesUnwatched')}</span>
             )}
           </h4>
           <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
