@@ -40,12 +40,12 @@ router.get('/', protect, async (req, res) => {
         type: 'new_episode',
         episodeId: ep._id,
         episodeTitle: ep.title,
-        episodeTitleEn: ep.titleEn || ep.title,
+        episodeTitleEn: ep.titleEn || '',
         coverImage: ep.coverImage,
         description: `${ep.title} 发布了新单集：第${se.episodeNumber}集 ${se.title}`,
         descriptionEn: `${ep.titleEn || ep.title} released a new episode: Ep.${se.episodeNumber} ${se.titleEn || se.title}`,
         date: se.releaseDate,
-        metadata: { episodeNumber: se.episodeNumber, singleEpisodeTitle: se.title, singleEpisodeTitleEn: se.titleEn || se.title }
+        metadata: { episodeNumber: se.episodeNumber, singleEpisodeTitle: se.title, singleEpisodeTitleEn: se.titleEn || '' }
       });
     }
 
@@ -59,7 +59,7 @@ router.get('/', protect, async (req, res) => {
         type: 'status_change',
         episodeId: ep._id,
         episodeTitle: ep.title,
-        episodeTitleEn: ep.titleEn || ep.title,
+        episodeTitleEn: ep.titleEn || '',
         coverImage: ep.coverImage,
         description: `${ep.title} 状态变更为：${ep.status === 'ongoing' ? '连载中' : ep.status === 'completed' ? '已完结' : '即将上映'}`,
         descriptionEn: `${ep.titleEn || ep.title} status changed to: ${ep.status}`,
@@ -81,7 +81,7 @@ router.get('/', protect, async (req, res) => {
         type: 'new_rating',
         episodeId: ep._id,
         episodeTitle: ep.title,
-        episodeTitleEn: ep.titleEn || ep.title,
+        episodeTitleEn: ep.titleEn || '',
         coverImage: ep.coverImage,
         description: `${ep.title} 获得了高评分：${rating.score}分`,
         descriptionEn: `${ep.titleEn || ep.title} received a high rating: ${rating.score}/5`,
@@ -128,12 +128,12 @@ router.get('/public', async (req, res) => {
         type: 'new_episode',
         episodeId: ep._id,
         episodeTitle: ep.title,
-        episodeTitleEn: ep.titleEn || ep.title,
+        episodeTitleEn: ep.titleEn || '',
         coverImage: ep.coverImage,
         description: `${ep.title} 发布了新单集：第${se.episodeNumber}集 ${se.title}`,
         descriptionEn: `${ep.titleEn || ep.title} released a new episode: Ep.${se.episodeNumber} ${se.titleEn || se.title}`,
         date: se.releaseDate,
-        metadata: { episodeNumber: se.episodeNumber, singleEpisodeTitle: se.title, singleEpisodeTitleEn: se.titleEn || se.title }
+        metadata: { episodeNumber: se.episodeNumber, singleEpisodeTitle: se.title, singleEpisodeTitleEn: se.titleEn || '' }
       });
     }
 
@@ -148,7 +148,7 @@ router.get('/public', async (req, res) => {
         type: 'new_rating',
         episodeId: ep._id,
         episodeTitle: ep.title,
-        episodeTitleEn: ep.titleEn || ep.title,
+        episodeTitleEn: ep.titleEn || '',
         coverImage: ep.coverImage,
         description: `${ep.title} 获得了高评分：${ep.averageRating}分（${ep.ratingCount}人评分）`,
         descriptionEn: `${ep.titleEn || ep.title} received a high rating: ${ep.averageRating}/5 (${ep.ratingCount} ratings)`,
@@ -167,7 +167,7 @@ router.get('/public', async (req, res) => {
         type: 'status_change',
         episodeId: ep._id,
         episodeTitle: ep.title,
-        episodeTitleEn: ep.titleEn || ep.title,
+        episodeTitleEn: ep.titleEn || '',
         coverImage: ep.coverImage,
         description: `${ep.title} 状态变更为：${ep.status === 'ongoing' ? '连载中' : ep.status === 'completed' ? '已完结' : '即将上映'}`,
         descriptionEn: `${ep.titleEn || ep.title} status changed to: ${ep.status}`,

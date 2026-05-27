@@ -66,6 +66,12 @@ export default {
     markAllRead: '全部已读',
     clearRead: '清除已读',
     noNotifications: '暂无通知',
+    newEpisode: '《{title}》更新了第{ep}集',
+    statusChange: '《{title}》状态变更为：{status}',
+    feedbackReply: '您的反馈已收到回复：{reply}',
+    friendLinkApply: '新友链申请：{name}',
+    friendLinkStatus: '友链「{name}」申请{status}',
+    reminder: '您已订阅该剧集的更新提醒',
   },
   site: {
     defaultName: '兽剧聚合平台',
@@ -336,6 +342,9 @@ export default {
     watchViaPlatform: '请通过下方平台链接观看',
     selectPlatform: '选择播放平台',
     noPlatform: '暂无可用播放平台',
+    statusOngoing: '连载中',
+    statusCompleted: '已完结',
+    statusUpcoming: '即将上映',
   },
   devices: {
     manageDevices: '管理设备',

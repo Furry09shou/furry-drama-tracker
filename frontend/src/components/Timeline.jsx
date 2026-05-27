@@ -74,16 +74,32 @@ const Timeline = () => {
   };
 
   const getDescription = (activity) => {
-    const title = getLocalizedTitle({ title: activity.episodeTitle, titleEn: activity.episodeTitleEn });
+    const title = getLocalizedTitle({ title: activity.episodeTitle, titleEn: activity.episodeTitleEn }) || activity.episodeTitle || '';
     switch (activity.type) {
-      case 'new_episode':
-        return t('timeline.newEpisode', { title, ep: activity.metadata?.episodeNumber || '', epTitle: activity.metadata?.singleEpisodeTitleEn && lang === 'en' ? activity.metadata.singleEpisodeTitleEn : (activity.metadata?.singleEpisodeTitle || '') });
-      case 'status_change':
-        return t('timeline.statusChange', { title, status: getStatusLabel(activity.metadata?.status) });
-      case 'new_rating':
-        return t('timeline.newRating', { title, score: activity.metadata?.score || activity.metadata?.averageRating || 0, count: activity.metadata?.ratingCount || 0 });
+      case 'new_episode': {
+        const epTitle = getLocalizedTitle({ title: activity.metadata?.singleEpisodeTitle, titleEn: activity.metadata?.singleEpisodeTitleEn }) || activity.metadata?.singleEpisodeTitle || '';
+        const result = t('timeline.newEpisode', { title, ep: activity.metadata?.episodeNumber || '', epTitle });
+        if (!title && (activity.description || activity.descriptionEn)) {
+          return lang === 'en' ? (activity.descriptionEn || activity.description || result) : (activity.description || result);
+        }
+        return result;
+      }
+      case 'status_change': {
+        const result = t('timeline.statusChange', { title, status: getStatusLabel(activity.metadata?.status) });
+        if (!title && (activity.description || activity.descriptionEn)) {
+          return lang === 'en' ? (activity.descriptionEn || activity.description || result) : (activity.description || result);
+        }
+        return result;
+      }
+      case 'new_rating': {
+        const result = t('timeline.newRating', { title, score: activity.metadata?.score || activity.metadata?.averageRating || 0, count: activity.metadata?.ratingCount || 0 });
+        if (!title && (activity.description || activity.descriptionEn)) {
+          return lang === 'en' ? (activity.descriptionEn || activity.description || result) : (activity.description || result);
+        }
+        return result;
+      }
       default:
-        return activity.description;
+        return lang === 'en' ? (activity.descriptionEn || activity.description || '') : (activity.description || '');
     }
   };
 

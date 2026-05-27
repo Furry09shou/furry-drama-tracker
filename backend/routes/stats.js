@@ -197,14 +197,14 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
     const released = await SingleEpisode.find({
       releaseDate: { $gte: startDate, $lt: endDate }
     })
-      .populate('episodeId', 'title coverImage currentEpisodes totalEpisodes status')
+      .populate('episodeId', 'title titleEn coverImage currentEpisodes totalEpisodes status')
       .sort({ releaseDate: 1 });
 
     const scheduled = await SingleEpisode.find({
       scheduledDate: { $gte: startDate, $lt: endDate },
       isScheduled: true
     })
-      .populate('episodeId', 'title coverImage currentEpisodes totalEpisodes status')
+      .populate('episodeId', 'title titleEn coverImage currentEpisodes totalEpisodes status')
       .sort({ scheduledDate: 1 });
 
     const premieres = await Episode.find({
@@ -216,7 +216,7 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
       isUpcoming: true,
       premiereDate: { $gte: startDate, $lt: endDate }
     })
-      .populate('episodeId', 'title coverImage currentEpisodes totalEpisodes status')
+      .populate('episodeId', 'title titleEn coverImage currentEpisodes totalEpisodes status')
       .sort({ premiereDate: 1 });
 
     const calendar = {};
@@ -228,9 +228,11 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
       calendar[dateKey].released.push({
         _id: se.episodeId._id,
         title: se.episodeId.title,
+        titleEn: se.episodeId.titleEn || '',
         coverImage: se.episodeId.coverImage,
         episodeNumber: se.episodeNumber,
         singleTitle: se.title,
+        singleTitleEn: se.titleEn || '',
         currentEpisodes: se.episodeId.currentEpisodes,
         totalEpisodes: se.episodeId.totalEpisodes,
         status: se.episodeId.status
@@ -244,9 +246,11 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
       calendar[dateKey].scheduled.push({
         _id: se.episodeId._id,
         title: se.episodeId.title,
+        titleEn: se.episodeId.titleEn || '',
         coverImage: se.episodeId.coverImage,
         episodeNumber: se.episodeNumber,
         singleTitle: se.title,
+        singleTitleEn: se.titleEn || '',
         currentEpisodes: se.episodeId.currentEpisodes,
         totalEpisodes: se.episodeId.totalEpisodes,
         status: se.episodeId.status,
@@ -260,6 +264,7 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
       calendar[dateKey].premieres.push({
         _id: ep._id,
         title: ep.title,
+        titleEn: ep.titleEn || '',
         coverImage: ep.coverImage,
         totalEpisodes: ep.totalEpisodes,
         status: ep.status
@@ -273,9 +278,11 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
       calendar[dateKey].premieres.push({
         _id: se.episodeId._id,
         title: se.episodeId.title,
+        titleEn: se.episodeId.titleEn || '',
         coverImage: se.episodeId.coverImage,
         episodeNumber: se.episodeNumber,
         singleTitle: se.title,
+        singleTitleEn: se.titleEn || '',
         totalEpisodes: se.episodeId.totalEpisodes,
         status: se.episodeId.status,
         isSinglePremiere: true

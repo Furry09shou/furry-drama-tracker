@@ -90,7 +90,8 @@ router.post('/apply', optionalProtect, async (req, res) => {
       const notifications = superAdmins.map(a => ({
         userId: a._id,
         type: 'friend_link_apply',
-        message: `新友链申请：${name}`
+        message: `新友链申请：${name}`,
+        metadata: { name }
       }));
       await Notification.insertMany(notifications);
     }
@@ -168,6 +169,15 @@ router.put('/:id', adminProtect, async (req, res) => {
     }
     const link = await FriendLink.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!link) return res.status(404).json({ message: '友链不存在' });
+    if (status && link.applicantId) {
+      const statusLabel = status === 'approved' ? '已通过' : status === 'rejected' ? '已拒绝' : status;
+      await Notification.create({
+        userId: link.applicantId,
+        type: 'friend_link_status',
+        message: `友链「${link.name}」申请${statusLabel}`,
+        metadata: { name: link.name, status: statusLabel }
+      });
+    }
     res.json(link);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

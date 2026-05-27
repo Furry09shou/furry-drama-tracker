@@ -467,8 +467,10 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
           userId: f.userId,
           episodeId: req.params.id,
           episodeTitle: updatedEpisode.title,
+          episodeTitleEn: updatedEpisode.titleEn || '',
           type: 'new_episode',
-          message: `《${updatedEpisode.title}》更新了第${req.body.episodeNumber}集`
+          message: `《${updatedEpisode.title}》更新了第${req.body.episodeNumber}集`,
+          metadata: { episodeNumber: req.body.episodeNumber }
         }));
         await Notification.insertMany(notifications);
       }
@@ -538,8 +540,10 @@ router.put('/:id', creatorProtect, async (req, res) => {
               userId: follow.userId,
               episodeId: req.params.id,
               episodeTitle: updatedEpisode.title,
+              episodeTitleEn: updatedEpisode.titleEn || '',
               type: 'new_episode',
-              message: `《${updatedEpisode.title}》更新了第${epNum}集`
+              message: `《${updatedEpisode.title}》更新了第${epNum}集`,
+              metadata: { episodeNumber: epNum }
             });
           }
         }

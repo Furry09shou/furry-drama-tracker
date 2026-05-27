@@ -66,7 +66,8 @@ router.put('/:id', adminProtect, async (req, res) => {
       await Notification.create({
         userId: fb.userId,
         type: 'feedback_reply',
-        message: `您的反馈已收到回复：${reply.slice(0, 50)}...`
+        message: `您的反馈已收到回复：${reply.slice(0, 50)}...`,
+        metadata: { reply: reply.slice(0, 50) }
       });
     }
     res.json(fb);

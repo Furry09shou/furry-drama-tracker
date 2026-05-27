@@ -101,8 +101,10 @@ const EpisodeDetail = ({ user }) => {
       if (urlObj.hostname.includes('bilibili.com') || urlObj.hostname.includes('b23.tv')) {
         const bvMatch = url.match(/\/(BV[\w]+)/);
         const aidMatch = url.match(/\/av(\d+)/);
-        if (bvMatch) return `https://player.bilibili.com/player.html?bvid=${bvMatch[1]}&autoplay=0`;
-        if (aidMatch) return `https://player.bilibili.com/player.html?aid=${aidMatch[1]}&autoplay=0`;
+        const page = urlObj.searchParams.get('p');
+        const pageParam = page ? `&page=${page}` : '';
+        if (bvMatch) return `https://player.bilibili.com/player.html?bvid=${bvMatch[1]}&autoplay=0&high_quality=1${pageParam}`;
+        if (aidMatch) return `https://player.bilibili.com/player.html?aid=${aidMatch[1]}&autoplay=0&high_quality=1${pageParam}`;
       }
       if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
         const videoId = url.match(/(?:v=|youtu\.be\/)([\w-]+)/);
@@ -528,7 +530,7 @@ const EpisodeDetail = ({ user }) => {
                           src={embedUrl}
                           style={{width: '100%', height: '100%', border: 'none'}}
                           allowFullScreen
-                          sandbox="allow-scripts allow-presentation allow-popups"
+                          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           referrerPolicy="no-referrer"
                         />

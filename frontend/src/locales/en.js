@@ -66,6 +66,12 @@ export default {
     markAllRead: 'Mark all read',
     clearRead: 'Clear read',
     noNotifications: 'No notifications',
+    newEpisode: '"{title}" updated Ep.{ep}',
+    statusChange: '"{title}" status changed to: {status}',
+    feedbackReply: 'Your feedback has been replied: {reply}',
+    friendLinkApply: 'New friend link application: {name}',
+    friendLinkStatus: 'Friend link "{name}" application {status}',
+    reminder: 'You have subscribed to updates for this series',
   },
   site: {
     defaultName: 'Furry Drama Hub',
@@ -336,6 +342,9 @@ export default {
     watchViaPlatform: 'Watch via platform links below',
     selectPlatform: 'Select platform',
     noPlatform: 'No platform available',
+    statusOngoing: 'Ongoing',
+    statusCompleted: 'Completed',
+    statusUpcoming: 'Upcoming',
   },
   devices: {
     manageDevices: 'Manage Devices',

@@ -14,7 +14,7 @@ import TranslatableText from './TranslatableText';
 const NavBar = ({ onFeedback }) => {
   const { user, logout } = useAuth();
   const { t, lang } = useI18n();
-  const { getLocalizedContent } = useTranslation();
+  const { getLocalizedContent, getLocalizedTitle } = useTranslation();
   const { settings: siteSettingsData, loading: siteSettingsLoading } = useSiteSettings();
   const navigate = useNavigate();
   const {
@@ -62,6 +62,32 @@ const NavBar = ({ onFeedback }) => {
     if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('common.minutesAgo')}`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('common.hoursAgo')}`;
     return `${Math.floor(diff / 86400000)}${t('common.daysAgo')}`;
+  };
+
+  const getNotificationMessage = (n) => {
+    const title = getLocalizedTitle({ title: n.episodeTitle, titleEn: n.episodeTitleEn }) || n.episodeTitle || '';
+    switch (n.type) {
+      case 'new_episode':
+        return t('notification.newEpisode', { title, ep: n.metadata?.episodeNumber || '' });
+      case 'status_change':
+        return t('notification.statusChange', { title, status: n.metadata?.status || '' });
+      case 'feedback_reply':
+        return t('notification.feedbackReply', { reply: n.metadata?.reply || n.message || '' });
+      case 'friend_link_apply':
+        return t('notification.friendLinkApply', { name: n.metadata?.name || '' });
+      case 'friend_link_status':
+        return t('notification.friendLinkStatus', { name: n.metadata?.name || '', status: n.metadata?.status || '' });
+      case 'reminder':
+        return t('notification.reminder');
+      default:
+        return null;
+    }
+  };
+
+  const renderNotificationMessage = (n) => {
+    const structured = getNotificationMessage(n);
+    if (structured !== null) return structured;
+    return <TranslatableText text={n.message} />;
   };
 
   const clearSiteCache = () => {
@@ -266,7 +292,7 @@ const NavBar = ({ onFeedback }) => {
                           >
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                               <span style={{fontSize: '14px', fontWeight: n.isRead ? 400 : 600}}>
-                                <TranslatableText text={n.message} />
+                                {renderNotificationMessage(n)}
                               </span>
                               {!n.isRead && (
                                 <span style={{width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginLeft: '8px'}}></span>

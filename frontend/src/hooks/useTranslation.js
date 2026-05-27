@@ -36,7 +36,6 @@ const processQueue = () => {
 const requestTranslation = (text, lang) => {
   const cacheKey = `${lang}:${text}`;
   if (translationCache[cacheKey]) return Promise.resolve(translationCache[cacheKey]);
-
   if (inFlightRequests.has(cacheKey)) return inFlightRequests.get(cacheKey).promise;
 
   const existing = requestQueue.find(item => item.cacheKey === cacheKey);
@@ -54,9 +53,10 @@ const requestTranslation = (text, lang) => {
 const useTranslation = () => {
   const { lang } = useI18n();
   const pendingRef = useRef({});
+  const failedRef = useRef(new Set());
   const [tick, setTick] = useState(0);
   const mountedRef = useRef(true);
-  const pendingScheduleRef = useRef(null);
+  const scheduleTimerRef = useRef(null);
 
   useEffect(() => {
     return () => { mountedRef.current = false; };
@@ -64,15 +64,16 @@ const useTranslation = () => {
 
   useEffect(() => {
     pendingRef.current = {};
+    failedRef.current = new Set();
     setTick(t => t + 1);
   }, [lang]);
 
   const scheduleTick = useCallback(() => {
-    if (pendingScheduleRef.current) return;
-    pendingScheduleRef.current = setTimeout(() => {
-      pendingScheduleRef.current = null;
+    if (scheduleTimerRef.current) return;
+    scheduleTimerRef.current = setTimeout(() => {
+      scheduleTimerRef.current = null;
       if (mountedRef.current) setTick(t => t + 1);
-    }, 0);
+    }, 100);
   }, []);
 
   const getLocalizedField = useCallback((item, field) => {
@@ -86,14 +87,19 @@ const useTranslation = () => {
 
     const cacheKey = `${lang}:${originalText}`;
     if (translationCache[cacheKey]) return translationCache[cacheKey];
+    if (failedRef.current.has(cacheKey)) return originalText;
     if (pendingRef.current[cacheKey]) return originalText;
 
     const currentLang = lang;
     pendingRef.current[cacheKey] = true;
-    requestTranslation(originalText, currentLang).then(() => {
-      if (mountedRef.current) {
-        delete pendingRef.current[cacheKey];
+    requestTranslation(originalText, currentLang).then((result) => {
+      if (!mountedRef.current) return;
+      delete pendingRef.current[cacheKey];
+      if (result) {
+        failedRef.current.delete(cacheKey);
         scheduleTick();
+      } else {
+        failedRef.current.add(cacheKey);
       }
     });
 
@@ -120,14 +126,19 @@ const useTranslation = () => {
 
       const cacheKey = `${lang}:${originalText}`;
       if (translationCache[cacheKey]) return translationCache[cacheKey];
+      if (failedRef.current.has(cacheKey)) return originalText;
       if (pendingRef.current[cacheKey]) return originalText;
 
       const currentLang = lang;
       pendingRef.current[cacheKey] = true;
-      requestTranslation(originalText, currentLang).then(() => {
-        if (mountedRef.current) {
-          delete pendingRef.current[cacheKey];
+      requestTranslation(originalText, currentLang).then((result) => {
+        if (!mountedRef.current) return;
+        delete pendingRef.current[cacheKey];
+        if (result) {
+          failedRef.current.delete(cacheKey);
           scheduleTick();
+        } else {
+          failedRef.current.add(cacheKey);
         }
       });
 

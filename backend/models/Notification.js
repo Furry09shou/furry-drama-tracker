@@ -15,6 +15,10 @@ const NotificationSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  episodeTitleEn: {
+    type: String,
+    default: ''
+  },
   type: {
     type: String,
     enum: ['new_episode', 'status_change', 'feedback_reply', 'friend_link_apply', 'friend_link_status'],
@@ -27,6 +31,10 @@ const NotificationSchema = new mongoose.Schema({
   message: {
     type: String,
     default: ''
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   },
   isRead: {
     type: Boolean,
