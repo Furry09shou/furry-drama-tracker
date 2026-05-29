@@ -15,6 +15,14 @@ const Profile = ({ user, setUser, logout }) => {
   const [followedEpisodes, setFollowedEpisodes] = useState([]);
   const [historyEpisodes, setHistoryEpisodes] = useState([]);
   const [favoriteEpisodes, setFavoriteEpisodes] = useState([]);
+  const [favoriteFolders, setFavoriteFolders] = useState([]);
+  const [activeFolderId, setActiveFolderId] = useState(null);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [editingFolderId, setEditingFolderId] = useState(null);
+  const [editingFolderName, setEditingFolderName] = useState('');
+  const [movingFavoriteId, setMovingFavoriteId] = useState(null);
+  const [showFolderMenu, setShowFolderMenu] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [deletionStatus, setDeletionStatus] = useState(null);
@@ -35,6 +43,8 @@ const Profile = ({ user, setUser, logout }) => {
   const [nicknameError, setNicknameError] = useState('');
   const [show2FA, setShow2FA] = useState(false);
 
+  const [fetchError, setFetchError] = useState(null);
+
   const location = useLocation();
 
   useEffect(() => {
@@ -49,22 +59,44 @@ const Profile = ({ user, setUser, logout }) => {
           const followRes = await axios.get('/api/follows/list', config);
           followData = followRes.data.list || followRes.data || [];
         } catch (e) {
-          if (e.response?.status === 401) { setLoading(false); return; }
+          if (e.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
+            setLoading(false);
+            return;
+          }
           console.error(t('profile.fetchFollowsFailed') + ':', e.response?.data || e.message);
         }
         try {
           const historyRes = await axios.get('/api/histories/list', config);
           historyData = historyRes.data.list || historyRes.data || [];
         } catch (e) {
-          if (e.response?.status === 401) { setLoading(false); return; }
+          if (e.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
+            setLoading(false);
+            return;
+          }
           console.error(t('profile.fetchHistoryFailed') + ':', e.response?.data || e.message);
         }
         try {
           const favRes = await axios.get('/api/favorites/list', config);
           setFavoriteEpisodes(favRes.data.list || favRes.data || []);
         } catch (e) {
-          if (e.response?.status === 401) { setLoading(false); return; }
+          if (e.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
+            setLoading(false);
+            return;
+          }
         }
+        try {
+          const folderRes = await axios.get('/api/folders?type=favorite', config);
+          setFavoriteFolders(folderRes.data || []);
+        } catch (e) {}
 
         setFollowedEpisodes(followData);
         setHistoryEpisodes(historyData);
@@ -162,6 +194,96 @@ const Profile = ({ user, setUser, logout }) => {
       setFavoriteEpisodes(prev => prev.filter(f => f.episodeId && String(f.episodeId._id) !== String(episodeId)));
     } catch (err) {
       console.error('Unfavorite failed:', err);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const res = await axios.post('/api/folders', { name: newFolderName.trim(), type: 'favorite' }, {
+        headers: getAuthHeaders()
+      });
+      setFavoriteFolders(prev => [...prev, res.data]);
+      setNewFolderName('');
+      setShowCreateFolder(false);
+    } catch (err) {
+      console.error('Create folder failed:', err);
+    }
+  };
+
+  const handleRenameFolder = async (folderId) => {
+    if (!editingFolderName.trim()) return;
+    try {
+      const res = await axios.put(`/api/folders/${folderId}`, { name: editingFolderName.trim() }, {
+        headers: getAuthHeaders()
+      });
+      setFavoriteFolders(prev => prev.map(f => f._id === folderId ? res.data : f));
+      setEditingFolderId(null);
+      setEditingFolderName('');
+    } catch (err) {
+      console.error('Rename folder failed:', err);
+    }
+  };
+
+  const handleDeleteFolder = async (folderId) => {
+    try {
+      await axios.delete(`/api/folders/${folderId}`, {
+        headers: getAuthHeaders()
+      });
+      setFavoriteFolders(prev => prev.filter(f => f._id !== folderId));
+      if (activeFolderId === folderId) {
+        setActiveFolderId(null);
+        const favRes = await axios.get('/api/favorites/list', { headers: getAuthHeaders() });
+        setFavoriteEpisodes(favRes.data.list || favRes.data || []);
+      }
+    } catch (err) {
+      console.error('Delete folder failed:', err);
+    }
+  };
+
+  const handleMoveToFolder = async (folderId, episodeId) => {
+    try {
+      await axios.post(`/api/folders/${folderId}/items`, { episodeId }, {
+        headers: getAuthHeaders()
+      });
+      setFavoriteEpisodes(prev => prev.map(f => {
+        if (f.episodeId && String(f.episodeId._id) === String(episodeId)) {
+          return { ...f, folderId: favoriteFolders.find(fd => fd._id === folderId) };
+        }
+        return f;
+      }));
+      setMovingFavoriteId(null);
+    } catch (err) {
+      console.error('Move to folder failed:', err);
+    }
+  };
+
+  const handleRemoveFromFolder = async (folderId, episodeId) => {
+    try {
+      await axios.delete(`/api/folders/${folderId}/items/${episodeId}`, {
+        headers: getAuthHeaders()
+      });
+      setFavoriteEpisodes(prev => prev.map(f => {
+        if (f.episodeId && String(f.episodeId._id) === String(episodeId)) {
+          return { ...f, folderId: null };
+        }
+        return f;
+      }));
+    } catch (err) {
+      console.error('Remove from folder failed:', err);
+    }
+  };
+
+  const handleFolderClick = async (folderId) => {
+    setActiveFolderId(folderId);
+    try {
+      const favRes = await axios.get('/api/favorites/list', {
+        headers: getAuthHeaders(),
+        params: { folderId: folderId || 'null' }
+      });
+      setFavoriteEpisodes(favRes.data.list || favRes.data || []);
+    } catch (err) {
+      console.error('Fetch folder favorites failed:', err);
     }
   };
 
@@ -266,10 +388,10 @@ const Profile = ({ user, setUser, logout }) => {
                 style={{fontSize: '13px', padding: '6px 14px'}}
                 onClick={async () => {
                   try {
-                    await axios.post('/api/follows/add', { episodeId: episode._id }, {
+                    const addRes = await axios.post('/api/follows/add', { episodeId: episode._id }, {
                       headers: getAuthHeaders()
                     });
-                    setFollowedEpisodes(prev => [...prev, { episodeId: episode }]);
+                    setFollowedEpisodes(prev => [...prev, { episodeId: episode, followedAtEpisodes: addRes.data.followedAtEpisodes }]);
                   } catch (err) {
                     console.error(t('episode.follow'), err);
                   }
@@ -658,33 +780,251 @@ const Profile = ({ user, setUser, logout }) => {
       )}
 
       {activeTab === 'favorites' && (
-        <div className="followed-episodes">
-          {favoriteEpisodes.length === 0 ? (
-            <p>{t('profile.noFavorites')}</p>
-          ) : (
-            favoriteEpisodes.map(fav => {
-              const episode = fav.episodeId;
-              if (!episode) return null;
-              return (
-                <div key={fav._id} className="followed-episode-card">
-                  <Link to={`/episode/${episode._id}`}>
-                    <img src={episode.coverImage} alt={episode.title} />
-                  </Link>
-                  <div className="followed-episode-info">
-                    <h4>{getLocalizedTitle(episode)}</h4>
-                    <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
-                    {episode.averageRating > 0 && (
-                      <p style={{fontSize: '13px', color: 'var(--warning-text)'}}>⭐ {episode.averageRating} ({episode.ratingCount}{t('episode.ratingCountLabel')})</p>
-                    )}
-                    <button className="btn btn-secondary" onClick={() => handleUnfavorite(episode._id)}
-                      style={{marginTop: '8px', fontSize: '13px'}}>
-                      {t('profile.unfavorite')}
-                    </button>
-                  </div>
+        <div style={{display: 'flex', gap: '20px', alignItems: 'flex-start'}}>
+          <div style={{
+            minWidth: '180px', maxWidth: '220px', flexShrink: 0,
+            background: 'var(--card)', borderRadius: '12px',
+            border: '1px solid var(--border)', padding: '12px',
+            position: 'sticky', top: '20px'
+          }}>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
+              <h4 style={{margin: 0, fontSize: '14px', color: 'var(--text-secondary)'}}>{t('profile.folder')}</h4>
+              <button
+                onClick={() => { setShowCreateFolder(true); setNewFolderName(''); }}
+                style={{
+                  background: 'var(--primary-bg)', border: '1px solid var(--primary-border)',
+                  color: 'var(--primary)', borderRadius: '6px', padding: '3px 8px',
+                  cursor: 'pointer', fontSize: '12px', fontWeight: 500
+                }}
+                title={t('profile.createFolder')}
+              >+</button>
+            </div>
+            {showCreateFolder && (
+              <div style={{marginBottom: '8px'}}>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder={t('profile.folderNamePlaceholder')}
+                  maxLength={20}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') setShowCreateFolder(false); }}
+                  autoFocus
+                  style={{
+                    width: '100%', padding: '5px 8px', borderRadius: '6px', fontSize: '13px',
+                    background: 'var(--input)', border: '1px solid var(--border)',
+                    color: 'var(--foreground)', marginBottom: '4px', boxSizing: 'border-box'
+                  }}
+                />
+                <div style={{display: 'flex', gap: '4px'}}>
+                  <button onClick={handleCreateFolder} style={{
+                    padding: '3px 10px', borderRadius: '4px', fontSize: '12px',
+                    background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer'
+                  }}>{t('common.confirm')}</button>
+                  <button onClick={() => setShowCreateFolder(false)} style={{
+                    padding: '3px 10px', borderRadius: '4px', fontSize: '12px',
+                    background: 'var(--hover-bg)', color: 'var(--foreground)', border: '1px solid var(--border)', cursor: 'pointer'
+                  }}>{t('common.cancel')}</button>
                 </div>
-              );
-            })
-          )}
+              </div>
+            )}
+            <div
+              onClick={() => handleFolderClick(null)}
+              style={{
+                padding: '7px 10px', borderRadius: '6px', cursor: 'pointer',
+                fontSize: '13px', marginBottom: '2px',
+                background: activeFolderId === null ? 'var(--primary-bg)' : 'transparent',
+                color: activeFolderId === null ? 'var(--primary)' : 'var(--foreground)',
+                fontWeight: activeFolderId === null ? 600 : 400,
+                border: activeFolderId === null ? '1px solid var(--primary-border)' : '1px solid transparent',
+                transition: 'all 0.15s'
+              }}
+            >📁 {t('profile.allFavorites')}</div>
+            <div
+              onClick={() => handleFolderClick('unclassified')}
+              style={{
+                padding: '7px 10px', borderRadius: '6px', cursor: 'pointer',
+                fontSize: '13px', marginBottom: '2px',
+                background: activeFolderId === 'unclassified' ? 'var(--primary-bg)' : 'transparent',
+                color: activeFolderId === 'unclassified' ? 'var(--primary)' : 'var(--foreground)',
+                fontWeight: activeFolderId === 'unclassified' ? 600 : 400,
+                border: activeFolderId === 'unclassified' ? '1px solid var(--primary-border)' : '1px solid transparent',
+                transition: 'all 0.15s'
+              }}
+            >📂 {t('profile.unclassified')}</div>
+            {favoriteFolders.map(folder => (
+              <div key={folder._id} style={{position: 'relative'}}>
+                {editingFolderId === folder._id ? (
+                  <div style={{padding: '4px 0'}}>
+                    <input
+                      type="text"
+                      value={editingFolderName}
+                      onChange={(e) => setEditingFolderName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleRenameFolder(folder._id); if (e.key === 'Escape') setEditingFolderId(null); }}
+                      autoFocus
+                      style={{
+                        width: '100%', padding: '4px 8px', borderRadius: '4px', fontSize: '13px',
+                        background: 'var(--input)', border: '1px solid var(--border)',
+                        color: 'var(--foreground)', boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{display: 'flex', gap: '4px', marginTop: '4px'}}>
+                      <button onClick={() => handleRenameFolder(folder._id)} style={{
+                        padding: '2px 8px', borderRadius: '4px', fontSize: '11px',
+                        background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer'
+                      }}>✓</button>
+                      <button onClick={() => setEditingFolderId(null)} style={{
+                        padding: '2px 8px', borderRadius: '4px', fontSize: '11px',
+                        background: 'var(--hover-bg)', color: 'var(--foreground)', border: '1px solid var(--border)', cursor: 'pointer'
+                      }}>✕</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => handleFolderClick(folder._id)}
+                    style={{
+                      padding: '7px 10px', borderRadius: '6px', cursor: 'pointer',
+                      fontSize: '13px', marginBottom: '2px', paddingRight: '28px',
+                      background: activeFolderId === folder._id ? 'var(--primary-bg)' : 'transparent',
+                      color: activeFolderId === folder._id ? 'var(--primary)' : 'var(--foreground)',
+                      fontWeight: activeFolderId === folder._id ? 600 : 400,
+                      border: activeFolderId === folder._id ? '1px solid var(--primary-border)' : '1px solid transparent',
+                      transition: 'all 0.15s',
+                      position: 'relative'
+                    }}
+                  >
+                    📂 {folder.name}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowFolderMenu(showFolderMenu === folder._id ? null : folder._id); }}
+                      style={{
+                        position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'var(--text-tertiary)', fontSize: '14px', padding: '2px 4px',
+                        lineHeight: 1
+                      }}
+                    >⋮</button>
+                  </div>
+                )}
+                {showFolderMenu === folder._id && (
+                  <div style={{
+                    position: 'absolute', right: '0', top: '100%', zIndex: 10,
+                    background: 'var(--card)', border: '1px solid var(--border)',
+                    borderRadius: '8px', padding: '4px', minWidth: '120px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingFolderId(folder._id); setEditingFolderName(folder.name); setShowFolderMenu(null); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px',
+                        background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
+                        color: 'var(--foreground)', borderRadius: '4px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >✏️ {t('profile.renameFolder')}</button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(t('profile.deleteFolderConfirm').replace('{name}', folder.name))) {
+                          handleDeleteFolder(folder._id);
+                        }
+                        setShowFolderMenu(null);
+                      }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px',
+                        background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
+                        color: 'var(--destructive-text)', borderRadius: '4px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = 'var(--destructive-bg)'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >🗑️ {t('profile.deleteFolder')}</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="followed-episodes" style={{flex: 1}}>
+            {favoriteEpisodes.length === 0 ? (
+              <p>{t('profile.noFavorites')}</p>
+            ) : (
+              favoriteEpisodes.map(fav => {
+                const episode = fav.episodeId;
+                if (!episode) return null;
+                return (
+                  <div key={fav._id} className="followed-episode-card" style={{position: 'relative'}}>
+                    <Link to={`/episode/${episode._id}`}>
+                      <img src={episode.coverImage} alt={episode.title} />
+                    </Link>
+                    <div className="followed-episode-info">
+                      <h4>{getLocalizedTitle(episode)}</h4>
+                      <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
+                      {episode.averageRating > 0 && (
+                        <p style={{fontSize: '13px', color: 'var(--warning-text)'}}>⭐ {episode.averageRating} ({episode.ratingCount}{t('episode.ratingCountLabel')})</p>
+                      )}
+                      {fav.folderId && fav.folderId.name && (
+                        <span style={{
+                          fontSize: '12px', color: 'var(--primary)', background: 'var(--primary-bg)',
+                          padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--primary-border)',
+                          display: 'inline-block', marginBottom: '4px'
+                        }}>📂 {fav.folderId.name}</span>
+                      )}
+                      <div style={{display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
+                        <button className="btn btn-secondary" onClick={() => handleUnfavorite(episode._id)}
+                          style={{fontSize: '13px'}}>
+                          {t('profile.unfavorite')}
+                        </button>
+                        <div style={{position: 'relative'}}>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => setMovingFavoriteId(movingFavoriteId === fav._id ? null : fav._id)}
+                            style={{fontSize: '13px'}}
+                          >📂 {t('profile.moveToFolder')}</button>
+                          {movingFavoriteId === fav._id && (
+                            <div style={{
+                              position: 'absolute', top: '100%', left: '0', zIndex: 10,
+                              background: 'var(--card)', border: '1px solid var(--border)',
+                              borderRadius: '8px', padding: '4px', minWidth: '160px',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '4px'
+                            }}>
+                              {fav.folderId && fav.folderId._id && (
+                                <button
+                                  onClick={() => { handleRemoveFromFolder(fav.folderId._id, episode._id); setMovingFavoriteId(null); }}
+                                  style={{
+                                    display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px',
+                                    background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
+                                    color: 'var(--destructive-text)', borderRadius: '4px'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.background = 'var(--destructive-bg)'}
+                                  onMouseLeave={(e) => e.target.style.background = 'none'}
+                                >↩️ {t('profile.removeFromFolder')}</button>
+                              )}
+                              {favoriteFolders.filter(fd => !fav.folderId || fd._id !== fav.folderId._id).map(fd => (
+                                <button
+                                  key={fd._id}
+                                  onClick={() => { handleMoveToFolder(fd._id, episode._id); setMovingFavoriteId(null); }}
+                                  style={{
+                                    display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px',
+                                    background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
+                                    color: 'var(--foreground)', borderRadius: '4px'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
+                                  onMouseLeave={(e) => e.target.style.background = 'none'}
+                                >📂 {fd.name}</button>
+                              ))}
+                              {favoriteFolders.filter(fd => !fav.folderId || fd._id !== fav.folderId._id).length === 0 && (
+                                <p style={{padding: '6px 10px', fontSize: '12px', color: 'var(--text-tertiary)', margin: 0}}>
+                                  {t('profile.createFolder')}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 

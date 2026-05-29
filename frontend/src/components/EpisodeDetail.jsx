@@ -28,6 +28,8 @@ const EpisodeDetail = ({ user }) => {
   const [showShare, setShowShare] = useState(false);
   const [episodesExpanded, setEpisodesExpanded] = useState(false);
   const [episodeSortOrder, setEpisodeSortOrder] = useState('desc');
+  const [favoriteFolders, setFavoriteFolders] = useState([]);
+  const [showFolderPicker, setShowFolderPicker] = useState(false);
 
   const navigate = useNavigate();
   const { id: episodeId } = useParams();
@@ -129,8 +131,10 @@ const EpisodeDetail = ({ user }) => {
       const config = { headers: getAuthHeaders() };
       if (isFollowing) {
         await axios.post('/api/follows/remove', { episodeId }, config);
+        setFollowedAtEpisodes(null);
       } else {
-        await axios.post('/api/follows/add', { episodeId }, config);
+        const res = await axios.post('/api/follows/add', { episodeId }, config);
+        setFollowedAtEpisodes(res.data.followedAtEpisodes);
       }
       setIsFollowing(!isFollowing);
     } catch (error) {
@@ -138,17 +142,35 @@ const EpisodeDetail = ({ user }) => {
     }
   };
 
-  const handleFavorite = async () => {
+  const handleFavorite = async (folderId) => {
     try {
       const config = { headers: getAuthHeaders() };
       if (isFavorite) {
         await axios.post('/api/favorites/remove', { episodeId }, config);
+        setIsFavorite(false);
       } else {
-        await axios.post('/api/favorites/add', { episodeId }, config);
+        const data = { episodeId };
+        if (folderId) data.folderId = folderId;
+        await axios.post('/api/favorites/add', data, config);
+        setIsFavorite(true);
       }
-      setIsFavorite(!isFavorite);
+      setShowFolderPicker(false);
     } catch (error) {
       console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const handleOpenFolderPicker = async () => {
+    if (isFavorite) {
+      await handleFavorite();
+      return;
+    }
+    try {
+      const res = await axios.get('/api/folders?type=favorite', { headers: getAuthHeaders() });
+      setFavoriteFolders(res.data || []);
+      setShowFolderPicker(true);
+    } catch (e) {
+      handleFavorite();
     }
   };
 
@@ -309,13 +331,58 @@ const EpisodeDetail = ({ user }) => {
               </button>
             )}
             {user && (
-              <button
-                className={`btn ${isFavorite ? 'btn-secondary' : ''}`}
-                onClick={handleFavorite}
-                style={isFavorite ? {borderColor: 'var(--warning-text)', color: 'var(--warning-text)'} : {}}
-              >
-                {isFavorite ? t('episode.favorited') : t('episode.favoriteLabel')}
-              </button>
+              <div style={{position: 'relative', display: 'inline-block'}}>
+                <button
+                  className={`btn ${isFavorite ? 'btn-secondary' : ''}`}
+                  onClick={handleOpenFolderPicker}
+                  style={isFavorite ? {borderColor: 'var(--warning-text)', color: 'var(--warning-text)'} : {}}
+                >
+                  {isFavorite ? t('episode.favorited') : t('episode.favoriteLabel')}
+                </button>
+                {showFolderPicker && !isFavorite && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: '0', zIndex: 20,
+                    background: 'var(--card)', border: '1px solid var(--border)',
+                    borderRadius: '8px', padding: '6px', minWidth: '180px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '4px'
+                  }}>
+                    <button
+                      onClick={() => handleFavorite(null)}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left', padding: '7px 12px',
+                        background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
+                        color: 'var(--foreground)', borderRadius: '4px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >📁 {t('profile.unclassified')}</button>
+                    {favoriteFolders.map(folder => (
+                      <button
+                        key={folder._id}
+                        onClick={() => handleFavorite(folder._id)}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left', padding: '7px 12px',
+                          background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
+                          color: 'var(--foreground)', borderRadius: '4px'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
+                        onMouseLeave={(e) => e.target.style.background = 'none'}
+                      >📂 {folder.name}</button>
+                    ))}
+                    <div style={{borderTop: '1px solid var(--border)', margin: '4px 0'}} />
+                    <button
+                      onClick={() => { setShowFolderPicker(false); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left', padding: '7px 12px',
+                        background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
+                        color: 'var(--text-tertiary)', borderRadius: '4px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >{t('common.cancel')}</button>
+                  </div>
+                )}
+              </div>
             )}
             <button
               className="btn btn-secondary"
