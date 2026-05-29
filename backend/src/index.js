@@ -166,15 +166,6 @@ app.use((req, res, next) => {
 
 app.use(trackApiUsage);
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`);
-  });
-  next();
-});
-
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 300,
