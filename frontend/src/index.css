@@ -1422,3 +1422,16 @@ table tr:last-child td {
   background: var(--selection-bg);
   color: var(--foreground);
 }
+
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+input::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+}
+
+input::-webkit-caps-lock-indicator {
+  margin-right: 32px;
+}

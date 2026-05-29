@@ -14,11 +14,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    fetchCsrfToken();
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
     const initAuth = async (storedToken, storedUser) => {
+      await fetchCsrfToken();
       const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
       try {
         const res = await axios.get('/api/auth/me', { headers, skipRedirect: true, params: { _t: Date.now() } });
@@ -26,11 +26,25 @@ export const AuthProvider = ({ children }) => {
         setUser(freshUser);
         localStorage.setItem('user', JSON.stringify(freshUser));
         if (storedToken) {
-          axios.post('/api/user-sessions/create', {
-            screenWidth: window.screen.width,
-            screenHeight: window.screen.height,
-            language: navigator.language
-          }, { headers }).catch(() => {});
+          try {
+            await axios.post('/api/user-sessions/create', {
+              screenWidth: window.screen.width,
+              screenHeight: window.screen.height,
+              language: navigator.language
+            }, { headers, skipRedirect: true });
+          } catch (sessionErr) {
+            console.error('Session creation failed, retrying...', sessionErr?.response?.data || sessionErr?.message);
+            try {
+              await new Promise(r => setTimeout(r, 1000));
+              await axios.post('/api/user-sessions/create', {
+                screenWidth: window.screen.width,
+                screenHeight: window.screen.height,
+                language: navigator.language
+              }, { headers, skipRedirect: true });
+            } catch (retryErr) {
+              console.error('Session creation retry failed:', retryErr?.response?.data || retryErr?.message);
+            }
+          }
         }
       } catch {
         localStorage.removeItem('token');
@@ -69,8 +83,15 @@ export const AuthProvider = ({ children }) => {
     if (!user) return;
     const heartbeat = () => {
       const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      axios.post('/api/user-sessions/heartbeat', {}, { headers }).catch(() => {});
+      if (!token) return;
+      const headers = { Authorization: `Bearer ${token}` };
+      axios.post('/api/user-sessions/heartbeat', {}, { headers, skipRedirect: true }).catch((err) => {
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
+        }
+      });
     };
     const interval = setInterval(heartbeat, 5 * 60 * 1000);
     return () => clearInterval(interval);
