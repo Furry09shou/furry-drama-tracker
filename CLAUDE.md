@@ -1,1 +1,1 @@
-C:/Users/fanyu/Desktop/新建文件夹/furry-drama-tracker/AGENTS.md
+AGENTS.md
