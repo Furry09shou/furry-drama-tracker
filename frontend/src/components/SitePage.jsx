@@ -186,24 +186,32 @@ const SitePage = ({ pageKey }) => {
               </p>
               {showGithubModal && (
                 <div onClick={() => setShowGithubModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', width: 'min(300px, calc(100vw - 40px))', maxWidth: '400px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+                  <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', width: 'min(360px, calc(100vw - 40px))', maxWidth: '460px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                       <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--foreground)' }}>{t('sitePage.githubProject')}</h3>
                       <button onClick={() => setShowGithubModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '20px', cursor: 'pointer', padding: '4px 8px', lineHeight: 1 }}>✕</button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '12px', background: 'var(--hover-bg)', border: '1px solid var(--border)', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
-                        <span style={{ fontSize: '24px' }}>📦</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'var(--hover-bg)', border: '1px solid var(--border)', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '20px' }}>📦</span>
                           <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>{t('sitePage.project')}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-tracker</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>GPL v3.0</span>
-                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>AGPL v3.0</span>
-                            <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{t('sitePage.viewLicense')}</Link>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>furry-drama-tracker</div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>{t('sitePage.frontendProject')}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>GPL v3.0</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>{t('sitePage.backendProject')}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>AGPL v3.0</span>
                           </div>
                         </div>
-                        <a href="https://github.com/Furry09shou/furry-drama-tracker" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--primary)', color: '#fff', textDecoration: 'none', fontSize: '12px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>GitHub</a>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{t('sitePage.viewLicense')}</Link>
+                          <a href="https://github.com/Furry09shou/furry-drama-tracker" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--primary)', color: '#fff', textDecoration: 'none', fontSize: '12px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>GitHub</a>
+                        </div>
                       </div>
                     </div>
                   </div>
