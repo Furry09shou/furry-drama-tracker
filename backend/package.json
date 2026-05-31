@@ -26,6 +26,7 @@
     "nodemailer": "^8.0.10",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
+    "web-push": "^3.6.7",
     "xss": "^1.0.15"
   },
   "devDependencies": {

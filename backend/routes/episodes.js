@@ -6,6 +6,7 @@ const EpisodeVersion = require('../models/EpisodeVersion');
 const SingleEpisode = require('../models/SingleEpisode');
 const Follow = require('../models/Follow');
 const Notification = require('../models/Notification');
+const { sendPushToUser } = require('./notifications');
 const { protect, adminProtect, creatorProtect } = require('../middlewares/authFactory');
 const { setCache, getCache, clearCache, clearCacheByPrefix } = require('../middlewares/cache');
 const { escapeRegex } = require('../utils/helpers');
@@ -473,6 +474,15 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
           metadata: { episodeNumber: req.body.episodeNumber }
         }));
         await Notification.insertMany(notifications);
+        const uniqueUserIds = [...new Set(followers.map(f => String(f.userId)))];
+        uniqueUserIds.forEach(uid => {
+          sendPushToUser(uid, {
+            title: `《${updatedEpisode.title}》更新了`,
+            body: `第${req.body.episodeNumber}集已更新`,
+            icon: '/vite.svg',
+            data: { url: `/episode/${req.params.id}` }
+          });
+        });
       }
     }
 
@@ -549,6 +559,15 @@ router.put('/:id', creatorProtect, async (req, res) => {
         }
         if (notifications.length > 0) {
           await Notification.insertMany(notifications);
+          const uniqueUserIds = [...new Set(follows.map(f => String(f.userId)))];
+          uniqueUserIds.forEach(uid => {
+            sendPushToUser(uid, {
+              title: `《${updatedEpisode.title}》更新了`,
+              body: `更新至第${req.body.currentEpisodes}集`,
+              icon: '/vite.svg',
+              data: { url: `/episode/${req.params.id}` }
+            });
+          });
         }
       }
     }

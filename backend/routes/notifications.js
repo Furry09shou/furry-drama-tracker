@@ -1,8 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
+const PushSubscription = require('../models/PushSubscription');
 const { protect } = require('../middlewares/authFactory');
 const jwt = require('jsonwebtoken');
+const webpush = require('web-push');
+
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT || 'mailto:admin@furry-drama-tracker.com',
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 
 const sseClients = new Map();
 
@@ -164,5 +172,71 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+router.get('/vapid-public-key', (req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+});
+
+router.post('/push/subscribe', protect, async (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ message: '无效的订阅信息' });
+    }
+    await PushSubscription.findOneAndUpdate(
+      { userId: req.user._id, endpoint: subscription.endpoint },
+      {
+        userId: req.user._id,
+        endpoint: subscription.endpoint,
+        keys: subscription.keys,
+        userAgent: req.headers['user-agent'],
+      },
+      { upsert: true, new: true }
+    );
+    res.json({ message: '推送订阅成功' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/push/unsubscribe', protect, async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (!endpoint) {
+      return res.status(400).json({ message: '缺少endpoint' });
+    }
+    await PushSubscription.deleteOne({ userId: req.user._id, endpoint });
+    res.json({ message: '取消推送订阅成功' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+const sendPushToUser = async (userId, payload) => {
+  try {
+    const subs = await PushSubscription.find({ userId: String(userId) });
+    const results = await Promise.allSettled(
+      subs.map(sub =>
+        webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: sub.keys },
+          JSON.stringify(payload)
+        )
+      )
+    );
+    const invalidIndices = [];
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        const statusCode = r.reason?.statusCode;
+        if (statusCode === 410 || statusCode === 404) {
+          invalidIndices.push(subs[i]._id);
+        }
+      }
+    });
+    if (invalidIndices.length > 0) {
+      await PushSubscription.deleteMany({ _id: { $in: invalidIndices } });
+    }
+  } catch (e) {}
+};
+
 module.exports = router;
 module.exports.pushNotificationToUser = pushNotificationToUser;
+module.exports.sendPushToUser = sendPushToUser;

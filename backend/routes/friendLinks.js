@@ -3,6 +3,7 @@ const router = express.Router();
 const FriendLink = require('../models/FriendLink');
 const Admin = require('../models/Admin');
 const Notification = require('../models/Notification');
+const { sendPushToUser } = require('./notifications');
 const { adminProtect, protect } = require('../middlewares/authFactory');
 const jwt = require('jsonwebtoken');
 
@@ -94,6 +95,14 @@ router.post('/apply', optionalProtect, async (req, res) => {
         metadata: { name }
       }));
       await Notification.insertMany(notifications);
+      superAdmins.forEach(a => {
+        sendPushToUser(String(a._id), {
+          title: '新友链申请',
+          body: `收到来自「${name}」的友链申请`,
+          icon: '/vite.svg',
+          data: { url: '/admin/friend-links' }
+        });
+      });
     }
     res.json({ message: '申请已提交，等待管理员审核' });
   } catch (error) {
@@ -176,6 +185,12 @@ router.put('/:id', adminProtect, async (req, res) => {
         type: 'friend_link_status',
         message: `友链「${link.name}」申请${statusLabel}`,
         metadata: { name: link.name, status: statusLabel }
+      });
+      sendPushToUser(String(link.applicantId), {
+        title: '友链审核结果',
+        body: `友链「${link.name}」申请${statusLabel}`,
+        icon: '/vite.svg',
+        data: { url: '/profile' }
       });
     }
     res.json(link);

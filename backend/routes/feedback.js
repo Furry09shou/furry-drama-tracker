@@ -3,6 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const Feedback = require('../models/Feedback');
 const Notification = require('../models/Notification');
+const { sendPushToUser } = require('./notifications');
 const { protect, adminProtect } = require('../middlewares/authFactory');
 
 const feedbackLimiter = rateLimit({
@@ -68,6 +69,12 @@ router.put('/:id', adminProtect, async (req, res) => {
         type: 'feedback_reply',
         message: `您的反馈已收到回复：${reply.slice(0, 50)}...`,
         metadata: { reply: reply.slice(0, 50) }
+      });
+      sendPushToUser(String(fb.userId), {
+        title: '反馈回复',
+        body: `您的反馈已收到回复：${reply.slice(0, 50)}...`,
+        icon: '/vite.svg',
+        data: { url: '/profile' }
       });
     }
     res.json(fb);

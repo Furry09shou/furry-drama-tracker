@@ -16,6 +16,42 @@ self.addEventListener('install', (event) => {
   );
 });
 
+self.addEventListener('push', (event) => {
+  let data = { title: '兽剧聚合平台', body: '您有新的通知', icon: '/vite.svg', data: {} };
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch (e) {}
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon || '/vite.svg',
+      badge: '/vite.svg',
+      data: data.data || {},
+      vibrate: [100, 50, 100],
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url;
+  if (url) {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        for (const client of clients) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            client.navigate(url);
+            return client.focus();
+          }
+        }
+        return self.clients.openWindow(url);
+      })
+    );
+  }
+});
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>

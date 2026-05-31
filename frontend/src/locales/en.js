@@ -72,6 +72,8 @@ export default {
     friendLinkApply: 'New friend link application: {name}',
     friendLinkStatus: 'Friend link "{name}" application {status}',
     reminder: 'You have subscribed to updates for this series',
+    pushOn: 'Push on',
+    pushOff: 'Enable push',
   },
   site: {
     defaultName: 'Furry Drama Hub',

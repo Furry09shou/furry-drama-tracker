@@ -8,6 +8,7 @@ import { useSiteSettings } from '../contexts/SiteSettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
 import useTranslation from '../hooks/useTranslation';
 import useNotifications from '../hooks/useNotifications';
+import usePushNotifications from '../hooks/usePushNotifications';
 import LanguageSwitcher from './LanguageSwitcher';
 import TranslatableText from './TranslatableText';
 
@@ -25,6 +26,7 @@ const NavBar = ({ onFeedback }) => {
     clearRead,
     refreshNotifications,
   } = useNotifications();
+  const push = usePushNotifications();
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -260,7 +262,17 @@ const NavBar = ({ onFeedback }) => {
                       padding: '16px', borderBottom: '1px solid var(--border)'
                     }}>
                       <h3 style={{margin: 0, fontSize: '16px', color: 'var(--foreground)'}}>{t('nav.notifications')}</h3>
-                      <div style={{display: 'flex', gap: '12px'}}>
+                      <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+                        {push.supported && user && (
+                          <button onClick={() => push.toggle()} disabled={push.loading} style={{
+                            background: 'none', border: 'none', cursor: push.loading ? 'wait' : 'pointer',
+                            fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px',
+                            color: push.subscribed ? 'var(--primary)' : 'var(--text-secondary)',
+                          }}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                            {push.subscribed ? t('notification.pushOn') : t('notification.pushOff')}
+                          </button>
+                        )}
                         {unreadCount > 0 && (
                           <button onClick={markAllRead} style={{
                             background: 'none', border: 'none', color: 'var(--primary)',
