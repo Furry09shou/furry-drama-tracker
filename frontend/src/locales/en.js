@@ -1345,4 +1345,7 @@ export default {
     selectVersions: 'Select two versions to compare',
     history: 'History',
   },
+  pwa: {
+    installBtn: 'Install App',
+  },
 };

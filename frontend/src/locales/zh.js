@@ -1345,4 +1345,7 @@ export default {
     selectVersions: '选择两个版本进行对比',
     history: '历史',
   },
+  pwa: {
+    installBtn: '安装应用',
+  },
 };

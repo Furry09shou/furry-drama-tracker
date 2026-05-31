@@ -30,10 +30,42 @@ const NavBar = ({ onFeedback }) => {
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
   const notifRef = useRef(null);
   const notifPanelRef = useRef(null);
   const moreRef = useRef(null);
   const { theme, toggleTheme, themeIcon, themeTitle } = useTheme();
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    setIsInstalled(isStandalone);
+
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    const handleInstalled = () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+    }
+  };
 
   useEffect(() => {
     if (!showNotifPanel || !user) return;
@@ -210,6 +242,18 @@ const NavBar = ({ onFeedback }) => {
               )}
             </button>
           )}
+          {installPrompt && !isInstalled && (
+            <button
+              onClick={handleInstallClick}
+              title={t('pwa.installBtn')}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--primary)', fontSize: '18px', padding: '6px', lineHeight: 1
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          )}
           <button onClick={toggleTheme} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--foreground)', fontSize: '18px', padding: '6px'
@@ -230,6 +274,22 @@ const NavBar = ({ onFeedback }) => {
             <>
               <li><Link to="/profile" onClick={() => setShowMobileMenu(false)}>{t('nav.profile')}</Link></li>
               <li style={{position: 'relative'}} ref={notifRef}>
+                {installPrompt && !isInstalled && (
+                  <button
+                    onClick={handleInstallClick}
+                    title={t('pwa.installBtn')}
+                    className="desktop-only-notif"
+                    style={{
+                      background: 'var(--primary)', border: 'none', cursor: 'pointer',
+                      color: '#fff', fontSize: '13px', position: 'relative',
+                      padding: '4px 12px', borderRadius: '6px', fontWeight: 600,
+                      display: 'flex', alignItems: 'center', gap: '4px', lineHeight: 1
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    {t('pwa.installBtn')}
+                  </button>
+                )}
                 <button
                   onClick={() => setShowNotifPanel(!showNotifPanel)}
                   className="desktop-only-notif"
