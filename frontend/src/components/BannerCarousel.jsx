@@ -51,12 +51,16 @@ const BannerCarousel = React.memo(({ bannerImages, welcomeTitle, welcomeSubtitle
         overflow: 'hidden',
         aspectRatio: '3/1',
         maxHeight: '300px',
+        maxWidth: '900px',
+        margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
         color: '#fff',
+        textAlign: 'center',
+        padding: '0 24px',
       }}>
         <h2 style={{
           fontSize: '2rem',
@@ -101,6 +105,8 @@ const BannerCarousel = React.memo(({ bannerImages, welcomeTitle, welcomeSubtitle
         transition: 'opacity 0.8s ease',
         opacity: showWelcome ? 1 : 0,
         pointerEvents: showWelcome ? 'auto' : 'none',
+        textAlign: 'center',
+        padding: '0 24px',
       }}>
         <h2 style={{
           fontSize: '2rem',

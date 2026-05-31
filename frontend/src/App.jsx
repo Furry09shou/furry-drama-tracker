@@ -166,36 +166,12 @@ const FooterBeian = () => {
               }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
-                <span style={{ fontSize: '24px' }}>🎨</span>
+                <span style={{ fontSize: '24px' }}>📦</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>{t('footer.frontendProject')}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-fe</div>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>{t('footer.project')}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-tracker</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>GPL v3.0</span>
-                    <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }}
-                      onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                      onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                    >{t('footer.viewLicense')}</Link>
-                  </div>
-                </div>
-                <a href="https://github.com/Furry09shou/furry-drama-fe" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
-                  padding: '6px 12px', borderRadius: '8px', background: 'var(--primary)',
-                  color: '#fff', textDecoration: 'none', fontSize: '12px', fontWeight: 600,
-                  flexShrink: 0, whiteSpace: 'nowrap'
-                }}>GitHub</a>
-              </div>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
-                borderRadius: '12px', background: 'var(--hover-bg)', border: '1px solid var(--border)',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
-                <span style={{ fontSize: '24px' }}>⚙️</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--foreground)' }}>{t('footer.backendProject')}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>furry-drama-be</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', background: 'var(--card)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>AGPL v3.0</span>
                     <Link to="/license" onClick={() => setShowGithubModal(false)} style={{ fontSize: '11px', color: 'var(--primary)', textDecoration: 'none' }}
                       onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
@@ -203,7 +179,7 @@ const FooterBeian = () => {
                     >{t('footer.viewLicense')}</Link>
                   </div>
                 </div>
-                <a href="https://github.com/Furry09shou/furry-drama-be" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
+                <a href="https://github.com/Furry09shou/furry-drama-tracker" target="_blank" rel="noopener noreferrer" onClick={() => setShowGithubModal(false)} style={{
                   padding: '6px 12px', borderRadius: '8px', background: 'var(--primary)',
                   color: '#fff', textDecoration: 'none', fontSize: '12px', fontWeight: 600,
                   flexShrink: 0, whiteSpace: 'nowrap'

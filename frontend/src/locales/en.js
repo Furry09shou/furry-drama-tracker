@@ -79,6 +79,7 @@ export default {
   footer: {
     licenseAgreement: 'GPL v3.0 / AGPL v3.0 License',
     githubProject: 'GitHub Open Source',
+    project: 'Project',
     frontendProject: 'Frontend',
     backendProject: 'Backend',
     viewLicense: 'View License',
@@ -477,6 +478,7 @@ export default {
     nextPage: 'Next',
     license: 'GPL v3.0 / AGPL v3.0 License',
     githubProject: 'GitHub Open Source',
+    project: 'Project',
     frontendProject: 'Frontend Project',
     backendProject: 'Backend Project',
     viewLicense: 'View License',
@@ -506,7 +508,7 @@ export default {
     disclaimerText: 'This software is provided "as is", without any warranty',
     thirdPartyDeps: 'Third-party Dependencies',
     thirdPartyDepsDesc: 'This project uses the following open-source libraries',
-    fullLicenseNote: 'For the full GPL v3 license text, see the LICENSE.md file in the project repository.',
+    fullLicenseNote: 'For the full license text, see the LICENSE.md file in the project repository.',
   },
   notFound: {
     title: 'Page Not Found',

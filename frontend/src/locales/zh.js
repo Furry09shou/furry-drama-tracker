@@ -79,6 +79,7 @@ export default {
   footer: {
     licenseAgreement: 'GPL v3.0 / AGPL v3.0 许可协议',
     githubProject: 'GitHub 开源项目',
+    project: '项目',
     frontendProject: '前端项目',
     backendProject: '后端项目',
     viewLicense: '查看许可协议',
@@ -477,6 +478,7 @@ export default {
     nextPage: '下一页',
     license: 'GPL v3.0 / AGPL v3.0 许可协议',
     githubProject: 'GitHub 开源项目',
+    project: '项目',
     frontendProject: '前端项目',
     backendProject: '后端项目',
     viewLicense: '查看许可协议',
@@ -506,7 +508,7 @@ export default {
     disclaimerText: '本软件按"原样"提供，不提供任何明示或暗示的保证',
     thirdPartyDeps: '第三方依赖',
     thirdPartyDepsDesc: '本项目使用了以下开源第三方库',
-    fullLicenseNote: '完整的 GPL v3 协议文本请参阅项目仓库中的 LICENSE.md 文件。',
+    fullLicenseNote: '完整的协议文本请参阅项目仓库中的 LICENSE.md 文件。',
   },
   notFound: {
     title: '页面不存在',
