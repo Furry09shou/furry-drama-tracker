@@ -1,0 +1,328 @@
+const express = require('express');
+const router = express.Router();
+const Admin = require('../models/Admin');
+const AdminSession = require('../models/AdminSession');
+const User = require('../models/User');
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+const { superAdminProtect, adminProtect } = require('../middlewares/authFactory');
+const { validatePassword } = require('../middlewares/security');
+const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
+const Episode = require('../models/Episode');
+const Report = require('../models/Report');
+const Feedback = require('../models/Feedback');
+const FriendLink = require('../models/FriendLink');
+
+router.get('/pending-counts', adminProtect, async (req, res) => {
+  try {
+    const [episodes, reports, feedbacks, friendLinks] = await Promise.all([
+      Episode.countDocuments({ status: 'pending' }),
+      Report.countDocuments({ status: 'pending' }),
+      Feedback.countDocuments({ status: 'pending' }),
+      FriendLink.countDocuments({ status: 'pending' })
+    ]);
+    res.json({ episodes, reports, feedbacks, friendLinks });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/login', async (req, res) => {
+  const { username, password, screenWidth, screenHeight, language, captchaId, captchaAnswer } = req.body;
+
+  try {
+    if (!global._captchaStore || !captchaId || !captchaAnswer) {
+      return res.status(400).json({ message: '请输入验证码' });
+    }
+    const stored = global._captchaStore.get(captchaId);
+    if (!stored) {
+      return res.status(400).json({ message: '验证码无效或已过期' });
+    }
+    if (stored.expires < Date.now()) {
+      global._captchaStore.delete(captchaId);
+      return res.status(400).json({ message: '验证码已过期' });
+    }
+    if (String(stored.answer) !== String(captchaAnswer).trim().toLowerCase()) {
+      global._captchaStore.delete(captchaId);
+      return res.status(400).json({ message: '验证码错误' });
+    }
+    global._captchaStore.delete(captchaId);
+
+    const admin = await Admin.findOne({ username });
+    if (!admin) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    if (admin.isLocked) {
+      return res.status(423).json({ message: '账号已被锁定，请30分钟后再试' });
+    }
+
+    const isMatch = await admin.matchPassword(password);
+    if (!isMatch) {
+      await admin.incLoginAttempts();
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    await admin.resetLoginAttempts();
+
+    const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, {
+      expiresIn: '30d'
+    });
+
+    const tokenHash = hashToken(token);
+    const ua = req.headers['user-agent'] || '';
+    const ip = getClientIp(req);
+    const deviceInfo = parseUserAgent(ua);
+    if (screenWidth) deviceInfo.screenWidth = screenWidth;
+    if (screenHeight) deviceInfo.screenHeight = screenHeight;
+    if (language) deviceInfo.language = language;
+    deviceInfo.userAgent = ua;
+
+    const session = new AdminSession({
+      adminId: admin._id,
+      adminUsername: admin.username,
+      adminRole: admin.role,
+      tokenHash,
+      deviceInfo,
+      ip
+    });
+    await session.save();
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('adminToken', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    res.json({
+      _id: admin._id,
+      username: admin.username,
+      role: admin.role,
+      token
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/logout', adminProtect, async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const tokenHash = hashToken(token);
+    await AdminSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
+    res.clearCookie('adminToken', { path: '/' });
+    res.json({ message: '退出成功' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/list', superAdminProtect, async (req, res) => {
+  try {
+    const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 });
+    res.json(admins);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/register', superAdminProtect, async (req, res) => {
+  const { username, password, role = 'admin' } = req.body;
+
+  try {
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+    const adminExists = await Admin.findOne({ username });
+    if (adminExists) {
+      return res.status(400).json({ message: 'Admin already exists' });
+    }
+
+    const admin = await Admin.create({
+      username,
+      password,
+      role
+    });
+
+    res.json({
+      _id: admin._id,
+      username: admin.username,
+      role: admin.role
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/:id', superAdminProtect, async (req, res) => {
+  try {
+    if (req.admin._id.toString() === req.params.id) {
+      return res.status(400).json({ message: '不能删除自己的账号' });
+    }
+    const admin = await Admin.findById(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ message: '管理员不存在' });
+    }
+    await Admin.findByIdAndDelete(req.params.id);
+    res.json({ message: '管理员已删除' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/users', adminProtect, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const query = {};
+    if (search) {
+      const escapedSearch = escapeRegex(search);
+      query.$or = [
+        { accountId: { $regex: escapedSearch, $options: 'i' } },
+        { username: { $regex: escapedSearch, $options: 'i' } },
+        { email: { $regex: escapedSearch, $options: 'i' } }
+      ];
+    }
+    const total = await User.countDocuments(query);
+    const totalPages = Math.ceil(total / limitNum);
+    const list = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+    res.json({ list, page: pageNum, limit: limitNum, total, totalPages });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/users/:id', superAdminProtect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    await User.findByIdAndDelete(req.params.id);
+    const Follow = require('../models/Follow');
+    const History = require('../models/History');
+    const Notification = require('../models/Notification');
+    const Favorite = require('../models/Favorite');
+    const Rating = require('../models/Rating');
+    const Report = require('../models/Report');
+    const Feedback = require('../models/Feedback');
+    const UserSession = require('../models/UserSession');
+    await Follow.deleteMany({ userId: req.params.id });
+    await History.deleteMany({ userId: req.params.id });
+    await Notification.deleteMany({ userId: req.params.id });
+    await Favorite.deleteMany({ userId: req.params.id });
+    await Report.deleteMany({ reporter: req.params.id });
+    await Feedback.deleteMany({ userId: req.params.id });
+    await UserSession.deleteMany({ userId: req.params.id });
+    const userRatings = await Rating.find({ userId: req.params.id });
+    await Rating.deleteMany({ userId: req.params.id });
+    const affectedEpisodeIds = [...new Set(userRatings.map(r => r.episodeId.toString()))];
+    const Episode = require('../models/Episode');
+    for (const epId of affectedEpisodeIds) {
+      const stats = await Rating.aggregate([
+        { $match: { episodeId: mongoose.Types.ObjectId(epId) } },
+        { $group: { _id: '$episodeId', avg: { $avg: '$score' }, count: { $sum: 1 } } }
+      ]);
+      if (stats.length > 0) {
+        await Episode.findByIdAndUpdate(epId, {
+          averageRating: Math.round(stats[0].avg * 10) / 10,
+          ratingCount: stats[0].count
+        });
+      } else {
+        await Episode.findByIdAndUpdate(epId, {
+          averageRating: 0,
+          ratingCount: 0
+        });
+      }
+    }
+    res.json({ message: '用户已删除' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/role/:id', superAdminProtect, async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['superadmin', 'admin', 'creator'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+    if (req.admin._id.toString() === req.params.id) {
+      return res.status(400).json({ message: '不能修改自己的角色' });
+    }
+    if (role === 'superadmin') {
+      return res.status(400).json({ message: '不能通过此接口设置超级管理员' });
+    }
+    const targetAdmin = await Admin.findById(req.params.id);
+    if (!targetAdmin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+    if (targetAdmin.role === 'superadmin') {
+      const superAdminCount = await Admin.countDocuments({ role: 'superadmin' });
+      if (superAdminCount <= 1) {
+        return res.status(400).json({ message: '不能降级最后一个超级管理员' });
+      }
+    }
+    const admin = await Admin.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true }
+    ).select('-password');
+    res.json(admin);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/creators', adminProtect, async (req, res) => {
+  try {
+    const creators = await Admin.find({ role: 'creator' }).select('-password');
+    res.json(creators);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/verify-password', adminProtect, async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ message: '请输入密码' });
+  try {
+    const admin = await Admin.findById(req.admin._id);
+    if (!admin) return res.status(404).json({ message: 'Not found' });
+    const isMatch = await admin.matchPassword(password);
+    if (!isMatch) return res.status(400).json({ message: '密码错误' });
+    res.json({ verified: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/user-admin-access/:id', superAdminProtect, async (req, res) => {
+  try {
+    const { adminAccess } = req.body;
+    if (typeof adminAccess !== 'boolean') {
+      return res.status(400).json({ message: '参数错误' });
+    }
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    user.adminAccess = adminAccess;
+    await user.save();
+    res.json({ message: adminAccess ? '已授予管理后台权限' : '已撤销管理后台权限', adminAccess });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;

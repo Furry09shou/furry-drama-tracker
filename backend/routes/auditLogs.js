@@ -1,0 +1,25 @@
+const express = require('express');
+const router = express.Router();
+const AuditLog = require('../models/AuditLog');
+const { adminProtect } = require('../middlewares/authFactory');
+const { escapeRegex } = require('../utils/helpers');
+
+router.get('/', adminProtect, async (req, res) => {
+  try {
+    const { page = 1, limit = 50, action, admin, user } = req.query;
+    const query = {};
+    if (action) query.action = { $regex: escapeRegex(action), $options: 'i' };
+    if (admin) query.adminName = { $regex: escapeRegex(admin), $options: 'i' };
+    if (user) query.userName = { $regex: escapeRegex(user), $options: 'i' };
+    const total = await AuditLog.countDocuments(query);
+    const logs = await AuditLog.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+    res.json({ logs, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;

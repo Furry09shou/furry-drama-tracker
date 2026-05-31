@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; frame-src https://player.bilibili.com https://www.youtube.com https://embed.nicovideo.jp https://player.vimeo.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';" />
+    <title>兽剧聚合平台</title>
+    <meta name="description" content="兽剧内容聚合平台 - 发现和追踪你喜爱的兽剧内容" />
+    <meta name="keywords" content="兽剧,聚合,追踪,追番,评分" />
+    <meta property="og:title" content="兽剧聚合平台" />
+    <meta property="og:description" content="发现和追踪你喜爱的兽剧内容" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="兽剧聚合平台" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="兽剧聚合平台" />
+    <meta name="twitter:description" content="发现和追踪你喜爱的兽剧内容" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#6366f1" />
+    <link rel="alternate" type="application/rss+xml" title="兽剧聚合平台 - 更新订阅" href="/api/rss" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
