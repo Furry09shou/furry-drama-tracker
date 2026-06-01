@@ -103,5 +103,9 @@ const EpisodeSchema = new mongoose.Schema({
 
 EpisodeSchema.index({ reviewStatus: 1, updatedAt: -1 });
 EpisodeSchema.index({ tags: 1 });
+EpisodeSchema.index({ reviewStatus: 1, averageRating: -1 });
+EpisodeSchema.index({ reviewStatus: 1, views: -1 });
+EpisodeSchema.index({ status: 1, premiereDate: 1 });
+EpisodeSchema.index({ title: 'text', description: 'text', titleEn: 'text' });
 
 module.exports = mongoose.model('Episode', EpisodeSchema);

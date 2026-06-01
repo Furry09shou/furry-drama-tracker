@@ -141,12 +141,22 @@ router.get('/overview', adminProtect, cacheMiddleware(300), async (req, res) => 
       .sort({ averageRating: -1 }).limit(8).select('title averageRating');
 
     // 用户留存率
+    const retentionAgg = await History.aggregate([
+      { $match: { lastWatched: { $gte: sevenDaysAgo } } },
+      { $group: {
+        _id: { $dateToString: { format: '%Y-%m-%d', date: '$lastWatched' } },
+        users: { $addToSet: '$userId' }
+      }},
+      { $project: { _id: 1, count: { $size: '$users' } } }
+    ]);
+    const retentionMap = {};
+    retentionAgg.forEach(r => { retentionMap[r._id] = r.count; });
     const retention = [];
-    const cohortUsers = await User.find({ createdAt: { $gte: thirtyDaysAgo } }).select('_id createdAt');
     for (let d = 1; d <= 7; d++) {
       const targetDate = new Date(Date.now() - (7 - d) * 24 * 60 * 60 * 1000);
-      const activeOnDay = await History.distinct('userId', { watchedAt: { $gte: targetDate, $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000) } });
-      const rate = cohortUsers.length > 0 ? Math.round((activeOnDay.length / totalUsers) * 100) : 0;
+      const dateStr = targetDate.toISOString().split('T')[0];
+      const count = retentionMap[dateStr] || 0;
+      const rate = totalUsers > 0 ? Math.round((count / totalUsers) * 100) : 0;
       retention.push({ day: `第${d}天`, rate: Math.min(rate, 100) });
     }
 

@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  let data = { title: '兽剧聚合平台', body: '您有新的通知', icon: '/vite.svg', data: {} };
+  let data = { title: '兽剧聚合平台', body: '您有新的通知', icon: '/icon-192x192.png', data: {} };
   if (event.data) {
     try {
       data = { ...data, ...event.data.json() };
@@ -26,8 +26,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: data.icon || '/vite.svg',
-      badge: '/vite.svg',
+      icon: data.icon || '/icon-192x192.png',
+      badge: '/icon-192x192.png',
       data: data.data || {},
       vibrate: [100, 50, 100],
     })

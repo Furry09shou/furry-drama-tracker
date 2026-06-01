@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -20,6 +20,8 @@ const EpisodeDetail = ({ user }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [watchedEpisodes, setWatchedEpisodes] = useState([]);
   const [watchModal, setWatchModal] = useState(null);
+  const [iframeReady, setIframeReady] = useState(false);
+  const iframeTimerRef = useRef(null);
   const [followedAtEpisodes, setFollowedAtEpisodes] = useState(null);
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -59,22 +61,17 @@ const EpisodeDetail = ({ user }) => {
     const token = localStorage.getItem('token');
     if (!token) return;
     const config = { headers: getAuthHeaders() };
-    Promise.all([
-      axios.get(`/api/follows/check/${episodeId}`, config).catch(() => null),
-      axios.get(`/api/histories/check/${episodeId}`, config).catch(() => null),
-      axios.get(`/api/ratings/check/${episodeId}`, config).catch(() => null),
-      axios.get(`/api/favorites/check/${episodeId}`, config).catch(() => null)
-    ]).then(([followRes, historyRes, ratingRes, favoriteRes]) => {
-      if (followRes) {
-        setIsFollowing(followRes.data.isFollowing);
-        if (followRes.data.isFollowing && followRes.data.followedAtEpisodes !== undefined) {
-          setFollowedAtEpisodes(followRes.data.followedAtEpisodes);
+    axios.get(`/api/episodes/${episodeId}/user-status`, config)
+      .then(res => {
+        setIsFollowing(res.data.isFollowing);
+        if (res.data.isFollowing && res.data.followedAtEpisodes !== undefined) {
+          setFollowedAtEpisodes(res.data.followedAtEpisodes);
         }
-      }
-      if (historyRes) setWatchedEpisodes(historyRes.data.watchedEpisodes || []);
-      if (ratingRes) setUserRating(ratingRes.data.score);
-      if (favoriteRes) setIsFavorite(favoriteRes.data.isFavorite);
-    });
+        setWatchedEpisodes(res.data.watchedEpisodes || []);
+        setUserRating(res.data.score);
+        setIsFavorite(res.data.isFavorite);
+      })
+      .catch(() => {});
   }, [user, episodeId]);
 
   const handleWatch = async (singleEpisode) => {
@@ -82,8 +79,17 @@ const EpisodeDetail = ({ user }) => {
       await axios.put(`/api/episodes/single/${singleEpisode._id}/view`);
     } catch (error) {}
     recordWatchProgress(singleEpisode.episodeNumber);
+    setIframeReady(false);
     setWatchModal(singleEpisode);
+    if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current);
+    iframeTimerRef.current = setTimeout(() => setIframeReady(true), 300);
   };
+
+  const closeWatchModal = useCallback(() => {
+    setIframeReady(false);
+    if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current);
+    setWatchModal(null);
+  }, []);
 
   const getPlatformIcon = (platform) => {
     const icons = {
@@ -96,7 +102,20 @@ const EpisodeDetail = ({ user }) => {
     return icons[platform] || '🔗';
   };
 
-  const getEmbedUrl = (url) => {
+  const extractUrl = (raw) => {
+    if (!raw || typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    try {
+      new URL(trimmed);
+      return trimmed;
+    } catch (e) {}
+    const urlMatch = trimmed.match(/(https?:\/\/[^\s\u3000\u00A0]+)/);
+    if (urlMatch) return urlMatch[1];
+    return null;
+  };
+
+  const getEmbedUrl = (raw) => {
+    const url = extractUrl(raw);
     if (!url) return null;
     try {
       const urlObj = new URL(url);
@@ -122,8 +141,19 @@ const EpisodeDetail = ({ user }) => {
 
   const toPlainLinks = (platformLinks) => {
     if (!platformLinks) return {};
-    if (typeof platformLinks === 'object' && !(platformLinks instanceof Map)) return platformLinks;
-    try { return Object.fromEntries(platformLinks); } catch (e) { return {}; }
+    let obj;
+    if (typeof platformLinks === 'object' && !(platformLinks instanceof Map)) {
+      obj = platformLinks;
+    } else {
+      try { obj = Object.fromEntries(platformLinks); } catch (e) { return {}; }
+    }
+    const cleaned = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (!value) continue;
+      const extracted = extractUrl(value);
+      cleaned[key] = extracted || value;
+    }
+    return cleaned;
   };
 
   const handleFollow = async () => {
@@ -556,7 +586,7 @@ const EpisodeDetail = ({ user }) => {
           background: 'var(--overlay-bg)', zIndex: 9999,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '0'
-        }} onClick={() => setWatchModal(null)}>
+        }} onClick={() => closeWatchModal()}>
           <div style={{
             background: 'var(--card)', borderRadius: '16px',
             maxWidth: '800px', width: 'min(100%, calc(100vw - 32px))', maxHeight: '90vh',
@@ -570,7 +600,7 @@ const EpisodeDetail = ({ user }) => {
               <h3 style={{margin: 0, color: 'var(--foreground)'}}>
                 {t('episode.epPrefix')}{watchModal.episodeNumber}{t('episode.epSuffix')} - {getLocalizedTitle(watchModal)}
               </h3>
-              <button onClick={() => setWatchModal(null)} style={{
+              <button onClick={() => closeWatchModal()} style={{
                 background: 'none', border: 'none', color: 'var(--foreground)',
                 fontSize: '24px', cursor: 'pointer', padding: '0 4px', lineHeight: 1
               }}>✕</button>
@@ -593,14 +623,21 @@ const EpisodeDetail = ({ user }) => {
                       display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                       {embedUrl ? (
-                        <iframe
-                          src={embedUrl}
-                          style={{width: '100%', height: '100%', border: 'none'}}
-                          allowFullScreen
-                          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          referrerPolicy="no-referrer"
-                        />
+                        iframeReady ? (
+                          <iframe
+                            src={embedUrl}
+                            style={{width: '100%', height: '100%', border: 'none'}}
+                            allowFullScreen
+                            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div style={{textAlign: 'center', color: 'var(--text-secondary)'}}>
+                            <div style={{fontSize: '32px', marginBottom: '8px'}}>⏳</div>
+                            <p style={{fontSize: '14px'}}>{t('common.loading')}</p>
+                          </div>
+                        )
                       ) : (
                         <div style={{textAlign: 'center', color: 'var(--text-secondary)'}}>
                           <div style={{fontSize: '48px', marginBottom: '12px'}}>🎬</div>
@@ -614,13 +651,18 @@ const EpisodeDetail = ({ user }) => {
                         {t('episode.selectPlatform')}
                       </h4>
                       <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}>
-                        {Object.keys(links).length > 0 ? Object.entries(links).map(([platform, url]) => (
-                          <a
-                            key={platform}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => recordWatchProgress(watchModal.episodeNumber)}
+                        {Object.keys(links).length > 0 ? Object.entries(links).map(([platform, url]) => {
+                          const isAbsoluteUrl = /^https?:\/\//i.test(url);
+                          return (
+                            <a
+                              key={platform}
+                              href={isAbsoluteUrl ? url : undefined}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                if (!isAbsoluteUrl) e.preventDefault();
+                                recordWatchProgress(watchModal.episodeNumber);
+                              }}
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: '8px',
                               padding: '10px 20px', borderRadius: '10px',
@@ -646,7 +688,8 @@ const EpisodeDetail = ({ user }) => {
                             <span>{getPlatformIcon(platform)}</span>
                             <span>{platform}</span>
                           </a>
-                        )) : (
+                          );
+                        }) : (
                           <div style={{color: 'var(--text-secondary)', padding: '20px', textAlign: 'center', width: '100%'}}>
                             {t('episode.noPlatform')}
                           </div>

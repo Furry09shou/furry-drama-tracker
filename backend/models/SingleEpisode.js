@@ -56,4 +56,7 @@ const SingleEpisodeSchema = new mongoose.Schema({
   }
 });
 
+SingleEpisodeSchema.index({ episodeId: 1, episodeNumber: 1 });
+SingleEpisodeSchema.index({ isUpcoming: 1, premiereDate: 1 });
+
 module.exports = mongoose.model('SingleEpisode', SingleEpisodeSchema);

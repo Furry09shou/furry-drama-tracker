@@ -22,6 +22,12 @@ const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, cre
 
 const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
 
+const skipVerification = (user) => {
+  if (DEMO_EMAILS.includes(user.email.toLowerCase())) return true;
+  if (process.env.NODE_ENV === 'production') return false;
+  return user.email.toLowerCase() === 'test@furry09.com';
+};
+
 const usedDeviceTokens = new Set();
 setInterval(() => { usedDeviceTokens.clear(); }, 30 * 60 * 1000);
 
@@ -394,7 +400,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    if (!user.isEmailVerified && !DEMO_EMAILS.includes(user.email.toLowerCase())) {
+    if (!user.isEmailVerified && !skipVerification(user)) {
       const verifyToken = jwt.sign(
         { id: user._id, purpose: 'verify-email' },
         process.env.JWT_SECRET,
@@ -404,7 +410,7 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: '请先验证邮箱后再登录，验证邮件已重新发送至您的邮箱', needVerification: true, email: user.email });
     }
 
-    if (DEMO_EMAILS.includes(user.email.toLowerCase()) && !user.isEmailVerified) {
+    if (skipVerification(user) && !user.isEmailVerified) {
       user.isEmailVerified = true;
       await user.save();
     }
@@ -414,7 +420,7 @@ router.post('/login', async (req, res) => {
     const knownSessions = await UserSession.find({ userId: user._id, isActive: true });
     const isKnownDevice = knownSessions.some(s => s.deviceInfo?.userAgent === currentUa);
 
-    if (!isKnownDevice && knownSessions.length > 0 && !DEMO_EMAILS.includes(user.email.toLowerCase())) {
+    if (!isKnownDevice && knownSessions.length > 0 && !skipVerification(user)) {
       const deviceVerifyToken = jwt.sign(
         { id: user._id, purpose: 'device-verify', ip: currentIp, ua: currentUa },
         process.env.JWT_SECRET,

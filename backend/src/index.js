@@ -122,8 +122,9 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    if (res.statusCode >= 400 || req.path.includes('/list') || req.path.includes('/histories') || req.path.includes('/follows')) {
-      console.log(`${req.method} ${req.path} - ${res.statusCode} - ${Date.now() - start}ms`);
+    const duration = Date.now() - start;
+    if (res.statusCode >= 400 || duration > 1000 || req.path.includes('/list') || req.path.includes('/histories') || req.path.includes('/follows')) {
+      console.log(`${req.method} ${req.path} - ${res.statusCode} - ${duration}ms${duration > 1000 ? ' [SLOW]' : ''}`);
     }
   });
   next();

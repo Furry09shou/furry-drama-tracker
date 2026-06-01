@@ -248,6 +248,34 @@ router.get('/search', async (req, res) => {
   }
 });
 
+router.get('/:id/user-status', protect, async (req, res) => {
+  try {
+    const episodeId = req.params.id;
+    const userId = req.user._id;
+    const Follow = require('../models/Follow');
+    const History = require('../models/History');
+    const Rating = require('../models/Rating');
+    const Favorite = require('../models/Favorite');
+
+    const [followDoc, historyDoc, ratingDoc, favoriteDoc] = await Promise.all([
+      Follow.findOne({ userId, episodeId }),
+      History.findOne({ userId, episodeId }),
+      Rating.findOne({ userId, episodeId }),
+      Favorite.findOne({ userId, episodeId })
+    ]);
+
+    res.json({
+      isFollowing: !!followDoc,
+      followedAtEpisodes: followDoc?.followedAtEpisodes ?? null,
+      watchedEpisodes: historyDoc?.watchedEpisodes || [],
+      score: ratingDoc?.score || 0,
+      isFavorite: !!favoriteDoc
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const cacheKey = `episode_${req.params.id}`;

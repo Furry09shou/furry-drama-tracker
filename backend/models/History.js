@@ -1,4 +1,4 @@
-﻿const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
 const HistorySchema = new mongoose.Schema({
   userId: {
@@ -26,5 +26,6 @@ const HistorySchema = new mongoose.Schema({
 });
 
 HistorySchema.index({ userId: 1, episodeId: 1 }, { unique: true });
+HistorySchema.index({ lastWatched: 1 });
 
 module.exports = mongoose.model('History', HistorySchema);

@@ -59,4 +59,6 @@ const AdminSessionSchema = new mongoose.Schema({
   }
 });
 
+AdminSessionSchema.index({ tokenHash: 1, isActive: 1 });
+
 module.exports = mongoose.model('AdminSession', AdminSessionSchema);

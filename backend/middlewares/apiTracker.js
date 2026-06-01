@@ -15,15 +15,15 @@ const flushBuffer = async () => {
     }
     bulkOps[key].count += 1;
   }
-  for (const op of Object.values(bulkOps)) {
-    try {
-      await ApiUsage.findOneAndUpdate(
+  try {
+    await Promise.all(Object.values(bulkOps).map(op =>
+      ApiUsage.findOneAndUpdate(
         { endpoint: op.endpoint, date: op.date },
         { $inc: { count: op.count } },
         { upsert: true }
-      );
-    } catch (e) {}
-  }
+      ).catch(() => {})
+    ));
+  } catch (e) {}
 };
 
 setInterval(flushBuffer, FLUSH_INTERVAL);
@@ -35,7 +35,7 @@ const trackApiUsage = (req, res, next) => {
     const today = new Date().toISOString().split('T')[0];
     buffer.push({ endpoint, date: today });
     if (buffer.length >= MAX_BUFFER_SIZE) {
-      flushBuffer();
+      setImmediate(flushBuffer);
     }
   });
   next();

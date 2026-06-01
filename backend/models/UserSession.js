@@ -47,4 +47,6 @@ const UserSessionSchema = new mongoose.Schema({
   }
 });
 
+UserSessionSchema.index({ tokenHash: 1, isActive: 1 });
+
 module.exports = mongoose.model('UserSession', UserSessionSchema);
