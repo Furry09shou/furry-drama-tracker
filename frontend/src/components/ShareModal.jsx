@@ -54,8 +54,8 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
 
   const platforms = [
     { name: t('share.wechat'), icon: '💬', color: '#07c160', action: () => setShowQR(true) },
+    { name: 'QQ', icon: '🐧', color: '#12b7f5', action: () => setShowQR(true) },
     { name: t('share.weibo'), icon: '📢', color: '#e6162d', url: `https://service.weibo.com/share/share.php?title=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` },
-    { name: 'QQ', icon: '🐧', color: '#12b7f5', url: `https://connect.qq.com/widget/shareqq/index.html?title=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` },
     { name: 'Twitter', icon: '🐦', color: '#1da1f2', url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` }
   ];
 
@@ -78,7 +78,7 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
               {qrDataUrl ? (
                 <>
                   <img src={qrDataUrl} alt="QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px' }} />
-                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('share.wechatScanTip', { defaultValue: '使用微信扫描二维码打开页面' })}</p>
+                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('share.scanTip')}</p>
                 </>
               ) : (
                 <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{t('common.loading')}</p>

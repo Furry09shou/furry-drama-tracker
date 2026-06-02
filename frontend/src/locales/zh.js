@@ -525,7 +525,8 @@ export default {
     copied: '✓ 已复制',
     copy: '复制',
     systemShare: '系统分享',
-    wechatScanTip: '使用微信扫描二维码打开页面',
+    wechatScanTip: '使用微信/QQ扫描二维码打开页面',
+    scanTip: '扫描二维码打开页面',
   },
   confirm: {
     verifyFailed: '验证失败',
