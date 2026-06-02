@@ -85,16 +85,23 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
       const headers = { Authorization: `Bearer ${token}` };
-      axios.post('/api/user-sessions/heartbeat', {}, { headers, skipRedirect: true }).catch((err) => {
-        if (err.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
-        }
-      });
+      axios.post('/api/user-sessions/heartbeat', {}, { headers, skipRedirect: true }).catch(() => {});
     };
     const interval = setInterval(heartbeat, 5 * 60 * 1000);
     return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const headers = { Authorization: `Bearer ${token}` };
+      axios.get('/api/auth/me', { headers, skipRedirect: true, params: { _t: Date.now() } }).catch(() => {});
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user]);
 
   const login = useCallback((userData) => {

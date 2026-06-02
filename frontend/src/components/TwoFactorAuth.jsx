@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import QRCode from 'qrcode';
 import { useI18n } from '../contexts/I18nContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const TwoFactorAuth = ({ user, setUser, onClose }) => {
   const { t } = useI18n();
+  const { getAuthHeaders } = useAuth();
   const [step, setStep] = useState(user.twoFactorEnabled ? 'enabled' : 'disabled');
   const [secret, setSecret] = useState('');
   const [otpauthUrl, setOtpauthUrl] = useState('');
@@ -22,11 +24,6 @@ const TwoFactorAuth = ({ user, setUser, onClose }) => {
         .catch(() => setQrDataUrl(''));
     }
   }, [otpauthUrl]);
-
-  const getAuthHeaders = () => {
-    const tokenVal = localStorage.getItem('token');
-    return tokenVal ? { Authorization: `Bearer ${tokenVal}` } : {};
-  };
 
   const handleEnable = async () => {
     setLoading(true);

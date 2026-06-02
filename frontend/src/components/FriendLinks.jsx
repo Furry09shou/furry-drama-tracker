@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
+import { useAuth } from '../contexts/AuthContext';
 
 const FriendLinks = () => {
+  const { user, getAuthHeaders } = useAuth();
   const { t } = useI18n();
   const { getLocalizedName, getLocalizedDescription } = useTranslation();
   const [links, setLinks] = useState([]);
@@ -31,9 +33,8 @@ const FriendLinks = () => {
 
   useEffect(() => {
     if (activeTab === 'my-applications') {
-      const token = localStorage.getItem('token');
-      if (token) {
-        axios.get('/api/friend-links/my-applications', { headers: { Authorization: `Bearer ${token}` } })
+      if (user) {
+        axios.get('/api/friend-links/my-applications', { headers: getAuthHeaders() })
           .then(res => setMyApplications(res.data))
           .catch(() => setMyApplications([]));
       }
@@ -67,13 +68,11 @@ const FriendLinks = () => {
     setApplyMsg('');
     setApplyMsgType('');
     try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       await axios.post('/api/friend-links/apply', {
         ...applyForm,
         captchaId: captchaData.captchaId,
         captchaAnswer: captchaAnswer.trim()
-      }, { headers });
+      }, { headers: getAuthHeaders() });
       setApplyMsg(t('friendLink.applySuccess'));
       setApplyMsgType('success');
       setApplyForm({ name: '', url: '', logo: '', description: '' });
@@ -109,7 +108,7 @@ const FriendLinks = () => {
 
   if (loading) return <div className="container"><h2>{t('common.loading')}</h2></div>;
 
-  const isLoggedIn = !!localStorage.getItem('token');
+  const isLoggedIn = !!user;
 
   return (
     <div className="container" style={{ paddingTop: '40px', paddingBottom: '60px', maxWidth: '800px' }}>

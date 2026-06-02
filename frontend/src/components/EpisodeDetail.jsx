@@ -6,14 +6,12 @@ import ReportModal from './ReportModal';
 import ShareModal from './ShareModal';
 import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
+import { useAuth } from '../contexts/AuthContext';
 
 const EpisodeDetail = ({ user }) => {
   const { t, lang } = useI18n();
   const { getLocalizedTitle, getLocalizedDescription } = useTranslation();
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
+  const { getAuthHeaders } = useAuth();
   const [episode, setEpisode] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);

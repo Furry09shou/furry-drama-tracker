@@ -4,14 +4,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 import TwoFactorAuth from './TwoFactorAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 const Profile = ({ user, setUser, logout }) => {
   const { t, lang, locale } = useI18n();
   const { getLocalizedTitle } = useTranslation();
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
+  const { getAuthHeaders } = useAuth();
   const [followedEpisodes, setFollowedEpisodes] = useState([]);
   const [historyEpisodes, setHistoryEpisodes] = useState([]);
   const [favoriteEpisodes, setFavoriteEpisodes] = useState([]);
@@ -59,39 +57,21 @@ const Profile = ({ user, setUser, logout }) => {
           const followRes = await axios.get('/api/follows/list', config);
           followData = followRes.data.list || followRes.data || [];
         } catch (e) {
-          if (e.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
-            setLoading(false);
-            return;
-          }
+          if (e.response?.status === 401) { setLoading(false); return; }
           console.error(t('profile.fetchFollowsFailed') + ':', e.response?.data || e.message);
         }
         try {
           const historyRes = await axios.get('/api/histories/list', config);
           historyData = historyRes.data.list || historyRes.data || [];
         } catch (e) {
-          if (e.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
-            setLoading(false);
-            return;
-          }
+          if (e.response?.status === 401) { setLoading(false); return; }
           console.error(t('profile.fetchHistoryFailed') + ':', e.response?.data || e.message);
         }
         try {
           const favRes = await axios.get('/api/favorites/list', config);
           setFavoriteEpisodes(favRes.data.list || favRes.data || []);
         } catch (e) {
-          if (e.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
-            setLoading(false);
-            return;
-          }
+          if (e.response?.status === 401) { setLoading(false); return; }
         }
         try {
           const folderRes = await axios.get('/api/folders?type=favorite', config);
@@ -721,7 +701,8 @@ const Profile = ({ user, setUser, logout }) => {
           <button onClick={async () => {
             try {
               const res = await fetch('/api/users/export-my-data', {
-                headers: getAuthHeaders()
+                headers: getAuthHeaders(),
+                credentials: 'include'
               });
               const blob = await res.blob();
               const url = window.URL.createObjectURL(blob);

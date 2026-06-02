@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import QRCode from 'qrcode';
 import { useI18n } from '../contexts/I18nContext';
 
 const ShareModal = ({ show, onClose, title, episodeId }) => {
   const [copied, setCopied] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const { t } = useI18n();
+  const qrRef = useRef(null);
 
   if (!show) return null;
 
   const shareUrl = `${window.location.origin}/episode/${episodeId}`;
   const shareText = t('share.title', { title });
+
+  useEffect(() => {
+    if (showQR && shareUrl) {
+      QRCode.toDataURL(shareUrl, { width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
+        .then(url => setQrDataUrl(url))
+        .catch(() => setQrDataUrl(''));
+    }
+  }, [showQR, shareUrl]);
 
   const handleCopy = () => {
     if (navigator.clipboard) {
@@ -41,7 +53,7 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
   };
 
   const platforms = [
-    { name: t('share.wechat'), icon: '💬', color: '#07c160', url: `https://cli.im/api/qrcode/text?text=${encodeURIComponent(shareUrl)}` },
+    { name: t('share.wechat'), icon: '💬', color: '#07c160', action: () => setShowQR(true) },
     { name: t('share.weibo'), icon: '📢', color: '#e6162d', url: `https://service.weibo.com/share/share.php?title=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` },
     { name: 'QQ', icon: '🐧', color: '#12b7f5', url: `https://connect.qq.com/widget/shareqq/index.html?title=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` },
     { name: 'Twitter', icon: '🐦', color: '#1da1f2', url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` }
@@ -60,15 +72,39 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
             <input readOnly value={shareUrl} style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px' }} />
             <button className="btn" style={{ fontSize: '13px', padding: '8px 14px', whiteSpace: 'nowrap' }} onClick={handleCopy}>{copied ? t('share.copied') : t('share.copy')}</button>
           </div>
+
+          {showQR && (
+            <div style={{ textAlign: 'center', marginBottom: '16px', padding: '16px', background: 'var(--hover-bg)', borderRadius: '12px' }}>
+              {qrDataUrl ? (
+                <>
+                  <img src={qrDataUrl} alt="QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px' }} />
+                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('share.wechatScanTip', { defaultValue: '使用微信扫描二维码打开页面' })}</p>
+                </>
+              ) : (
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{t('common.loading')}</p>
+              )}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: navigator.share ? '12px' : '0' }}>
             {platforms.map(p => (
-              <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer" style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                textDecoration: 'none', color: 'var(--foreground)', fontSize: '12px'
-              }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>{p.icon}</div>
-                {p.name}
-              </a>
+              p.url ? (
+                <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer" style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                  textDecoration: 'none', color: 'var(--foreground)', fontSize: '12px'
+                }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>{p.icon}</div>
+                  {p.name}
+                </a>
+              ) : (
+                <button key={p.name} onClick={p.action} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--foreground)', fontSize: '12px', padding: 0
+                }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>{p.icon}</div>
+                  {p.name}
+                </button>
+              )
             ))}
           </div>
           {navigator.share && (

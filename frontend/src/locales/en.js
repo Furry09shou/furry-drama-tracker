@@ -525,6 +525,7 @@ export default {
     copied: '✓ Copied',
     copy: 'Copy',
     systemShare: 'System Share',
+    wechatScanTip: 'Scan QR code with WeChat to open',
   },
   confirm: {
     verifyFailed: 'Verification Failed',

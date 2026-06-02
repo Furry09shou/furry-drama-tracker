@@ -3,13 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ConfirmModal from './ConfirmModal';
 import { useI18n } from '../contexts/I18nContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const UserDevices = ({ user }) => {
   const { t, locale } = useI18n();
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
+  const { getAuthHeaders } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
@@ -20,13 +18,12 @@ const UserDevices = ({ user }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!user) {
       navigate('/login', { replace: true });
       return;
     }
     fetchSessions();
-  }, [navigate]);
+  }, [navigate, user]);
 
   const fetchSessions = async () => {
     setLoading(true);
