@@ -38,6 +38,7 @@ const LicensePage = lazy(() => import('./components/SitePage').then(m => ({ defa
 const ChangePassword = lazy(() => import('./components/ChangePassword'));
 const ResetPassword = lazy(() => import('./components/ResetPassword'));
 const VerifyEmail = lazy(() => import('./components/VerifyEmail'));
+const VerifyEmailChange = lazy(() => import('./components/VerifyEmailChange'));
 const AdminEmailSettings = lazy(() => import('./components/AdminEmailSettings'));
 const AdminAuditLogs = lazy(() => import('./components/AdminAuditLogs'));
 const AdminBackup = lazy(() => import('./components/AdminBackup'));
@@ -299,6 +300,7 @@ function AppContent() {
             <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/verify-email-change" element={<VerifyEmailChange />} />
             <Route path="/verify-device" element={<Login login={login} />} />
             <Route path="/calendar" element={<UpdateCalendar />} />
             <Route path="/timeline" element={<Timeline />} />

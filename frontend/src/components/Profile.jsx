@@ -40,6 +40,12 @@ const Profile = ({ user, setUser, logout }) => {
   const [nicknameLoading, setNicknameLoading] = useState(false);
   const [nicknameError, setNicknameError] = useState('');
   const [show2FA, setShow2FA] = useState(false);
+  const [showEmailChange, setShowEmailChange] = useState(false);
+  const [emailChangePassword, setEmailChangePassword] = useState('');
+  const [emailChangeNewEmail, setEmailChangeNewEmail] = useState('');
+  const [emailChangeLoading, setEmailChangeLoading] = useState(false);
+  const [emailChangeError, setEmailChangeError] = useState('');
+  const [emailChangeSuccess, setEmailChangeSuccess] = useState('');
 
   const [fetchError, setFetchError] = useState(null);
 
@@ -620,7 +626,17 @@ const Profile = ({ user, setUser, logout }) => {
             <p style={{margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '13px'}}>
               {t('profile.accountIdLabel')}: <span style={{color: 'var(--text-tertiary)', letterSpacing: '0.5px'}}>{user.accountId || '-'}</span>
             </p>
-            <p style={{margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px'}}>{user.email}</p>
+            <p style={{margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px'}}>
+              {user.email}
+              <button
+                onClick={() => { setShowEmailChange(true); setEmailChangeError(''); setEmailChangeSuccess(''); setEmailChangePassword(''); setEmailChangeNewEmail(''); }}
+                style={{
+                  fontSize: '12px', color: 'var(--primary)', background: 'none',
+                  border: 'none', cursor: 'pointer', padding: '0 4px',
+                  textDecoration: 'underline', marginLeft: '8px'
+                }}
+              >修改邮箱</button>
+            </p>
             {user.isEmailVerified ? (
               <span style={{
                 display: 'inline-block', marginTop: '6px', fontSize: '12px',
@@ -1004,6 +1020,106 @@ const Profile = ({ user, setUser, logout }) => {
       )}
 
       {renderDeleteSection()}
+
+      {/* 修改邮箱弹窗 */}
+      {showEmailChange && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 1000
+        }} onClick={() => setShowEmailChange(false)}>
+          <div style={{
+            background: 'var(--card)', borderRadius: '12px', padding: '24px',
+            width: '90%', maxWidth: '420px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ color: 'var(--foreground)', marginBottom: '16px', fontSize: '16px' }}>修改绑定邮箱</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
+              当前邮箱：{user.email}
+            </p>
+            {emailChangeSuccess ? (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>📧</div>
+                <p style={{ color: 'var(--success-text)', fontSize: '14px' }}>{emailChangeSuccess}</p>
+                <button
+                  onClick={() => setShowEmailChange(false)}
+                  style={{
+                    marginTop: '16px', padding: '8px 24px', borderRadius: '8px',
+                    background: 'var(--btn-gradient)', color: 'var(--btn-text)',
+                    border: 'none', cursor: 'pointer', fontSize: '14px'
+                  }}
+                >知道了</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>当前密码</label>
+                  <input
+                    type="password"
+                    value={emailChangePassword}
+                    onChange={e => setEmailChangePassword(e.target.value)}
+                    placeholder="请输入当前密码"
+                    style={{
+                      width: '100%', padding: '8px 12px', borderRadius: '8px',
+                      border: '1px solid var(--border)', background: 'var(--input-bg)',
+                      color: 'var(--foreground)', fontSize: '14px', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>新邮箱</label>
+                  <input
+                    type="email"
+                    value={emailChangeNewEmail}
+                    onChange={e => setEmailChangeNewEmail(e.target.value)}
+                    placeholder="请输入新邮箱地址"
+                    style={{
+                      width: '100%', padding: '8px 12px', borderRadius: '8px',
+                      border: '1px solid var(--border)', background: 'var(--input-bg)',
+                      color: 'var(--foreground)', fontSize: '14px', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                {emailChangeError && (
+                  <p style={{ color: 'var(--destructive-text)', fontSize: '13px', margin: '0 0 8px 0' }}>{emailChangeError}</p>
+                )}
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setShowEmailChange(false)}
+                    style={{
+                      padding: '8px 16px', borderRadius: '8px',
+                      background: 'var(--secondary)', color: 'var(--foreground)',
+                      border: '1px solid var(--border)', cursor: 'pointer', fontSize: '14px'
+                    }}
+                  >取消</button>
+                  <button
+                    onClick={async () => {
+                      setEmailChangeLoading(true);
+                      setEmailChangeError('');
+                      try {
+                        const res = await axios.post('/api/auth/request-email-change', {
+                          password: emailChangePassword,
+                          newEmail: emailChangeNewEmail
+                        });
+                        setEmailChangeSuccess(res.data.message);
+                      } catch (err) {
+                        setEmailChangeError(err.response?.data?.message || '请求失败');
+                      }
+                      setEmailChangeLoading(false);
+                    }}
+                    disabled={emailChangeLoading || !emailChangePassword || !emailChangeNewEmail}
+                    style={{
+                      padding: '8px 16px', borderRadius: '8px',
+                      background: 'var(--btn-gradient)', color: 'var(--btn-text)',
+                      border: 'none', cursor: emailChangeLoading ? 'wait' : 'pointer',
+                      fontSize: '14px', opacity: (emailChangeLoading || !emailChangePassword || !emailChangeNewEmail) ? 0.6 : 1
+                    }}
+                  >{emailChangeLoading ? '发送中...' : '发送验证邮件'}</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

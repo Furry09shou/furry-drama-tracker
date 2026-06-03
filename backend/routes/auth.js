@@ -17,7 +17,7 @@ const crypto = require('crypto');
 const { protect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { logManual } = require('../middlewares/auditLog');
-const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/email');
+const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser } = require('../utils/email');
 const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie, timingSafeCompare } = require('../utils/helpers');
 
 const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
@@ -978,6 +978,113 @@ router.get('/sse-ticket', protect, async (req, res) => {
     res.json({ ticket });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// 申请修改邮箱 - 验证密码后发送验证邮件到新邮箱
+router.post('/request-email-change', protect, async (req, res) => {
+  const { password, newEmail } = req.body;
+  try {
+    if (!password || !newEmail) {
+      return res.status(400).json({ message: '请填写密码和新邮箱' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      return res.status(400).json({ message: '邮箱格式不正确' });
+    }
+    const user = await User.findById(req.user._id).select('+loginAttempts +lockUntil');
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    if (user.isLocked) {
+      return res.status(423).json({ message: '账号已被锁定，请30分钟后再试' });
+    }
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      await user.incLoginAttempts();
+      return res.status(400).json({ message: '密码不正确' });
+    }
+    await user.resetLoginAttempts();
+
+    // 检查新邮箱是否已被使用
+    const existingUser = await User.findOne({ email: newEmail.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: '该邮箱已被其他账号使用' });
+    }
+    if (user.email.toLowerCase() === newEmail.toLowerCase()) {
+      return res.status(400).json({ message: '新邮箱与当前邮箱相同' });
+    }
+
+    // 生成邮箱变更验证 token（1小时有效）
+    const changeToken = jwt.sign(
+      { id: user._id, newEmail: newEmail.toLowerCase(), type: 'email-change' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // 发送验证邮件到新邮箱
+    const transporter = await createTransporter();
+    if (!transporter) {
+      return res.status(503).json({ message: '邮件服务暂不可用，请稍后再试' });
+    }
+
+    const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email-change?token=${changeToken}`;
+    const fromName = await getFromName();
+    const fromUser = await getFromUser();
+
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromUser}>`,
+      to: newEmail,
+      subject: '确认修改邮箱 - 兽剧聚合平台',
+      html: `
+        <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
+          <h2 style="color:#6366f1;">确认修改邮箱</h2>
+          <p>您正在将账号 <strong>${user.username || user.accountId}</strong> 的绑定邮箱修改为 <strong>${newEmail}</strong>。</p>
+          <p>请点击以下链接确认修改（1小时内有效）：</p>
+          <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">确认修改邮箱</a>
+          <p style="color:#94a3b8;font-size:13px;">如果您没有请求修改邮箱，请忽略此邮件，您的邮箱不会被更改。</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+          <p style="color:#94a3b8;font-size:12px;">此链接1小时后失效。如无法点击，请复制以下地址到浏览器：${verifyUrl}</p>
+        </div>
+      `
+    });
+
+    res.json({ message: '验证邮件已发送到新邮箱，请查收确认' });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// 验证并完成邮箱修改
+router.post('/verify-email-change', async (req, res) => {
+  const { token } = req.body;
+  try {
+    if (!token) {
+      return res.status(400).json({ message: '缺少验证令牌' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.type !== 'email-change') {
+      return res.status(400).json({ message: '无效的验证令牌' });
+    }
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    // 再次检查新邮箱是否已被使用
+    const existingUser = await User.findOne({ email: decoded.newEmail });
+    if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+      return res.status(400).json({ message: '该邮箱已被其他账号使用' });
+    }
+    user.email = decoded.newEmail;
+    user.isEmailVerified = true;
+    await user.save();
+
+    res.json({ message: '邮箱修改成功', email: user.email });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({ message: '验证链接已过期，请重新申请' });
+    }
+    res.status(400).json({ message: '验证失败，请重新申请' });
   }
 });
 

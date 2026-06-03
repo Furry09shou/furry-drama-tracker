@@ -141,4 +141,4 @@ const sendVerificationEmail = async (email, verifyToken) => {
   }
 };
 
-module.exports = { sendPasswordResetEmail, sendVerificationEmail, clearEmailCache };
+module.exports = { sendPasswordResetEmail, sendVerificationEmail, clearEmailCache, createTransporter, getFromName, getFromUser };
