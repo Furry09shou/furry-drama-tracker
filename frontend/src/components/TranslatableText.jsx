@@ -245,7 +245,7 @@ const TranslatableBlock = ({ text, style, className }) => {
     return (
       <div style={style} className={className}>
         {paragraphs.map((p, i) => (
-          <p key={i} style={{ margin: i > 0 ? '12px 0 0' : '0' }} dangerouslySetInnerHTML={{ __html: escapeHtml(p) }} />
+          <p key={i} style={{ margin: i > 0 ? '12px 0 0' : '0' }}>{p}</p>
         ))}
       </div>
     );
@@ -255,7 +255,7 @@ const TranslatableBlock = ({ text, style, className }) => {
     return (
       <div style={style} className={className}>
         {translatedChunks.map((chunk, i) => (
-          <p key={i} style={{ margin: i > 0 ? '12px 0 0' : '0' }} dangerouslySetInnerHTML={{ __html: escapeHtml(chunk) }} />
+          <p key={i} style={{ margin: i > 0 ? '12px 0 0' : '0' }}>{chunk}</p>
         ))}
       </div>
     );
@@ -271,7 +271,7 @@ const TranslatableBlock = ({ text, style, className }) => {
         </div>
       )}
       {paragraphs.map((p, i) => (
-        <p key={i} style={{ margin: i > 0 ? '12px 0 0' : '0', opacity: isTranslating ? 0.5 : 1 }} dangerouslySetInnerHTML={{ __html: escapeHtml(p) }} />
+        <p key={i} style={{ margin: i > 0 ? '12px 0 0' : '0', opacity: isTranslating ? 0.5 : 1 }}>{p}</p>
       ))}
     </div>
   );

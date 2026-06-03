@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import adminApi, { getAdminToken } from '../utils/adminApi';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -20,17 +20,14 @@ const AdminFriendLinks = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
+    const token = getAdminToken();
     if (!token) { navigate('/admin'); return; }
     fetchLinks();
   }, [navigate]);
 
   const fetchLinks = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/friend-links/all', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/friend-links/all');
       setLinks(res.data);
       setLoading(false);
     } catch (e) {
@@ -43,15 +40,10 @@ const AdminFriendLinks = () => {
     e.preventDefault();
     setError('');
     try {
-      const token = localStorage.getItem('adminToken');
       if (editingLink) {
-        await axios.put(`/api/friend-links/${editingLink._id}`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await adminApi.put(`/api/friend-links/${editingLink._id}`, formData);
       } else {
-        await axios.post('/api/friend-links', formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await adminApi.post('/api/friend-links', formData);
       }
       setShowForm(false);
       setEditingLink(null);
@@ -77,10 +69,7 @@ const AdminFriendLinks = () => {
   const handleDelete = async (id) => {
     if (!window.confirm(t('adminFriendLinks.deleteConfirm'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/friend-links/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/friend-links/${id}`);
       fetchLinks();
     } catch (e) {
       setError(t('adminFriendLinks.deleteFailed'));
@@ -96,10 +85,7 @@ const AdminFriendLinks = () => {
 
   const handleApprove = async (id) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/friend-links/${id}`, { status: 'approved' }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/friend-links/${id}`, { status: 'approved' });
       fetchLinks();
     } catch (e) {
       setError(t('adminFriendLinks.reviewFailed'));
@@ -109,10 +95,7 @@ const AdminFriendLinks = () => {
   const handleReject = async (id) => {
     if (!window.confirm(t('adminFriendLinks.rejectConfirm'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/friend-links/${id}`, { status: 'rejected' }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/friend-links/${id}`, { status: 'rejected' });
       fetchLinks();
     } catch (e) {
       setError(t('adminFriendLinks.reviewFailed'));

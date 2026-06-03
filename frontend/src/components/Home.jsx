@@ -23,6 +23,9 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
   const [continueWatching, setContinueWatching] = useState([]);
@@ -42,8 +45,8 @@ const Home = () => {
 
   const scrollRestoredRef = useRef(false);
 
-  const welcomeTitle = siteSettingsLoading ? '' : (getLocalizedContent({content: JSON.stringify(siteSettingsData || {})}, 'welcomeTitle') || t('home.welcomeTitle'));
-  const welcomeSubtitle = siteSettingsLoading ? '' : (getLocalizedContent({content: JSON.stringify(siteSettingsData || {})}, 'welcomeSubtitle') || t('home.welcomeSubtitle'));
+  const welcomeTitle = siteSettingsLoading ? '' : (getLocalizedContent(siteSettingsData || {}, 'welcomeTitle') || t('home.welcomeTitle'));
+  const welcomeSubtitle = siteSettingsLoading ? '' : (getLocalizedContent(siteSettingsData || {}, 'welcomeSubtitle') || t('home.welcomeSubtitle'));
 
   useEffect(() => {
     if (!loading && !scrollRestoredRef.current) {
@@ -84,13 +87,11 @@ const Home = () => {
     }
     setRecLoading(true);
     setCwLoading(true);
-    const token = localStorage.getItem('token');
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    axios.get('/api/stats/recommendations/personalized', { headers })
+    axios.get('/api/stats/recommendations/personalized')
       .then(res => setRecommendations(res.data))
       .catch(() => setRecommendations([]))
       .finally(() => setRecLoading(false));
-    axios.get('/api/histories/continue-watching', { headers })
+    axios.get('/api/histories/continue-watching')
       .then(res => setContinueWatching(res.data || []))
       .catch(() => setContinueWatching([]))
       .finally(() => setCwLoading(false));
@@ -98,6 +99,7 @@ const Home = () => {
 
   useEffect(() => {
     setLoading(true);
+    setPage(1);
     const params = new URLSearchParams();
     if (searchQuery) params.set('search', searchQuery);
     if (filters.category) params.set('category', filters.category);
@@ -107,6 +109,8 @@ const Home = () => {
     if (filters.rating) params.set('minRating', filters.rating);
     if (filters.year) params.set('year', filters.year);
     if (sortOrder) params.set('order', sortOrder);
+    params.set('page', '1');
+    params.set('limit', '24');
 
     axios.get(`/api/episodes?${params.toString()}`)
       .then(res => {
@@ -114,17 +118,52 @@ const Home = () => {
         if (data.episodes) {
           setEpisodes(data.episodes);
           setTotal(data.total || 0);
+          setHasMore(data.episodes.length < (data.total || 0));
         } else if (Array.isArray(data)) {
           setEpisodes(data);
           setTotal(data.length);
+          setHasMore(false);
         }
       })
       .catch(() => {
         setEpisodes([]);
         setTotal(0);
+        setHasMore(false);
       })
       .finally(() => setLoading(false));
   }, [searchQuery, filters, sortOrder]);
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (filters.category) params.set('category', filters.category);
+    if (filters.sort) params.set('sort', filters.sort);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.tag) params.set('tag', filters.tag);
+    if (filters.rating) params.set('minRating', filters.rating);
+    if (filters.year) params.set('year', filters.year);
+    if (sortOrder) params.set('order', sortOrder);
+    params.set('page', String(nextPage));
+    params.set('limit', '24');
+
+    axios.get(`/api/episodes?${params.toString()}`)
+      .then(res => {
+        const data = res.data;
+        if (data.episodes) {
+          setEpisodes(prev => [...prev, ...data.episodes]);
+          setTotal(data.total || 0);
+          setHasMore(data.episodes.length >= 24);
+        }
+        setPage(nextPage);
+      })
+      .catch(() => {
+        setHasMore(false);
+      })
+      .finally(() => setLoadingMore(false));
+  }, [page, loadingMore, hasMore, searchQuery, filters, sortOrder]);
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -369,6 +408,7 @@ const Home = () => {
                     <img
                       src={rec.coverImage}
                       alt={rec.title}
+                      loading="lazy"
                       style={{
                         width: '100%',
                         height: '120px',
@@ -497,6 +537,28 @@ const Home = () => {
               onTagClick={handleTagClick}
             />
           ))}
+        </div>
+      )}
+
+      {hasMore && !loading && episodes.length > 0 && (
+        <div style={{ textAlign: 'center', padding: '24px' }}>
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            style={{
+              padding: '10px 32px',
+              borderRadius: '8px',
+              background: 'var(--btn-gradient)',
+              color: 'var(--btn-text)',
+              border: 'none',
+              cursor: loadingMore ? 'wait' : 'pointer',
+              fontSize: '14px',
+              fontWeight: 500,
+              opacity: loadingMore ? 0.7 : 1,
+            }}
+          >
+            {loadingMore ? t('common.loading') : t('home.loadMore')}
+          </button>
         </div>
       )}
     </div>

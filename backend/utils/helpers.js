@@ -114,4 +114,15 @@ const setAuthCookie = (res, token) => {
   });
 };
 
-module.exports = { parseUserAgent, hashToken, getClientIp, escapeRegex, verifyTOTP, generateTOTPSecret, generateBackupCodes, buildDeviceInfo, createUserSession, setAuthCookie };
+const timingSafeCompare = (a, b) => {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) {
+    // Constant-time even when lengths differ
+    return crypto.timingSafeEqual(bufA, bufA) && false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+};
+
+module.exports = { parseUserAgent, hashToken, getClientIp, escapeRegex, verifyTOTP, generateTOTPSecret, generateBackupCodes, buildDeviceInfo, createUserSession, setAuthCookie, timingSafeCompare };

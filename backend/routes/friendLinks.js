@@ -9,11 +9,20 @@ const jwt = require('jsonwebtoken');
 
 const optionalProtect = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    let token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token && req.cookies) {
+      token = req.cookies.token;
+    }
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const User = require('../models/User');
-      req.user = await User.findById(decoded.id);
+      const UserSession = require('../models/UserSession');
+      const { hashToken } = require('../utils/helpers');
+      const tokenHash = hashToken(token);
+      const session = await UserSession.findOne({ tokenHash, isActive: true });
+      if (session) {
+        req.user = await User.findById(decoded.id);
+      }
     }
   } catch (e) {}
   next();
@@ -39,17 +48,6 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-// 验证码验证辅助函数（与auth.js共享逻辑）
-const captchaVerify = (captchaId, captchaAnswer) => {
-  // 使用全局captchaStore（如果可用），否则跳过验证
-  if (!captchaId || !captchaAnswer) return false;
-  try {
-    const authRoute = require('./auth');
-    // auth模块不导出captchaStore，所以我们在内存中维护一个独立的
-  } catch (e) {}
-  return true; // 降级：如果无法访问captchaStore则跳过
-};
 
 router.post('/apply', optionalProtect, async (req, res) => {
   try {

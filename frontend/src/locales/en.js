@@ -103,6 +103,7 @@ export default {
     statusUpcoming: 'Upcoming',
     yearRecent5: 'Recent 5Y',
     noResults: 'No dramas found',
+    loadMore: 'Load More',
     searchResult: 'Search results for "{query}", {count} found',
     searchPlaceholder: 'Search dramas...',
     episodeProgress: 'Ep {current} of {total}',

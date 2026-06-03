@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const MAGIC_BYTES = {
   '/9j/': 'image/jpeg',
@@ -28,7 +29,7 @@ const validateMagicBytes = (filePath) => {
 const createUploadConfig = (prefix, maxFileSize = 5 * 1024 * 1024) => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
-    filename: (req, file, cb) => cb(null, `${prefix}-${Date.now()}${path.extname(file.originalname)}`)
+    filename: (req, file, cb) => cb(null, `${prefix}-${crypto.randomBytes(16).toString('hex')}${path.extname(file.originalname)}`)
   });
 
   const fileFilter = (req, file, cb) => {

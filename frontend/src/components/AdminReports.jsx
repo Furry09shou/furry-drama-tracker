@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -14,9 +14,8 @@ const AdminReports = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const adminData = localStorage.getItem('adminData');
+    const adminData = getAdminData();
     if (!adminData) { navigate('/admin'); return; }
-    try { JSON.parse(adminData); } catch (e) { navigate('/admin'); return; }
   }, [navigate]);
 
   useEffect(() => {
@@ -26,10 +25,8 @@ const AdminReports = () => {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/reports/list', {
-        params: { status: statusFilter, page, limit: 10 },
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await adminApi.get('/api/reports/list', {
+        params: { status: statusFilter, page, limit: 10 }
       });
       setReports(res.data.reports);
       setTotal(res.data.total);
@@ -42,10 +39,9 @@ const AdminReports = () => {
 
   const handleResolve = async (id, status) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/reports/resolve/${id}`, {
+      await adminApi.put(`/api/reports/resolve/${id}`, {
         status, resolveNote
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       setResolveNote('');
       fetchReports();
     } catch (err) {

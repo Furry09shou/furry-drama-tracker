@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
+import ReviewStatusBadge from './ReviewStatusBadge';
 
 const AdminReview = () => {
   const [admin, setAdmin] = useState(null);
@@ -18,12 +19,11 @@ const AdminReview = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      setAdmin(parsed);
-      if (parsed.role === 'admin' || parsed.role === 'superadmin') {
+      setAdmin(adminData);
+      if (adminData.role === 'admin' || adminData.role === 'superadmin') {
         fetchPendingEpisodes();
         fetchAllEpisodes();
         fetchCreators();
@@ -37,10 +37,7 @@ const AdminReview = () => {
 
   const fetchPendingEpisodes = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/review/pending', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/review/pending');
       setPendingEpisodes(res.data);
     } catch (err) {
       console.error('获取待审核剧集失败', err);
@@ -49,10 +46,7 @@ const AdminReview = () => {
 
   const fetchAllEpisodes = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/review/all', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/review/all');
       setAllEpisodes(res.data);
     } catch (err) {
       console.error('获取所有剧集失败', err);
@@ -61,10 +55,7 @@ const AdminReview = () => {
 
   const fetchCreators = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/admin/creators', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/admin/creators');
       setCreators(res.data);
     } catch (err) {
       console.error('获取创作者列表失败', err);
@@ -73,10 +64,7 @@ const AdminReview = () => {
 
   const handleApprove = async (id) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/review/approve/${id}`, { note: reviewNote }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/review/approve/${id}`, { note: reviewNote });
       setReviewNote('');
       fetchPendingEpisodes();
       fetchAllEpisodes();
@@ -91,10 +79,7 @@ const AdminReview = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/review/reject/${id}`, { note: reviewNote }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/review/reject/${id}`, { note: reviewNote });
       setReviewNote('');
       fetchPendingEpisodes();
       fetchAllEpisodes();
@@ -109,10 +94,7 @@ const AdminReview = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/review/assign-editor/${assignEpisodeId}`, { editorId: assignEditorId }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/review/assign-editor/${assignEpisodeId}`, { editorId: assignEditorId });
       setAssignEpisodeId('');
       setAssignEditorId('');
       fetchAllEpisodes();
@@ -124,10 +106,7 @@ const AdminReview = () => {
 
   const handleRemoveEditor = async (episodeId, editorId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/review/remove-editor/${episodeId}`, { editorId }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/review/remove-editor/${episodeId}`, { editorId });
       fetchAllEpisodes();
     } catch (err) {
       setError(err.response?.data?.message || t('adminReview.removeFailed'));
@@ -191,11 +170,7 @@ const AdminReview = () => {
                     <td>{ep.createdBy ? ep.createdBy.username : '-'}</td>
                     <td>{ep.currentEpisodes}/{ep.totalEpisodes}</td>
                     <td>
-                      <span style={{
-                        fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                        background: 'var(--warning-bg)', color: 'var(--warning-text)',
-                        border: '1px solid var(--warning-border)'
-                      }}>{t('adminReview.pending')}</span>
+                      <ReviewStatusBadge status="pending" />
                     </td>
                     <td>{new Date(ep.updatedAt).toLocaleDateString()}</td>
                     <td>
@@ -246,18 +221,7 @@ const AdminReview = () => {
                   </td>
                   <td>{ep.createdBy ? ep.createdBy.username : t('adminReview.system')}</td>
                   <td>
-                    <span style={{
-                      fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                      background: ep.reviewStatus === 'approved' ? 'var(--success-bg)' :
-                                  ep.reviewStatus === 'rejected' ? 'var(--destructive-bg)' : 'var(--warning-bg)',
-                      color: ep.reviewStatus === 'approved' ? 'var(--success-text)' :
-                             ep.reviewStatus === 'rejected' ? 'var(--destructive-text)' : 'var(--warning-text)',
-                      border: `1px solid ${ep.reviewStatus === 'approved' ? 'var(--success-border)' :
-                                        ep.reviewStatus === 'rejected' ? 'var(--destructive-border)' : 'var(--warning-border)'}`
-                    }}>
-                      {ep.reviewStatus === 'approved' ? t('adminReview.approved') :
-                       ep.reviewStatus === 'rejected' ? t('adminReview.rejected') : t('adminReview.pending')}
-                    </span>
+                    <ReviewStatusBadge status={ep.reviewStatus} />
                     {ep.reviewNote && <span style={{fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px'}}>({ep.reviewNote})</span>}
                   </td>
                   <td>
@@ -365,16 +329,7 @@ const AdminReview = () => {
                 <p><strong>{t('adminReview.views')}</strong>{detailEpisode.views}</p>
                 <p><strong>{t('adminReview.creator')}</strong>{detailEpisode.createdBy ? detailEpisode.createdBy.username : t('adminReview.system')}</p>
                 <p><strong>{t('adminReview.reviewStatus')}</strong>
-                  <span style={{
-                    fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                    background: detailEpisode.reviewStatus === 'approved' ? 'var(--success-bg)' :
-                                detailEpisode.reviewStatus === 'rejected' ? 'var(--destructive-bg)' : 'var(--warning-bg)',
-                    color: detailEpisode.reviewStatus === 'approved' ? 'var(--success-text)' :
-                           detailEpisode.reviewStatus === 'rejected' ? 'var(--destructive-text)' : 'var(--warning-text)'
-                  }}>
-                    {detailEpisode.reviewStatus === 'approved' ? t('adminReview.approved') :
-                     detailEpisode.reviewStatus === 'rejected' ? t('adminReview.rejected') : t('adminReview.pending')}
-                  </span>
+                  <ReviewStatusBadge status={detailEpisode.reviewStatus} />
                 </p>
               </div>
               {detailEpisode.reviewNote && (

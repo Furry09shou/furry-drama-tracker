@@ -14,6 +14,10 @@ const Report = require('../models/Report');
 const Feedback = require('../models/Feedback');
 const FriendLink = require('../models/FriendLink');
 
+router.get('/verify', adminProtect, async (req, res) => {
+  res.json({ valid: true, admin: { _id: req.admin._id, username: req.admin.username, role: req.admin.role } });
+});
+
 router.get('/pending-counts', adminProtect, async (req, res) => {
   try {
     const [episodes, reports, feedbacks, friendLinks] = await Promise.all([
@@ -24,7 +28,7 @@ router.get('/pending-counts', adminProtect, async (req, res) => {
     ]);
     res.json({ episodes, reports, feedbacks, friendLinks });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -102,10 +106,10 @@ router.post('/login', async (req, res) => {
       _id: admin._id,
       username: admin.username,
       role: admin.role,
-      token
+      token,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -117,7 +121,7 @@ router.post('/logout', adminProtect, async (req, res) => {
     res.clearCookie('adminToken', { path: '/' });
     res.json({ message: '退出成功' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -126,7 +130,7 @@ router.get('/list', superAdminProtect, async (req, res) => {
     const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 });
     res.json(admins);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -140,7 +144,7 @@ router.post('/register', superAdminProtect, async (req, res) => {
     }
     const adminExists = await Admin.findOne({ username });
     if (adminExists) {
-      return res.status(400).json({ message: 'Admin already exists' });
+      return res.status(400).json({ message: '管理员已存在' });
     }
 
     const admin = await Admin.create({
@@ -155,7 +159,7 @@ router.post('/register', superAdminProtect, async (req, res) => {
       role: admin.role
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -171,7 +175,7 @@ router.delete('/:id', superAdminProtect, async (req, res) => {
     await Admin.findByIdAndDelete(req.params.id);
     res.json({ message: '管理员已删除' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -198,7 +202,7 @@ router.get('/users', adminProtect, async (req, res) => {
       .limit(limitNum);
     res.json({ list, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -228,26 +232,30 @@ router.delete('/users/:id', superAdminProtect, async (req, res) => {
     await Rating.deleteMany({ userId: req.params.id });
     const affectedEpisodeIds = [...new Set(userRatings.map(r => r.episodeId.toString()))];
     const Episode = require('../models/Episode');
-    for (const epId of affectedEpisodeIds) {
+    if (affectedEpisodeIds.length > 0) {
       const stats = await Rating.aggregate([
-        { $match: { episodeId: mongoose.Types.ObjectId(epId) } },
+        { $match: { episodeId: { $in: affectedEpisodeIds.map(id => mongoose.Types.ObjectId(id)) } } },
         { $group: { _id: '$episodeId', avg: { $avg: '$score' }, count: { $sum: 1 } } }
       ]);
-      if (stats.length > 0) {
-        await Episode.findByIdAndUpdate(epId, {
-          averageRating: Math.round(stats[0].avg * 10) / 10,
-          ratingCount: stats[0].count
-        });
-      } else {
-        await Episode.findByIdAndUpdate(epId, {
-          averageRating: 0,
-          ratingCount: 0
-        });
-      }
+      const statsMap = {};
+      stats.forEach(s => { statsMap[s._id.toString()] = s; });
+      const bulkOps = affectedEpisodeIds.map(epId => {
+        const stat = statsMap[epId];
+        return {
+          updateOne: {
+            filter: { _id: epId },
+            update: {
+              averageRating: stat ? Math.round(stat.avg * 10) / 10 : 0,
+              ratingCount: stat ? stat.count : 0
+            }
+          }
+        };
+      });
+      await Episode.bulkWrite(bulkOps);
     }
     res.json({ message: '用户已删除' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -255,7 +263,7 @@ router.put('/role/:id', superAdminProtect, async (req, res) => {
   try {
     const { role } = req.body;
     if (!['superadmin', 'admin', 'creator'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role' });
+      return res.status(400).json({ message: '无效的角色' });
     }
     if (req.admin._id.toString() === req.params.id) {
       return res.status(400).json({ message: '不能修改自己的角色' });
@@ -265,7 +273,7 @@ router.put('/role/:id', superAdminProtect, async (req, res) => {
     }
     const targetAdmin = await Admin.findById(req.params.id);
     if (!targetAdmin) {
-      return res.status(404).json({ message: 'Admin not found' });
+      return res.status(404).json({ message: '管理员不存在' });
     }
     if (targetAdmin.role === 'superadmin') {
       const superAdminCount = await Admin.countDocuments({ role: 'superadmin' });
@@ -280,7 +288,7 @@ router.put('/role/:id', superAdminProtect, async (req, res) => {
     ).select('-password');
     res.json(admin);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -289,7 +297,7 @@ router.get('/creators', adminProtect, async (req, res) => {
     const creators = await Admin.find({ role: 'creator' }).select('-password');
     res.json(creators);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -298,12 +306,12 @@ router.post('/verify-password', adminProtect, async (req, res) => {
   if (!password) return res.status(400).json({ message: '请输入密码' });
   try {
     const admin = await Admin.findById(req.admin._id);
-    if (!admin) return res.status(404).json({ message: 'Not found' });
+    if (!admin) return res.status(404).json({ message: '未找到' });
     const isMatch = await admin.matchPassword(password);
     if (!isMatch) return res.status(400).json({ message: '密码错误' });
     res.json({ verified: true });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -321,7 +329,7 @@ router.put('/user-admin-access/:id', superAdminProtect, async (req, res) => {
     await user.save();
     res.json({ message: adminAccess ? '已授予管理后台权限' : '已撤销管理后台权限', adminAccess });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 

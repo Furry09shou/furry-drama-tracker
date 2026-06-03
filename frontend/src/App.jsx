@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Component } from 'react';
+import React, { useState, useEffect, Component, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -7,45 +7,59 @@ import I18nContext, { I18nProvider, useI18n } from './contexts/I18nContext';
 import { SiteSettingsProvider, useSiteSettings } from './contexts/SiteSettingsContext';
 import useTranslation from './hooks/useTranslation';
 import NavBar from './components/NavBar';
+import AdminErrorBoundary from './components/AdminErrorBoundary';
 import Home from './components/Home';
 import EpisodeDetail from './components/EpisodeDetail';
 import Login from './components/Login';
 import Register from './components/Register';
-import Profile from './components/Profile';
-import Admin from './components/Admin';
-import AdminLayout from './components/AdminLayout';
-import AdminDashboard from './components/AdminDashboard';
-import AdminEpisodes from './components/AdminEpisodes';
-import AdminUsers from './components/AdminUsers';
-import AdminCategories from './components/AdminCategories';
-import AdminBanners from './components/AdminBanners';
-import AdminReview from './components/AdminReview';
-import AdminCreatorProfile from './components/AdminCreatorProfile';
-import AdminSiteContent from './components/AdminSiteContent';
-import AdminReports from './components/AdminReports';
-import AdminStats from './components/AdminStats';
-import CreatorPage from './components/CreatorPage';
-import UpdateCalendar from './components/UpdateCalendar';
 import NotFound from './components/NotFound';
-import { PrivacyPage, TermsPage, AboutPage, LicensePage } from './components/SitePage';
-import ChangePassword from './components/ChangePassword';
-import ResetPassword from './components/ResetPassword';
-import VerifyEmail from './components/VerifyEmail';
-import AdminEmailSettings from './components/AdminEmailSettings';
-import AdminAuditLogs from './components/AdminAuditLogs';
-import AdminBackup from './components/AdminBackup';
-import AdminFeedback from './components/AdminFeedback';
-import AdminApiUsage from './components/AdminApiUsage';
-import AdminFriendLinks from './components/AdminFriendLinks';
-import AdminSessions from './components/AdminSessions';
-import UserDevices from './components/UserDevices';
-import FriendLinks from './components/FriendLinks';
-import FeedbackModal from './components/FeedbackModal';
-import ThemeColorPicker from './components/ThemeColorPicker';
-import AdminAnalytics from './components/AdminAnalytics';
-import Timeline from './components/Timeline';
 import OfflineIndicator from './components/OfflineIndicator';
 import InstallPrompt from './components/InstallPrompt';
+
+const Profile = lazy(() => import('./components/Profile'));
+const Admin = lazy(() => import('./components/Admin'));
+const AdminLayout = lazy(() => import('./components/AdminLayout'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const AdminEpisodes = lazy(() => import('./components/AdminEpisodes'));
+const AdminUsers = lazy(() => import('./components/AdminUsers'));
+const AdminCategories = lazy(() => import('./components/AdminCategories'));
+const AdminBanners = lazy(() => import('./components/AdminBanners'));
+const AdminReview = lazy(() => import('./components/AdminReview'));
+const AdminCreatorProfile = lazy(() => import('./components/AdminCreatorProfile'));
+const AdminSiteContent = lazy(() => import('./components/AdminSiteContent'));
+const AdminReports = lazy(() => import('./components/AdminReports'));
+const AdminStats = lazy(() => import('./components/AdminStats'));
+const CreatorPage = lazy(() => import('./components/CreatorPage'));
+const UpdateCalendar = lazy(() => import('./components/UpdateCalendar'));
+const PrivacyPage = lazy(() => import('./components/SitePage').then(m => ({ default: m.PrivacyPage })));
+const TermsPage = lazy(() => import('./components/SitePage').then(m => ({ default: m.TermsPage })));
+const AboutPage = lazy(() => import('./components/SitePage').then(m => ({ default: m.AboutPage })));
+const LicensePage = lazy(() => import('./components/SitePage').then(m => ({ default: m.LicensePage })));
+const ChangePassword = lazy(() => import('./components/ChangePassword'));
+const ResetPassword = lazy(() => import('./components/ResetPassword'));
+const VerifyEmail = lazy(() => import('./components/VerifyEmail'));
+const AdminEmailSettings = lazy(() => import('./components/AdminEmailSettings'));
+const AdminAuditLogs = lazy(() => import('./components/AdminAuditLogs'));
+const AdminBackup = lazy(() => import('./components/AdminBackup'));
+const AdminFeedback = lazy(() => import('./components/AdminFeedback'));
+const AdminApiUsage = lazy(() => import('./components/AdminApiUsage'));
+const AdminFriendLinks = lazy(() => import('./components/AdminFriendLinks'));
+const AdminSessions = lazy(() => import('./components/AdminSessions'));
+const UserDevices = lazy(() => import('./components/UserDevices'));
+const FriendLinks = lazy(() => import('./components/FriendLinks'));
+const FeedbackModal = lazy(() => import('./components/FeedbackModal'));
+const ThemeColorPicker = lazy(() => import('./components/ThemeColorPicker'));
+const AdminAnalytics = lazy(() => import('./components/AdminAnalytics'));
+const Timeline = lazy(() => import('./components/Timeline'));
+
+const LoadingFallback = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+    <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+      <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
+      <div>加载中...</div>
+    </div>
+  </div>
+);
 
 const FooterBeian = () => {
   const { t } = useI18n();
@@ -66,8 +80,8 @@ const FooterBeian = () => {
 
   if (!aboutData) return null;
 
-  const copyright = getLocalizedContent({content: JSON.stringify(aboutData)}, 'copyright') || aboutData.copyright || '';
-  const aiDisclaimer = getLocalizedContent({content: JSON.stringify(aboutData)}, 'aiDisclaimer') || aboutData.aiDisclaimer || '';
+  const copyright = getLocalizedContent(aboutData, 'copyright') || aboutData.copyright || '';
+  const aiDisclaimer = getLocalizedContent(aboutData, 'aiDisclaimer') || aboutData.aiDisclaimer || '';
 
   if (!aboutData.icp && !aboutData.policeRecord && !copyright && !aiDisclaimer) return null;
 
@@ -241,30 +255,32 @@ function AppContent() {
 
   if (isAdminRoute) {
     return (
-      <Routes>
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="episodes" element={<AdminEpisodes />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="categories" element={<AdminCategories />} />
-          <Route path="banners" element={<AdminBanners />} />
-          <Route path="review" element={<AdminReview />} />
-          <Route path="reports" element={<AdminReports />} />
-          <Route path="stats" element={<AdminStats />} />
-          <Route path="creator-profile" element={<AdminCreatorProfile />} />
-          <Route path="site-content" element={<AdminSiteContent />} />
-          <Route path="email-settings" element={<AdminEmailSettings />} />
-          <Route path="audit-logs" element={<AdminAuditLogs />} />
-          <Route path="backup" element={<AdminBackup />} />
-          <Route path="feedback" element={<AdminFeedback />} />
-          <Route path="api-usage" element={<AdminApiUsage />} />
-          <Route path="friend-links" element={<AdminFriendLinks />} />
-          <Route path="sessions" element={<AdminSessions />} />
-          <Route path="analytics" element={<AdminAnalytics />} />
-          <Route path="change-password" element={<ChangePassword />} />
-        </Route>
-      </Routes>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="episodes" element={<AdminEpisodes />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="banners" element={<AdminBanners />} />
+            <Route path="review" element={<AdminReview />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="stats" element={<AdminStats />} />
+            <Route path="creator-profile" element={<AdminCreatorProfile />} />
+            <Route path="site-content" element={<AdminSiteContent />} />
+            <Route path="email-settings" element={<AdminEmailSettings />} />
+            <Route path="audit-logs" element={<AdminAuditLogs />} />
+            <Route path="backup" element={<AdminBackup />} />
+            <Route path="feedback" element={<AdminFeedback />} />
+            <Route path="api-usage" element={<AdminApiUsage />} />
+            <Route path="friend-links" element={<AdminFriendLinks />} />
+            <Route path="sessions" element={<AdminSessions />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="change-password" element={<ChangePassword />} />
+          </Route>
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -272,28 +288,30 @@ function AppContent() {
     <>
       <NavBar onFeedback={() => setShowFeedback(true)} />
       <div className="container">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/episode/:id" element={<EpisodeDetail user={user} />} />
-          <Route path="/login" element={<Login login={login} />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={user ? <Profile user={user} setUser={updateUser} logout={logout} /> : <Navigate to="/login" />} />
-          <Route path="/devices" element={user ? <UserDevices user={user} /> : <Navigate to="/login" />} />
-          <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/verify-device" element={<Login login={login} />} />
-          <Route path="/calendar" element={<UpdateCalendar />} />
-          <Route path="/timeline" element={<Timeline />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/creator/:id" element={<CreatorPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/friend-links" element={<FriendLinks />} />
-          <Route path="/license" element={<LicensePage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/episode/:id" element={<EpisodeDetail user={user} />} />
+            <Route path="/login" element={<Login login={login} />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/profile" element={user ? <Profile user={user} setUser={updateUser} logout={logout} /> : <Navigate to="/login" />} />
+            <Route path="/devices" element={user ? <UserDevices user={user} /> : <Navigate to="/login" />} />
+            <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/verify-device" element={<Login login={login} />} />
+            <Route path="/calendar" element={<UpdateCalendar />} />
+            <Route path="/timeline" element={<Timeline />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/creator/:id" element={<CreatorPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/friend-links" element={<FriendLinks />} />
+            <Route path="/license" element={<LicensePage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </div>
       <FooterBeian />
       <FeedbackModal show={showFeedback} onClose={() => setShowFeedback(false)} user={user} />

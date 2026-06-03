@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import adminApi, { getAdminToken } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const Admin = () => {
@@ -21,7 +22,7 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    const adminToken = localStorage.getItem('adminToken');
+    const adminToken = getAdminToken();
     if (adminToken) {
       navigate('/admin/dashboard', { replace: true });
       return;
@@ -51,12 +52,10 @@ const Admin = () => {
       localStorage.setItem('adminToken', response.data.token);
       localStorage.setItem('adminData', JSON.stringify(response.data));
       try {
-        await axios.post('/api/admin-sessions/create', {
+        await adminApi.post('/api/admin-sessions/create', {
           screenWidth: window.screen.width,
           screenHeight: window.screen.height,
           language: navigator.language
-        }, {
-          headers: { Authorization: `Bearer ${response.data.token}` }
         });
       } catch (sessionErr) {
         console.error('Failed to create session:', sessionErr);
@@ -91,15 +90,13 @@ const Admin = () => {
             required
           />
         </div>
-        <div className="form-group">
-          <label>{t('auth.captcha')}</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input type="text" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} required placeholder={t('auth.enterCaptcha')} style={{ flex: 1, minWidth: 0 }} />
-            {captchaData.svg && (
-              <img src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`} alt={t('auth.captcha')} onClick={fetchCaptcha} style={{ height: '40px', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }} title={t('common.clickToRefresh')} />
-            )}
-          </div>
-        </div>
+        <CaptchaField
+          captchaData={captchaData}
+          captchaAnswer={captchaAnswer}
+          setCaptchaAnswer={setCaptchaAnswer}
+          onRefresh={fetchCaptcha}
+          t={t}
+        />
         <div className="form-group">
           <button type="submit">{t('admin.login')}</button>
         </div>

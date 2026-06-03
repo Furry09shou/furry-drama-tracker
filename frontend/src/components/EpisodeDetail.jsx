@@ -49,15 +49,22 @@ const EpisodeDetail = ({ user }) => {
       }
     };
     fetchEpisode();
-    axios.get(`/api/stats/recommendations/${episodeId}`)
+  }, [episodeId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    axios.get(`/api/stats/recommendations/${episodeId}`, { signal: controller.signal })
       .then(res => setRecommendations(res.data))
-      .catch(() => {});
+      .catch((err) => {
+        if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') {}
+      });
+    return () => controller.abort();
   }, [episodeId]);
 
   useEffect(() => {
     if (!user) return;
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    const userData = localStorage.getItem('user');
+    if (!userData) return;
     const config = { headers: getAuthHeaders() };
     axios.get(`/api/episodes/${episodeId}/user-status`, config)
       .then(res => {
@@ -279,7 +286,13 @@ const EpisodeDetail = ({ user }) => {
   return (
     <div className="episode-detail">
       <div style={{marginBottom: '20px'}}>
-        <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+        <button className="btn btn-secondary" onClick={() => {
+          if (window.history.length > 1) {
+            navigate(-1);
+          } else {
+            navigate('/', { replace: true });
+          }
+        }}>
           {t('common.goBack')}
         </button>
       </div>
@@ -626,7 +639,7 @@ const EpisodeDetail = ({ user }) => {
                             src={embedUrl}
                             style={{width: '100%', height: '100%', border: 'none'}}
                             allowFullScreen
-                            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                            sandbox="allow-scripts allow-presentation allow-popups"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             referrerPolicy="no-referrer"
                           />

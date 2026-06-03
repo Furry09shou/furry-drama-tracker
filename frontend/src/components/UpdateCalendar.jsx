@@ -29,9 +29,9 @@ const UpdateCalendar = () => {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      axios.get('/api/follows/list', { headers: { Authorization: `Bearer ${token}` } })
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      axios.get('/api/follows/list')
         .then(res => {
           const list = res.data.list || res.data || [];
           const ids = list.map(f => f.episodeId?._id || f.episodeId);
@@ -77,11 +77,11 @@ const UpdateCalendar = () => {
   const formatDate = (year, month, day) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
   const handleSubscribe = async (episodeId) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    const userData = localStorage.getItem('user');
+    if (!userData) return;
     setSubscribing(episodeId);
     try {
-      await axios.post('/api/notifications/subscribe-reminder', { episodeId }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.post('/api/notifications/subscribe-reminder', { episodeId });
     } catch (e) {}
     setSubscribing(null);
   };

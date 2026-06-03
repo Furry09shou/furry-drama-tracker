@@ -9,45 +9,40 @@ export const AuthProvider = ({ children }) => {
   const [initializing, setInitializing] = useState(true);
 
   const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    // 认证通过 httpOnly cookie 自动发送，无需手动设置 Authorization header
+    return {};
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
-    const initAuth = async (storedToken, storedUser) => {
+    const initAuth = async (storedUser) => {
       await fetchCsrfToken();
-      const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
       try {
-        const res = await axios.get('/api/auth/me', { headers, skipRedirect: true, params: { _t: Date.now() } });
+        const res = await axios.get('/api/auth/me', { skipRedirect: true, params: { _t: Date.now() } });
         const freshUser = res.data;
         setUser(freshUser);
         localStorage.setItem('user', JSON.stringify(freshUser));
-        if (storedToken) {
+        try {
+          await axios.post('/api/user-sessions/create', {
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            language: navigator.language
+          }, { skipRedirect: true });
+        } catch (sessionErr) {
+          console.error('Session creation failed, retrying...', sessionErr?.response?.data || sessionErr?.message);
           try {
+            await new Promise(r => setTimeout(r, 1000));
             await axios.post('/api/user-sessions/create', {
               screenWidth: window.screen.width,
               screenHeight: window.screen.height,
               language: navigator.language
-            }, { headers, skipRedirect: true });
-          } catch (sessionErr) {
-            console.error('Session creation failed, retrying...', sessionErr?.response?.data || sessionErr?.message);
-            try {
-              await new Promise(r => setTimeout(r, 1000));
-              await axios.post('/api/user-sessions/create', {
-                screenWidth: window.screen.width,
-                screenHeight: window.screen.height,
-                language: navigator.language
-              }, { headers, skipRedirect: true });
-            } catch (retryErr) {
-              console.error('Session creation retry failed:', retryErr?.response?.data || retryErr?.message);
-            }
+            }, { skipRedirect: true });
+          } catch (retryErr) {
+            console.error('Session creation retry failed:', retryErr?.response?.data || retryErr?.message);
           }
         }
       } catch {
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
       } finally {
@@ -55,17 +50,16 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    if (token && userData) {
+    if (userData) {
       try {
-        const parsed = JSON.parse(userData);
-        initAuth(token, parsed);
+        JSON.parse(userData);
+        initAuth(userData);
       } catch {
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
         setInitializing(false);
       }
     } else {
-      initAuth(null, null);
+      initAuth(null);
     }
   }, []);
 
@@ -82,10 +76,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!user) return;
     const heartbeat = () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      const headers = { Authorization: `Bearer ${token}` };
-      axios.post('/api/user-sessions/heartbeat', {}, { headers, skipRedirect: true }).catch(() => {});
+      axios.post('/api/user-sessions/heartbeat', {}, { skipRedirect: true }).catch(() => {});
     };
     const interval = setInterval(heartbeat, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -95,10 +86,7 @@ export const AuthProvider = ({ children }) => {
     if (!user) return;
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      const headers = { Authorization: `Bearer ${token}` };
-      axios.get('/api/auth/me', { headers, skipRedirect: true, params: { _t: Date.now() } }).catch(() => {});
+      axios.get('/api/auth/me', { skipRedirect: true, params: { _t: Date.now() } }).catch(() => {});
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -106,23 +94,15 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback((userData) => {
     setUser(userData);
-    if (userData.token) {
-      localStorage.setItem('token', userData.token);
-      const { token, ...userDataWithoutToken } = userData;
-      localStorage.setItem('user', JSON.stringify(userDataWithoutToken));
-    } else {
-      localStorage.setItem('user', JSON.stringify(userData));
-    }
+    // token 通过 httpOnly cookie 自动管理，不再存储到 localStorage
+    localStorage.setItem('user', JSON.stringify(userData));
   }, []);
 
   const logout = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await axios.post('/api/auth/logout', {}, { headers });
+      await axios.post('/api/auth/logout');
     } catch {}
     setUser(null);
-    localStorage.removeItem('token');
     localStorage.removeItem('user');
   }, []);
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminApiUsage = () => {
@@ -11,12 +11,11 @@ const AdminApiUsage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      setAdmin(parsed);
-      if (parsed.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
+      setAdmin(adminData);
+      if (adminData.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
     } else {
       navigate('/admin', { replace: true });
     }
@@ -24,8 +23,7 @@ const AdminApiUsage = () => {
 
   useEffect(() => {
     if (!admin) return;
-    const token = localStorage.getItem('adminToken');
-    axios.get(`/api/rss/api-usage?days=${days}`, { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get(`/api/rss/api-usage?days=${days}`)
       .then(res => setData(res.data))
       .catch(() => {});
   }, [admin, days]);

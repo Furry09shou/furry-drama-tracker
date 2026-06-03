@@ -51,7 +51,13 @@ for (const varName of requiredEnvVars) {
   }
 }
 
+if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET must be at least 32 characters long');
+  process.exit(1);
+}
+
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(cookieParser());
 
@@ -61,6 +67,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
+  process.exit(1);
 });
 
 connectDB().then(async () => {
@@ -84,10 +91,24 @@ connectDB().then(async () => {
   } catch (e) {
     console.error('迁移accountId失败:', e.message);
   }
+  const { ensureIndexes } = require('./indexes');
+  ensureIndexes();
 });
 
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.mymemory.translated.net", "https://translate.googleapis.com", "https://api.cognitive.microsofttranslator.com", "https://ipapi.co"],
+      frameSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    }
+  },
   crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: false,
@@ -95,6 +116,8 @@ app.use(helmet({
 
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
   'http://localhost:5000',
   process.env.FRONTEND_URL,
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
@@ -102,6 +125,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
+    // 无 Origin 头的请求来自同源代理（如 Vite dev server）或服务端请求，允许通过
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -158,8 +182,7 @@ app.use((req, res, next) => {
     } else if (cookieXsrf && !headerXsrf) {
       return res.status(403).json({ message: 'CSRF protection: missing X-XSRF-TOKEN header' });
     } else {
-      const token = crypto.randomBytes(32).toString('hex');
-      res.cookie('XSRF-TOKEN', token, { httpOnly: false, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000, path: '/' });
+      return res.status(403).json({ message: 'CSRF protection: missing XSRF-TOKEN cookie, please refresh the page' });
     }
   }
   next();
@@ -256,11 +279,17 @@ app.get('/api/health', async (req, res) => {
   try {
     const mongoose = require('mongoose');
     await mongoose.connection.db.admin().ping();
+    const memUsage = process.memoryUsage();
     res.json({
       status: 'ok',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      db: 'connected'
+      db: 'connected',
+      memory: {
+        rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+        heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+      }
     });
   } catch (error) {
     res.status(503).json({
@@ -273,23 +302,22 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: '兽剧 API 文档',
-}));
-
-app.get('/api/docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.json(swaggerSpec);
-});
-
-app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: '兽剧 API 文档',
-}));
-
-app.get('/api/v1/docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.json(swaggerSpec);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: '兽剧 API 文档',
+  }));
+  app.get('/api/docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.json(swaggerSpec);
+  });
+  app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: '兽剧 API 文档',
+  }));
+  app.get('/api/v1/docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.json(swaggerSpec);
+  });
+}
 
 const routeMounts = [
   ['/api/auth', authRoutes],

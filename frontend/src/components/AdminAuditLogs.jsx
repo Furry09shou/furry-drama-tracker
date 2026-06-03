@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminAuditLogs = () => {
@@ -13,12 +13,11 @@ const AdminAuditLogs = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      setAdmin(parsed);
-      if (parsed.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
+      setAdmin(adminData);
+      if (adminData.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
     } else {
       navigate('/admin', { replace: true });
     }
@@ -26,11 +25,10 @@ const AdminAuditLogs = () => {
 
   useEffect(() => {
     if (!admin) return;
-    const token = localStorage.getItem('adminToken');
     const params = new URLSearchParams({ page, limit: 30 });
     if (filter.action) params.set('action', filter.action);
     if (filter.admin) params.set('admin', filter.admin);
-    axios.get(`/api/audit-logs?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get(`/api/audit-logs?${params}`)
       .then(res => { setLogs(res.data.logs); setTotal(res.data.total); })
       .catch(() => {});
   }, [admin, page, filter]);

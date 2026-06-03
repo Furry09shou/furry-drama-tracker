@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const accountLockoutPlugin = require('../utils/accountLockout');
 
 const AdminSchema = new mongoose.Schema({
   username: {
@@ -41,23 +42,7 @@ AdminSchema.pre('save', async function() {
 });
 
 AdminSchema.methods.matchPassword = async function(enteredPassword) {
-  if (this.isLocked) return false;
   return await bcrypt.compare(enteredPassword, this.password);
-};
-
-AdminSchema.methods.incLoginAttempts = function() {
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    return this.updateOne({ $set: { loginAttempts: 1 }, $unset: { lockUntil: 1 } });
-  }
-  const updates = { $inc: { loginAttempts: 1 } };
-  if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
-    updates.$set = { lockUntil: Date.now() + 30 * 60 * 1000 };
-  }
-  return this.updateOne(updates);
-};
-
-AdminSchema.methods.resetLoginAttempts = function() {
-  return this.updateOne({ $set: { loginAttempts: 0 }, $unset: { lockUntil: 1 } });
 };
 
 module.exports = mongoose.model('Admin', AdminSchema);

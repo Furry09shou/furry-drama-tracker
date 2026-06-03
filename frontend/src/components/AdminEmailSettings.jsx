@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminEmailSettings = () => {
@@ -18,13 +18,12 @@ const AdminEmailSettings = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      setAdmin(parsed);
-      if (parsed.role === 'superadmin') {
-        fetchEmailConfig(token);
+      setAdmin(adminData);
+      if (adminData.role === 'superadmin') {
+        fetchEmailConfig();
       } else {
         navigate('/admin/dashboard', { replace: true });
       }
@@ -33,11 +32,9 @@ const AdminEmailSettings = () => {
     }
   }, [navigate]);
 
-  const fetchEmailConfig = async (token) => {
+  const fetchEmailConfig = async () => {
     try {
-      const res = await axios.get('/api/site-content/email', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/site-content/email');
       if (res.data && res.data.content) {
         const data = JSON.parse(res.data.content);
         setEmailData({
@@ -58,11 +55,10 @@ const AdminEmailSettings = () => {
     setSaving(true);
     setMessage('');
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put('/api/site-content/email', {
+      await adminApi.put('/api/site-content/email', {
         title: t('adminEmailSettings.emailService'),
         content: JSON.stringify(emailData)
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       setMessage(t('adminEmailSettings.saveSuccess'));
     } catch (err) {
       setMessage(err.response?.data?.message || t('adminEmailSettings.saveFailed'));
@@ -78,15 +74,14 @@ const AdminEmailSettings = () => {
     setTesting(true);
     setTestMsg('');
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.post('/api/site-content/test-email', {
+      const res = await adminApi.post('/api/site-content/test-email', {
         host: emailData.host,
         port: emailData.port,
         user: emailData.user,
         pass: emailData.pass,
         fromName: emailData.fromName,
         to: testEmail
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       setTestMsg(res.data.message);
     } catch (err) {
       setTestMsg(err.response?.data?.message || t('adminEmailSettings.testSendFailed'));

@@ -16,9 +16,7 @@ const FeedbackModal = ({ show, onClose, user }) => {
     if (!content.trim()) return;
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await axios.post('/api/feedback', { type, content }, { headers });
+      const res = await axios.post('/api/feedback', { type, content });
       setMsg(res.data.message);
       setMsgIsSuccess(true);
       setContent('');

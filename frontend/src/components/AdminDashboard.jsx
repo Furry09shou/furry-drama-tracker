@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const Badge = ({ count }) => {
@@ -42,9 +42,9 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!admin) return;
-    const token = localStorage.getItem('adminToken');
+    const token = getAdminToken();
     if (!token) return;
-    axios.get('/api/admin/pending-counts', { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get('/api/admin/pending-counts')
       .then(res => setPendingCounts(res.data))
       .catch(() => {});
   }, [admin]);
@@ -205,16 +205,14 @@ const AdminDashboard = () => {
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={async () => {
               try {
-                const token = localStorage.getItem('adminToken');
-                const res = await axios.post('/api/auto-status/auto-complete', {}, { headers: { Authorization: `Bearer ${token}` } });
+                const res = await adminApi.post('/api/auto-status/auto-complete', {});
                 setStatusMsg(res.data.message);
               } catch (e) { setStatusMsg(t('adminDashboard.operationFailed')); }
               clearStatusMsg();
             }}>{t('adminDashboard.autoMarkCompleted')}</button>
             <button className="btn btn-secondary" onClick={async () => {
               try {
-                const token = localStorage.getItem('adminToken');
-                const res = await axios.post('/api/auto-status/check-premieres', {}, { headers: { Authorization: `Bearer ${token}` } });
+                const res = await adminApi.post('/api/auto-status/check-premieres', {});
                 setStatusMsg(res.data.message);
               } catch (e) { setStatusMsg(t('adminDashboard.operationFailed')); }
               clearStatusMsg();

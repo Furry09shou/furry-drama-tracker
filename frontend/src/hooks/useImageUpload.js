@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import adminApi from '../utils/adminApi';
 
 export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
@@ -22,14 +22,10 @@ export const useImageUpload = () => {
     setUploading(true);
     setError('');
     try {
-      const token = localStorage.getItem('adminToken');
       const formData = new FormData();
       formData.append('coverImage', file);
-      const response = await axios.post('/api/episodes/upload', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      const response = await adminApi.post('/api/episodes/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       return response.data.url;
     } catch (err) {

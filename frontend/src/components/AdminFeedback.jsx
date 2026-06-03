@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminFeedback = () => {
@@ -15,11 +15,10 @@ const AdminFeedback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      setAdmin(parsed);
+      setAdmin(adminData);
     } else {
       navigate('/admin', { replace: true });
     }
@@ -27,10 +26,9 @@ const AdminFeedback = () => {
 
   useEffect(() => {
     if (!admin) return;
-    const token = localStorage.getItem('adminToken');
     const params = new URLSearchParams({ page, limit: 20 });
     if (statusFilter) params.set('status', statusFilter);
-    axios.get(`/api/feedback?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get(`/api/feedback?${params}`)
       .then(res => { setList(res.data.list); setTotal(res.data.total); })
       .catch(() => {});
   }, [admin, page, statusFilter]);
@@ -38,14 +36,13 @@ const AdminFeedback = () => {
   if (!admin) return null;
 
   const handleReply = async (id) => {
-    const token = localStorage.getItem('adminToken');
-    await axios.put(`/api/feedback/${id}`, { status: 'replied', reply: replyText }, { headers: { Authorization: `Bearer ${token}` } });
+    await adminApi.put(`/api/feedback/${id}`, { status: 'replied', reply: replyText });
     setReplyingId(null);
     setReplyText('');
     setPage(page);
     const params = new URLSearchParams({ page, limit: 20 });
     if (statusFilter) params.set('status', statusFilter);
-    const res = await axios.get(`/api/feedback?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await adminApi.get(`/api/feedback?${params}`);
     setList(res.data.list);
   };
 

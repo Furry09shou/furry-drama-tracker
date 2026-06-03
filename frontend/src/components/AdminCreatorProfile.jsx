@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import ImageUploader from './ImageUploader';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -17,13 +17,12 @@ const AdminCreatorProfile = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      setAdmin(parsed);
-      if (parsed.role === 'creator' || parsed.role === 'admin' || parsed.role === 'superadmin') {
-        fetchProfile(token);
+      setAdmin(adminData);
+      if (adminData.role === 'creator' || adminData.role === 'admin' || adminData.role === 'superadmin') {
+        fetchProfile();
       } else {
         navigate('/admin/dashboard', { replace: true });
       }
@@ -32,11 +31,9 @@ const AdminCreatorProfile = () => {
     }
   }, [navigate]);
 
-  const fetchProfile = async (token) => {
+  const fetchProfile = async () => {
     try {
-      const res = await axios.get('/api/creator-profile/my-profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/creator-profile/my-profile');
       setProfile(res.data);
       setDisplayName(res.data.displayName || '');
       setAvatar(res.data.avatar || '');
@@ -56,14 +53,13 @@ const AdminCreatorProfile = () => {
     setSaving(true);
     setMessage('');
     try {
-      const token = localStorage.getItem('adminToken');
       const linksObj = {};
       socialLinks.forEach(item => {
         if (item.name.trim()) linksObj[item.name.trim()] = item.url.trim();
       });
-      const res = await axios.put('/api/creator-profile/my-profile', {
+      const res = await adminApi.put('/api/creator-profile/my-profile', {
         displayName, avatar, bio, socialLinks: linksObj
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       setProfile(res.data);
       setMessage(t('adminCreatorProfile.saveSuccess'));
     } catch (err) {

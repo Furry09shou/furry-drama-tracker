@@ -48,44 +48,31 @@ const Profile = ({ user, setUser, logout }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) { setLoading(false); return; }
+        const userData = localStorage.getItem('user');
+        if (!userData) { setLoading(false); return; }
         const config = { headers: getAuthHeaders() };
-        let followData = [];
-        let historyData = [];
-        try {
-          const followRes = await axios.get('/api/follows/list', config);
-          followData = followRes.data.list || followRes.data || [];
-        } catch (e) {
-          if (e.response?.status === 401) { setLoading(false); return; }
-          console.error(t('profile.fetchFollowsFailed') + ':', e.response?.data || e.message);
-        }
-        try {
-          const historyRes = await axios.get('/api/histories/list', config);
-          historyData = historyRes.data.list || historyRes.data || [];
-        } catch (e) {
-          if (e.response?.status === 401) { setLoading(false); return; }
-          console.error(t('profile.fetchHistoryFailed') + ':', e.response?.data || e.message);
-        }
-        try {
-          const favRes = await axios.get('/api/favorites/list', config);
-          setFavoriteEpisodes(favRes.data.list || favRes.data || []);
-        } catch (e) {
-          if (e.response?.status === 401) { setLoading(false); return; }
-        }
-        try {
-          const folderRes = await axios.get('/api/folders?type=favorite', config);
-          setFavoriteFolders(folderRes.data || []);
-        } catch (e) {}
+
+        const [followRes, historyRes, favRes, folderRes, delRes] = await Promise.allSettled([
+          axios.get('/api/follows/list', config),
+          axios.get('/api/histories/list', config),
+          axios.get('/api/favorites/list', config),
+          axios.get('/api/folders?type=favorite', config),
+          axios.get('/api/auth/deletion-status', config),
+        ]);
+
+        const followData = followRes.status === 'fulfilled' ? (followRes.value.data.list || followRes.value.data || []) : [];
+        const historyData = historyRes.status === 'fulfilled' ? (historyRes.value.data.list || historyRes.value.data || []) : [];
+        const favData = favRes.status === 'fulfilled' ? (favRes.value.data.list || favRes.value.data || []) : [];
+        const folderData = folderRes.status === 'fulfilled' ? (folderRes.value.data || []) : [];
+        const delData = delRes.status === 'fulfilled' ? delRes.value.data : {};
 
         setFollowedEpisodes(followData);
         setHistoryEpisodes(historyData);
-        try {
-          const delRes = await axios.get('/api/auth/deletion-status', config);
-          if (delRes.data.requested) {
-            setDeletionStatus(delRes.data);
-          }
-        } catch (e) {}
+        setFavoriteEpisodes(favData);
+        setFavoriteFolders(folderData);
+        if (delData.requested) {
+          setDeletionStatus(delData);
+        }
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -157,7 +144,6 @@ const Profile = ({ user, setUser, logout }) => {
       if (setUser && user) {
         const updatedUser = { ...user, avatar: res.data.url };
         setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
       }
     } catch (err) {
       console.error('Avatar upload failed:', err);
@@ -493,7 +479,6 @@ const Profile = ({ user, setUser, logout }) => {
                     disabled={!deletePassword || deleteLoading}
                     onClick={async () => {
                       try {
-                        const token = localStorage.getItem('token');
                         await axios.post('/api/auth/login', { email: user.email, password: deletePassword });
                         setDeleteStep(2);
                         setDeleteError('');
@@ -604,7 +589,6 @@ const Profile = ({ user, setUser, logout }) => {
                       });
                       const updatedUser = { ...user, username: res.data.username };
                       setUser(updatedUser);
-                      localStorage.setItem('user', JSON.stringify(updatedUser));
                       setEditingNickname(false);
                     } catch (err) {
                       setNicknameError(err.response?.data?.message || t('profile.updateFailed'));

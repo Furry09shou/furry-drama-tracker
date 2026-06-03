@@ -17,6 +17,10 @@ const feedbackLimiter = rateLimit({
 router.post('/', protect, feedbackLimiter, async (req, res) => {
   try {
     const { type, content } = req.body;
+    const validTypes = ['suggestion', 'bug', 'complaint', 'other'];
+    if (type && !validTypes.includes(type)) {
+      return res.status(400).json({ message: '无效的反馈类型' });
+    }
     if (!content || !content.trim()) return res.status(400).json({ message: '内容不能为空' });
     if (content.length > 2000) return res.status(400).json({ message: '内容不能超过2000字' });
     await Feedback.create({

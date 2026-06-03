@@ -13,6 +13,8 @@ webpush.setVapidDetails(
 );
 
 const sseClients = new Map();
+const MAX_SSE_CONNECTIONS = 500;
+let totalSSEConnections = 0;
 
 router.get('/stream', async (req, res) => {
   const { ticket } = req.query;
@@ -41,6 +43,12 @@ router.get('/stream', async (req, res) => {
 
   res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
+  if (totalSSEConnections >= MAX_SSE_CONNECTIONS) {
+    res.write(`data: ${JSON.stringify({ type: 'error', message: 'Too many connections' })}\n\n`);
+    res.end();
+    return;
+  }
+
   if (!sseClients.has(userId)) {
     sseClients.set(userId, []);
   }
@@ -50,6 +58,7 @@ router.get('/stream', async (req, res) => {
     try { oldest.end(); } catch (e) {}
   }
   userClients.push(res);
+  totalSSEConnections++;
 
   const heartbeat = setInterval(() => {
     res.write(`:heartbeat\n\n`);
@@ -57,6 +66,7 @@ router.get('/stream', async (req, res) => {
 
   req.on('close', () => {
     clearInterval(heartbeat);
+    totalSSEConnections--;
     const clients = sseClients.get(userId);
     if (clients) {
       const idx = clients.indexOf(res);

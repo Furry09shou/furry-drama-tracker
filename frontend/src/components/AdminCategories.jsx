@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -18,10 +18,10 @@ const AdminCategories = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      setAdmin(JSON.parse(adminData));
+      setAdmin(adminData);
     } else {
       navigate('/admin', { replace: true });
     }
@@ -29,7 +29,7 @@ const AdminCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get('/api/categories');
+      const res = await adminApi.get('/api/categories');
       setCategories(res.data);
     } catch (err) {
       console.error('获取分类失败', err);
@@ -48,13 +48,10 @@ const AdminCategories = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.post('/api/categories', {
+      await adminApi.post('/api/categories', {
         name: newCategoryName.trim(),
         nameEn: newCategoryNameEn.trim(),
         order: newCategoryOrder
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setNewCategoryName('');
       setNewCategoryNameEn('');
@@ -75,13 +72,10 @@ const AdminCategories = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/categories/${editingCategory._id}`, {
+      await adminApi.put(`/api/categories/${editingCategory._id}`, {
         name: newCategoryName.trim(),
         nameEn: newCategoryNameEn.trim(),
         order: newCategoryOrder
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setEditingCategory(null);
       setNewCategoryName('');
@@ -97,10 +91,7 @@ const AdminCategories = () => {
   const handleDelete = async (id) => {
     if (!window.confirm(t('adminCategories.deleteConfirm'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/categories/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/categories/${id}`);
       setSuccess(t('adminCategories.deleteSuccess'));
       fetchCategories();
     } catch (err) {

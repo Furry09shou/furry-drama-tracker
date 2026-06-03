@@ -42,8 +42,16 @@ const { adminProtect, creatorProtect } = require('../middlewares/authFactory');
  */
 router.get('/', async (req, res) => {
   try {
-    const series = await Series.find().populate('episodes', 'title coverImage currentEpisodes totalEpisodes status averageRating').sort({ updatedAt: -1 });
-    res.json(series);
+    const { page = 1, limit = 50 } = req.query;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+    const total = await Series.countDocuments();
+    const series = await Series.find()
+      .populate('episodes', 'title coverImage currentEpisodes totalEpisodes status averageRating')
+      .sort({ updatedAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+    res.json({ list: series, page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

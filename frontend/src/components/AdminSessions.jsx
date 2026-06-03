@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminSessions = () => {
@@ -13,14 +13,13 @@ const AdminSessions = () => {
   const { t, lang, locale } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (!token || !adminData) {
       navigate('/admin', { replace: true });
       return;
     }
-    const admin = JSON.parse(adminData);
-    if (admin.role !== 'superadmin') {
+    if (adminData.role !== 'superadmin') {
       navigate('/admin/dashboard', { replace: true });
       return;
     }
@@ -30,10 +29,7 @@ const AdminSessions = () => {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/admin-sessions/all', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/admin-sessions/all');
       setSessions(res.data);
     } catch (err) {
       setError(t('adminSessions.loadFailed'));
@@ -44,10 +40,7 @@ const AdminSessions = () => {
   const handleLogoutSession = async (id) => {
     if (!window.confirm(t('adminSessions.confirmLogoutDevice'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/admin-sessions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/admin-sessions/${id}`);
       setSuccess(t('adminSessions.deviceLoggedOut'));
       fetchSessions();
       setTimeout(() => setSuccess(''), 3000);
@@ -59,10 +52,7 @@ const AdminSessions = () => {
   const handleLogoutAllAdmin = async (adminId, username) => {
     if (!window.confirm(t('adminSessions.confirmLogoutAll', { username }))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/admin-sessions/admin/${adminId}/all`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/admin-sessions/admin/${adminId}/all`);
       setSuccess(t('adminSessions.allDevicesLoggedOut', { username }));
       fetchSessions();
       setTimeout(() => setSuccess(''), 3000);

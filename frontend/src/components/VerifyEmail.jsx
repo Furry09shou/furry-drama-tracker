@@ -38,17 +38,7 @@ const VerifyEmail = () => {
     setResendMsg('');
     setResendSuccess(false);
     try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        const res = await axios.post('/api/auth/resend-verification', {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setResendMsg(res.data.message);
-        setResendSuccess(true);
-      } else {
-        setResendMsg(t('auth.resendVerificationHint'));
-        setResendSuccess(true);
-      }
+      const res = await axios.post('/api/auth/resend-verification');
     } catch (err) {
       setResendMsg(err.response?.data?.message || t('common.sendFailed'));
       setResendSuccess(false);

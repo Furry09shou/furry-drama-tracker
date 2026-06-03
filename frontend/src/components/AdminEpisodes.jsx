@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
@@ -51,10 +51,10 @@ const AdminEpisodes = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      setAdmin(JSON.parse(adminData));
+      setAdmin(adminData);
       fetchEpisodes();
       fetchCategories();
     } else {
@@ -64,17 +64,12 @@ const AdminEpisodes = () => {
 
   const fetchEpisodes = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+      const adminData = getAdminData() || {};
       let response;
       if (adminData.role === 'creator') {
-        response = await axios.get('/api/creator/my-episodes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        response = await adminApi.get('/api/creator/my-episodes');
       } else {
-        response = await axios.get('/api/episodes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        response = await adminApi.get('/api/episodes');
       }
       const data = response.data;
       setEpisodes(Array.isArray(data) ? data : (data.episodes || data.list || []));
@@ -85,7 +80,7 @@ const AdminEpisodes = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get('/api/categories');
+      const res = await adminApi.get('/api/categories');
       setCategories(res.data);
     } catch (err) {
       console.error('获取分类失败', err);
@@ -125,7 +120,6 @@ const AdminEpisodes = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('adminToken');
       const episodeData = {
         title: newEpisode.title,
         titleEn: newEpisode.titleEn || '',
@@ -143,9 +137,7 @@ const AdminEpisodes = () => {
           : null
       };
 
-      const response = await axios.post('/api/episodes', episodeData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await adminApi.post('/api/episodes', episodeData);
 
       setShowAddForm(false);
       resetEpisodeForm();
@@ -214,7 +206,6 @@ const AdminEpisodes = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('adminToken');
       const episodeData = {
         title: newEpisode.title,
         titleEn: newEpisode.titleEn || '',
@@ -231,9 +222,7 @@ const AdminEpisodes = () => {
           : null
       };
 
-      await axios.put(`/api/episodes/${editingEpisode._id}`, episodeData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/episodes/${editingEpisode._id}`, episodeData);
 
       fetchEpisodes();
       setError('');
@@ -245,10 +234,7 @@ const AdminEpisodes = () => {
   const handleDeleteEpisode = async (id) => {
     if (!window.confirm(t('adminEpisodes.deleteConfirm'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/episodes/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/episodes/${id}`);
       fetchEpisodes();
     } catch (error) {
       setError(t('adminEpisodes.deleteFailed'));
@@ -257,7 +243,7 @@ const AdminEpisodes = () => {
 
   const fetchSingleEpisodes = async (episodeId) => {
     try {
-      const response = await axios.get(`/api/episodes/${episodeId}`);
+      const response = await adminApi.get(`/api/episodes/${episodeId}`);
       setSingleEpisodes(response.data.episodes || []);
     } catch (error) {
       console.error('Error fetching single episodes:', error);
@@ -267,7 +253,6 @@ const AdminEpisodes = () => {
   const handleAddSingleEpisode = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('adminToken');
       const episodeId = editingEpisode._id;
       const submitData = {
         ...newSingleEpisode,
@@ -283,13 +268,9 @@ const AdminEpisodes = () => {
       delete submitData.platformLinksList;
 
       if (editingSingleEpisode) {
-        await axios.put(`/api/episodes/single/${editingSingleEpisode._id}`, submitData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await adminApi.put(`/api/episodes/single/${editingSingleEpisode._id}`, submitData);
       } else {
-        await axios.post(`/api/episodes/${episodeId}/episodes`, submitData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await adminApi.post(`/api/episodes/${episodeId}/episodes`, submitData);
       }
 
       setEditingSingleEpisode(null);
@@ -331,10 +312,7 @@ const AdminEpisodes = () => {
   const handleDeleteSingleEpisode = async (id) => {
     if (!window.confirm(t('adminEpisodes.deleteSingleEpisodeConfirm'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/episodes/single/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/episodes/single/${id}`);
       fetchSingleEpisodes(editingEpisode._id);
       fetchEpisodes();
     } catch (error) {
@@ -419,12 +397,10 @@ const AdminEpisodes = () => {
     setUploading(true);
     setError('');
     try {
-      const token = localStorage.getItem('adminToken');
       const formData = new FormData();
       formData.append('image', file);
-      const response = await axios.post('/api/episodes/upload', formData, {
+      const response = await adminApi.post('/api/episodes/upload', formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
           'X-Requested-With': 'XMLHttpRequest'
         }
       });
@@ -896,18 +872,7 @@ const AdminEpisodes = () => {
                 )}
                 {admin && admin.role === 'creator' && (
                   <td>
-                    <span style={{
-                      fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-                      background: episode.reviewStatus === 'approved' ? 'var(--success-bg)' :
-                                  episode.reviewStatus === 'rejected' ? 'var(--destructive-bg)' : 'var(--warning-bg)',
-                      color: episode.reviewStatus === 'approved' ? 'var(--success-text)' :
-                             episode.reviewStatus === 'rejected' ? 'var(--destructive-text)' : 'var(--warning-text)',
-                      border: `1px solid ${episode.reviewStatus === 'approved' ? 'var(--success-border)' :
-                                        episode.reviewStatus === 'rejected' ? 'var(--destructive-border)' : 'var(--warning-border)'}`
-                    }}>
-                      {episode.reviewStatus === 'approved' ? t('adminEpisodes.approved') :
-                       episode.reviewStatus === 'rejected' ? t('adminEpisodes.rejected') : t('adminEpisodes.pendingReview')}
-                    </span>
+                    <ReviewStatusBadge status={episode.reviewStatus} />
                     {episode.reviewNote && (
                       <span style={{fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px'}}>({episode.reviewNote})</span>
                     )}

@@ -131,6 +131,16 @@ const CACHE_TTL = 24 * 60 * 60 * 1000;
 const MAX_CACHE_SIZE = 5000;
 const CONCURRENT_LIMIT = 6;
 
+// 定期清理过期翻译缓存
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, item] of machineTranslationCache) {
+    if (now - item.timestamp > CACHE_TTL) {
+      machineTranslationCache.delete(key);
+    }
+  }
+}, 30 * 60 * 1000);
+
 const isValidTranslation = (text) => {
   if (!text || typeof text !== 'string') return false;
   const upper = text.toUpperCase();

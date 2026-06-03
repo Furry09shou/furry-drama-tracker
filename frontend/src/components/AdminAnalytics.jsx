@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -17,28 +17,28 @@ const AdminAnalytics = () => {
   const realtimeIntervalRef = useRef(null);
 
   const fetchRealtime = useCallback(() => {
-    const token = localStorage.getItem('adminToken');
+    const token = getAdminToken();
     if (!token) return;
-    axios.get('/api/stats/realtime', { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get('/api/stats/realtime')
       .then(res => setRealtimeData(res.data))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
+    const token = getAdminToken();
     if (!token) { navigate('/admin'); return; }
-    axios.get(`/api/stats/overview?period=${period}`, { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get(`/api/stats/overview?period=${period}`)
       .then(res => { setData(res.data); setLoading(false); })
       .catch(() => { setLoading(false); });
   }, [period, navigate]);
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
+    const token = getAdminToken();
     if (!token) return;
-    axios.get('/api/stats/activity-heatmap', { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get('/api/stats/activity-heatmap')
       .then(res => setHeatmapData(res.data))
       .catch(() => {});
-    axios.get('/api/stats/episode-lifecycle', { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get('/api/stats/episode-lifecycle')
       .then(res => {
         setLifecycleData(res.data);
         if (res.data.length > 0) {

@@ -28,11 +28,9 @@ const ReportModal = ({ show, onClose, targetType, targetId, targetName }) => {
     setSubmitting(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       await axios.post('/api/reports', {
         targetType, targetId, reason, description
-      }, { headers });
+      });
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);

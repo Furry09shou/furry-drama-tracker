@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middlewares/authFactory');
 const User = require('../models/User');
-const { verifyTOTP, generateTOTPSecret, generateBackupCodes } = require('../utils/helpers');
+const { verifyTOTP, generateTOTPSecret, generateBackupCodes, timingSafeCompare } = require('../utils/helpers');
 const { logManual } = require('../middlewares/auditLog');
 
 router.post('/enable', protect, async (req, res) => {
@@ -81,12 +81,12 @@ router.post('/disable', protect, async (req, res) => {
       return res.status(400).json({ message: '2FA not enabled' });
     }
 
-    if (!verifyTOTP(user.twoFactorSecret, token) && !user.twoFactorBackupCodes.includes(token)) {
+    if (!verifyTOTP(user.twoFactorSecret, token) && !user.twoFactorBackupCodes.some(c => timingSafeCompare(c, token))) {
       return res.status(400).json({ message: 'Invalid verification code' });
     }
 
-    if (user.twoFactorBackupCodes.includes(token)) {
-      user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => c !== token);
+    if (user.twoFactorBackupCodes.some(c => timingSafeCompare(c, token))) {
+      user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => !timingSafeCompare(c, token));
     }
 
     user.twoFactorEnabled = false;
@@ -119,9 +119,9 @@ router.post('/verify', protect, async (req, res) => {
       return res.status(400).json({ message: '2FA not enabled for this account' });
     }
 
-    if (verifyTOTP(user.twoFactorSecret, token) || user.twoFactorBackupCodes.includes(token)) {
-      if (user.twoFactorBackupCodes.includes(token)) {
-        user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => c !== token);
+    if (verifyTOTP(user.twoFactorSecret, token) || user.twoFactorBackupCodes.some(c => timingSafeCompare(c, token))) {
+      if (user.twoFactorBackupCodes.some(c => timingSafeCompare(c, token))) {
+        user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => !timingSafeCompare(c, token));
         await user.save();
       }
       return res.json({ verified: true });

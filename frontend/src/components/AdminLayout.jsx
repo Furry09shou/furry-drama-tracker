@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate, Outlet } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminLayout = () => {
@@ -9,37 +9,47 @@ const AdminLayout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      try {
-        setAdmin(JSON.parse(adminData));
-      } catch (e) {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminData');
-        navigate('/admin', { replace: true });
-      }
+      setAdmin(adminData);
     } else {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminData');
       navigate('/admin', { replace: true });
     }
     const heartbeat = setInterval(() => {
-      const adminToken = localStorage.getItem('adminToken');
+      const adminToken = getAdminToken();
       if (adminToken) {
-        axios.post('/api/admin-sessions/heartbeat', {}, {
-          headers: { Authorization: `Bearer ${adminToken}` }
-        }).catch(() => {});
+        adminApi.post('/api/admin-sessions/heartbeat', {}).catch(() => {});
       }
     }, 5 * 60 * 1000);
     return () => clearInterval(heartbeat);
   }, [navigate]);
 
+  useEffect(() => {
+    const validateAdmin = async () => {
+      try {
+        const token = getAdminToken();
+        if (!token) return;
+        await adminApi.get('/api/admin/verify');
+      } catch (error) {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminData');
+          setAdmin(null);
+          navigate('/admin', { replace: true });
+        }
+      }
+    };
+    validateAdmin();
+  }, []);
+
   const handleLogout = async () => {
-    const token = localStorage.getItem('adminToken');
+    const token = getAdminToken();
     if (token) {
       try {
-        await axios.post('/api/admin/logout', {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await adminApi.post('/api/admin/logout', {});
       } catch (e) {}
     }
     localStorage.removeItem('adminToken');

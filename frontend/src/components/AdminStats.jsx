@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminStats = () => {
@@ -11,10 +11,10 @@ const AdminStats = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      setAdmin(JSON.parse(adminData));
+      setAdmin(adminData);
     } else {
       navigate('/admin', { replace: true });
     }
@@ -22,8 +22,7 @@ const AdminStats = () => {
 
   useEffect(() => {
     if (!admin) return;
-    const token = localStorage.getItem('adminToken');
-    axios.get('/api/stats/overview', { headers: { Authorization: `Bearer ${token}` } })
+    adminApi.get('/api/stats/overview')
       .then(res => { setStats(res.data); setLoading(false); })
       .catch(() => { setLoading(false); });
   }, [admin]);

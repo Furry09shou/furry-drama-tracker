@@ -44,12 +44,7 @@ const useNotifications = () => {
       }
 
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        const ticketRes = await axios.get('/api/auth/sse-ticket', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const ticketRes = await axios.get('/api/auth/sse-ticket');
         const ticket = ticketRes.data.ticket;
         const eventSource = new EventSource(`/api/notifications/stream?ticket=${ticket}`);
         sseRef.current = eventSource;
@@ -88,11 +83,7 @@ const useNotifications = () => {
 
     const fetchUnread = () => {
       if (!mountedRef.current || !user) return;
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      axios.get('/api/notifications/unread-count', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      axios.get('/api/notifications/unread-count')
         .then(res => { if (mountedRef.current) setUnreadCount(res.data.count); })
         .catch(() => {});
     };
@@ -115,11 +106,7 @@ const useNotifications = () => {
   const refreshNotifications = useCallback(() => {
     if (!user) return;
     setLoading(true);
-    const token = localStorage.getItem('token');
-    if (!token) { setLoading(false); return; }
-    axios.get('/api/notifications/list', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    axios.get('/api/notifications/list')
       .then(res => {
         if (mountedRef.current) {
           setNotifications(res.data.list || res.data);
@@ -131,11 +118,7 @@ const useNotifications = () => {
 
   const markAllRead = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      await axios.put('/api/notifications/read-all', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.put('/api/notifications/read-all', {});
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (e) {}
@@ -143,11 +126,7 @@ const useNotifications = () => {
 
   const markRead = useCallback(async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      await axios.put(`/api/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.put(`/api/notifications/${id}/read`, {});
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {}
@@ -155,22 +134,14 @@ const useNotifications = () => {
 
   const clearRead = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      await axios.delete('/api/notifications/clear-read', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete('/api/notifications/clear-read');
       setNotifications(prev => prev.filter(n => !n.isRead));
     } catch (e) {}
   }, []);
 
   const deleteNotification = useCallback(async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      await axios.delete(`/api/notifications/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete(`/api/notifications/${id}`);
       setNotifications(prev => {
         const target = prev.find(n => n._id === id);
         if (target && !target.isRead) {

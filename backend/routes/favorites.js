@@ -54,9 +54,11 @@ router.get('/list', protect, async (req, res) => {
     let list;
 
     if (sort === 'name' || sort === 'rating') {
+      const maxItems = Math.min(total, pageNum * limitNum + 100);
       const allItems = await Favorite.find(filter)
         .populate('episodeId')
-        .populate('folderId');
+        .populate('folderId')
+        .limit(maxItems);
 
       allItems.sort((a, b) => {
         if (sort === 'name') {
@@ -67,9 +69,11 @@ router.get('/list', protect, async (req, res) => {
 
       list = allItems.slice((pageNum - 1) * limitNum, pageNum * limitNum);
     } else if (sort === 'lastWatched') {
+      const maxItems = Math.min(total, pageNum * limitNum + 100);
       const allItems = await Favorite.find(filter)
         .populate('episodeId')
-        .populate('folderId');
+        .populate('folderId')
+        .limit(maxItems);
 
       const episodeIds = allItems.map(item => item.episodeId?._id).filter(Boolean);
       const histories = await History.find({ userId: req.user._id, episodeId: { $in: episodeIds } });

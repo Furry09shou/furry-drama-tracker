@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const EpisodeVersionHistory = ({ episodeId, onClose }) => {
@@ -21,10 +21,7 @@ const EpisodeVersionHistory = ({ episodeId, onClose }) => {
   const fetchVersions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get(`/api/versions/${episodeId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get(`/api/versions/${episodeId}`);
       setVersions(res.data.versions || []);
     } catch (error) {
       console.error('Fetch versions error:', error);
@@ -53,12 +50,9 @@ const EpisodeVersionHistory = ({ episodeId, onClose }) => {
     if (!compareV1 || !compareV2) return;
     setDiffLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
       const v1 = compareV1.version < compareV2.version ? compareV1.version : compareV2.version;
       const v2 = compareV1.version < compareV2.version ? compareV2.version : compareV1.version;
-      const res = await axios.get(`/api/versions/${episodeId}/diff/${v1}/${v2}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get(`/api/versions/${episodeId}/diff/${v1}/${v2}`);
       setDiff(res.data);
     } catch (error) {
       console.error('Diff error:', error);
@@ -71,10 +65,7 @@ const EpisodeVersionHistory = ({ episodeId, onClose }) => {
     const confirmed = window.confirm(t('version.rollbackConfirm', { v: version.version }));
     if (!confirmed) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.post(`/api/versions/${episodeId}/rollback/${version.version}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.post(`/api/versions/${episodeId}/rollback/${version.version}`);
       alert(t('version.rollbackSuccess'));
       fetchVersions();
     } catch (error) {

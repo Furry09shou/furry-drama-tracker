@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getAdminToken, getAdminData } from '../utils/adminApi';
 
 export const useAuth = () => {
   const [admin, setAdmin] = useState(null);
@@ -6,17 +7,13 @@ export const useAuth = () => {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('adminToken');
-      const adminData = localStorage.getItem('adminData');
+      const token = getAdminToken();
+      const adminData = getAdminData();
       if (token && adminData) {
-        try {
-          setAdmin(JSON.parse(adminData));
-        } catch (e) {
-          localStorage.removeItem('adminToken');
-          localStorage.removeItem('adminData');
-          setAdmin(null);
-        }
+        setAdmin(adminData);
       } else {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminData');
         setAdmin(null);
       }
       setLoading(false);
@@ -26,7 +23,7 @@ export const useAuth = () => {
   }, []);
 
   const isAuthenticated = () => {
-    return !!localStorage.getItem('adminToken');
+    return !!getAdminToken();
   };
 
   const logout = () => {

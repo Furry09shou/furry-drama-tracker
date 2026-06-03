@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
+import adminApi, { getAdminToken } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outputHeight, uploadEndpoint }) => {
@@ -148,10 +148,9 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
         try {
           const formData = new FormData();
           formData.append('image', blob, 'cropped.jpg');
-          const token = localStorage.getItem('adminToken');
           const endpoint = uploadEndpoint || '/api/site-content/upload';
-          const res = await axios.post(endpoint, formData, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+          const res = await adminApi.post(endpoint, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
           });
           resolve(res.data.url);
         } catch (err) {
@@ -173,10 +172,9 @@ const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outpu
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const token = localStorage.getItem('adminToken');
       const endpoint = uploadEndpoint || '/api/site-content/upload';
-      const res = await axios.post(endpoint, formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      const res = await adminApi.post(endpoint, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       const uploadedUrl = res.data.url;
       setUrlInput(uploadedUrl);

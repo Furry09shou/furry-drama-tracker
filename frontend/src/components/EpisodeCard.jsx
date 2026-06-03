@@ -27,7 +27,7 @@ const EpisodeCard = React.memo(({ episode, t, getLocalizedTitle, getLocalizedDes
   return (
     <Link to={`/episode/${episode._id}`} className="episode-card">
       <div style={{ position: 'relative', overflow: 'hidden' }}>
-        <img src={episode.coverImage} alt={episode.title} />
+        <img src={episode.coverImage} alt={episode.title} loading="lazy" />
         <span className={`status ${statusInfo.cls}`} style={{
           position: 'absolute',
           top: '8px',

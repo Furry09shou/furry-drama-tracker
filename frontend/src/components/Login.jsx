@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getDeviceInfo } from '../utils/deviceInfo';
 import { useI18n } from '../contexts/I18nContext';
 import PasswordToggle from './PasswordToggle';
+import CaptchaField from './CaptchaField';
 
 const Login = ({ login }) => {
   const { t } = useI18n();
@@ -276,15 +277,13 @@ const Login = ({ login }) => {
             <label>{t('auth.email')}</label>
             <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder={t('auth.enterRegisteredEmail')} />
           </div>
-          <div className="form-group">
-            <label>{t('auth.captcha')}</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input type="text" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} required placeholder={t('auth.enterCaptcha')} style={{ flex: 1, minWidth: 0 }} />
-              {captchaData.svg && (
-                <img src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`} alt={t('auth.captcha')} onClick={fetchCaptcha} style={{ height: '40px', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }} title={t('common.clickToRefresh')} />
-              )}
-            </div>
-          </div>
+          <CaptchaField
+            captchaData={captchaData}
+            captchaAnswer={captchaAnswer}
+            setCaptchaAnswer={setCaptchaAnswer}
+            onRefresh={fetchCaptcha}
+            t={t}
+          />
           <div className="form-group"><button type="submit">{t('auth.verifyEmail')}</button></div>
         </form>
         <div style={{textAlign: 'center', marginTop: '15px', position: 'relative', zIndex: 1}}>
@@ -354,15 +353,13 @@ const Login = ({ login }) => {
             required
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="captcha">{t('auth.captcha')}</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input type="text" id="captcha" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} required placeholder={t('auth.enterCaptcha')} style={{ flex: 1, minWidth: 0 }} />
-            {captchaData.svg && (
-              <img src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`} alt={t('auth.captcha')} onClick={fetchCaptcha} style={{ height: '40px', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }} title={t('common.clickToRefresh')} />
-            )}
-          </div>
-        </div>
+        <CaptchaField
+          captchaData={captchaData}
+          captchaAnswer={captchaAnswer}
+          setCaptchaAnswer={setCaptchaAnswer}
+          onRefresh={fetchCaptcha}
+          t={t}
+        />
         <div className="form-group">
           <button type="submit">{t('auth.loginButton')}</button>
         </div>

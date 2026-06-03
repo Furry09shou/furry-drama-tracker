@@ -15,7 +15,7 @@ router.post('/create', protect, async (req, res) => {
     if (language) deviceInfo.language = language;
     deviceInfo.userAgent = ua;
 
-    const userToken = req.headers.authorization?.replace('Bearer ', '');
+    const userToken = req.authToken;
     const tokenHash = hashToken(userToken);
 
     const session = await UserSession.findOneAndUpdate(
@@ -42,7 +42,7 @@ router.get('/my', protect, async (req, res) => {
     const sessions = await UserSession.find({ userId: req.user._id })
       .sort({ loginAt: -1 })
       .limit(20);
-    const userToken = req.headers.authorization?.replace('Bearer ', '');
+    const userToken = req.authToken;
     const currentTokenHash = hashToken(userToken);
     const result = sessions.map(s => ({
       ...s.toObject(),
@@ -82,7 +82,7 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: '权限不足' });
     }
 
-    const userToken = req.headers.authorization?.replace('Bearer ', '');
+    const userToken = req.authToken;
     const currentTokenHash = hashToken(userToken);
     if (session.tokenHash === currentTokenHash) {
       return res.status(400).json({ message: '不能下线当前设备，请使用退出登录' });
@@ -100,7 +100,7 @@ router.delete('/:id', protect, async (req, res) => {
 
 router.delete('/my/all', protect, async (req, res) => {
   try {
-    const userToken = req.headers.authorization?.replace('Bearer ', '');
+    const userToken = req.authToken;
     const currentTokenHash = hashToken(userToken);
 
     await UserSession.updateMany(
@@ -116,7 +116,7 @@ router.delete('/my/all', protect, async (req, res) => {
 
 router.post('/heartbeat', protect, async (req, res) => {
   try {
-    const userToken = req.headers.authorization?.replace('Bearer ', '');
+    const userToken = req.authToken;
     const tokenHash = hashToken(userToken);
     await UserSession.findOneAndUpdate(
       { tokenHash, isActive: true },

@@ -25,7 +25,7 @@ router.put('/my-profile', creatorProtect, async (req, res) => {
     const updateData = {
       displayName: req.body.displayName,
       avatar: req.body.avatar,
-      bio: req.body.bio,
+      bio: req.body.bio && req.body.bio.length > 500 ? req.body.bio.slice(0, 500) : req.body.bio,
       socialLinks: req.body.socialLinks || {},
       updatedAt: Date.now()
     };

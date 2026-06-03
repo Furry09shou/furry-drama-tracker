@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import ImageUploader from './ImageUploader';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -53,13 +53,12 @@ const AdminSiteContent = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      setAdmin(parsed);
-      if (parsed.role === 'superadmin') {
-        fetchContents(token);
+      setAdmin(adminData);
+      if (adminData.role === 'superadmin') {
+        fetchContents();
       } else {
         navigate('/admin/dashboard', { replace: true });
       }
@@ -68,11 +67,9 @@ const AdminSiteContent = () => {
     }
   }, [navigate]);
 
-  const fetchContents = async (token) => {
+  const fetchContents = async () => {
     try {
-      const res = await axios.get('/api/site-content/', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/site-content/');
       setContents(res.data);
     } catch (err) {
       console.error(t('adminContent.fetchFailed'), err);
@@ -147,7 +144,6 @@ const AdminSiteContent = () => {
     setSaving(true);
     setMessage('');
     try {
-      const token = localStorage.getItem('adminToken');
       let contentToSave;
       if (editingKey === 'about') {
         contentToSave = JSON.stringify(aboutData);
@@ -156,11 +152,11 @@ const AdminSiteContent = () => {
       } else {
         contentToSave = JSON.stringify(editContentI18n);
       }
-      await axios.put(`/api/site-content/${editingKey}`, {
+      await adminApi.put(`/api/site-content/${editingKey}`, {
         title: editTitle, content: contentToSave
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       setMessage(t('adminContent.saveSuccess'));
-      fetchContents(token);
+      fetchContents();
     } catch (err) {
       setMessage(err.response?.data?.message || t('adminContent.saveFailed'));
     }

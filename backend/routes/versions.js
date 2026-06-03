@@ -4,7 +4,7 @@ const EpisodeVersion = require('../models/EpisodeVersion');
 const Episode = require('../models/Episode');
 const { adminProtect } = require('../middlewares/authFactory');
 
-router.get('/:episodeId', async (req, res) => {
+router.get('/:episodeId', adminProtect, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const pageNum = parseInt(page);
@@ -23,7 +23,7 @@ router.get('/:episodeId', async (req, res) => {
   }
 });
 
-router.get('/:episodeId/:version', async (req, res) => {
+router.get('/:episodeId/:version', adminProtect, async (req, res) => {
   try {
     const versionDoc = await EpisodeVersion.findOne({
       episodeId: req.params.episodeId,
@@ -39,7 +39,7 @@ router.get('/:episodeId/:version', async (req, res) => {
   }
 });
 
-router.get('/:episodeId/diff/:v1/:v2', async (req, res) => {
+router.get('/:episodeId/diff/:v1/:v2', adminProtect, async (req, res) => {
   try {
     const v1Doc = await EpisodeVersion.findOne({
       episodeId: req.params.episodeId,

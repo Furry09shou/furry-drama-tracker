@@ -46,7 +46,15 @@ router.put('/:id', protect, async (req, res) => {
     if (!folder) {
       return res.status(404).json({ message: 'Folder not found' });
     }
-    folder.name = req.body.name;
+    if (req.body.name !== undefined) {
+      if (!req.body.name.trim()) {
+        return res.status(400).json({ message: '文件夹名称不能为空' });
+      }
+      if (req.body.name.trim().length > 50) {
+        return res.status(400).json({ message: '文件夹名称不能超过50个字符' });
+      }
+      folder.name = req.body.name.trim();
+    }
     await folder.save();
     res.json(folder);
   } catch (error) {

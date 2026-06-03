@@ -12,6 +12,9 @@ router.post('/', protect, async (req, res) => {
     if (!['inappropriate', 'copyright', 'spam', 'misleading', 'other'].includes(reason)) {
       return res.status(400).json({ message: 'Invalid reason' });
     }
+    if (description && description.length > 2000) {
+      return res.status(400).json({ message: '描述不能超过2000个字符' });
+    }
     const existing = await Report.findOne({
       reporterId: req.user._id,
       targetType,

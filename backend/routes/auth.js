@@ -18,18 +18,20 @@ const { protect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { logManual } = require('../middlewares/auditLog');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/email');
-const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie } = require('../utils/helpers');
+const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie, timingSafeCompare } = require('../utils/helpers');
 
 const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
 
 const skipVerification = (user) => {
   if (DEMO_EMAILS.includes(user.email.toLowerCase())) return true;
-  if (process.env.NODE_ENV === 'production') return false;
-  return user.email.toLowerCase() === 'test@furry09.com';
+  return false;
 };
 
 const usedDeviceTokens = new Set();
 setInterval(() => { usedDeviceTokens.clear(); }, 30 * 60 * 1000);
+
+const usedResetTokens = new Set();
+setInterval(() => { usedResetTokens.clear(); }, 60 * 60 * 1000);
 
 const escapeHtml = (str) => {
   if (!str) return '';
@@ -67,6 +69,24 @@ const getIpRegion = (ip) => {
       resolve('未知');
     });
   });
+};
+
+const ipRegionCache = new Map();
+const IP_REGION_CACHE_TTL = 24 * 60 * 60 * 1000;
+const MAX_IP_REGION_CACHE = 1000;
+
+const getCachedIpRegion = async (ip) => {
+  const cached = ipRegionCache.get(ip);
+  if (cached && Date.now() - cached.timestamp < IP_REGION_CACHE_TTL) {
+    return cached.region;
+  }
+  const region = await getIpRegion(ip);
+  if (ipRegionCache.size >= MAX_IP_REGION_CACHE) {
+    const oldestKey = ipRegionCache.keys().next().value;
+    ipRegionCache.delete(oldestKey);
+  }
+  ipRegionCache.set(ip, { region, timestamp: Date.now() });
+  return region;
 };
 
 /**
@@ -161,7 +181,7 @@ router.get('/captcha', (req, res) => {
     const rotate = Math.random() * 30 - 15;
     const color = colors[Math.floor(Math.random() * colors.length)];
     const fontSize = 22 + Math.floor(Math.random() * 6);
-    svg += `<text x="${x}" y="${y}" fill="${color}" font-size="${fontSize}" font-weight="bold" font-family="Arial, sans-serif" transform="rotate(${rotate}, ${x}, ${y})">${code[i]}</text>`;
+    svg += `<text x="${x}" y="${y}" fill="${color}" font-size="${fontSize}" font-weight="bold" font-family="Arial, sans-serif" transform="rotate(${rotate}, ${x}, ${y})">${escapeHtml(code[i])}</text>`;
   }
 
   svg += '</svg>';
@@ -194,7 +214,7 @@ router.get('/check-accountId', async (req, res) => {
     const existing = await User.findOne({ accountId });
     res.json({ available: !existing });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -301,7 +321,7 @@ router.post('/register', async (req, res) => {
       },
       lastLoginAt: new Date(),
       lastLoginIp: getClientIp(req),
-      lastLoginRegion: await getIpRegion(getClientIp(req))
+      lastLoginRegion: await getCachedIpRegion(getClientIp(req))
     });
 
     const verifyToken = jwt.sign(
@@ -321,7 +341,7 @@ router.post('/register', async (req, res) => {
       const field = Object.keys(error.keyValue)[0];
       return res.status(400).json({ message: field === 'email' ? '该邮箱已被注册' : field === 'accountId' ? '该账号ID已被占用' : '该信息已被使用' });
     }
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -374,9 +394,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+loginAttempts +lockUntil');
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: '用户名或密码错误' });
+    }
+
+    if (user.isLocked) {
+      return res.status(423).json({ message: '账号已被锁定，请30分钟后再试' });
     }
 
     if (user.deletionRequestedAt) {
@@ -397,8 +421,10 @@ router.post('/login', async (req, res) => {
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      await user.incLoginAttempts();
+      return res.status(400).json({ message: '用户名或密码错误' });
     }
+    await user.resetLoginAttempts();
 
     if (!user.isEmailVerified && !skipVerification(user)) {
       const verifyToken = jwt.sign(
@@ -452,7 +478,7 @@ router.post('/login', async (req, res) => {
           secure: parseInt(process.env.EMAIL_PORT || '465') === 465,
           auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
         });
-        await transporter.sendMail(mailOptions);
+        transporter.sendMail(mailOptions).catch(() => {});
       } catch (e) {}
       return res.status(403).json({
         message: '检测到新设备登录，验证邮件已发送至您的邮箱，请确认后登录',
@@ -471,7 +497,7 @@ router.post('/login', async (req, res) => {
     user.deviceInfo = buildDeviceInfo(deviceInfo, parsed, ua, req);
     user.lastLoginAt = new Date();
     user.lastLoginIp = getClientIp(req);
-    user.lastLoginRegion = await getIpRegion(getClientIp(req));
+    user.lastLoginRegion = await getCachedIpRegion(getClientIp(req));
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -499,27 +525,35 @@ router.post('/login', async (req, res) => {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       adminAccess: user.adminAccess || false,
-      token
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
 router.post('/verify-device', async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) return res.status(400).json({ message: 'Token is required' });
+    if (!token) return res.status(400).json({ message: '缺少验证令牌' });
     const tokenHash = hashToken(token);
     if (usedDeviceTokens.has(tokenHash)) {
       return res.status(400).json({ message: '该验证链接已被使用' });
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.purpose !== 'device-verify') return res.status(400).json({ message: 'Invalid token' });
+    if (decoded.purpose !== 'device-verify') return res.status(400).json({ message: '无效的验证令牌' });
+    const user = await User.findById(decoded.id).select('+loginAttempts +lockUntil');
+    if (!user) return res.status(400).json({ message: '用户不存在' });
     usedDeviceTokens.add(tokenHash);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(400).json({ message: 'User not found' });
+
+    if (user.twoFactorEnabled) {
+      return res.json({
+        need2FA: true,
+        email: user.email,
+        deviceVerified: true
+      });
+    }
+
     const loginToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
     const ua = decoded.ua || '';
     const parsed = parseUserAgent(ua);
@@ -529,7 +563,6 @@ router.post('/verify-device', async (req, res) => {
     res.json({
       _id: user._id, accountId: user.accountId, username: user.username, email: user.email,
       isEmailVerified: user.isEmailVerified, adminAccess: user.adminAccess || false,
-      token: loginToken
     });
   } catch (error) {
     if (error.name === 'TokenExpiredError') return res.status(400).json({ message: '验证链接已过期，请重新登录' });
@@ -544,21 +577,21 @@ router.post('/login-2fa', async (req, res) => {
   try {
     const user = await User.findOne({ email }).select('+twoFactorSecret +twoFactorBackupCodes');
     if (!user || !user.twoFactorEnabled) {
-      return res.status(400).json({ message: '2FA not enabled for this account' });
+      return res.status(400).json({ message: '该账号未启用两步验证' });
     }
 
-    if (!verifyTOTP(user.twoFactorSecret, twoFactorToken) && !user.twoFactorBackupCodes.includes(twoFactorToken)) {
-      return res.status(400).json({ message: 'Invalid verification code' });
+    if (!verifyTOTP(user.twoFactorSecret, twoFactorToken) && !user.twoFactorBackupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {
+      return res.status(400).json({ message: '验证码无效' });
     }
 
-    if (user.twoFactorBackupCodes.includes(twoFactorToken)) {
-      user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => c !== twoFactorToken);
+    if (user.twoFactorBackupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {
+      user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => !timingSafeCompare(c, twoFactorToken));
     }
 
     user.deviceInfo = buildDeviceInfo(deviceInfo, parsed, ua, req);
     user.lastLoginAt = new Date();
     user.lastLoginIp = getClientIp(req);
-    user.lastLoginRegion = await getIpRegion(getClientIp(req));
+    user.lastLoginRegion = await getCachedIpRegion(getClientIp(req));
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -583,10 +616,9 @@ router.post('/login-2fa', async (req, res) => {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       adminAccess: user.adminAccess || false,
-      token
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -606,13 +638,13 @@ router.post('/login-2fa', async (req, res) => {
  */
 router.post('/logout', protect, async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const token = req.authToken;
     const tokenHash = hashToken(token);
     await UserSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
     res.clearCookie('token', { path: '/' });
     res.json({ message: '退出成功' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -640,7 +672,7 @@ router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: '用户不存在' });
     }
     res.json({
       _id: user._id,
@@ -652,7 +684,7 @@ router.get('/me', protect, async (req, res) => {
       avatar: user.avatar || ''
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -685,7 +717,7 @@ router.put('/change-password', protect, async (req, res) => {
     });
     res.json({ message: '密码修改成功' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -708,7 +740,7 @@ router.put('/admin/change-password', adminProtect, async (req, res) => {
     await admin.save();
     res.json({ message: '密码修改成功' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -746,13 +778,15 @@ router.post('/reset-password', async (req, res) => {
     if (decoded.purpose !== 'reset-password') {
       return res.status(400).json({ message: '无效的重置令牌' });
     }
+    const resetTokenHash = hashToken(token);
+    if (usedResetTokens.has(resetTokenHash)) {
+      return res.status(400).json({ message: '该重置链接已使用，请重新获取' });
+    }
     const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
     }
-    if (user.passwordChangedAt && new Date(user.passwordChangedAt).getTime() > decoded.iat * 1000) {
-      return res.status(400).json({ message: '该重置链接已使用，请重新获取' });
-    }
+    usedResetTokens.add(resetTokenHash);
     user.password = newPassword;
     user.passwordChangedAt = new Date();
     await user.save();
@@ -821,7 +855,7 @@ router.post('/resend-verification', protect, async (req, res) => {
     }
     res.json({ message: '验证邮件已发送' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -849,7 +883,7 @@ router.post('/resend-verification-by-email', async (req, res) => {
     }
     res.json({ message: '验证邮件已发送至您的邮箱' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -882,7 +916,7 @@ router.post('/request-deletion', protect, async (req, res) => {
       deleteAt
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -910,7 +944,7 @@ router.post('/cancel-deletion', protect, async (req, res) => {
 
     res.json({ message: '注销申请已取消' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -930,7 +964,7 @@ router.get('/deletion-status', protect, async (req, res) => {
       deleteAt
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -943,7 +977,7 @@ router.get('/sse-ticket', protect, async (req, res) => {
     );
     res.json({ ticket });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 

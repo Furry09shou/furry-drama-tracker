@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const typeStyles = {
@@ -41,10 +41,7 @@ const ConfirmModal = ({ show, onClose, onConfirm, title, message, confirmText, c
       setVerifying(true);
       setError('');
       try {
-        const token = localStorage.getItem('adminToken');
-        await axios.post('/api/admin/verify-password', { password }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await adminApi.post('/api/admin/verify-password', { password });
         onConfirm();
         setPassword('');
         onClose();

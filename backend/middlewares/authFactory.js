@@ -35,7 +35,7 @@ const createAuthMiddleware = ({ modelType, allowedRoles = [], reqProperty }) => 
       const entity = await Model.findById(decoded.id).select('-password');
 
       if (!entity) {
-        return res.status(401).json({ message: `${modelType === 'user' ? 'User' : 'Admin'} not found` });
+        return res.status(401).json({ message: `${modelType === 'user' ? '用户' : '管理员'}不存在` });
       }
 
       const tokenHash = hashToken(token);
@@ -46,9 +46,10 @@ const createAuthMiddleware = ({ modelType, allowedRoles = [], reqProperty }) => 
       }
 
       req[reqProperty] = entity;
+      req.authToken = token;
       next();
     } catch (error) {
-      return res.status(401).json({ message: 'Not authorized, token failed' });
+      return res.status(401).json({ message: '未授权，令牌验证失败' });
     }
   };
 };

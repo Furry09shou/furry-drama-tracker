@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
@@ -28,15 +28,14 @@ const AdminUsers = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      if (parsed.role !== 'superadmin') {
+      if (adminData.role !== 'superadmin') {
         navigate('/admin/dashboard', { replace: true });
         return;
       }
-      setAdmin(parsed);
+      setAdmin(adminData);
     } else {
       navigate('/admin', { replace: true });
     }
@@ -44,10 +43,7 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/admin/users', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/admin/users');
       setUsers(res.data.list || res.data);
     } catch (err) {
       console.error('获取用户列表失败', err);
@@ -56,10 +52,7 @@ const AdminUsers = () => {
 
   const fetchAdmins = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/admin/list', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/admin/list');
       setAdmins(res.data);
     } catch (err) {
       console.error('获取管理员列表失败', err);
@@ -102,10 +95,7 @@ const AdminUsers = () => {
     setError('');
     setSuccess('');
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.post('/api/admin/register', newUser, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.post('/api/admin/register', newUser);
       setShowAddForm(false);
       setNewUser({ username: '', password: '', role: 'admin' });
       setSuccess(t('adminUsers.adminCreated'));
@@ -118,10 +108,7 @@ const AdminUsers = () => {
   const handleDeleteUser = async (userId) => {
     if (!window.confirm(t('adminUsers.deleteUserConfirm'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/admin/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/admin/users/${userId}`);
       setSuccess(t('adminUsers.userDeleted'));
       fetchUsers();
     } catch (err) {
@@ -136,10 +123,7 @@ const AdminUsers = () => {
     }
     if (!window.confirm(t('adminUsers.deleteAdminConfirm'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/admin/${adminId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/admin/${adminId}`);
       setSuccess(t('adminUsers.adminDeleted'));
       fetchAdmins();
     } catch (err) {
@@ -314,10 +298,7 @@ const AdminUsers = () => {
                             const newVal = !u.adminAccess;
                             if (!window.confirm(newVal ? t('adminUsers.grantConfirm', { name: u.username }) : t('adminUsers.revokeConfirm', { name: u.username }))) return;
                             try {
-                              const token = localStorage.getItem('adminToken');
-                              await axios.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: newVal }, {
-                                headers: { Authorization: `Bearer ${token}` }
-                              });
+                              await adminApi.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: newVal });
                               fetchUsers();
                               setSuccess(newVal ? t('adminUsers.accessGranted') : t('adminUsers.accessRevoked'));
                             } catch (err) {
@@ -440,10 +421,7 @@ const AdminUsers = () => {
                               onChange={async (e) => {
                                 if (!window.confirm(t('adminUsers.roleChangeConfirm', { name: a.username, role: getRoleLabel(e.target.value) }))) return;
                                 try {
-                                  const token = localStorage.getItem('adminToken');
-                                  await axios.put(`/api/admin/role/${a._id}`, { role: e.target.value }, {
-                                    headers: { Authorization: `Bearer ${token}` }
-                                  });
+                                  await adminApi.put(`/api/admin/role/${a._id}`, { role: e.target.value });
                                   fetchAdmins();
                                   setSuccess(t('adminUsers.roleUpdated'));
                                 } catch (err) {

@@ -218,7 +218,7 @@ const NavBar = ({ onFeedback }) => {
             {siteSettingsData?.navLogo && (
               <img src={siteSettingsData.navLogo} alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
             )}
-            <h1>{siteSettingsLoading ? '' : (getLocalizedContent({content: JSON.stringify(siteSettingsData || {})}, 'siteName') || t('site.defaultName'))}</h1>
+            <h1>{siteSettingsLoading ? '' : (getLocalizedContent(siteSettingsData || {}, 'siteName') || t('site.defaultName'))}</h1>
           </a>
         </div>
         <div className="mobile-actions" style={{ display: 'none', alignItems: 'center', gap: '4px' }}>

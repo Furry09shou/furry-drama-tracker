@@ -103,6 +103,7 @@ export default {
     statusUpcoming: '即将上映',
     yearRecent5: '近5年',
     noResults: '暂无剧集',
+    loadMore: '加载更多',
     searchResult: '搜索结果 "{query}"，共 {count} 条',
     searchPlaceholder: '搜索剧集...',
     episodeProgress: '第{current}/{total}集',

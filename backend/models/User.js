@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const accountLockoutPlugin = require('../utils/accountLockout');
 
 const UserSchema = new mongoose.Schema({
   accountId: {
@@ -94,5 +95,10 @@ UserSchema.pre('save', async function() {
 UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// 账户锁定插件
+accountLockoutPlugin(UserSchema);
+
+// email和accountId的索引由unique: true自动创建，无需重复声明
 
 module.exports = mongoose.model('User', UserSchema);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useNavigate } from 'react-router-dom';
 import ImageUploader from './ImageUploader';
 import { useI18n } from '../contexts/I18nContext';
@@ -19,10 +19,10 @@ const AdminBanners = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      setAdmin(JSON.parse(adminData));
+      setAdmin(adminData);
     } else {
       navigate('/admin', { replace: true });
     }
@@ -30,10 +30,7 @@ const AdminBanners = () => {
 
   const fetchBanners = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/banners/all', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.get('/api/banners/all');
       setBanners(res.data);
     } catch (err) {
       console.error('获取轮播图失败', err);
@@ -50,10 +47,7 @@ const AdminBanners = () => {
     if (!formData.title.trim()) { setError(t('adminBanners.titleRequired')); return; }
     if (!formData.image.trim()) { setError(t('adminBanners.imageRequired')); return; }
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.post('/api/banners', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.post('/api/banners', formData);
       setShowAddForm(false);
       setFormData({ title: '', titleEn: '', subtitle: '', subtitleEn: '', image: '', link: '', order: 0, active: true });
       setSuccess(t('adminBanners.addSuccess'));
@@ -69,10 +63,7 @@ const AdminBanners = () => {
     if (!formData.title.trim()) { setError(t('adminBanners.titleRequired')); return; }
     if (!formData.image.trim()) { setError(t('adminBanners.imageRequired')); return; }
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/banners/${editingBanner._id}`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/banners/${editingBanner._id}`, formData);
       setEditingBanner(null);
       setFormData({ title: '', titleEn: '', subtitle: '', subtitleEn: '', image: '', link: '', order: 0, active: true });
       setSuccess(t('adminBanners.editSuccess'));
@@ -85,10 +76,7 @@ const AdminBanners = () => {
   const handleDelete = async (id) => {
     if (!window.confirm(t('adminBanners.deleteConfirm'))) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/banners/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/banners/${id}`);
       setSuccess(t('adminBanners.deleteSuccess'));
       fetchBanners();
     } catch (err) {
@@ -98,10 +86,7 @@ const AdminBanners = () => {
 
   const handleToggleActive = async (banner) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/banners/${banner._id}`, { active: !banner.active }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/banners/${banner._id}`, { active: !banner.active });
       fetchBanners();
     } catch (err) {
       setError(t('adminBanners.operationFailed'));

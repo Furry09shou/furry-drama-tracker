@@ -38,15 +38,7 @@ const Timeline = () => {
       ? `/api/activity?page=${page}&limit=20`
       : `/api/activity/public`;
 
-    const config = {};
-    if (user) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers = { Authorization: `Bearer ${token}` };
-      }
-    }
-
-    axios.get(endpoint, config)
+    axios.get(endpoint)
       .then(res => {
         setActivities(res.data.activities || []);
         setTotalPages(res.data.totalPages || 1);

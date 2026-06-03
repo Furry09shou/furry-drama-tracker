@@ -24,6 +24,12 @@ setInterval(() => {
       viewTracker.delete(key);
     }
   }
+  // 防止内存无限增长
+  if (viewTracker.size > 10000) {
+    const entries = [...viewTracker.entries()].sort((a, b) => a[1] - b[1]);
+    const toDelete = entries.slice(0, viewTracker.size - 5000);
+    toDelete.forEach(([key]) => viewTracker.delete(key));
+  }
 }, 5 * 60 * 1000);
 
 router.post('/upload', creatorProtect, upload.single('image'), async (req, res) => {
@@ -56,7 +62,7 @@ router.get('/', async (req, res) => {
     const { category, sort, status, tag, search, minRating, year, order, page, limit } = req.query;
     const usePagination = page && limit;
     const pageNum = usePagination ? parseInt(page) : 1;
-    const limitNum = usePagination ? parseInt(limit) : 0;
+    const limitNum = usePagination ? parseInt(limit) : 100;
     const cacheKey = `episodes_${category || 'all'}_${sort || 'latest'}_${order || 'desc'}_${status || ''}_${tag || ''}_${search || ''}_${minRating || ''}_${year || ''}_${pageNum}_${limitNum}`;
 
     const cachedEpisodes = getCache(cacheKey);
@@ -149,6 +155,7 @@ router.get('/', async (req, res) => {
       setCache(cacheKey, result);
       res.json(result);
     } else {
+      episodesQuery = episodesQuery.limit(limitNum);
       const episodes = await episodesQuery;
       const result = { episodes, total };
       setCache(cacheKey, result);

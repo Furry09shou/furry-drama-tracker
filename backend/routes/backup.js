@@ -47,6 +47,10 @@ router.post('/import', adminProtect, requireSuperAdmin, async (req, res) => {
   try {
     const { data, overwrite } = req.body;
     if (!data || typeof data !== 'object') return res.status(400).json({ message: '无效的备份数据' });
+    const dataStr = JSON.stringify(data);
+    if (dataStr.length > 50 * 1024 * 1024) {
+      return res.status(400).json({ message: '备份数据过大，最大支持50MB' });
+    }
     const db = mongoose.connection.db;
     const results = {};
     for (const [col, docs] of Object.entries(data)) {
@@ -61,6 +65,11 @@ router.post('/import', adminProtect, requireSuperAdmin, async (req, res) => {
           return rest;
         });
         if (cleanDocs.length === 0) continue;
+        // 限制单次导入数量
+        if (cleanDocs.length > 10000) {
+          results[col] = 'skipped: too many documents (max 10000)';
+          continue;
+        }
 
         if (overwrite) {
           const session = await mongoose.startSession();

@@ -38,3 +38,13 @@ const clearCacheByPrefix = (prefix) => {
 };
 
 module.exports = { setCache, getCache, clearCache, clearCacheByPrefix };
+
+// 定期清理过期缓存
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, item] of cache) {
+    if (now - item.timestamp > CACHE_DURATION) {
+      cache.delete(key);
+    }
+  }
+}, 10 * 60 * 1000);

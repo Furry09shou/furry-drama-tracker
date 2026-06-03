@@ -16,6 +16,13 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
       return res.status(400).json({ message: '请选择要上传的图片' });
     }
     const avatarUrl = `/uploads/${req.file.filename}`;
+    const user = await User.findById(req.user._id);
+    // 删除旧头像文件
+    if (user && user.avatar && user.avatar.startsWith('/uploads/')) {
+      const fs = require('fs');
+      const oldPath = require('path').join(__dirname, '..', user.avatar);
+      fs.unlink(oldPath, () => {});
+    }
     await User.findByIdAndUpdate(req.user._id, { avatar: avatarUrl });
     res.json({ url: avatarUrl });
   } catch (error) {

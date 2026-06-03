@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminBackup = () => {
@@ -13,12 +13,11 @@ const AdminBackup = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const token = getAdminToken();
+    const adminData = getAdminData();
     if (token && adminData) {
-      const parsed = JSON.parse(adminData);
-      setAdmin(parsed);
-      if (parsed.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
+      setAdmin(adminData);
+      if (adminData.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
     } else {
       navigate('/admin', { replace: true });
     }
@@ -30,9 +29,7 @@ const AdminBackup = () => {
     setExporting(true);
     setMessage('');
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.get('/api/backup/export', {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await adminApi.get('/api/backup/export', {
         responseType: 'blob'
       });
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -56,10 +53,7 @@ const AdminBackup = () => {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      const token = localStorage.getItem('adminToken');
-      const res = await axios.post('/api/backup/import', { data, overwrite }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await adminApi.post('/api/backup/import', { data, overwrite });
       setMessage(t('adminBackup.importSuccess') + JSON.stringify(res.data.results));
     } catch (e) {
       setMessage(t('adminBackup.importFailed') + (e.response?.data?.message || e.message));

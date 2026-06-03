@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import adminApi from '../utils/adminApi';
 
 export const useEpisodes = () => {
   const [episodes, setEpisodes] = useState([]);
@@ -9,10 +9,7 @@ export const useEpisodes = () => {
   const fetchEpisodes = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get('/api/episodes', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await adminApi.get('/api/episodes');
       setEpisodes(Array.isArray(response.data) ? response.data : (response.data.episodes || []));
       setError('');
     } catch (err) {
@@ -25,10 +22,7 @@ export const useEpisodes = () => {
 
   const addEpisode = async (episodeData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.post('/api/episodes', episodeData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await adminApi.post('/api/episodes', episodeData);
       await fetchEpisodes();
       return response.data;
     } catch (err) {
@@ -39,10 +33,7 @@ export const useEpisodes = () => {
 
   const updateEpisode = async (id, episodeData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/episodes/${id}`, episodeData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/episodes/${id}`, episodeData);
       await fetchEpisodes();
       setError('');
     } catch (err) {
@@ -53,10 +44,7 @@ export const useEpisodes = () => {
 
   const deleteEpisode = async (id) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/episodes/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/episodes/${id}`);
       await fetchEpisodes();
       setError('');
     } catch (err) {
@@ -67,7 +55,7 @@ export const useEpisodes = () => {
 
   const fetchSingleEpisodes = async (episodeId) => {
     try {
-      const response = await axios.get(`/api/episodes/${episodeId}`);
+      const response = await adminApi.get(`/api/episodes/${episodeId}`);
       return response.data.episodes || [];
     } catch (error) {
       console.error('Error fetching single episodes:', error);
@@ -77,10 +65,7 @@ export const useEpisodes = () => {
 
   const addSingleEpisode = async (episodeId, singleEpisodeData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.post(`/api/episodes/${episodeId}/episodes`, singleEpisodeData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.post(`/api/episodes/${episodeId}/episodes`, singleEpisodeData);
       await fetchEpisodes();
     } catch (err) {
       setError(err.response?.data?.message || '添加单集失败');
@@ -90,10 +75,7 @@ export const useEpisodes = () => {
 
   const updateSingleEpisode = async (id, singleEpisodeData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(`/api/episodes/single/${id}`, singleEpisodeData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.put(`/api/episodes/single/${id}`, singleEpisodeData);
       await fetchEpisodes();
     } catch (err) {
       setError(err.response?.data?.message || '更新单集失败');
@@ -103,10 +85,7 @@ export const useEpisodes = () => {
 
   const deleteSingleEpisode = async (id) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`/api/episodes/single/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await adminApi.delete(`/api/episodes/single/${id}`);
       await fetchEpisodes();
     } catch (err) {
       setError('删除单集失败');
