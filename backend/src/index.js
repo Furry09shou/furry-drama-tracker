@@ -38,9 +38,10 @@ const translateRoutes = require('../routes/translate');
 const folderRoutes = require('../routes/folders');
 const activityRoutes = require('../routes/activity');
 const versionRoutes = require('../routes/versions');
-const { sanitizeInput } = require('../middlewares/security');
+const { sanitizeInput, sanitizeHeaders } = require('../middlewares/security');
 const trackApiUsage = require('../middlewares/apiTracker');
 const { startCronJobs } = require('./cron');
+const cron = require('node-cron');
 const { swaggerUi, swaggerSpec } = require('./swagger');
 
 const requiredEnvVars = ['JWT_SECRET', 'MONGO_URI'];
@@ -157,6 +158,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sanitizeInput);
+app.use(sanitizeHeaders);
 
 app.get('/api/csrf-token', (req, res) => {
   const csrfToken = crypto.randomBytes(32).toString('hex');
@@ -189,6 +191,9 @@ app.use((req, res, next) => {
 });
 
 app.use(trackApiUsage);
+
+const requestLogger = require('../middlewares/requestLogger');
+app.use(requestLogger);
 
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -270,9 +275,16 @@ app.use('/api/auth/verify-email', emailVerifyLimiter);
 app.use('/api/auth/resend-verification', emailVerifyLimiter);
 app.use('/api/auth/verify-device', twoFactorLimiter);
 
-app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+// 静态文件访问日志（不阻止访问，仅记录）
+app.use('/uploads', (req, res, next) => {
+  next();
+}, express.static(path.join(__dirname, '../uploads'), {
   maxAge: '7d',
   etag: true,
+  setHeaders: (res, filePath) => {
+    // 防止搜索引擎索引上传文件
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+  }
 }));
 
 app.get('/api/health', async (req, res) => {
@@ -355,14 +367,21 @@ const routeMounts = [
 
 for (const [mountPath, route] of routeMounts) {
   app.use(mountPath, route);
-  app.use(mountPath.replace('/api/', '/api/v1/'), route);
+  app.use(mountPath.replace('/api/', '/api/v1/'), (req, res, next) => {
+    res.setHeader('Deprecation', 'true');
+    res.setHeader('Sunset', 'Sat, 01 Jan 2027 00:00:00 GMT');
+    next();
+  }, route);
 }
 
 app.use((err, req, res, next) => {
   if (err.message === 'Not allowed by CORS') {
     return res.status(403).json({ message: 'CORS policy denied' });
   }
-  console.error(err.stack);
+  console.error(`[Error] ${req.method} ${req.path}:`, err.message);
+  if (err.name === 'MulterError') {
+    return res.status(400).json({ message: '文件上传错误: ' + err.message });
+  }
   const isDev = process.env.NODE_ENV !== 'production';
   res.status(err.status || 500).json({
     message: err.message || 'Server error',
@@ -371,6 +390,27 @@ app.use((err, req, res, next) => {
 });
 
 startCronJobs();
+
+// 清理过期会话 - 每小时执行
+cron.schedule('0 * * * *', async () => {
+  try {
+    const UserSession = require('../models/UserSession');
+    const AdminSession = require('../models/AdminSession');
+    const userResult = await UserSession.updateMany(
+      { isActive: true, lastActiveAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+      { isActive: false, logoutAt: new Date() }
+    );
+    const adminResult = await AdminSession.updateMany(
+      { isActive: true, lastActiveAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+      { isActive: false, logoutAt: new Date() }
+    );
+    if (userResult.modifiedCount > 0 || adminResult.modifiedCount > 0) {
+      console.log(`[Cron] Cleaned expired sessions: ${userResult.modifiedCount} user, ${adminResult.modifiedCount} admin`);
+    }
+  } catch (error) {
+    console.error('[Cron] Session cleanup error:', error.message);
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 

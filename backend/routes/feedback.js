@@ -5,6 +5,7 @@ const Feedback = require('../models/Feedback');
 const Notification = require('../models/Notification');
 const { sendPushToUser } = require('./notifications');
 const { protect, adminProtect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 
 const feedbackLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

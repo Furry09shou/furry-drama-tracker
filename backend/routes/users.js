@@ -6,7 +6,15 @@ const Favorite = require('../models/Favorite');
 const Rating = require('../models/Rating');
 const History = require('../models/History');
 const { protect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 const { createUploadConfig } = require('../utils/upload');
+const rateLimit = require('express-rate-limit');
+
+const exportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 exports per hour
+  message: { message: '导出请求过于频繁，请1小时后再试' }
+});
 
 const upload = createUploadConfig('avatar', 2 * 1024 * 1024);
 
@@ -71,87 +79,83 @@ router.put('/profile', protect, async (req, res) => {
   }
 });
 
-router.get('/export-my-data', protect, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const user = await User.findById(userId).select('-password');
-    const follows = await Follow.find({ userId }).populate('episodeId', 'title coverImage status');
-    const favorites = await Favorite.find({ userId }).populate('episodeId', 'title coverImage status');
-    const ratings = await Rating.find({ userId }).populate('episodeId', 'title');
-    const history = await History.find({ userId }).populate('episodeId', 'title');
-    const format = req.query.format || 'json';
+router.get('/export-my-data', protect, exportLimiter, asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const user = await User.findById(userId).select('-password');
+  const follows = await Follow.find({ userId }).populate('episodeId', 'title coverImage status');
+  const favorites = await Favorite.find({ userId }).populate('episodeId', 'title coverImage status');
+  const ratings = await Rating.find({ userId }).populate('episodeId', 'title');
+  const history = await History.find({ userId }).populate('episodeId', 'title');
+  const format = req.query.format || 'json';
 
-    if (format === 'csv') {
-      const escapeCsv = (str) => {
-        if (str == null) return '';
-        const s = String(str);
-        if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-          return `"${s.replace(/"/g, '""')}"`;
-        }
-        return s;
-      };
-      let csv = '';
+  if (format === 'csv') {
+    const escapeCsv = (str) => {
+      if (str == null) return '';
+      const s = String(str);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+    let csv = '';
 
-      csv += '用户信息\n';
-      csv += '字段,值\n';
-      csv += `账号ID,${escapeCsv(user.accountId)}\n`;
-      csv += `昵称,${escapeCsv(user.username)}\n`;
-      csv += `邮箱,${escapeCsv(user.email)}\n`;
-      csv += `注册时间,${escapeCsv(user.createdAt)}\n`;
-      csv += '\n';
+    csv += '用户信息\n';
+    csv += '字段,值\n';
+    csv += `账号ID,${escapeCsv(user.accountId)}\n`;
+    csv += `昵称,${escapeCsv(user.username)}\n`;
+    csv += `邮箱,${escapeCsv(user.email)}\n`;
+    csv += `注册时间,${escapeCsv(user.createdAt)}\n`;
+    csv += '\n';
 
-      csv += '关注列表\n';
-      csv += '剧名,状态\n';
-      follows.forEach(f => {
-        const title = f.episodeId ? f.episodeId.title : '';
-        const status = f.episodeId ? f.episodeId.status : '';
-        csv += `${escapeCsv(title)},${escapeCsv(status)}\n`;
-      });
-      csv += '\n';
+    csv += '关注列表\n';
+    csv += '剧名,状态\n';
+    follows.forEach(f => {
+      const title = f.episodeId ? f.episodeId.title : '';
+      const status = f.episodeId ? f.episodeId.status : '';
+      csv += `${escapeCsv(title)},${escapeCsv(status)}\n`;
+    });
+    csv += '\n';
 
-      csv += '收藏列表\n';
-      csv += '剧名,状态\n';
-      favorites.forEach(f => {
-        const title = f.episodeId ? f.episodeId.title : '';
-        const status = f.episodeId ? f.episodeId.status : '';
-        csv += `${escapeCsv(title)},${escapeCsv(status)}\n`;
-      });
-      csv += '\n';
+    csv += '收藏列表\n';
+    csv += '剧名,状态\n';
+    favorites.forEach(f => {
+      const title = f.episodeId ? f.episodeId.title : '';
+      const status = f.episodeId ? f.episodeId.status : '';
+      csv += `${escapeCsv(title)},${escapeCsv(status)}\n`;
+    });
+    csv += '\n';
 
-      csv += '评分记录\n';
-      csv += '剧名,评分\n';
-      ratings.forEach(r => {
-        const title = r.episodeId ? r.episodeId.title : '';
-        csv += `${escapeCsv(title)},${r.score}\n`;
-      });
-      csv += '\n';
+    csv += '评分记录\n';
+    csv += '剧名,评分\n';
+    ratings.forEach(r => {
+      const title = r.episodeId ? r.episodeId.title : '';
+      csv += `${escapeCsv(title)},${r.score}\n`;
+    });
+    csv += '\n';
 
-      csv += '观看历史\n';
-      csv += '剧名,最后观看时间\n';
-      history.forEach(h => {
-        const title = h.episodeId ? h.episodeId.title : '';
-        csv += `${escapeCsv(title)},${escapeCsv(h.lastWatched)}\n`;
-      });
+    csv += '观看历史\n';
+    csv += '剧名,最后观看时间\n';
+    history.forEach(h => {
+      const title = h.episodeId ? h.episodeId.title : '';
+      csv += `${escapeCsv(title)},${escapeCsv(h.lastWatched)}\n`;
+    });
 
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=my_data_${new Date().toISOString().split('T')[0]}.csv`);
-      res.send('\uFEFF' + csv);
-    } else {
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        user: user,
-        follows: follows,
-        favorites: favorites,
-        ratings: ratings,
-        watchHistory: history
-      };
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename=my_data_${new Date().toISOString().split('T')[0]}.json`);
-      res.json(exportData);
-    }
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=my_data_${new Date().toISOString().split('T')[0]}.csv`);
+    res.send('\uFEFF' + csv);
+  } else {
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      user: user,
+      follows: follows,
+      favorites: favorites,
+      ratings: ratings,
+      watchHistory: history
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=my_data_${new Date().toISOString().split('T')[0]}.json`);
+    res.json(exportData);
   }
-});
+}));
 
 module.exports = router;

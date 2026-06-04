@@ -14,6 +14,7 @@ const Register = () => {
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
@@ -38,6 +39,31 @@ const Register = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleBlur = (field, value) => {
+    const errors = { ...fieldErrors };
+    if (field === 'accountId' && value && !/^[A-Za-z0-9_]+$/.test(value)) {
+      errors.accountId = t('auth.accountIdHint');
+    } else {
+      delete errors.accountId;
+    }
+    if (field === 'username' && !value) {
+      errors.username = t('auth.nicknamePlaceholder');
+    } else {
+      delete errors.username;
+    }
+    if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      errors.email = t('auth.invalidEmail');
+    } else {
+      delete errors.email;
+    }
+    if (field === 'password' && value && value.length < 8) {
+      errors.password = t('auth.passwordHint');
+    } else {
+      delete errors.password;
+    }
+    setFieldErrors(errors);
   };
 
   const handleSubmit = async (e) => {
@@ -122,12 +148,14 @@ const Register = () => {
             name="accountId"
             value={formData.accountId}
             onChange={handleChange}
+            onBlur={(e) => handleBlur('accountId', e.target.value)}
             required
             minLength={3}
             maxLength={20}
             pattern="[A-Za-z0-9_]+"
             placeholder={t('auth.accountIdPlaceholder')}
           />
+          {fieldErrors.accountId && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.accountId}</p>}
           <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>{t('auth.accountIdHint')}</span>
         </div>
         <div className="form-group">
@@ -138,10 +166,12 @@ const Register = () => {
             name="username"
             value={formData.username}
             onChange={handleChange}
+            onBlur={(e) => handleBlur('username', e.target.value)}
             required
             maxLength={20}
             placeholder={t('auth.nicknamePlaceholder')}
           />
+          {fieldErrors.username && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.username}</p>}
         </div>
         <div className="form-group">
           <label htmlFor="email">{t('auth.email')}</label>
@@ -151,8 +181,10 @@ const Register = () => {
             name="email"
             value={formData.email}
             onChange={handleChange}
+            onBlur={(e) => handleBlur('email', e.target.value)}
             required
           />
+          {fieldErrors.email && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.email}</p>}
         </div>
         <div className="form-group">
           <label htmlFor="password">{t('auth.password')}</label>
@@ -160,12 +192,14 @@ const Register = () => {
             id="password"
             value={formData.password}
             onChange={handleChange}
+            onBlur={(e) => handleBlur('password', e.target.value)}
             show={showPassword}
             onToggle={() => setShowPassword(!showPassword)}
             name="password"
             required
             minLength={8}
           />
+          {fieldErrors.password && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.password}</p>}
           <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>{t('auth.passwordHint')}</span>
         </div>
         <div className="form-group">

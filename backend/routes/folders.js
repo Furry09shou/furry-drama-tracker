@@ -4,6 +4,7 @@ const Folder = require('../models/Folder');
 const Follow = require('../models/Follow');
 const Favorite = require('../models/Favorite');
 const { protect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 
 router.get('/', protect, async (req, res) => {
   try {

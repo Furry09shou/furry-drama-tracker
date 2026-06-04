@@ -2,9 +2,39 @@ const express = require('express');
 const router = express.Router();
 const SiteContent = require('../models/SiteContent');
 const { adminProtect, superAdminProtect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 const nodemailer = require('nodemailer');
 const { clearEmailCache } = require('../utils/email');
 const { createUploadConfig } = require('../utils/upload');
+const crypto = require('crypto');
+const ENCRYPTION_KEY = process.env.JWT_SECRET; // Use JWT_SECRET as encryption key
+const ALGORITHM = 'aes-256-cbc';
+
+const encryptField = (text) => {
+  if (!text || !ENCRYPTION_KEY) return text;
+  try {
+    const key = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return `enc:${iv.toString('hex')}:${encrypted}`;
+  } catch { return text; }
+};
+
+const decryptField = (text) => {
+  if (!text || !text.startsWith('enc:')) return text;
+  try {
+    const parts = text.split(':');
+    const iv = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+    const key = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch { return text; }
+};
 
 const siteUpload = createUploadConfig('site', 5 * 1024 * 1024);
 
@@ -61,53 +91,62 @@ const DEFAULT_CONTENT = {
   }
 };
 
-router.get('/:key', async (req, res) => {
-  try {
-    const sensitiveKeys = ['email'];
-    if (sensitiveKeys.includes(req.params.key)) {
-      const adminToken = req.headers.authorization?.replace('Bearer ', '');
-      if (!adminToken) return res.status(403).json({ message: 'Forbidden' });
-      try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
-        if (!decoded.role || !['admin', 'superadmin', 'creator'].includes(decoded.role)) {
-          return res.status(403).json({ message: 'Forbidden' });
-        }
-      } catch (e) {
+router.get('/:key', asyncHandler(async (req, res) => {
+  const sensitiveKeys = ['email'];
+  if (sensitiveKeys.includes(req.params.key)) {
+    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+    if (!adminToken) return res.status(403).json({ message: 'Forbidden' });
+    try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+      if (!decoded.role || !['admin', 'superadmin', 'creator'].includes(decoded.role)) {
         return res.status(403).json({ message: 'Forbidden' });
       }
+    } catch (e) {
+      return res.status(403).json({ message: 'Forbidden' });
     }
-    let content = await SiteContent.findOne({ key: req.params.key });
-    if (!content && DEFAULT_CONTENT[req.params.key]) {
-      content = await SiteContent.create(DEFAULT_CONTENT[req.params.key]);
-    }
-    if (!content) {
-      return res.status(404).json({ message: 'Content not found' });
-    }
-    res.json(content);
-  } catch (error) {
-    console.error('Get site content error:', error);
-    res.status(500).json({ message: 'Server error' });
   }
-});
+  let content = await SiteContent.findOne({ key: req.params.key });
+  if (!content && DEFAULT_CONTENT[req.params.key]) {
+    content = await SiteContent.create(DEFAULT_CONTENT[req.params.key]);
+  }
+  if (!content) {
+    return res.status(404).json({ message: 'Content not found' });
+  }
+  if (req.params.key === 'email' && content.content) {
+    try {
+      const data = JSON.parse(content.content);
+      if (data.pass) {
+        data.pass = decryptField(data.pass);
+        content = { ...content.toObject(), content: JSON.stringify(data) };
+      }
+    } catch {}
+  }
+  res.json(content);
+}));
 
-router.put('/:key', superAdminProtect, async (req, res) => {
-  try {
-    const { title, content } = req.body;
-    const updated = await SiteContent.findOneAndUpdate(
-      { key: req.params.key },
-      { title, content, updatedAt: Date.now() },
-      { new: true, upsert: true, runValidators: true }
-    );
-    if (req.params.key === 'email') {
-      clearEmailCache();
-    }
-    res.json(updated);
-  } catch (error) {
-    console.error('Update site content error:', error);
-    res.status(500).json({ message: 'Server error' });
+router.put('/:key', superAdminProtect, asyncHandler(async (req, res) => {
+  const { title, content } = req.body;
+  let processedContent = content;
+  if (req.params.key === 'email' && content) {
+    try {
+      const data = JSON.parse(content);
+      if (data.pass) {
+        data.pass = encryptField(data.pass);
+        processedContent = JSON.stringify(data);
+      }
+    } catch {}
   }
-});
+  const updated = await SiteContent.findOneAndUpdate(
+    { key: req.params.key },
+    { title, content: processedContent, updatedAt: Date.now() },
+    { new: true, upsert: true, runValidators: true }
+  );
+  if (req.params.key === 'email') {
+    clearEmailCache();
+  }
+  res.json(updated);
+}));
 
 router.get('/', superAdminProtect, async (req, res) => {
   try {

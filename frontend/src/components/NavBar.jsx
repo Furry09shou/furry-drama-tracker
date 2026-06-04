@@ -12,6 +12,27 @@ import usePushNotifications from '../hooks/usePushNotifications';
 import LanguageSwitcher from './LanguageSwitcher';
 import TranslatableText from './TranslatableText';
 
+// ===== 常用样式常量 =====
+const btnNoneStyle = { background: 'none', border: 'none', cursor: 'pointer' };
+const dropdownStyle = {
+  position: 'absolute', top: '100%', right: 0,
+  background: 'var(--card)', border: '1px solid var(--border)',
+  borderRadius: '10px', boxShadow: '0 8px 32px var(--shadow-modal)',
+  minWidth: '160px', zIndex: 10000, overflow: 'hidden',
+  backdropFilter: 'blur(20px)'
+};
+const menuItemStyle = {
+  display: 'block', padding: '12px 16px', color: 'var(--foreground)',
+  textDecoration: 'none', fontSize: '14px',
+  transition: 'background 0.2s'
+};
+const mobileMenuItemBtnStyle = {
+  display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px',
+  color: 'var(--foreground)', background: 'none', border: 'none',
+  fontSize: '14px', fontWeight: 500, cursor: 'pointer', borderRadius: '8px',
+  transition: 'background 0.2s'
+};
+
 const NavBar = ({ onFeedback }) => {
   const { user, logout } = useAuth();
   const { t, lang } = useI18n();
@@ -24,6 +45,7 @@ const NavBar = ({ onFeedback }) => {
     loading,
     markAllRead,
     clearRead,
+    deleteAllRead,
     refreshNotifications,
   } = useNotifications();
   const push = usePushNotifications();
@@ -88,6 +110,7 @@ const NavBar = ({ onFeedback }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ===== 通知面板 - 可提取为 NotificationPanel 组件 =====
   const formatTime = (dateStr) => {
     const d = new Date(dateStr);
     const now = new Date();
@@ -162,6 +185,7 @@ const NavBar = ({ onFeedback }) => {
 
   const [showMobileMore, setShowMobileMore] = useState(false);
 
+  // ===== 移动端更多菜单 - 可提取为 MobileMenu 组件 =====
   const renderMobileMoreItems = () => (
     <>
       {moreMenuItems.map((item) => (
@@ -210,6 +234,7 @@ const NavBar = ({ onFeedback }) => {
     </>
   );
 
+  // ===== 主导航渲染 =====
   return (
     <header>
       <nav>
@@ -225,6 +250,8 @@ const NavBar = ({ onFeedback }) => {
           {user && (
             <button
               onClick={() => setShowNotifPanel(!showNotifPanel)}
+              aria-expanded={showNotifPanel}
+              aria-haspopup="true"
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--foreground)', fontSize: '20px', position: 'relative',
@@ -261,7 +288,7 @@ const NavBar = ({ onFeedback }) => {
             {themeIcon}
           </button>
           <LanguageSwitcher style={{ fontSize: '12px' }} />
-          <button className="mobile-menu-btn" onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMobileMore(false); }} style={{
+          <button className="mobile-menu-btn" onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMobileMore(false); }} aria-expanded={showMobileMenu} aria-haspopup="true" style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--foreground)', fontSize: '22px', padding: '6px'
           }}>☰</button>
@@ -293,6 +320,8 @@ const NavBar = ({ onFeedback }) => {
                 <button
                   onClick={() => setShowNotifPanel(!showNotifPanel)}
                   className="desktop-only-notif"
+                  aria-expanded={showNotifPanel}
+                  aria-haspopup="true"
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--foreground)', fontSize: '20px', position: 'relative',
@@ -310,7 +339,7 @@ const NavBar = ({ onFeedback }) => {
                   )}
                 </button>
                 {showNotifPanel && createPortal(
-                  <div ref={notifPanelRef} style={{
+                  <div ref={notifPanelRef} role="menu" style={{
                     position: 'fixed', top: '60px', right: '20px',
                     width: 'min(360px, calc(100vw - 40px))', maxHeight: '480px', overflow: 'auto',
                     background: 'var(--card)', border: '1px solid var(--border)',
@@ -347,6 +376,16 @@ const NavBar = ({ onFeedback }) => {
                         )}
                       </div>
                     </div>
+                    <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllRead} style={{ fontSize: '12px', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          全部已读
+                        </button>
+                      )}
+                      <button onClick={deleteAllRead} style={{ fontSize: '12px', color: 'var(--destructive-text)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        清除已读
+                      </button>
+                    </div>
                     <div>
                       {notifications.length === 0 ? (
                         <div style={{padding: '30px', textAlign: 'center', color: 'var(--text-secondary)'}}>
@@ -356,6 +395,7 @@ const NavBar = ({ onFeedback }) => {
                         notifications.map(n => (
                           <div
                             key={n._id}
+                            role="menuitem"
                             onClick={() => {
                               if (!n.episodeId) return;
                               setShowNotifPanel(false);
@@ -407,6 +447,8 @@ const NavBar = ({ onFeedback }) => {
                 <button
                   className="desktop-more-btn"
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  aria-expanded={showMoreMenu}
+                  aria-haspopup="true"
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--foreground)', fontSize: '14px',
@@ -416,7 +458,7 @@ const NavBar = ({ onFeedback }) => {
                   {t('nav.more')}
                 </button>
                 {showMoreMenu && (
-                  <div style={{
+                  <div role="menu" style={{
                     position: 'absolute', top: '100%', right: 0,
                     background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: '10px', boxShadow: '0 8px 32px var(--shadow-modal)',
@@ -424,7 +466,7 @@ const NavBar = ({ onFeedback }) => {
                     backdropFilter: 'blur(20px)'
                   }}>
                     {moreMenuItems.map((item, i) => (
-                      <Link key={item.to} to={item.to} onClick={() => { setShowMoreMenu(false); setShowMobileMenu(false); }} style={{
+                      <Link key={item.to} to={item.to} onClick={() => { setShowMoreMenu(false); setShowMobileMenu(false); }} role="menuitem" style={{
                         display: 'block', padding: '12px 16px', color: 'var(--foreground)',
                         textDecoration: 'none', fontSize: '14px',
                         borderBottom: '1px solid var(--border)',
@@ -502,6 +544,8 @@ const NavBar = ({ onFeedback }) => {
                 <button
                   className="desktop-more-btn"
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  aria-expanded={showMoreMenu}
+                  aria-haspopup="true"
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--foreground)', fontSize: '14px',
@@ -511,7 +555,7 @@ const NavBar = ({ onFeedback }) => {
                   {t('nav.more')}
                 </button>
                 {showMoreMenu && (
-                  <div style={{
+                  <div role="menu" style={{
                     position: 'absolute', top: '100%', right: 0,
                     background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: '10px', boxShadow: '0 8px 32px var(--shadow-modal)',
@@ -519,7 +563,7 @@ const NavBar = ({ onFeedback }) => {
                     backdropFilter: 'blur(20px)'
                   }}>
                     {moreMenuItems.map((item, i) => (
-                      <Link key={item.to} to={item.to} onClick={() => { setShowMoreMenu(false); setShowMobileMenu(false); }} style={{
+                      <Link key={item.to} to={item.to} onClick={() => { setShowMoreMenu(false); setShowMobileMenu(false); }} role="menuitem" style={{
                         display: 'block', padding: '12px 16px', color: 'var(--foreground)',
                         textDecoration: 'none', fontSize: '14px',
                         borderBottom: i < moreMenuItems.length - 1 ? '1px solid var(--border)' : 'none',

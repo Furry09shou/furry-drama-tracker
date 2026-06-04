@@ -33,6 +33,17 @@ const sanitizeInput = (req, res, next) => {
   next();
 };
 
+const sanitizeHeaders = (req, res, next) => {
+  // Only sanitize specific headers that might be used in responses
+  const riskyHeaders = ['x-forwarded-for', 'x-real-ip', 'referer'];
+  riskyHeaders.forEach(header => {
+    if (req.headers[header] && typeof req.headers[header] === 'string') {
+      req.headers[header] = xss(req.headers[header]);
+    }
+  });
+  next();
+};
+
 const validatePassword = (password) => {
   if (!password || password.length < 8) {
     return '密码长度至少8位';
@@ -46,4 +57,4 @@ const validatePassword = (password) => {
   return null;
 };
 
-module.exports = { sanitizeInput, validatePassword };
+module.exports = { sanitizeInput, sanitizeHeaders, validatePassword };

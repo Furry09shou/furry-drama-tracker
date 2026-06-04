@@ -15,7 +15,21 @@ const getEmailConfig = async () => {
       const doc = await SiteContent.findOne({ key: 'email' });
       if (doc) {
         const data = JSON.parse(doc.content);
-        if (data.enabled && data.host && data.user && data.pass) {
+      if (data.pass && data.pass.startsWith('enc:')) {
+        // Decrypt is handled by siteContent route, but just in case
+        const crypto = require('crypto');
+        try {
+          const parts = data.pass.split(':');
+          const iv = Buffer.from(parts[1], 'hex');
+          const encrypted = parts[2];
+          const key = crypto.createHash('sha256').update(process.env.JWT_SECRET).digest();
+          const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+          let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+          decrypted += decipher.final('utf8');
+          data.pass = decrypted;
+        } catch {}
+      }
+      if (data.enabled && data.host && data.user && data.pass) {
           cachedConfig = data;
           cacheTime = Date.now();
           return data;

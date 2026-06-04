@@ -3,6 +3,7 @@ const router = express.Router();
 const CreatorProfile = require('../models/CreatorProfile');
 const Episode = require('../models/Episode');
 const { creatorProtect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 
 router.get('/my-profile', creatorProtect, async (req, res) => {
   try {

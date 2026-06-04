@@ -3,6 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const https = require('https');
 const { translate: bingTranslate } = require('bing-translate-api');
+const { asyncHandler } = require('../utils/errorHandler');
 
 const translateLimiter = rateLimit({
   windowMs: 60 * 1000,

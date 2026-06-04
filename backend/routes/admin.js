@@ -232,6 +232,7 @@ router.delete('/users/:id', superAdminProtect, async (req, res) => {
     await Rating.deleteMany({ userId: req.params.id });
     const affectedEpisodeIds = [...new Set(userRatings.map(r => r.episodeId.toString()))];
     const Episode = require('../models/Episode');
+const { asyncHandler } = require('../utils/errorHandler');
     if (affectedEpisodeIds.length > 0) {
       const stats = await Rating.aggregate([
         { $match: { episodeId: { $in: affectedEpisodeIds.map(id => mongoose.Types.ObjectId(id)) } } },

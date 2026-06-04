@@ -5,6 +5,7 @@ import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 import TwoFactorAuth from './TwoFactorAuth';
 import { useAuth } from '../contexts/AuthContext';
+import API from '../utils/apiEndpoints';
 
 const Profile = ({ user, setUser, logout }) => {
   const { t, lang, locale } = useI18n();
@@ -63,7 +64,7 @@ const Profile = ({ user, setUser, logout }) => {
           axios.get('/api/histories/list', config),
           axios.get('/api/favorites/list', config),
           axios.get('/api/folders?type=favorite', config),
-          axios.get('/api/auth/deletion-status', config),
+          axios.get(API.AUTH.DELETION_STATUS, config),
         ]);
 
         const followData = followRes.status === 'fulfilled' ? (followRes.value.data.list || followRes.value.data || []) : [];
@@ -92,7 +93,7 @@ const Profile = ({ user, setUser, logout }) => {
     setDeleteLoading(true);
     setDeleteError('');
     try {
-      const res = await axios.post('/api/auth/request-deletion', {}, {
+      const res = await axios.post(API.AUTH.REQUEST_DELETION, {}, {
         headers: getAuthHeaders()
       });
       setDeletionStatus({
@@ -112,7 +113,7 @@ const Profile = ({ user, setUser, logout }) => {
   const handleCancelDeletion = async () => {
     setCancelLoading(true);
     try {
-      await axios.post('/api/auth/cancel-deletion', {}, {
+      await axios.post(API.AUTH.CANCEL_DELETION, {}, {
         headers: getAuthHeaders()
       });
       setDeletionStatus(null);
@@ -144,7 +145,7 @@ const Profile = ({ user, setUser, logout }) => {
     try {
       const formData = new FormData();
       formData.append('avatar', file);
-      const res = await axios.post('/api/users/avatar', formData, {
+      const res = await axios.post(API.USERS.AVATAR, formData, {
         headers: { ...getAuthHeaders(), 'X-Requested-With': 'XMLHttpRequest' }
       });
       if (setUser && user) {
@@ -485,7 +486,7 @@ const Profile = ({ user, setUser, logout }) => {
                     disabled={!deletePassword || deleteLoading}
                     onClick={async () => {
                       try {
-                        await axios.post('/api/auth/login', { email: user.email, password: deletePassword });
+                        await axios.post(API.AUTH.LOGIN, { email: user.email, password: deletePassword });
                         setDeleteStep(2);
                         setDeleteError('');
                       } catch {
@@ -549,6 +550,7 @@ const Profile = ({ user, setUser, logout }) => {
               cursor: 'pointer', fontSize: '12px', border: '2px solid var(--card)'
             }}>
               📷
+              {/* TODO: 替换为支持裁剪的 ImageUploader（需适配用户认证） */}
               <input type="file" accept="image/*" onChange={handleAvatarUpload}
                 disabled={uploadingAvatar}
                 style={{display: 'none'}} />
@@ -590,7 +592,7 @@ const Profile = ({ user, setUser, logout }) => {
                     setNicknameLoading(true);
                     setNicknameError('');
                     try {
-                      const res = await axios.put('/api/users/profile', { username: nicknameValue.trim() }, {
+                      const res = await axios.put(API.USERS.PROFILE, { username: nicknameValue.trim() }, {
                         headers: getAuthHeaders()
                       });
                       const updatedUser = { ...user, username: res.data.username };
@@ -658,7 +660,7 @@ const Profile = ({ user, setUser, logout }) => {
                     setResendMsg('');
                     setResendSuccess(false);
                     try {
-                      const res = await axios.post('/api/auth/resend-verification', {}, {
+                      const res = await axios.post(API.AUTH.RESEND_VERIFICATION, {}, {
                         headers: getAuthHeaders()
                       });
                       setResendMsg(res.data.message);
@@ -700,7 +702,7 @@ const Profile = ({ user, setUser, logout }) => {
           )}
           <button onClick={async () => {
             try {
-              const res = await fetch('/api/users/export-my-data', {
+              const res = await fetch(API.USERS.EXPORT, {
                 headers: getAuthHeaders(),
                 credentials: 'include'
               });
@@ -1058,6 +1060,7 @@ const Profile = ({ user, setUser, logout }) => {
                     value={emailChangePassword}
                     onChange={e => setEmailChangePassword(e.target.value)}
                     placeholder="请输入当前密码"
+                    autoFocus
                     style={{
                       width: '100%', padding: '8px 12px', borderRadius: '8px',
                       border: '1px solid var(--border)', background: 'var(--input-bg)',
@@ -1096,7 +1099,7 @@ const Profile = ({ user, setUser, logout }) => {
                       setEmailChangeLoading(true);
                       setEmailChangeError('');
                       try {
-                        const res = await axios.post('/api/auth/request-email-change', {
+                        const res = await axios.post(API.AUTH.REQUEST_EMAIL_CHANGE, {
                           password: emailChangePassword,
                           newEmail: emailChangeNewEmail
                         });

@@ -351,6 +351,15 @@ class ErrorBoundary extends Component {
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
+  componentDidMount() {
+    this._asyncErrorListener = (event) => {
+      this.setState({ hasError: true, error: event.reason || new Error('Unknown async error') });
+    };
+    window.addEventListener('unhandledrejection', this._asyncErrorListener);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('unhandledrejection', this._asyncErrorListener);
+  }
   render() {
     if (this.state.hasError) {
       const { t } = this.context;
@@ -365,5 +374,10 @@ class ErrorBoundary extends Component {
     return this.props.children;
   }
 }
+
+// 全局异步错误处理
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+});
 
 export default App;

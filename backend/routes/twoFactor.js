@@ -4,6 +4,7 @@ const { protect } = require('../middlewares/authFactory');
 const User = require('../models/User');
 const { verifyTOTP, generateTOTPSecret, generateBackupCodes, timingSafeCompare } = require('../utils/helpers');
 const { logManual } = require('../middlewares/auditLog');
+const { asyncHandler } = require('../utils/errorHandler');
 
 router.post('/enable', protect, async (req, res) => {
   try {

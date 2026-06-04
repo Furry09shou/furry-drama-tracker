@@ -1,5 +1,7 @@
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCK_TIME = 30 * 60 * 1000; // 30 minutes
+const config = require('../src/config');
+
+const MAX_LOGIN_ATTEMPTS = config.LOGIN_MAX_ATTEMPTS;
+const LOCK_TIME = config.LOGIN_LOCK_TIME;
 
 const accountLockoutPlugin = (schema) => {
   schema.add({

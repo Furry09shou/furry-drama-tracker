@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import API from '../utils/apiEndpoints';
 
 const useNotifications = () => {
   const { user } = useAuth();
@@ -46,7 +47,7 @@ const useNotifications = () => {
       try {
         const ticketRes = await axios.get('/api/auth/sse-ticket');
         const ticket = ticketRes.data.ticket;
-        const eventSource = new EventSource(`/api/notifications/stream?ticket=${ticket}`);
+        const eventSource = new EventSource(`${API.NOTIFICATIONS.STREAM}?ticket=${ticket}`);
         sseRef.current = eventSource;
 
         eventSource.addEventListener('notification', (event) => {
@@ -83,7 +84,7 @@ const useNotifications = () => {
 
     const fetchUnread = () => {
       if (!mountedRef.current || !user) return;
-      axios.get('/api/notifications/unread-count')
+      axios.get(API.NOTIFICATIONS.UNREAD_COUNT)
         .then(res => { if (mountedRef.current) setUnreadCount(res.data.count); })
         .catch(() => {});
     };
@@ -106,7 +107,7 @@ const useNotifications = () => {
   const refreshNotifications = useCallback(() => {
     if (!user) return;
     setLoading(true);
-    axios.get('/api/notifications/list')
+    axios.get(`${API.NOTIFICATIONS.LIST}/list`)
       .then(res => {
         if (mountedRef.current) {
           setNotifications(res.data.list || res.data);
@@ -118,7 +119,7 @@ const useNotifications = () => {
 
   const markAllRead = useCallback(async () => {
     try {
-      await axios.put('/api/notifications/read-all', {});
+      await axios.put(API.NOTIFICATIONS.MARK_ALL_READ, {});
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (e) {}
@@ -126,7 +127,7 @@ const useNotifications = () => {
 
   const markRead = useCallback(async (id) => {
     try {
-      await axios.put(`/api/notifications/${id}/read`, {});
+      await axios.put(API.NOTIFICATIONS.MARK_READ(id), {});
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {}
@@ -141,7 +142,7 @@ const useNotifications = () => {
 
   const deleteNotification = useCallback(async (id) => {
     try {
-      await axios.delete(`/api/notifications/${id}`);
+      await axios.delete(API.NOTIFICATIONS.DELETE(id));
       setNotifications(prev => {
         const target = prev.find(n => n._id === id);
         if (target && !target.isRead) {
@@ -152,6 +153,18 @@ const useNotifications = () => {
     } catch (e) {}
   }, []);
 
+  const deleteAllRead = useCallback(async () => {
+    try {
+      const readNotifications = notifications.filter(n => n.isRead);
+      await Promise.all(readNotifications.map(n =>
+        axios.delete(API.NOTIFICATIONS.DELETE(n._id))
+      ));
+      setNotifications(prev => prev.filter(n => !n.isRead));
+    } catch (err) {
+      console.error('Failed to delete read notifications:', err);
+    }
+  }, [notifications]);
+
   return {
     notifications,
     unreadCount,
@@ -160,6 +173,7 @@ const useNotifications = () => {
     markRead,
     clearRead,
     deleteNotification,
+    deleteAllRead,
     refreshNotifications,
   };
 };

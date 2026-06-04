@@ -18,6 +18,7 @@ const optionalProtect = async (req, res, next) => {
       const User = require('../models/User');
       const UserSession = require('../models/UserSession');
       const { hashToken } = require('../utils/helpers');
+const { asyncHandler } = require('../utils/errorHandler');
       const tokenHash = hashToken(token);
       const session = await UserSession.findOne({ tokenHash, isActive: true });
       if (session) {

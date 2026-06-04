@@ -3,6 +3,7 @@ const router = express.Router();
 const EpisodeVersion = require('../models/EpisodeVersion');
 const Episode = require('../models/Episode');
 const { adminProtect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 
 router.get('/:episodeId', adminProtect, async (req, res) => {
   try {

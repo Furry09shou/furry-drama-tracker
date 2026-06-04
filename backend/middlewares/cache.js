@@ -1,6 +1,7 @@
+const config = require('../src/config');
 const cache = new Map();
-const CACHE_DURATION = 3600000;
-const MAX_CACHE_SIZE = 200;
+const CACHE_DURATION = config.CACHE_DURATION;
+const MAX_CACHE_SIZE = config.CACHE_MAX_SIZE;
 
 const setCache = (key, value) => {
   if (cache.size >= MAX_CACHE_SIZE) {

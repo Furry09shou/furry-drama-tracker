@@ -263,6 +263,7 @@ router.get('/:id/user-status', protect, async (req, res) => {
     const History = require('../models/History');
     const Rating = require('../models/Rating');
     const Favorite = require('../models/Favorite');
+const { asyncHandler } = require('../utils/errorHandler');
 
     const [followDoc, historyDoc, ratingDoc, favoriteDoc] = await Promise.all([
       Follow.findOne({ userId, episodeId }),

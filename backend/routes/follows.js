@@ -4,6 +4,7 @@ const Follow = require('../models/Follow');
 const Episode = require('../models/Episode');
 const History = require('../models/History');
 const { protect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 
 router.post('/add', protect, async (req, res) => {
   const { episodeId, folderId } = req.body;

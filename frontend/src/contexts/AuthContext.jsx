@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { fetchCsrfToken } from '../utils/axiosConfig';
+import API from '../utils/apiEndpoints';
 
 const AuthContext = createContext(null);
 
@@ -19,12 +20,12 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async (storedUser) => {
       await fetchCsrfToken();
       try {
-        const res = await axios.get('/api/auth/me', { skipRedirect: true, params: { _t: Date.now() } });
+        const res = await axios.get(API.AUTH.ME, { skipRedirect: true, params: { _t: Date.now() } });
         const freshUser = res.data;
         setUser(freshUser);
         localStorage.setItem('user', JSON.stringify(freshUser));
         try {
-          await axios.post('/api/user-sessions/create', {
+          await axios.post(API.USER_SESSIONS.CREATE, {
             screenWidth: window.screen.width,
             screenHeight: window.screen.height,
             language: navigator.language
@@ -33,7 +34,7 @@ export const AuthProvider = ({ children }) => {
           console.error('Session creation failed, retrying...', sessionErr?.response?.data || sessionErr?.message);
           try {
             await new Promise(r => setTimeout(r, 1000));
-            await axios.post('/api/user-sessions/create', {
+            await axios.post(API.USER_SESSIONS.CREATE, {
               screenWidth: window.screen.width,
               screenHeight: window.screen.height,
               language: navigator.language
@@ -76,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!user) return;
     const heartbeat = () => {
-      axios.post('/api/user-sessions/heartbeat', {}, { skipRedirect: true }).catch(() => {});
+      axios.post(API.USER_SESSIONS.HEARTBEAT, {}, { skipRedirect: true }).catch(() => {});
     };
     const interval = setInterval(heartbeat, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -86,11 +87,20 @@ export const AuthProvider = ({ children }) => {
     if (!user) return;
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
-      axios.get('/api/auth/me', { skipRedirect: true, params: { _t: Date.now() } }).catch(() => {});
+      axios.get(API.AUTH.ME, { skipRedirect: true, params: { _t: Date.now() } }).catch(() => {});
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user]);
+
+  useEffect(() => {
+    const handleOnline = async () => {
+      const { processOfflineQueue } = require('../utils/offlineQueue');
+      await processOfflineQueue(axios);
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
 
   const login = useCallback((userData) => {
     setUser(userData);
@@ -100,7 +110,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      await axios.post('/api/auth/logout');
+      await axios.post(API.AUTH.LOGOUT);
     } catch {}
     setUser(null);
     localStorage.removeItem('user');

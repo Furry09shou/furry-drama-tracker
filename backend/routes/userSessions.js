@@ -3,6 +3,7 @@ const router = express.Router();
 const UserSession = require('../models/UserSession');
 const { protect } = require('../middlewares/authFactory');
 const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
+const { asyncHandler } = require('../utils/errorHandler');
 
 router.post('/create', protect, async (req, res) => {
   try {

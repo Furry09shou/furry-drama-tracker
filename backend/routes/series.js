@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Series = require('../models/Series');
 const { adminProtect, creatorProtect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 
 /**
  * @swagger

@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const { adminProtect } = require('../middlewares/authFactory');
 const { logManual } = require('../middlewares/auditLog');
+const { asyncHandler } = require('../utils/errorHandler');
 
 const ALLOWED_EXPORT_COLLECTIONS = [
   'episodes', 'users', 'categories', 'banners', 'ratings',

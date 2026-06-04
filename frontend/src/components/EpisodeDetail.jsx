@@ -7,6 +7,7 @@ import ShareModal from './ShareModal';
 import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
+import API from '../utils/apiEndpoints';
 
 const EpisodeDetail = ({ user }) => {
   const { t, lang } = useI18n();
@@ -37,7 +38,7 @@ const EpisodeDetail = ({ user }) => {
   useEffect(() => {
     const fetchEpisode = async () => {
       try {
-        const response = await axios.get(`/api/episodes/${episodeId}`);
+        const response = await axios.get(`${API.EPISODES}/${episodeId}`);
         setEpisode(response.data);
         setLoading(false);
         try {
@@ -53,7 +54,7 @@ const EpisodeDetail = ({ user }) => {
 
   useEffect(() => {
     const controller = new AbortController();
-    axios.get(`/api/stats/recommendations/${episodeId}`, { signal: controller.signal })
+    axios.get(API.STATS.RECOMMENDATIONS(episodeId), { signal: controller.signal })
       .then(res => setRecommendations(res.data))
       .catch((err) => {
         if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') {}
@@ -66,7 +67,7 @@ const EpisodeDetail = ({ user }) => {
     const userData = localStorage.getItem('user');
     if (!userData) return;
     const config = { headers: getAuthHeaders() };
-    axios.get(`/api/episodes/${episodeId}/user-status`, config)
+    axios.get(`${API.EPISODES}/${episodeId}/user-status`, config)
       .then(res => {
         setIsFollowing(res.data.isFollowing);
         if (res.data.isFollowing && res.data.followedAtEpisodes !== undefined) {
@@ -212,7 +213,7 @@ const EpisodeDetail = ({ user }) => {
   const handleRate = async (score) => {
     if (!user) return;
     try {
-      const res = await axios.post('/api/ratings', { episodeId, score }, {
+      const res = await axios.post(API.RATINGS, { episodeId, score }, {
         headers: getAuthHeaders()
       });
       setUserRating(score);
@@ -225,13 +226,17 @@ const EpisodeDetail = ({ user }) => {
       }
     } catch (error) {
       console.error('Error rating:', error);
+      if (!navigator.onLine) {
+        const { addToOfflineQueue } = require('../utils/offlineQueue');
+        addToOfflineQueue({ method: 'post', url: '/api/ratings', data: { episodeId, score } });
+      }
     }
   };
 
   const handleDeleteRating = async () => {
     if (!user) return;
     try {
-      const res = await axios.delete(`/api/ratings/${episodeId}`, {
+      const res = await axios.delete(`${API.RATINGS}/${episodeId}`, {
         headers: getAuthHeaders()
       });
       setUserRating(0);
@@ -448,6 +453,7 @@ const EpisodeDetail = ({ user }) => {
                 </span>
                 {[1,2,3,4,5].map(star => (
                   <button key={star} onClick={() => handleRate(star)}
+                    aria-label={`${star} 星`}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
                     style={{

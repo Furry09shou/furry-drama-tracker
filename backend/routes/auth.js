@@ -19,6 +19,7 @@ const { validatePassword } = require('../middlewares/security');
 const { logManual } = require('../middlewares/auditLog');
 const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser } = require('../utils/email');
 const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie, timingSafeCompare } = require('../utils/helpers');
+const { asyncHandler } = require('../utils/errorHandler');
 
 const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
 
@@ -121,6 +122,18 @@ const getCachedIpRegion = async (ip) => {
 if (!global._captchaStore) global._captchaStore = new Map();
 const captchaStore = global._captchaStore;
 
+// 验证码存储大小限制
+if (global._captchaStore.size > 10000) {
+  const now = Date.now();
+  for (const [k, v] of global._captchaStore) {
+    if (now - v.createdAt > 5 * 60 * 1000) global._captchaStore.delete(k);
+  }
+  if (global._captchaStore.size > 10000) {
+    const entries = [...global._captchaStore.entries()].sort((a, b) => a[1].createdAt - b[1].createdAt);
+    entries.slice(0, global._captchaStore.size - 5000).forEach(([k]) => global._captchaStore.delete(k));
+  }
+}
+
 /**
  * @swagger
  * /api/auth/captcha:
@@ -148,7 +161,7 @@ router.get('/captcha', (req, res) => {
   }
 
   const captchaId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  captchaStore.set(captchaId, { answer: code.toLowerCase(), expires: Date.now() + 5 * 60 * 1000 });
+  captchaStore.set(captchaId, { answer: code.toLowerCase(), expires: Date.now() + 5 * 60 * 1000, createdAt: Date.now() });
 
   for (const [key, val] of captchaStore) {
     if (val.expires < Date.now()) captchaStore.delete(key);
@@ -322,6 +335,13 @@ router.post('/register', async (req, res) => {
       lastLoginAt: new Date(),
       lastLoginIp: getClientIp(req),
       lastLoginRegion: await getCachedIpRegion(getClientIp(req))
+    }).catch(err => {
+      if (err.code === 11000) {
+        const field = Object.keys(err.keyValue)[0];
+        const message = field === 'email' ? '该邮箱已被注册' : '该账号ID已被占用';
+        throw { status: 400, message };
+      }
+      throw err;
     });
 
     const verifyToken = jwt.sign(

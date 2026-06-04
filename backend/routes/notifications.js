@@ -5,6 +5,7 @@ const PushSubscription = require('../models/PushSubscription');
 const { protect } = require('../middlewares/authFactory');
 const jwt = require('jsonwebtoken');
 const webpush = require('web-push');
+const { asyncHandler } = require('../utils/errorHandler');
 
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT || 'mailto:admin@furry-drama-tracker.com',

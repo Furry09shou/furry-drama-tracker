@@ -1,11 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const EpisodeCard = React.memo(({ episode, t, getLocalizedTitle, getLocalizedDescription, onTagClick }) => {
+const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle, getLocalizedDescription, onTagClick }) => {
   const STATUS_MAP = {
     ongoing: { text: t('home.statusOngoing'), cls: 'ongoing' },
     completed: { text: t('home.statusCompleted'), cls: 'completed' },
     upcoming: { text: t('home.statusUpcoming'), cls: 'upcoming' },
+  };
+
+  const highlightText = (text, query) => {
+    if (!query || !text) return text;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase()
+        ? <mark key={i} style={{background:'var(--primary)',color:'var(--btn-text)',padding:'0 2px',borderRadius:'2px'}}>{part}</mark>
+        : part
+    );
   };
 
   const formatViews = (views) => {
@@ -52,7 +63,7 @@ const EpisodeCard = React.memo(({ episode, t, getLocalizedTitle, getLocalizedDes
         )}
       </div>
       <div className="card-content">
-        <h3>{getLocalizedTitle(episode)}</h3>
+        <h3>{highlightText(getLocalizedTitle(episode), highlightQuery)}</h3>
         <p>{truncateDesc(getLocalizedDescription(episode))}</p>
 
         <div style={{

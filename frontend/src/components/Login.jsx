@@ -5,10 +5,12 @@ import { getDeviceInfo } from '../utils/deviceInfo';
 import { useI18n } from '../contexts/I18nContext';
 import PasswordToggle from './PasswordToggle';
 import CaptchaField from './CaptchaField';
+import API from '../utils/apiEndpoints';
 
 const Login = ({ login }) => {
   const { t } = useI18n();
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -67,6 +69,21 @@ const Login = ({ login }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleBlur = (field, value) => {
+    const errors = { ...fieldErrors };
+    if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      errors.email = t('auth.invalidEmail');
+    } else {
+      delete errors.email;
+    }
+    if (field === 'password' && !value) {
+      errors.password = t('auth.passwordRequired');
+    } else {
+      delete errors.password;
+    }
+    setFieldErrors(errors);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -74,7 +91,7 @@ const Login = ({ login }) => {
     setNeedDeviceVerify(false);
     setNeed2FA(false);
     try {
-      const response = await axios.post('/api/auth/login', {
+      const response = await axios.post(API.AUTH.LOGIN, {
         ...formData,
         deviceInfo: getDeviceInfo(),
         captchaId: captchaData.captchaId,
@@ -127,7 +144,7 @@ const Login = ({ login }) => {
     setError('');
     setSuccessMsg('');
     try {
-      await axios.post('/api/auth/forgot-password', { email: forgotEmail, captchaId: captchaData.captchaId, captchaAnswer });
+      await axios.post(API.AUTH.FORGOT_PASSWORD, { email: forgotEmail, captchaId: captchaData.captchaId, captchaAnswer });
       setSuccessMsg(t('auth.resetLinkSent'));
       setShowForgot(false);
     } catch (err) {
@@ -143,7 +160,7 @@ const Login = ({ login }) => {
     if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) { setError(t('auth.passwordMustContainLetterAndNumber')); return; }
     if (newPassword !== confirmPassword) { setError(t('auth.passwordMismatch')); return; }
     try {
-      await axios.post('/api/auth/reset-password', { token: resetToken, newPassword });
+      await axios.post(API.AUTH.RESET_PASSWORD, { token: resetToken, newPassword });
       setSuccessMsg(t('auth.passwordResetSuccess'));
       setShowReset(false);
       setNewPassword('');
@@ -156,6 +173,7 @@ const Login = ({ login }) => {
 
 
   if (deviceVerifyLoading) {
+    // ===== 设备验证加载中 =====
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '60px 20px'}}>
         <div style={{fontSize: '48px', marginBottom: '16px'}}>🔐</div>
@@ -166,6 +184,7 @@ const Login = ({ login }) => {
   }
 
   if (needDeviceVerify) {
+    // ===== 设备验证 =====
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '40px 20px'}}>
         <div style={{fontSize: '48px', marginBottom: '16px'}}>📧</div>
@@ -188,6 +207,7 @@ const Login = ({ login }) => {
   }
 
   if (need2FA) {
+    // ===== 2FA验证 =====
     return (
       <div className="auth-form">
         <h2>{t('twoFactor.title')}</h2>
@@ -227,6 +247,7 @@ const Login = ({ login }) => {
   }
 
   if (showReset) {
+    // ===== 重置密码 =====
     return (
       <div className="auth-form">
         <h2>{t('auth.resetPassword')}</h2>
@@ -267,6 +288,7 @@ const Login = ({ login }) => {
   }
 
   if (showForgot) {
+    // ===== 忘记密码 =====
     return (
       <div className="auth-form">
         <h2>{t('auth.forgotPasswordTitle')}</h2>
@@ -293,6 +315,7 @@ const Login = ({ login }) => {
     );
   }
   
+  // ===== 登录表单 =====
   return (
     <div className="auth-form">
       <h2>{t('auth.loginTitle')}</h2>
@@ -339,7 +362,8 @@ const Login = ({ login }) => {
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="email">{t('auth.email')}</label>
-          <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required />
+          <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} onBlur={(e) => handleBlur('email', e.target.value)} required />
+          {fieldErrors.email && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.email}</p>}
         </div>
         <div className="form-group">
           <label htmlFor="password">{t('auth.password')}</label>
@@ -347,11 +371,13 @@ const Login = ({ login }) => {
             id="password"
             value={formData.password}
             onChange={handleChange}
+            onBlur={(e) => handleBlur('password', e.target.value)}
             show={showPassword}
             onToggle={() => setShowPassword(!showPassword)}
             name="password"
             required
           />
+          {fieldErrors.password && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.password}</p>}
         </div>
         <CaptchaField
           captchaData={captchaData}

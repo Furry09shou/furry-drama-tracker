@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Report = require('../models/Report');
 const { protect, adminProtect } = require('../middlewares/authFactory');
+const { asyncHandler } = require('../utils/errorHandler');
 
 router.post('/', protect, async (req, res) => {
   try {

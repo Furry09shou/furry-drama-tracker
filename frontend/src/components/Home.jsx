@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import API from '../utils/apiEndpoints';
 import { EpisodeCardSkeletonFixed as EpisodeCardSkeleton } from './Skeleton';
 import { useI18n } from '../contexts/I18nContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +43,17 @@ const Home = () => {
   const [sortOrder, setSortOrder] = useState(searchParams.get('order') || 'desc');
 
   const searchQuery = searchParams.get('search') || '';
+
+  const highlightText = (text, query) => {
+    if (!query || !text) return text;
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase()
+        ? <mark key={i} style={{background:'var(--primary)',color:'var(--btn-text)',padding:'0 2px',borderRadius:'2px'}}>{part}</mark>
+        : part
+    );
+  };
 
   const scrollRestoredRef = useRef(false);
 
@@ -87,7 +99,7 @@ const Home = () => {
     }
     setRecLoading(true);
     setCwLoading(true);
-    axios.get('/api/stats/recommendations/personalized')
+    axios.get(API.STATS.RECOMMENDATIONS('personalized'))
       .then(res => setRecommendations(res.data))
       .catch(() => setRecommendations([]))
       .finally(() => setRecLoading(false));
@@ -112,7 +124,7 @@ const Home = () => {
     params.set('page', '1');
     params.set('limit', '24');
 
-    axios.get(`/api/episodes?${params.toString()}`)
+    axios.get(`${API.EPISODES}?${params.toString()}`)
       .then(res => {
         const data = res.data;
         if (data.episodes) {
@@ -149,7 +161,7 @@ const Home = () => {
     params.set('page', String(nextPage));
     params.set('limit', '24');
 
-    axios.get(`/api/episodes?${params.toString()}`)
+    axios.get(`${API.EPISODES}?${params.toString()}`)
       .then(res => {
         const data = res.data;
         if (data.episodes) {
@@ -531,6 +543,7 @@ const Home = () => {
             <EpisodeCard
               key={episode._id}
               episode={episode}
+              highlightQuery={searchQuery}
               t={t}
               getLocalizedTitle={getLocalizedTitle}
               getLocalizedDescription={getLocalizedDescription}

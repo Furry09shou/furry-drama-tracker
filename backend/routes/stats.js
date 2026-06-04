@@ -10,6 +10,7 @@ const History = require('../models/History');
 const UserSession = require('../models/UserSession');
 const { adminProtect, protect } = require('../middlewares/authFactory');
 const { setCache, getCache } = require('../middlewares/cache');
+const { asyncHandler } = require('../utils/errorHandler');
 
 const cacheMiddleware = (duration) => {
   return (req, res, next) => {
