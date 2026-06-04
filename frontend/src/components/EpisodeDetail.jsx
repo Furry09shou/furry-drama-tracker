@@ -8,6 +8,7 @@ import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 const EpisodeDetail = ({ user }) => {
   const { t, lang } = useI18n();
@@ -34,6 +35,9 @@ const EpisodeDetail = ({ user }) => {
 
   const navigate = useNavigate();
   const { id: episodeId } = useParams();
+
+  const [infoRef, infoVisible] = useScrollReveal();
+  const [episodesRef, episodesVisible] = useScrollReveal();
 
   useEffect(() => {
     const fetchEpisode = async () => {
@@ -301,6 +305,7 @@ const EpisodeDetail = ({ user }) => {
           {t('common.goBack')}
         </button>
       </div>
+      <div ref={infoRef} className={`reveal ${infoVisible ? 'visible' : ''}`}>
       <div className="episode-info">
         <img src={episode.coverImage} alt={episode.title} decoding="async" />
         <div className="episode-details">
@@ -479,7 +484,9 @@ const EpisodeDetail = ({ user }) => {
           </div>
         </div>
       </div>
+      </div>
 
+      <div ref={episodesRef} className={`reveal ${episodesVisible ? 'visible' : ''}`}>
       <div className="episodes-list">
         <h3>{t('episode.episodeList')}
           <button onClick={() => setEpisodeSortOrder(episodeSortOrder === 'asc' ? 'desc' : 'asc')} style={{
@@ -548,6 +555,7 @@ const EpisodeDetail = ({ user }) => {
             </button>
           </div>
         )}
+      </div>
       </div>
 
       {recommendations.length > 0 && (

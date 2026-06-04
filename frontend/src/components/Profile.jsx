@@ -7,6 +7,7 @@ import useTranslation from '../hooks/useTranslation';
 import TwoFactorAuth from './TwoFactorAuth';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 const Profile = ({ user, setUser, logout }) => {
   const { t, lang, locale } = useI18n();
@@ -51,6 +52,9 @@ const Profile = ({ user, setUser, logout }) => {
   const emailChangeDialogRef = useRef(null);
 
   const [fetchError, setFetchError] = useState(null);
+
+  const [userInfoRef, userInfoVisible] = useScrollReveal();
+  const [tabsRef, tabsVisible] = useScrollReveal();
 
   const location = useLocation();
 
@@ -537,6 +541,7 @@ const Profile = ({ user, setUser, logout }) => {
     <div className="user-profile">
       <h2>{t('profile.title')}</h2>
 
+      <div ref={userInfoRef} className={`reveal ${userInfoVisible ? 'visible' : ''}`}>
       <div className="user-info">
         <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', justifyContent: 'center'}}>
           <div style={{position: 'relative'}}>
@@ -736,11 +741,13 @@ const Profile = ({ user, setUser, logout }) => {
           }}>{t('nav.logout')}</button>
         </div>
       </div>
+      </div>
 
       {show2FA && (
         <TwoFactorAuth user={user} setUser={setUser} onClose={() => setShow2FA(false)} />
       )}
 
+      <div ref={tabsRef} className={`reveal ${tabsVisible ? 'visible' : ''}`}>
       <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap'}}>
         {[
           { key: 'follows', label: t('profile.myFollows'), count: followedEpisodes.length },
@@ -1030,6 +1037,7 @@ const Profile = ({ user, setUser, logout }) => {
           )}
         </div>
       </Activity>
+      </div>
 
       {renderDeleteSection()}
 

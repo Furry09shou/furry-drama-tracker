@@ -289,6 +289,7 @@ function AppContent() {
     <>
       <NavBar onFeedback={() => setShowFeedback(true)} />
       <div className="container">
+        <div key={location.pathname} className="page-enter">
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -314,6 +315,7 @@ function AppContent() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        </div>
       </div>
       <FooterBeian />
       <FeedbackModal show={showFeedback} onClose={() => setShowFeedback(false)} user={user} />

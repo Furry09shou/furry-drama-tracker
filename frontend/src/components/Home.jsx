@@ -7,6 +7,8 @@ import { useI18n } from '../contexts/I18nContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSiteSettings } from '../contexts/SiteSettingsContext';
 import useTranslation from '../hooks/useTranslation';
+import useScrollReveal from '../hooks/useScrollReveal';
+import useStaggerReveal from '../hooks/useStaggerReveal';
 import BannerCarousel from './BannerCarousel';
 import EpisodeFilters from './EpisodeFilters';
 import TagCloud from './TagCloud';
@@ -42,6 +44,11 @@ const Home = () => {
     year: searchParams.get('year') || '',
   });
   const [sortOrder, setSortOrder] = useState(searchParams.get('order') || 'desc');
+
+  const [bannerRef, bannerVisible] = useScrollReveal();
+  const [categoriesRef, categoriesVisible] = useScrollReveal();
+  const [episodesRef, episodesVisible] = useScrollReveal();
+  const [gridRef, visibleCount] = useStaggerReveal(episodes.length, { staggerDelay: 50 });
 
   const searchQuery = searchParams.get('search') || '';
 
@@ -229,6 +236,7 @@ const Home = () => {
 
   return (
     <div>
+      <div ref={bannerRef} className={`reveal ${bannerVisible ? 'visible' : ''}`}>
       <BannerCarousel
         bannerImages={banners}
         welcomeTitle={welcomeTitle}
@@ -237,6 +245,8 @@ const Home = () => {
         getLocalizedTitle={getLocalizedTitle}
         getLocalizedSubtitle={getLocalizedSubtitle}
       />
+      </div>
+      <div ref={categoriesRef} className={`reveal ${categoriesVisible ? 'visible' : ''}`}>
       <EpisodeFilters
         filters={filters}
         onFilterChange={handleFilterChange}
@@ -247,6 +257,7 @@ const Home = () => {
         getLocalizedName={getLocalizedName}
       />
       <TagCloud />
+      </div>
 
       {user && continueWatching.length > 0 && (
         <div style={{ marginBottom: '24px' }}>
@@ -561,10 +572,10 @@ const Home = () => {
           </p>
         </div>
       ) : (
-        <div className="episode-grid">
-          {episodes.map(episode => (
+        <div className="episode-grid" ref={episodesRef}>
+          {episodes.map((episode, i) => (
+            <div key={episode._id} ref={i === 0 ? gridRef : undefined} className={`stagger-item ${i < visibleCount ? 'visible' : ''}`}>
             <EpisodeCard
-              key={episode._id}
               episode={episode}
               highlightQuery={searchQuery}
               t={t}
@@ -572,6 +583,7 @@ const Home = () => {
               getLocalizedDescription={getLocalizedDescription}
               onTagClick={handleTagClick}
             />
+            </div>
           ))}
         </div>
       )}

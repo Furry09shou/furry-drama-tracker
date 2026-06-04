@@ -49,7 +49,7 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
   const ratingCount = episode.ratingCount || 0;
 
   return (
-    <TransitionLink to={`/episode/${episode._id}`} className="episode-card" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 200px', containerType: 'inline-size', containerName: 'episode-card' }}>
+    <TransitionLink to={`/episode/${episode._id}`} className="episode-card card-hover" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 200px', containerType: 'inline-size', containerName: 'episode-card' }}>
       <div ref={imgRef} style={{ position: 'relative', overflow: 'hidden' }}>
         <img src={imgVisible ? episode.coverImage : ''} alt={episode.title} loading="lazy" decoding="async" style={{
           opacity: imgVisible ? 1 : 0,

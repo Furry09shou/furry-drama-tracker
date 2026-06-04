@@ -1547,28 +1547,126 @@ img {
   user-select: none;
 }
 
-/* View Transitions API - 页面切换动画 */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
+/* ===== 页面进入动画 ===== */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fade-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-8px); }
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 页面内容进入动画 */
+.page-enter {
+  animation: page-enter 0.4s ease-out;
+}
+
+/* 滚动揭示动画 */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 交错动画项 */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.stagger-item.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 卡片悬停动画 */
+.card-hover {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px var(--shadow-modal);
+}
+
+/* 按钮点击反馈 */
+.btn-press {
+  transition: transform 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+
+/* 骨架屏 shimmer 动画 */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--hover-bg) 25%, var(--card) 50%, var(--hover-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* 按钮点击缩放 */
+.btn, button[class*="btn"] {
+  transition: transform 0.1s ease, background 0.2s ease;
+}
+.btn:active, button[class*="btn"]:active {
+  transform: scale(0.96);
+}
+
+/* View Transitions 增强 */
 ::view-transition-old(root) {
   animation: fade-out 0.2s ease-in;
 }
-
 ::view-transition-new(root) {
-  animation: fade-in 0.2s ease-out;
+  animation: fade-in 0.25s ease-out;
 }
 
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 减少动画偏好 */
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
+  .page-enter, .reveal, .stagger-item, .card-hover, .btn-press {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal, .stagger-item {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  ::view-transition-old(root), ::view-transition-new(root) {
     animation: none !important;
   }
 }
