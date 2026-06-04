@@ -105,7 +105,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:"],
       fontSrc: ["'self'"],
       connectSrc: ["'self'", "https://api.mymemory.translated.net", "https://translate.googleapis.com", "https://api.cognitive.microsofttranslator.com", "https://ipapi.co"],
-      frameSrc: ["'self'"],
+      frameSrc: ["'self'", "https://player.bilibili.com", "https://www.youtube.com", "https://embed.nicovideo.jp"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     }
