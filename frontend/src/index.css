@@ -110,6 +110,10 @@ nav ul li a:hover {
   color: var(--primary);
 }
 
+nav ul li a[style*="primary"] {
+  font-weight: 600;
+}
+
 .hero {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-backdrop);

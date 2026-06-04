@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../contexts/I18nContext';
@@ -39,6 +39,8 @@ const NavBar = ({ onFeedback }) => {
   const { getLocalizedContent, getLocalizedTitle } = useTranslation();
   const { settings: siteSettingsData, loading: siteSettingsLoading } = useSiteSettings();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isActive = (path) => location.pathname === path;
   const {
     notifications,
     unreadCount,
@@ -288,12 +290,12 @@ const NavBar = ({ onFeedback }) => {
           }}>☰</button>
         </div>
         <ul className={showMobileMenu ? 'mobile-open' : ''}>
-          <li><a href="/" onClick={(e) => { e.preventDefault(); setShowMobileMenu(false); if (document.startViewTransition) { document.startViewTransition(() => navigate('/')); } else { navigate('/'); } }}>{t('nav.home')}</a></li>
-          <li><TransitionLink to="/calendar" onClick={() => setShowMobileMenu(false)}>{t('nav.calendar')}</TransitionLink></li>
-          <li><TransitionLink to="/timeline" onClick={() => setShowMobileMenu(false)}>{t('nav.timeline')}</TransitionLink></li>
+          <li><a href="/" onClick={(e) => { e.preventDefault(); setShowMobileMenu(false); if (document.startViewTransition) { document.startViewTransition(() => navigate('/')); } else { navigate('/'); } }} style={{ color: isActive('/') ? 'var(--primary)' : undefined }}>{t('nav.home')}</a></li>
+          <li><TransitionLink to="/calendar" onClick={() => setShowMobileMenu(false)} style={{ color: isActive('/calendar') ? 'var(--primary)' : undefined }}>{t('nav.calendar')}</TransitionLink></li>
+          <li><TransitionLink to="/timeline" onClick={() => setShowMobileMenu(false)} style={{ color: isActive('/timeline') ? 'var(--primary)' : undefined }}>{t('nav.timeline')}</TransitionLink></li>
           {user ? (
             <>
-              <li><TransitionLink to="/profile" onClick={() => setShowMobileMenu(false)}>{t('nav.profile')}</TransitionLink></li>
+              <li><TransitionLink to="/profile" onClick={() => setShowMobileMenu(false)} style={{ color: isActive('/profile') ? 'var(--primary)' : undefined }}>{t('nav.profile')}</TransitionLink></li>
               <li style={{position: 'relative'}}>
                 {installPrompt && !isInstalled && (
                   <button
