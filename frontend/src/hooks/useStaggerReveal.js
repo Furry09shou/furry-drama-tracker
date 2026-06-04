@@ -8,6 +8,10 @@ const useStaggerReveal = (itemCount, options = {}) => {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    // 给所有子 stagger-item 添加 hidden 类
+    const items = el.querySelectorAll('.stagger-item');
+    items.forEach(item => item.classList.add('stagger-hidden'));
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {

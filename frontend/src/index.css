@@ -1583,8 +1583,8 @@ img {
   animation: page-enter 0.4s ease-out;
 }
 
-/* 滚动揭示动画 */
-.reveal {
+/* 滚动揭示动画 - 默认可见，JS 添加 reveal-hidden 后隐藏 */
+.reveal.reveal-hidden {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.5s ease, transform 0.5s ease;
@@ -1593,10 +1593,11 @@ img {
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
 /* 交错动画项 */
-.stagger-item {
+.stagger-item.stagger-hidden {
   opacity: 0;
   transform: translateY(16px);
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -1605,6 +1606,7 @@ img {
 .stagger-item.visible {
   opacity: 1;
   transform: translateY(0);
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 /* 卡片悬停动画 */
@@ -1658,11 +1660,11 @@ img {
 
 /* 减少动画偏好 */
 @media (prefers-reduced-motion: reduce) {
-  .page-enter, .reveal, .stagger-item, .card-hover, .btn-press {
+  .page-enter, .card-hover, .btn-press {
     animation: none !important;
     transition: none !important;
   }
-  .reveal, .stagger-item {
+  .reveal.reveal-hidden, .stagger-item.stagger-hidden {
     opacity: 1 !important;
     transform: none !important;
   }
