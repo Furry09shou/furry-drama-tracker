@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import adminApi, { getAdminToken } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
+import CaptchaField from './CaptchaField';
 
 const Admin = () => {
   const { t } = useI18n();
