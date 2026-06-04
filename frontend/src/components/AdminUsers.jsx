@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
+import PasswordToggle from './PasswordToggle';
 import SearchInput from './SearchInput';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -23,6 +24,7 @@ const AdminUsers = () => {
     password: '',
     role: 'admin'
   });
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
@@ -162,10 +164,11 @@ const AdminUsers = () => {
           </div>
           <div className="form-group">
             <label>{t('adminUsers.password')}</label>
-            <input
-              type="password"
+            <PasswordToggle
               value={newUser.password}
               onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+              show={showNewUserPassword}
+              onToggle={() => setShowNewUserPassword(!showNewUserPassword)}
               required
             />
           </div>

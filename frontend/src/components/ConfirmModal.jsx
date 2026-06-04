@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
+import PasswordToggle from './PasswordToggle';
 
 const typeStyles = {
   danger: {
@@ -28,6 +29,7 @@ const typeStyles = {
 
 const ConfirmModal = ({ show, onClose, onConfirm, title, message, confirmText, cancelText, type, requirePassword }) => {
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const { t } = useI18n();
@@ -70,7 +72,7 @@ const ConfirmModal = ({ show, onClose, onConfirm, title, message, confirmText, c
         <div style={{ padding: '20px 24px' }}>
           <p style={{ margin: '0 0 16px 0', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6 }}>{message || t('confirm.irreversible')}</p>
           {requirePassword && (
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('confirm.enterPassword')} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px', boxSizing: 'border-box' }} onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); }} />
+            <PasswordToggle value={password} onChange={e => setPassword(e.target.value)} show={showPassword} onToggle={() => setShowPassword(!showPassword)} placeholder={t('confirm.enterPassword')} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '14px', boxSizing: 'border-box' }} onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); }} />
           )}
           {error && <p style={{ margin: '8px 0 0', color: 'var(--destructive-text)', fontSize: '13px' }}>{error}</p>}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>

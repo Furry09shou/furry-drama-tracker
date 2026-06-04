@@ -3,6 +3,7 @@ import { Activity } from 'react';
 import axios from 'axios';
 import { Link, useLocation } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
+import PasswordToggle from './PasswordToggle';
 import useTranslation from '../hooks/useTranslation';
 import TwoFactorAuth from './TwoFactorAuth';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,6 +31,7 @@ const Profile = ({ user, setUser, logout }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStep, setDeleteStep] = useState(0);
   const [deletePassword, setDeletePassword] = useState('');
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -45,6 +47,7 @@ const Profile = ({ user, setUser, logout }) => {
   const [show2FA, setShow2FA] = useState(false);
   const [showEmailChange, setShowEmailChange] = useState(false);
   const [emailChangePassword, setEmailChangePassword] = useState('');
+  const [showEmailChangePassword, setShowEmailChangePassword] = useState(false);
   const [emailChangeNewEmail, setEmailChangeNewEmail] = useState('');
   const [emailChangeLoading, setEmailChangeLoading] = useState(false);
   const [emailChangeError, setEmailChangeError] = useState('');
@@ -481,10 +484,11 @@ const Profile = ({ user, setUser, logout }) => {
               <>
                 <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>{t('profile.enterPasswordConfirm')}</h4>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>{t('profile.enterPasswordToConfirm')}</p>
-                <input
-                  type="password"
+                <PasswordToggle
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
+                  show={showDeletePassword}
+                  onToggle={() => setShowDeletePassword(!showDeletePassword)}
                   placeholder={t('profile.enterLoginPassword')}
                   style={{
                     width: '100%', padding: '10px 14px', borderRadius: '6px',
@@ -1075,10 +1079,11 @@ const Profile = ({ user, setUser, logout }) => {
             <>
               <div style={{ marginBottom: '12px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>当前密码</label>
-                <input
-                  type="password"
+                <PasswordToggle
                   value={emailChangePassword}
                   onChange={e => setEmailChangePassword(e.target.value)}
+                  show={showEmailChangePassword}
+                  onToggle={() => setShowEmailChangePassword(!showEmailChangePassword)}
                   placeholder="请输入当前密码"
                   autoFocus
                   style={{

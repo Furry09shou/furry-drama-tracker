@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import adminApi, { getAdminToken } from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 import CaptchaField from './CaptchaField';
+import PasswordToggle from './PasswordToggle';
 
 const Admin = () => {
   const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
   const [captchaAnswer, setCaptchaAnswer] = useState('');
@@ -84,10 +86,12 @@ const Admin = () => {
         </div>
         <div className="form-group">
           <label>{t('admin.password')}</label>
-          <input
-            type="password"
+          <PasswordToggle
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            show={showPassword}
+            onToggle={() => setShowPassword(!showPassword)}
+            placeholder={t('admin.password')}
             required
           />
         </div>

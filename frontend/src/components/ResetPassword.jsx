@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
+import PasswordToggle from './PasswordToggle';
 
 const ResetPassword = () => {
   const { t } = useI18n();
@@ -10,6 +11,8 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,12 +70,14 @@ const ResetPassword = () => {
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>{t('auth.newPassword')}</label>
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                <PasswordToggle value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                  show={showNewPassword} onToggle={() => setShowNewPassword(!showNewPassword)}
                   required minLength={8} placeholder={t('auth.newPasswordPlaceholder')} />
               </div>
               <div className="form-group">
                 <label>{t('auth.confirmNewPassword')}</label>
-                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                <PasswordToggle value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                  show={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
                   required minLength={8} />
               </div>
               {error && <p style={{color: 'var(--destructive-text)', fontSize: '14px'}}>{error}</p>}
