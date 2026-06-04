@@ -56,6 +56,7 @@ const Home = () => {
   };
 
   const scrollRestoredRef = useRef(false);
+  const loadMoreRef = useRef(null);
 
   const welcomeTitle = siteSettingsLoading ? '' : (getLocalizedContent(siteSettingsData || {}, 'welcomeTitle') || t('home.welcomeTitle'));
   const welcomeSubtitle = siteSettingsLoading ? '' : (getLocalizedContent(siteSettingsData || {}, 'welcomeSubtitle') || t('home.welcomeSubtitle'));
@@ -86,6 +87,7 @@ const Home = () => {
       if (timer) clearTimeout(timer);
     };
   }, []);
+
   useEffect(() => {
     axios.get('/api/categories').then(res => setCategories(res.data)).catch(() => {});
     axios.get('/api/banners').then(res => setBanners(res.data)).catch(() => {});
@@ -177,6 +179,21 @@ const Home = () => {
       .finally(() => setLoadingMore(false));
   }, [page, loadingMore, hasMore, searchQuery, filters, sortOrder]);
 
+  // IntersectionObserver 自动加载更多
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadMore]);
+
   const handleFilterChange = useCallback((key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     const newParams = new URLSearchParams(searchParams);
@@ -258,12 +275,13 @@ const Home = () => {
             scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'thin',
+            scrollSnapType: 'x mandatory',
           }}>
             {continueWatching.map(item => {
               const ep = item.episodeId;
               if (!ep) return null;
               return (
-                <Link
+                <TransitionLink
                   key={item._id}
                   to={`/episode/${ep._id}`}
                   style={{
@@ -277,6 +295,7 @@ const Home = () => {
                     background: 'var(--card)',
                     border: '1px solid var(--border)',
                     transition: 'transform 0.2s, box-shadow 0.2s',
+                    scrollSnapAlign: 'start',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
@@ -291,6 +310,7 @@ const Home = () => {
                     <img
                       src={ep.coverImage}
                       alt={ep.title}
+                      decoding="async"
                       style={{
                         width: '100%',
                         height: '110px',
@@ -338,7 +358,7 @@ const Home = () => {
                       }
                     </div>
                   </div>
-                </Link>
+                </TransitionLink>
               );
             })}
           </div>
@@ -392,7 +412,7 @@ const Home = () => {
               scrollbarWidth: 'thin',
             }}>
               {recommendations.map(rec => (
-                <Link
+                <TransitionLink
                   key={rec._id}
                   to={`/episode/${rec._id}`}
                   style={{
@@ -406,6 +426,7 @@ const Home = () => {
                     background: 'var(--card)',
                     border: '1px solid var(--border)',
                     transition: 'transform 0.2s, box-shadow 0.2s',
+                    scrollSnapAlign: 'start',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
@@ -421,6 +442,7 @@ const Home = () => {
                       src={rec.coverImage}
                       alt={rec.title}
                       loading="lazy"
+                      decoding="async"
                       style={{
                         width: '100%',
                         height: '120px',
@@ -478,7 +500,7 @@ const Home = () => {
                       </span>
                     )}
                   </div>
-                </Link>
+                </TransitionLink>
               ))}
             </div>
           ) : (
@@ -555,6 +577,7 @@ const Home = () => {
 
       {hasMore && !loading && episodes.length > 0 && (
         <div style={{ textAlign: 'center', padding: '24px' }}>
+          <div ref={loadMoreRef} style={{ height: '1px' }} />
           <button
             onClick={loadMore}
             disabled={loadingMore}

@@ -1,7 +1,20 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useRef, useState, useEffect } from 'react';
+import TransitionLink from './TransitionLink';
 
 const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle, getLocalizedDescription, onTagClick }) => {
+  const imgRef = useRef(null);
+  const [imgVisible, setImgVisible] = useState(false);
+
+  useEffect(() => {
+    if (!imgRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setImgVisible(true); observer.disconnect(); } },
+      { rootMargin: '100px' }
+    );
+    observer.observe(imgRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   const STATUS_MAP = {
     ongoing: { text: t('home.statusOngoing'), cls: 'ongoing' },
     completed: { text: t('home.statusCompleted'), cls: 'completed' },
@@ -36,9 +49,12 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
   const ratingCount = episode.ratingCount || 0;
 
   return (
-    <Link to={`/episode/${episode._id}`} className="episode-card">
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
-        <img src={episode.coverImage} alt={episode.title} loading="lazy" />
+    <TransitionLink to={`/episode/${episode._id}`} className="episode-card" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 200px', containerType: 'inline-size', containerName: 'episode-card' }}>
+      <div ref={imgRef} style={{ position: 'relative', overflow: 'hidden' }}>
+        <img src={imgVisible ? episode.coverImage : ''} alt={episode.title} loading="lazy" decoding="async" style={{
+          opacity: imgVisible ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+        }} />
         <span className={`status ${statusInfo.cls}`} style={{
           position: 'absolute',
           top: '8px',
@@ -62,7 +78,7 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
           </span>
         )}
       </div>
-      <div className="card-content">
+      <div className="card-content episode-card-inner">
         <h3>{highlightText(getLocalizedTitle(episode), highlightQuery)}</h3>
         <p>{truncateDesc(getLocalizedDescription(episode))}</p>
 
@@ -149,7 +165,7 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
           </div>
         )}
       </div>
-    </Link>
+    </TransitionLink>
   );
 });
 

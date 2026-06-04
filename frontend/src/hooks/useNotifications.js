@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useEffectEvent } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
@@ -104,7 +104,7 @@ const useNotifications = () => {
     };
   }, [user]);
 
-  const refreshNotifications = useCallback(() => {
+  const onRefresh = useEffectEvent(() => {
     if (!user) return;
     setLoading(true);
     axios.get(`${API.NOTIFICATIONS.LIST}/list`)
@@ -115,7 +115,11 @@ const useNotifications = () => {
       })
       .catch(() => {})
       .finally(() => { if (mountedRef.current) setLoading(false); });
-  }, [user]);
+  });
+
+  const refreshNotifications = useCallback(() => {
+    onRefresh();
+  }, []);
 
   const markAllRead = useCallback(async () => {
     try {
@@ -164,6 +168,15 @@ const useNotifications = () => {
       console.error('Failed to delete read notifications:', err);
     }
   }, [notifications]);
+
+  // 更新 PWA 图标角标
+  useEffect(() => {
+    if ('setAppBadge' in navigator && unreadCount > 0) {
+      navigator.setAppBadge(unreadCount).catch(() => {});
+    } else if ('clearAppBadge' in navigator) {
+      navigator.clearAppBadge().catch(() => {});
+    }
+  }, [unreadCount]);
 
   return {
     notifications,

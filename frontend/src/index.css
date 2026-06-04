@@ -24,6 +24,7 @@ body {
     radial-gradient(circle at 25% 25%, var(--gradient-bg1) 0%, transparent 50%),
     radial-gradient(circle at 75% 75%, var(--gradient-bg2) 0%, transparent 50%);
   transition: background-color 0.3s ease, color 0.3s ease;
+  overscroll-behavior: none;
 }
 
 .container {
@@ -1434,4 +1435,128 @@ input::-webkit-credentials-auto-fill-button {
 
 input::-webkit-caps-lock-indicator {
   margin-right: 32px;
+}
+
+/* Dialog 元素样式 */
+dialog::backdrop {
+  background: var(--overlay-bg);
+  backdrop-filter: blur(4px);
+}
+
+dialog[open] {
+  animation: dialog-fade-in 0.2s ease-out;
+}
+
+@keyframes dialog-fade-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Popover 元素样式 */
+[popover] {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px var(--shadow-modal);
+  backdrop-filter: blur(20px);
+}
+
+[popover]:popover-open {
+  animation: popover-fade-in 0.15s ease-out;
+}
+
+@keyframes popover-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 减少动画 - 尊重用户系统设置 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 高对比度偏好 */
+@media (prefers-contrast: more) {
+  :root {
+    --border: rgba(255, 255, 255, 0.3);
+    --text-secondary: #cbd5e1;
+  }
+  [data-theme="light"] {
+    --border: rgba(0, 0, 0, 0.2);
+    --text-secondary: #475569;
+  }
+}
+
+/* iOS 安全区域适配 */
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+}
+
+/* Episode Card 容器查询响应式 */
+@container episode-card (max-width: 250px) {
+  .episode-card-inner {
+    flex-direction: column !important;
+  }
+  .episode-card-inner img {
+    width: 100% !important;
+    height: 120px !important;
+  }
+}
+
+/* 表单字段验证样式 - 使用 :has() */
+.form-group:has(input:invalid:not(:placeholder-shown)) label {
+  color: var(--destructive-text);
+}
+.form-group:has(input:valid:not(:placeholder-shown)) label {
+  color: var(--success-text);
+}
+
+/* 卡片悬停效果 - 使用 :has() */
+.episode-card:has(:hover) {
+  transform: translateY(-2px);
+}
+
+/* 防止双击缩放 */
+button, a, [role="button"], [role="menuitem"] {
+  touch-action: manipulation;
+}
+
+/* 防止图片拖拽 */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* View Transitions API - 页面切换动画 */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+::view-transition-old(root) {
+  animation: fade-out 0.2s ease-in;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
 }

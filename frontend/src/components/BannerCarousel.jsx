@@ -156,6 +156,8 @@ const BannerCarousel = React.memo(({ bannerImages, welcomeTitle, welcomeSubtitle
             <img
               src={banner.image}
               alt={banner.title}
+              fetchPriority="high"
+              decoding="async"
               style={{
                 width: '100%',
                 height: '100%',

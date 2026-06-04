@@ -302,7 +302,7 @@ const EpisodeDetail = ({ user }) => {
         </button>
       </div>
       <div className="episode-info">
-        <img src={episode.coverImage} alt={episode.title} />
+        <img src={episode.coverImage} alt={episode.title} decoding="async" />
         <div className="episode-details">
           <h2>{getLocalizedTitle(episode)}</h2>
           <p>{getLocalizedDescription(episode)}</p>
@@ -568,7 +568,7 @@ const EpisodeDetail = ({ user }) => {
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-modal)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
               >
-                <img src={rec.coverImage} alt="" style={{width: '100%', aspectRatio: '3/4', objectFit: 'cover'}} />
+                <img src={rec.coverImage} alt="" decoding="async" style={{width: '100%', aspectRatio: '3/4', objectFit: 'cover'}} />
                 <div style={{padding: '10px 12px'}}>
                   <div style={{fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{getLocalizedTitle(rec)}</div>
                   <div style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px'}}>

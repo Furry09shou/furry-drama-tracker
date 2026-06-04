@@ -4,13 +4,12 @@ import App from './App.jsx'
 import './index.css'
 import './utils/axiosConfig'
 
-if (import.meta.env.DEV) {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-  }
-} else if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+if ('serviceWorker' in navigator) {
+  const { registerSW } = await import('virtual:pwa-register');
+  registerSW({
+    onOfflineReady() {
+      console.log('[PWA] App is available offline');
+    },
   });
 }
 
