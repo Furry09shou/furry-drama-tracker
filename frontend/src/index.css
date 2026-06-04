@@ -1523,14 +1523,6 @@ dialog[open] {
   }
 }
 
-/* 表单字段验证样式 - 使用 :has() */
-.form-group:has(input:invalid:not(:placeholder-shown)) label {
-  color: var(--destructive-text);
-}
-.form-group:has(input:valid:not(:placeholder-shown)) label {
-  color: var(--success-text);
-}
-
 /* 卡片悬停效果 - 使用 :has() */
 .episode-card:has(:hover) {
   transform: translateY(-2px);
