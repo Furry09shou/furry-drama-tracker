@@ -9,8 +9,6 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
   const { t } = useI18n();
   const qrRef = useRef(null);
 
-  if (!show) return null;
-
   const shareUrl = `${window.location.origin}/episode/${episodeId}`;
   const shareText = t('share.title', { title });
 
@@ -21,6 +19,17 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
         .catch(() => setQrDataUrl(''));
     }
   }, [showQR, shareUrl]);
+
+  // 重置状态当弹窗关闭
+  useEffect(() => {
+    if (!show) {
+      setShowQR(false);
+      setQrDataUrl('');
+      setCopied(false);
+    }
+  }, [show]);
+
+  if (!show) return null;
 
   const handleCopy = () => {
     if (navigator.clipboard) {
