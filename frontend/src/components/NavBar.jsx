@@ -77,6 +77,19 @@ const NavBar = ({ onFeedback }) => {
     };
   }, []);
 
+  // 点击外部关闭下拉菜单
+  const navRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (navRef.current && !navRef.current.contains(e.target)) {
+        setShowNotifPanel(false);
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleInstallClick = async () => {
     if (!installPrompt) return;
     installPrompt.prompt();
@@ -217,7 +230,7 @@ const NavBar = ({ onFeedback }) => {
 
   // ===== 主导航渲染 =====
   return (
-    <header style={{ paddingTop: 'var(--safe-area-top, 0px)', paddingLeft: 'var(--safe-area-left, 0px)', paddingRight: 'var(--safe-area-right, 0px)' }}>
+    <header ref={navRef}>
       <nav>
         <div className="logo">
           <a href="/" onClick={(e) => { e.preventDefault(); if (document.startViewTransition) { document.startViewTransition(() => navigate('/')); } else { navigate('/'); } }} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -230,7 +243,7 @@ const NavBar = ({ onFeedback }) => {
         <div className="mobile-actions" style={{ display: 'none', alignItems: 'center', gap: '4px' }}>
           {user && (
             <button
-              popoverTarget="notif-panel-popover"
+              onClick={() => setShowNotifPanel(!showNotifPanel)}
               aria-expanded={showNotifPanel}
               aria-haspopup="true"
               style={{
@@ -299,7 +312,7 @@ const NavBar = ({ onFeedback }) => {
                   </button>
                 )}
                 <button
-                  popoverTarget="notif-panel-popover"
+                  onClick={() => setShowNotifPanel(!showNotifPanel)}
                   className="desktop-only-notif"
                   aria-expanded={showNotifPanel}
                   aria-haspopup="true"
@@ -319,13 +332,11 @@ const NavBar = ({ onFeedback }) => {
                     }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
                   )}
                 </button>
+                {showNotifPanel && (
                 <div
-                  id="notif-panel-popover"
-                  popover="auto"
-                  onToggle={(e) => setShowNotifPanel(e.newState === 'open')}
                   role="menu"
                   style={{
-                    position: 'fixed', top: '60px', right: '20px',
+                    position: 'absolute', top: '100%', right: 0,
                     width: 'min(360px, calc(100vw - 40px))', maxHeight: '480px', overflow: 'auto',
                     background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: '12px', boxShadow: '0 8px 32px var(--shadow-modal)',
@@ -415,6 +426,7 @@ const NavBar = ({ onFeedback }) => {
                       )}
                     </div>
                   </div>
+                )}
               </li>
               <li className="desktop-only-theme">
                 <LanguageSwitcher style={{ fontSize: '13px' }} />
@@ -430,7 +442,7 @@ const NavBar = ({ onFeedback }) => {
               <li style={{position: 'relative'}}>
                 <button
                   className="desktop-more-btn"
-                  popoverTarget="more-menu-popover"
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
                   aria-expanded={showMoreMenu}
                   aria-haspopup="true"
                   style={{
@@ -441,10 +453,8 @@ const NavBar = ({ onFeedback }) => {
                 >
                   {t('nav.more')}
                 </button>
+                {showMoreMenu && (
                 <div
-                  id="more-menu-popover"
-                  popover="auto"
-                  onToggle={(e) => setShowMoreMenu(e.newState === 'open')}
                   role="menu"
                   style={{
                     position: 'absolute', top: '100%', right: 0,
@@ -497,6 +507,7 @@ const NavBar = ({ onFeedback }) => {
                     >{t('nav.logout')}</button>
                   </div>
                 </div>
+                )}
               </li>
               <li className="mobile-more-toggle">
                 <button onClick={() => setShowMobileMore(!showMobileMore)} style={{
@@ -531,7 +542,7 @@ const NavBar = ({ onFeedback }) => {
               <li style={{position: 'relative'}}>
                 <button
                   className="desktop-more-btn"
-                  popoverTarget="more-menu-popover"
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
                   aria-expanded={showMoreMenu}
                   aria-haspopup="true"
                   style={{
@@ -542,10 +553,8 @@ const NavBar = ({ onFeedback }) => {
                 >
                   {t('nav.more')}
                 </button>
+                {showMoreMenu && (
                 <div
-                  id="more-menu-popover"
-                  popover="auto"
-                  onToggle={(e) => setShowMoreMenu(e.newState === 'open')}
                   role="menu"
                   style={{
                     position: 'absolute', top: '100%', right: 0,
@@ -576,6 +585,7 @@ const NavBar = ({ onFeedback }) => {
                     >{t('nav.clearCache')}</button>
                   </div>
                 </div>
+                )}
               </li>
               <li className="mobile-more-toggle">
                 <button onClick={() => setShowMobileMore(!showMobileMore)} style={{

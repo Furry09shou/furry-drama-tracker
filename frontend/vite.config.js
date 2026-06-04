@@ -65,7 +65,7 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'axios', 'qrcode'],
+    include: ['react-router-dom', 'axios', 'qrcode'],
   },
   server: {
     port: 3000,
