@@ -11,6 +11,7 @@ import BannerCarousel from './BannerCarousel';
 import EpisodeFilters from './EpisodeFilters';
 import TagCloud from './TagCloud';
 import EpisodeCard from './EpisodeCard';
+import TransitionLink from './TransitionLink';
 
 const Home = () => {
   const { t } = useI18n();
