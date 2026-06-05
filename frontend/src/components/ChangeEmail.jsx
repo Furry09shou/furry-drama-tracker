@@ -48,7 +48,20 @@ const ChangeEmail = ({ user }) => {
 
   return (
     <div className="auth-form" style={{maxWidth: '480px', margin: '0 auto'}}>
-      <h2>{t('auth.changeEmail') || '修改邮箱'}</h2>
+      <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px'}}>
+        <button
+          onClick={() => navigate('/account-security')}
+          style={{
+            background: 'var(--hover-bg)', border: '1px solid var(--border)',
+            borderRadius: '8px', padding: '6px 10px', cursor: 'pointer',
+            color: 'var(--foreground)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px'
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          {t('common.back')}
+        </button>
+        <h2 style={{margin: 0}}>{t('auth.changeEmail')}</h2>
+      </div>
       {user?.email && (
         <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px'}}>
           {t('profile.currentEmail') || '当前邮箱'}：{user.email}
@@ -90,7 +103,7 @@ const ChangeEmail = ({ user }) => {
             <button type="submit" disabled={loading || !password || !newEmail}>
               {loading ? (t('common.sending') || '发送中...') : (t('auth.sendVerificationEmail') || '发送验证邮件')}
             </button>
-            <Link to="/profile">
+            <Link to="/account-security">
               <button type="button" className="btn btn-secondary">{t('common.cancel') || '取消'}</button>
             </Link>
           </div>

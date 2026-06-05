@@ -64,7 +64,7 @@ const ChangePassword = () => {
         if (isAdmin) {
           navigate('/admin/dashboard');
         } else {
-          navigate('/profile');
+          navigate('/account-security');
         }
       }, 1500);
     } catch (err) {
@@ -75,7 +75,20 @@ const ChangePassword = () => {
 
   return (
     <div className="auth-form" style={{maxWidth: '480px', margin: '0 auto'}}>
-      <h2>{t('auth.changePassword')}</h2>
+      <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px'}}>
+        <button
+          onClick={() => navigate(isAdmin ? '/admin/dashboard' : '/account-security')}
+          style={{
+            background: 'var(--hover-bg)', border: '1px solid var(--border)',
+            borderRadius: '8px', padding: '6px 10px', cursor: 'pointer',
+            color: 'var(--foreground)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px'
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          {t('common.back')}
+        </button>
+        <h2 style={{margin: 0}}>{t('auth.changePassword')}</h2>
+      </div>
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message" style={{padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{success}</div>}
       <form onSubmit={handleSubmit}>
@@ -114,7 +127,7 @@ const ChangePassword = () => {
         </div>
         <div className="form-group" style={{display: 'flex', gap: '10px'}}>
           <button type="submit">{t('auth.confirmChange')}</button>
-          <Link to={isAdmin ? '/admin/dashboard' : '/profile'}>
+          <Link to={isAdmin ? '/admin/dashboard' : '/account-security'}>
             <button type="button" className="btn btn-secondary">{t('common.cancel')}</button>
           </Link>
         </div>

@@ -125,7 +125,7 @@ const UserDevices = ({ user }) => {
     <div className="user-profile">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link to="/profile" className="btn btn-secondary">{t('common.back')}</Link>
+          <Link to="/account-security" className="btn btn-secondary">{t('common.back')}</Link>
           <h2 style={{ margin: 0 }}>{t('devices.manageDevices')}</h2>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
