@@ -36,6 +36,7 @@ const TermsPage = lazy(() => import('./components/SitePage').then(m => ({ defaul
 const AboutPage = lazy(() => import('./components/SitePage').then(m => ({ default: m.AboutPage })));
 const LicensePage = lazy(() => import('./components/SitePage').then(m => ({ default: m.LicensePage })));
 const ChangePassword = lazy(() => import('./components/ChangePassword'));
+const ChangeEmail = lazy(() => import('./components/ChangeEmail'));
 const ResetPassword = lazy(() => import('./components/ResetPassword'));
 const VerifyEmail = lazy(() => import('./components/VerifyEmail'));
 const VerifyEmailChange = lazy(() => import('./components/VerifyEmailChange'));
@@ -301,6 +302,7 @@ function AppContent() {
             <Route path="/profile" element={user ? <Profile user={user} setUser={updateUser} logout={logout} /> : <Navigate to="/login" />} />
             <Route path="/devices" element={user ? <UserDevices user={user} /> : <Navigate to="/login" />} />
             <Route path="/change-password" element={user ? <ChangePassword user={user} /> : <Navigate to="/login" />} />
+            <Route path="/change-email" element={user ? <ChangeEmail user={user} /> : <Navigate to="/login" />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/verify-email-change" element={<VerifyEmailChange />} />

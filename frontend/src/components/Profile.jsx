@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Activity } from 'react';
 import axios from 'axios';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 import PasswordToggle from './PasswordToggle';
 import useTranslation from '../hooks/useTranslation';
@@ -45,14 +45,6 @@ const Profile = ({ user, setUser, logout }) => {
   const [nicknameLoading, setNicknameLoading] = useState(false);
   const [nicknameError, setNicknameError] = useState('');
   const [show2FA, setShow2FA] = useState(false);
-  const [showEmailChange, setShowEmailChange] = useState(false);
-  const [emailChangePassword, setEmailChangePassword] = useState('');
-  const [showEmailChangePassword, setShowEmailChangePassword] = useState(false);
-  const [emailChangeNewEmail, setEmailChangeNewEmail] = useState('');
-  const [emailChangeLoading, setEmailChangeLoading] = useState(false);
-  const [emailChangeError, setEmailChangeError] = useState('');
-  const [emailChangeSuccess, setEmailChangeSuccess] = useState('');
-  const emailChangeDialogRef = useRef(null);
 
   const [fetchError, setFetchError] = useState(null);
 
@@ -60,14 +52,7 @@ const Profile = ({ user, setUser, logout }) => {
   const [tabsRef, tabsVisible] = useScrollReveal();
 
   const location = useLocation();
-
-  useEffect(() => {
-    if (showEmailChange) {
-      emailChangeDialogRef.current?.showModal();
-    } else {
-      emailChangeDialogRef.current?.close();
-    }
-  }, [showEmailChange]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -650,7 +635,7 @@ const Profile = ({ user, setUser, logout }) => {
             <p style={{margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px'}}>
               {user.email}
               <button
-                onClick={() => { setShowEmailChange(true); setEmailChangeError(''); setEmailChangeSuccess(''); setEmailChangePassword(''); setEmailChangeNewEmail(''); }}
+                onClick={() => navigate('/change-email')}
                 style={{
                   fontSize: '12px', color: 'var(--primary)', background: 'none',
                   border: 'none', cursor: 'pointer', padding: '0 4px',
@@ -1044,109 +1029,6 @@ const Profile = ({ user, setUser, logout }) => {
       </div>
 
       {renderDeleteSection()}
-
-      {/* 修改邮箱弹窗 */}
-      <dialog
-        ref={emailChangeDialogRef}
-        onClose={() => setShowEmailChange(false)}
-        onClick={(e) => { if (e.target === emailChangeDialogRef.current) setShowEmailChange(false); }}
-        style={{
-          border: 'none', borderRadius: '12px', padding: 0,
-          maxWidth: '420px', width: '90%',
-          background: 'var(--card)', color: 'var(--foreground)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-        }}
-      >
-        <div style={{ padding: '24px' }}>
-          <h3 style={{ color: 'var(--foreground)', marginBottom: '16px', fontSize: '16px' }}>修改绑定邮箱</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
-            当前邮箱：{user.email}
-          </p>
-          {emailChangeSuccess ? (
-            <div style={{ textAlign: 'center', padding: '16px 0' }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>📧</div>
-              <p style={{ color: 'var(--success-text)', fontSize: '14px' }}>{emailChangeSuccess}</p>
-              <button
-                onClick={() => setShowEmailChange(false)}
-                style={{
-                  marginTop: '16px', padding: '8px 24px', borderRadius: '8px',
-                  background: 'var(--btn-gradient)', color: 'var(--btn-text)',
-                  border: 'none', cursor: 'pointer', fontSize: '14px'
-                }}
-              >知道了</button>
-            </div>
-          ) : (
-            <>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>当前密码</label>
-                <PasswordToggle
-                  value={emailChangePassword}
-                  onChange={e => setEmailChangePassword(e.target.value)}
-                  show={showEmailChangePassword}
-                  onToggle={() => setShowEmailChangePassword(!showEmailChangePassword)}
-                  placeholder="请输入当前密码"
-                  autoFocus
-                  style={{
-                    width: '100%', padding: '8px 12px', borderRadius: '8px',
-                    border: '1px solid var(--border)', background: 'var(--input-bg)',
-                    color: 'var(--foreground)', fontSize: '14px', boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>新邮箱</label>
-                <input
-                  type="email"
-                  value={emailChangeNewEmail}
-                  onChange={e => setEmailChangeNewEmail(e.target.value)}
-                  placeholder="请输入新邮箱地址"
-                  style={{
-                    width: '100%', padding: '8px 12px', borderRadius: '8px',
-                    border: '1px solid var(--border)', background: 'var(--input-bg)',
-                    color: 'var(--foreground)', fontSize: '14px', boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-              {emailChangeError && (
-                <p style={{ color: 'var(--destructive-text)', fontSize: '13px', margin: '0 0 8px 0' }}>{emailChangeError}</p>
-              )}
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => setShowEmailChange(false)}
-                  style={{
-                    padding: '8px 16px', borderRadius: '8px',
-                    background: 'var(--secondary)', color: 'var(--foreground)',
-                    border: '1px solid var(--border)', cursor: 'pointer', fontSize: '14px'
-                  }}
-                >取消</button>
-                <button
-                  onClick={async () => {
-                    setEmailChangeLoading(true);
-                    setEmailChangeError('');
-                    try {
-                      const res = await axios.post(API.AUTH.REQUEST_EMAIL_CHANGE, {
-                        password: emailChangePassword,
-                        newEmail: emailChangeNewEmail
-                      });
-                      setEmailChangeSuccess(res.data.message);
-                    } catch (err) {
-                      setEmailChangeError(err.response?.data?.message || '请求失败');
-                    }
-                    setEmailChangeLoading(false);
-                  }}
-                  disabled={emailChangeLoading || !emailChangePassword || !emailChangeNewEmail}
-                  style={{
-                    padding: '8px 16px', borderRadius: '8px',
-                    background: 'var(--btn-gradient)', color: 'var(--btn-text)',
-                    border: 'none', cursor: emailChangeLoading ? 'wait' : 'pointer',
-                    fontSize: '14px', opacity: (emailChangeLoading || !emailChangePassword || !emailChangeNewEmail) ? 0.6 : 1
-                  }}
-                >{emailChangeLoading ? '发送中...' : '发送验证邮件'}</button>
-              </div>
-            </>
-          )}
-        </div>
-      </dialog>
     </div>
   );
 };

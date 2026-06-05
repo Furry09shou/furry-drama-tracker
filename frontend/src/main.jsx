@@ -4,7 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import './utils/axiosConfig'
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator) {
   import('virtual:pwa-register').then(({ registerSW }) => {
     registerSW({
       onOfflineReady() {
