@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity } from 'react';
 import axios from 'axios';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
-import PasswordToggle from './PasswordToggle';
 import useTranslation from '../hooks/useTranslation';
-import TwoFactorAuth from './TwoFactorAuth';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
 import useScrollReveal from '../hooks/useScrollReveal';
 
 const Profile = ({ user, setUser, logout }) => {
-  const { t, lang, locale } = useI18n();
+  const { t, lang } = useI18n();
   const { getLocalizedTitle } = useTranslation();
   const { getAuthHeaders } = useAuth();
   const [followedEpisodes, setFollowedEpisodes] = useState([]);
@@ -27,14 +25,6 @@ const Profile = ({ user, setUser, logout }) => {
   const [showFolderMenu, setShowFolderMenu] = useState(null);
 
   const [loading, setLoading] = useState(true);
-  const [deletionStatus, setDeletionStatus] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteStep, setDeleteStep] = useState(0);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [showDeletePassword, setShowDeletePassword] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
-  const [cancelLoading, setCancelLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('follows');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
@@ -44,7 +34,6 @@ const Profile = ({ user, setUser, logout }) => {
   const [nicknameValue, setNicknameValue] = useState('');
   const [nicknameLoading, setNicknameLoading] = useState(false);
   const [nicknameError, setNicknameError] = useState('');
-  const [show2FA, setShow2FA] = useState(false);
 
   const [fetchError, setFetchError] = useState(null);
 
@@ -52,7 +41,6 @@ const Profile = ({ user, setUser, logout }) => {
   const [tabsRef, tabsVisible] = useScrollReveal();
 
   const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,27 +49,22 @@ const Profile = ({ user, setUser, logout }) => {
         if (!userData) { setLoading(false); return; }
         const config = { headers: getAuthHeaders() };
 
-        const [followRes, historyRes, favRes, folderRes, delRes] = await Promise.allSettled([
+        const [followRes, historyRes, favRes, folderRes] = await Promise.allSettled([
           axios.get('/api/follows/list', config),
           axios.get('/api/histories/list', config),
           axios.get('/api/favorites/list', config),
           axios.get('/api/folders?type=favorite', config),
-          axios.get(API.AUTH.DELETION_STATUS, config),
         ]);
 
         const followData = followRes.status === 'fulfilled' ? (followRes.value.data.list || followRes.value.data || []) : [];
         const historyData = historyRes.status === 'fulfilled' ? (historyRes.value.data.list || historyRes.value.data || []) : [];
         const favData = favRes.status === 'fulfilled' ? (favRes.value.data.list || favRes.value.data || []) : [];
         const folderData = folderRes.status === 'fulfilled' ? (folderRes.value.data || []) : [];
-        const delData = delRes.status === 'fulfilled' ? delRes.value.data : {};
 
         setFollowedEpisodes(followData);
         setHistoryEpisodes(historyData);
         setFavoriteEpisodes(favData);
         setFavoriteFolders(folderData);
-        if (delData.requested) {
-          setDeletionStatus(delData);
-        }
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -90,53 +73,6 @@ const Profile = ({ user, setUser, logout }) => {
     };
     fetchData();
   }, [location]);
-
-  const handleRequestDeletion = async () => {
-    setDeleteLoading(true);
-    setDeleteError('');
-    try {
-      const res = await axios.post(API.AUTH.REQUEST_DELETION, {}, {
-        headers: getAuthHeaders()
-      });
-      setDeletionStatus({
-        requested: true,
-        deletionRequestedAt: res.data.deletionRequestedAt,
-        deleteAt: res.data.deleteAt
-      });
-      setShowDeleteConfirm(false);
-      setDeleteStep(0);
-      setDeletePassword('');
-    } catch (err) {
-      setDeleteError(err.response?.data?.message || t('profile.deletionRequestFailed'));
-    }
-    setDeleteLoading(false);
-  };
-
-  const handleCancelDeletion = async () => {
-    setCancelLoading(true);
-    try {
-      await axios.post(API.AUTH.CANCEL_DELETION, {}, {
-        headers: getAuthHeaders()
-      });
-      setDeletionStatus(null);
-    } catch (err) {
-      console.error(t('profile.cancelDeletionFailed'), err);
-    }
-    setCancelLoading(false);
-  };
-
-  const formatCountdown = (deleteAt) => {
-    const now = new Date();
-    const target = new Date(deleteAt);
-    const diff = target - now;
-    if (diff <= 0) return t('profile.imminent');
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    if (days > 0) return `${days}${t('common.days')}${hours}${t('common.hours')}`;
-    if (hours > 0) return `${hours}${t('common.hours')}${minutes}${t('common.minutes')}`;
-    return `${minutes}${t('common.minutes')}`;
-  };
 
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
@@ -393,139 +329,6 @@ const Profile = ({ user, setUser, logout }) => {
     );
   };
 
-  const renderDeleteSection = () => {
-    if (deletionStatus) {
-      return (
-        <div style={{
-          marginTop: '30px', padding: '20px', borderRadius: '12px',
-          background: 'var(--destructive-bg-subtle)', border: '1px solid var(--destructive-border-subtle)'
-        }}>
-          <h3 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '16px' }}>{t('profile.accountDeleting')}</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.7, marginBottom: '12px' }}>
-            {t('profile.deletionCountdown')} <strong style={{ color: 'var(--destructive-text)' }}>{formatCountdown(deletionStatus.deleteAt)}</strong> {t('profile.deletionCountdownAfter')}
-          </p>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
-            {t('profile.estimatedDeleteTime')}{new Date(deletionStatus.deleteAt).toLocaleString(locale)}
-          </p>
-          <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '16px' }}>
-            {t('profile.cancelHint')}
-          </p>
-          <button
-            className="btn"
-            style={{ background: 'var(--btn-gradient-success)', fontSize: '14px' }}
-            onClick={handleCancelDeletion}
-            disabled={cancelLoading}
-          >
-            {cancelLoading ? t('common.processing') : t('profile.cancelDeletionKeepAccount')}
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <div style={{
-        marginTop: '30px', padding: '20px', borderRadius: '12px',
-        background: 'var(--hover-bg)', border: '1px solid var(--border)'
-      }}>
-        <h3 style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '16px' }}>{t('profile.deleteAccountSection')}</h3>
-        <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginBottom: '16px' }}>
-          {t('profile.deleteAccountWarning')}
-        </p>
-        {!showDeleteConfirm ? (
-          <button
-            style={{
-              background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
-              color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px',
-              cursor: 'pointer', fontSize: '13px'
-            }}
-            onClick={() => { setShowDeleteConfirm(true); setDeleteStep(0); setDeletePassword(''); setDeleteError(''); }}
-          >
-            {t('profile.requestDeletion')}
-          </button>
-        ) : (
-          <div style={{
-            background: 'var(--destructive-bg-subtle)', border: '1px solid var(--destructive-border-subtle)',
-            borderRadius: '8px', padding: '16px'
-          }}>
-            {deleteStep === 0 && (
-              <>
-                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>{t('profile.deleteConfirmTitle')}</h4>
-                <div style={{ background: 'var(--destructive-bg-subtle)', borderRadius: '6px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--destructive-text-light)', lineHeight: 1.7 }}>
-                  <p style={{ margin: '0 0 8px 0' }}>{t('profile.pleaseReadCarefully')}</p>
-                  <ul style={{ margin: 0, paddingLeft: '16px' }}>
-                    <li>{t('profile.deletionCoolingPeriod')}</li>
-                    <li>{t('profile.canCancelAnytime')}</li>
-                    <li>{t('profile.permanentDeleteAfter7Days')}</li>
-                    <li>{t('profile.deletionIrreversible')}</li>
-                  </ul>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => setShowDeleteConfirm(false)}>{t('profile.letMeThink')}</button>
-                  <button style={{ background: 'var(--destructive-bg-strong)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }} onClick={() => setDeleteStep(1)}>{t('profile.understoodContinue')}</button>
-                </div>
-              </>
-            )}
-            {deleteStep === 1 && (
-              <>
-                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>{t('profile.enterPasswordConfirm')}</h4>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>{t('profile.enterPasswordToConfirm')}</p>
-                <PasswordToggle
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  show={showDeletePassword}
-                  onToggle={() => setShowDeletePassword(!showDeletePassword)}
-                  placeholder={t('profile.enterLoginPassword')}
-                  style={{
-                    width: '100%', padding: '10px 14px', borderRadius: '6px',
-                    background: 'var(--input)', border: '1px solid var(--border)',
-                    color: 'var(--foreground)', fontSize: '14px', marginBottom: '12px'
-                  }}
-                />
-                {deleteError && <p style={{ color: 'var(--destructive-text)', fontSize: '13px', marginBottom: '8px' }}>{deleteError}</p>}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setDeleteStep(0); setDeletePassword(''); setDeleteError(''); }}>{t('common.back')}</button>
-                  <button
-                    style={{ background: 'var(--destructive-bg-strong)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }}
-                    disabled={!deletePassword || deleteLoading}
-                    onClick={async () => {
-                      try {
-                        await axios.post(API.AUTH.LOGIN, { email: user.email, password: deletePassword });
-                        setDeleteStep(2);
-                        setDeleteError('');
-                      } catch {
-                        setDeleteError(t('profile.incorrectPassword'));
-                      }
-                    }}
-                  >
-                    {deleteLoading ? t('profile.verifying') : t('profile.verifyPassword')}
-                  </button>
-                </div>
-              </>
-            )}
-            {deleteStep === 2 && (
-              <>
-                <h4 style={{ color: 'var(--destructive-text)', marginBottom: '12px', fontSize: '14px' }}>{t('profile.finalConfirm')}</h4>
-                <p style={{ color: 'var(--destructive-text-light)', fontSize: '14px', marginBottom: '16px', fontWeight: 500 }}>
-                  {t('profile.finalConfirmText')}
-                </p>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); }}>{t('common.cancel')}</button>
-                  <button
-                    style={{ background: 'var(--destructive)', border: 'none', color: 'var(--btn-text)', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
-                    disabled={deleteLoading}
-                    onClick={handleRequestDeletion}
-                  >
-                    {deleteLoading ? t('common.processing') : t('profile.confirmSubmitDeletion')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="user-profile">
       <h2>{t('profile.title')}</h2>
@@ -634,14 +437,6 @@ const Profile = ({ user, setUser, logout }) => {
             </p>
             <p style={{margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px'}}>
               {user.email}
-              <button
-                onClick={() => navigate('/change-email')}
-                style={{
-                  fontSize: '12px', color: 'var(--primary)', background: 'none',
-                  border: 'none', cursor: 'pointer', padding: '0 4px',
-                  textDecoration: 'underline', marginLeft: '8px'
-                }}
-              >修改邮箱</button>
             </p>
             {user.isEmailVerified ? (
               <span style={{
@@ -695,34 +490,9 @@ const Profile = ({ user, setUser, logout }) => {
           </div>
         </div>
         <div style={{display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
-          <Link to="/change-password" className="btn" style={{display: 'inline-block'}}>{t('profile.changePassword')}</Link>
-          <Link to="/devices" className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>{t('profile.manageDevices')}</Link>
-          {show2FA ? (
-            <></>
-          ) : (
-            <button onClick={() => setShow2FA(true)} className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>
-              {t('twoFactor.title')}
-            </button>
-          )}
-          <button onClick={async () => {
-            try {
-              const res = await fetch(API.USERS.EXPORT, {
-                headers: getAuthHeaders(),
-                credentials: 'include'
-              });
-              const blob = await res.blob();
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `my_data_${new Date().toISOString().split('T')[0]}.json`;
-              a.click();
-              window.URL.revokeObjectURL(url);
-            } catch (e) {}
-          }} style={{
-            padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--primary-border)',
-            background: 'var(--primary-bg)', color: 'var(--primary-light)',
-            cursor: 'pointer', fontSize: '14px', fontWeight: 500, transition: 'all 0.2s'
-          }}>{t('profile.exportData')}</button>
+          <Link to="/account-security" className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>
+            {t('profile.accountSecurity') || '账号与安全'}
+          </Link>
           <button onClick={logout} style={{
             padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--destructive-border)',
             background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
@@ -731,10 +501,6 @@ const Profile = ({ user, setUser, logout }) => {
         </div>
       </div>
       </div>
-
-      {show2FA && (
-        <TwoFactorAuth user={user} setUser={setUser} onClose={() => setShow2FA(false)} />
-      )}
 
       <div ref={tabsRef} className={`reveal ${tabsVisible ? 'visible' : ''}`}>
       <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap'}}>
@@ -1027,8 +793,6 @@ const Profile = ({ user, setUser, logout }) => {
         </div>
       </Activity>
       </div>
-
-      {renderDeleteSection()}
     </div>
   );
 };
