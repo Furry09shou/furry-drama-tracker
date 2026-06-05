@@ -430,6 +430,7 @@ export default {
     setupStep3: '3. 输入认证器应用显示的6位验证码以确认启用：',
     confirmEnable: '确认启用',
     enabled: '✅ 双因素认证已启用',
+    disabled: '未开启',
     disableDesc: '输入认证器应用中的6位验证码来禁用双因素认证：',
     disable: '禁用 2FA',
     verifying: '验证中...',

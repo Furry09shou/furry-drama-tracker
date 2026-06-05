@@ -430,6 +430,7 @@ export default {
     setupStep3: '3. Enter the 6-digit code from your authenticator app to confirm:',
     confirmEnable: 'Confirm Enable',
     enabled: '✅ Two-Factor Authentication Enabled',
+    disabled: 'Not enabled',
     disableDesc: 'Enter the 6-digit code from your authenticator app to disable 2FA:',
     disable: 'Disable 2FA',
     verifying: 'Verifying...',
