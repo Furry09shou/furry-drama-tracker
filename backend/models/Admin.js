@@ -17,23 +17,13 @@ const AdminSchema = new mongoose.Schema({
     default: 'admin',
     enum: ['superadmin', 'admin', 'creator']
   },
-  loginAttempts: {
-    type: Number,
-    default: 0
-  },
-  lockUntil: {
-    type: Date,
-    default: null
-  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-AdminSchema.virtual('isLocked').get(function() {
-  return !!(this.lockUntil && this.lockUntil > Date.now());
-});
+accountLockoutPlugin(AdminSchema);
 
 AdminSchema.pre('save', async function() {
   if (!this.isModified('password')) return;

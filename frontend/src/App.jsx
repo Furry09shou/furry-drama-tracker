@@ -226,7 +226,7 @@ function AppContent() {
   const [showFeedback, setShowFeedback] = useState(false);
   const location = useLocation();
 
-  const isAdminRoute = location.pathname.startsWith('/admin/') && location.pathname !== '/admin';
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   useEffect(() => {
     if (!siteSettingsData) return;
@@ -287,7 +287,9 @@ function AppContent() {
 
   return (
     <>
-      <NavBar onFeedback={() => setShowFeedback(true)} />
+      <NavBarErrorBoundary>
+        <NavBar onFeedback={() => setShowFeedback(true)} />
+      </NavBarErrorBoundary>
       <div className="container">
         <div key={location.pathname} className="page-enter">
         <Suspense fallback={<LoadingFallback />}>
@@ -305,7 +307,6 @@ function AppContent() {
             <Route path="/verify-device" element={<Login login={login} />} />
             <Route path="/calendar" element={<UpdateCalendar />} />
             <Route path="/timeline" element={<Timeline />} />
-            <Route path="/admin" element={<Admin />} />
             <Route path="/creator/:id" element={<CreatorPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
@@ -344,6 +345,27 @@ function App() {
   );
 }
 
+class NavBarErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <header style={{ padding: '12px 20px', background: 'var(--card)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to="/" style={{ fontWeight: 700, fontSize: '18px', color: 'var(--primary)', textDecoration: 'none' }}>兽剧</Link>
+          <button onClick={() => window.location.reload()} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: '6px', background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '13px' }}>刷新</button>
+        </header>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 class ErrorBoundary extends Component {
   static contextType = I18nContext;
   constructor(props) {
@@ -354,13 +376,8 @@ class ErrorBoundary extends Component {
     return { hasError: true, error };
   }
   componentDidMount() {
-    this._asyncErrorListener = (event) => {
-      this.setState({ hasError: true, error: event.reason || new Error('Unknown async error') });
-    };
-    window.addEventListener('unhandledrejection', this._asyncErrorListener);
   }
   componentWillUnmount() {
-    window.removeEventListener('unhandledrejection', this._asyncErrorListener);
   }
   render() {
     if (this.state.hasError) {

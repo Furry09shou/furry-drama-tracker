@@ -36,7 +36,7 @@ axios.interceptors.response.use(
       } else {
         localStorage.removeItem('user');
         window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
-        if (!skipRedirect && window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/reset-password') {
+        if (!skipRedirect && !window.location.pathname.startsWith('/admin') && window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/reset-password') {
           window.location.href = '/login';
         }
       }

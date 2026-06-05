@@ -53,7 +53,7 @@ router.post('/login', async (req, res) => {
     }
     global._captchaStore.delete(captchaId);
 
-    const admin = await Admin.findOne({ username });
+    const admin = await Admin.findOne({ username }).select('+loginAttempts +lockUntil');
     if (!admin) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }

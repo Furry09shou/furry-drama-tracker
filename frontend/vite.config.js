@@ -65,10 +65,23 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['react-router-dom', 'axios', 'qrcode'],
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react/jsx-dev-runtime',
+      'react/jsx-runtime',
+      'react-router-dom',
+      'axios',
+      'qrcode',
+    ],
+    noDiscovery: true,
   },
   server: {
     port: 3000,
+    headers: {
+      'Cache-Control': 'no-store',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

@@ -28,20 +28,6 @@ const Admin = () => {
     const adminToken = getAdminToken();
     if (adminToken) {
       navigate('/admin/dashboard', { replace: true });
-      return;
-    }
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      navigate('/login', { replace: true });
-      return;
-    }
-    try {
-      const user = JSON.parse(userStr);
-      if (!user.adminAccess) {
-        navigate('/', { replace: true });
-      }
-    } catch {
-      navigate('/login', { replace: true });
     }
   }, [navigate]);
 
