@@ -598,18 +598,32 @@ const Profile = ({ user, setUser, logout }) => {
                 transition: 'all 0.15s'
               }}
             >📁 {t('profile.allFavorites')}</div>
-            <div
-              onClick={() => handleFolderClick('unclassified')}
-              style={{
-                padding: '7px 10px', borderRadius: '6px', cursor: 'pointer',
-                fontSize: '13px', marginBottom: '2px',
-                background: activeFolderId === 'unclassified' ? 'var(--primary-bg)' : 'transparent',
-                color: activeFolderId === 'unclassified' ? 'var(--primary)' : 'var(--foreground)',
-                fontWeight: activeFolderId === 'unclassified' ? 600 : 400,
-                border: activeFolderId === 'unclassified' ? '1px solid var(--primary-border)' : '1px solid transparent',
-                transition: 'all 0.15s'
-              }}
-            >📂 {t('profile.unclassified')}</div>
+            <div style={{position: 'relative'}}>
+              <div
+                onClick={() => handleFolderClick('unclassified')}
+                style={{
+                  padding: '7px 10px', borderRadius: '6px', cursor: 'pointer',
+                  fontSize: '13px', marginBottom: '2px', paddingRight: '28px',
+                  background: activeFolderId === 'unclassified' ? 'var(--primary-bg)' : 'transparent',
+                  color: activeFolderId === 'unclassified' ? 'var(--primary)' : 'var(--foreground)',
+                  fontWeight: activeFolderId === 'unclassified' ? 600 : 400,
+                  border: activeFolderId === 'unclassified' ? '1px solid var(--primary-border)' : '1px solid transparent',
+                  transition: 'all 0.15s',
+                  position: 'relative'
+                }}
+              >📂 {t('profile.unclassified')}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShareFolder({ _id: '__unclassified__', name: t('profile.unclassified'), isUnclassified: true }); }}
+                  style={{
+                    position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-tertiary)', fontSize: '12px', padding: '2px 4px',
+                    lineHeight: 1
+                  }}
+                  title={t('share.shareFolder')}
+                >🔗</button>
+              </div>
+            </div>
             {favoriteFolders.map(folder => (
               <div key={folder._id} style={{position: 'relative'}}>
                 {editingFolderId === folder._id ? (
@@ -712,6 +726,43 @@ const Profile = ({ user, setUser, logout }) => {
             ))}
           </div>
           <div className="followed-episodes" style={{flex: 1}}>
+            {/* 收藏夹信息板块 */}
+            {activeFolderId && activeFolderId !== null && (
+              <div style={{
+                background: 'var(--card)', borderRadius: '12px',
+                border: '1px solid var(--border)', padding: '16px 20px',
+                marginBottom: '16px', display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between', gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '24px' }}>
+                    {activeFolderId === 'unclassified' ? '📂' : '📁'}
+                  </span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '16px' }}>
+                      {activeFolderId === 'unclassified'
+                        ? t('profile.unclassified')
+                        : favoriteFolders.find(f => f._id === activeFolderId)?.name || ''}
+                    </h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      {t('share.folderCount', { count: favoriteEpisodes.length })}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    if (activeFolderId === 'unclassified') {
+                      setShareFolder({ _id: '__unclassified__', name: t('profile.unclassified'), isUnclassified: true });
+                    } else {
+                      const folder = favoriteFolders.find(f => f._id === activeFolderId);
+                      if (folder) setShareFolder(folder);
+                    }
+                  }}
+                  style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >🔗 {t('share.shareFolder')}</button>
+              </div>
+            )}
             {favoriteEpisodes.length === 0 ? (
               <p>{t('profile.noFavorites')}</p>
             ) : (

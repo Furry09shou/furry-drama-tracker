@@ -44,7 +44,10 @@ const FolderShareModal = ({ show, onClose, folder }) => {
     if (!folder) return;
     setLoading(true);
     try {
-      const res = await axios.post(`${API.FOLDERS}/${folder._id}/share`, {}, getAuthHeaders());
+      const endpoint = folder.isUnclassified
+        ? `${API.FOLDERS}/share-unclassified`
+        : `${API.FOLDERS}/${folder._id}/share`;
+      const res = await axios.post(endpoint, {}, getAuthHeaders());
       setShareToken(res.data.shareToken);
     } catch (err) {
       console.error('Failed to generate share link:', err);

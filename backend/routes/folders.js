@@ -9,7 +9,7 @@ const { asyncHandler } = require('../utils/errorHandler');
 
 router.get('/', protect, async (req, res) => {
   try {
-    const filter = { userId: req.user._id };
+    const filter = { userId: req.user._id, name: { $ne: '__unclassified__' } };
     if (req.query.type) {
       filter.type = req.query.type;
     }
@@ -116,6 +116,23 @@ router.delete('/:id/items/:episodeId', protect, async (req, res) => {
   }
 });
 
+// 分享未分类收藏夹（放在 /:id 路由之前，避免被 /:id 匹配）
+router.post('/share-unclassified', protect, async (req, res) => {
+  try {
+    let virtualFolder = await Folder.findOne({ userId: req.user._id, type: 'favorite', name: '__unclassified__' });
+    if (!virtualFolder) {
+      virtualFolder = await Folder.create({ userId: req.user._id, type: 'favorite', name: '__unclassified__', sortOrder: -1 });
+    }
+    if (!virtualFolder.shareToken) {
+      virtualFolder.shareToken = require('crypto').randomBytes(12).toString('hex');
+      await virtualFolder.save();
+    }
+    res.json({ shareToken: virtualFolder.shareToken });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // 分享收藏夹 — 生成 shareToken
 router.post('/:id/share', protect, async (req, res) => {
   try {
@@ -155,8 +172,10 @@ router.get('/shared/:shareToken', async (req, res) => {
     if (!folder) {
       return res.status(404).json({ message: 'Shared folder not found' });
     }
+    const isUnclassified = folder.name === '__unclassified__';
     const Model = folder.type === 'follow' ? Follow : Favorite;
-    const items = await Model.find({ folderId: folder._id })
+    const filter = isUnclassified ? { userId: folder.userId, folderId: null } : { folderId: folder._id };
+    const items = await Model.find(filter)
       .populate('episodeId', 'title titleEn coverImage currentEpisodes totalEpisodes averageRating ratingCount status')
       .sort({ createdAt: -1 });
 
@@ -165,7 +184,7 @@ router.get('/shared/:shareToken', async (req, res) => {
       .map(item => item.episodeId);
 
     res.json({
-      name: folder.name,
+      name: isUnclassified ? '未分类' : folder.name,
       type: folder.type,
       count: episodes.length,
       episodes,
