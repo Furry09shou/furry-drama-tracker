@@ -291,10 +291,11 @@ function AppContent() {
 
   return (
     <>
+      <a href="#main-content" className="skip-link">跳到主要内容</a>
       <NavBarErrorBoundary>
         <NavBar onFeedback={() => setShowFeedback(true)} />
       </NavBarErrorBoundary>
-      <div className="container">
+      <div className="container" id="main-content">
         <div key={location.pathname} className="page-enter">
         <Suspense fallback={<LoadingFallback />}>
           <Routes>

@@ -7,6 +7,7 @@ import useTranslation from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
 import useScrollReveal from '../hooks/useScrollReveal';
+import ShareModal from './ShareModal';
 
 const Profile = ({ user, setUser, logout }) => {
   const { t, lang } = useI18n();
@@ -23,6 +24,7 @@ const Profile = ({ user, setUser, logout }) => {
   const [editingFolderName, setEditingFolderName] = useState('');
   const [movingFavoriteId, setMovingFavoriteId] = useState(null);
   const [showFolderMenu, setShowFolderMenu] = useState(null);
+  const [shareEpisode, setShareEpisode] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('follows');
@@ -727,6 +729,10 @@ const Profile = ({ user, setUser, logout }) => {
                           style={{fontSize: '13px'}}>
                           {t('profile.unfavorite')}
                         </button>
+                        <button className="btn btn-secondary" onClick={() => setShareEpisode(episode)}
+                          style={{fontSize: '13px'}}>
+                          🔗 {t('share.share')}
+                        </button>
                         <div style={{position: 'relative'}}>
                           <button
                             className="btn btn-secondary"
@@ -793,6 +799,14 @@ const Profile = ({ user, setUser, logout }) => {
         </div>
       </Activity>
       </div>
+      {shareEpisode && (
+        <ShareModal
+          show={!!shareEpisode}
+          onClose={() => setShareEpisode(null)}
+          title={getLocalizedTitle(shareEpisode)}
+          episodeId={shareEpisode._id}
+        />
+      )}
     </div>
   );
 };

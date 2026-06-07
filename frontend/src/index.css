@@ -15,7 +15,7 @@ a {
 }
 
 body {
-  font-family: 'Inter', 'HarmonyOS Sans', 'PingFang SC', 'Microsoft YaHei',
+  font-family: 'Plus Jakarta Sans', 'Noto Sans SC', 'HarmonyOS Sans', 'PingFang SC', 'Microsoft YaHei',
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--background);
   color: var(--foreground);
@@ -1541,6 +1541,10 @@ dialog[open] {
 }
 
 /* 防止双击缩放 */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
 button, a, [role="button"], [role="menuitem"] {
   touch-action: manipulation;
 }
@@ -2185,4 +2189,467 @@ nav ul li a:focus-visible {
     border: 1px solid #ddd !important;
     box-shadow: none !important;
   }
+}
+
+/* ============================================================
+   折叠屏适配 (Samsung Fold, Huawei Mate X 等)
+   使用 CSS Viewport Segments / Fold API
+   ============================================================ */
+
+/* 折叠屏横跨双屏 — 中间有折叠区域 */
+@media (horizontal-viewport-segments: 2) {
+  .container {
+    display: grid;
+    grid-template-columns: 1fr env(viewport-segment-width 0 0) 1fr;
+    gap: 0;
+  }
+
+  .hero {
+    grid-column: 1 / -1;
+  }
+
+  .episode-grid {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 折叠屏竖跨双屏 */
+@media (vertical-viewport-segments: 2) {
+  .hero {
+    height: 50vh;
+  }
+}
+
+/* 折叠屏通用 — 展开态大屏适配 */
+@media (min-width: 768px) and (max-width: 1024px) and (hover: none) {
+  /* 折叠屏展开态：类似平板但触控 */
+  .episode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .btn, button[class*="btn"] {
+    min-height: 44px;
+  }
+}
+
+/* ============================================================
+   电子墨水屏适配 (Kindle, 文石, 海信等)
+   特征：monochrome、低刷新率、高对比
+   ============================================================ */
+@media (monochrome) {
+  /* 黑白显示 — 移除渐变和色彩 */
+  .hero::before,
+  .auth-form::before {
+    display: none;
+  }
+
+  .hero h2,
+  .auth-form h2,
+  nav .logo h1 {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: currentColor !important;
+    background-clip: unset !important;
+    color: var(--foreground) !important;
+  }
+
+  /* 移除所有动画 — 墨水屏刷新慢 */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* 高对比边框 */
+  .episode-card {
+    border: 2px solid var(--foreground) !important;
+  }
+
+  .auth-form {
+    border: 2px solid var(--foreground) !important;
+  }
+
+  /* 移除阴影 — 墨水屏无法渲染 */
+  * {
+    box-shadow: none !important;
+  }
+
+  /* 移除背景渐变 */
+  body {
+    background-image: none !important;
+  }
+}
+
+/* 墨水屏高对比模式 */
+@media (prefers-contrast: more) {
+  :root {
+    --border: rgba(0, 0, 0, 0.4);
+    --text-secondary: rgba(0, 0, 0, 0.8);
+  }
+
+  .episode-card {
+    border-width: 2px;
+  }
+
+  .btn, button[class*="btn"] {
+    border-width: 2px;
+    font-weight: 600;
+  }
+}
+
+/* ============================================================
+   VR/AR 头显适配 (Meta Quest, Apple Vision Pro 等)
+   特征：超大视口、手柄/眼动追踪、3D空间
+   ============================================================ */
+@media (min-width: 2560px) and (hover: hover) {
+  html {
+    font-size: 20px;
+  }
+
+  .container {
+    max-width: 2000px;
+  }
+
+  .episode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 32px;
+  }
+
+  .hero {
+    height: 400px;
+  }
+
+  .hero h2 {
+    font-size: 3.5rem;
+  }
+}
+
+/* ============================================================
+   游戏主机浏览器 (PlayStation, Xbox, Nintendo Switch)
+   特征：中等视口、手柄操控、无 hover
+   ============================================================ */
+@media (min-width: 960px) and (max-width: 1920px) and (hover: none) and (pointer: coarse) {
+  /* 手柄导航焦点样式 */
+  *:focus-visible {
+    outline: 3px solid var(--primary) !important;
+    outline-offset: 4px !important;
+  }
+
+  .episode-card:focus-visible {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 4px var(--primary), 0 16px 40px var(--shadow-modal);
+  }
+
+  /* 大按钮 — 手柄选择友好 */
+  .btn, button[class*="btn"] {
+    min-height: 48px;
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  nav ul li a {
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+
+  input, select, textarea {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  /* Switch 竖屏模式 */
+  .episode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+/* Nintendo Switch 竖屏 (手持模式) */
+@media (max-width: 720px) and (hover: none) and (pointer: coarse) and (orientation: portrait) {
+  .episode-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+/* ============================================================
+   横屏模式适配 (手机横屏、平板横屏)
+   ============================================================ */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* 手机横屏 — 内容区域极矮 */
+  header {
+    padding: 6px 0;
+  }
+
+  @supports (padding: env(safe-area-inset-top)) {
+    header {
+      padding-top: calc(6px + env(safe-area-inset-top));
+    }
+  }
+
+  .hero {
+    height: 140px;
+  }
+
+  .hero h2 {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+  }
+
+  .hero p {
+    font-size: 0.9rem;
+  }
+
+  body {
+    padding-bottom: 40px;
+  }
+
+  .auth-form {
+    margin: 16px auto;
+    padding: 20px;
+  }
+
+  .auth-form h2 {
+    font-size: 1.3rem;
+    margin-bottom: 14px;
+  }
+}
+
+/* 平板横屏 */
+@media (min-width: 768px) and (max-height: 600px) and (orientation: landscape) {
+  .hero {
+    height: 180px;
+  }
+
+  .episode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+/* ============================================================
+   分屏 / 多窗口适配
+   当窗口被缩窄到一半或更小时
+   ============================================================ */
+@media (min-width: 480px) and (max-width: 640px) {
+  /* 分屏模式 — 类似大屏手机 */
+  .episode-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 320px) and (max-width: 480px) {
+  /* 极窄分屏 */
+  .container {
+    padding: 10px;
+  }
+
+  .episode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  nav .logo h1 {
+    font-size: 1.1rem;
+  }
+}
+
+/* ============================================================
+   Windows 高对比度模式 / 强制颜色
+   ============================================================ */
+@media (forced-colors: active) {
+  /* 保留语义颜色，让系统控制 */
+  .btn, button[class*="btn"] {
+    border: 2px solid ButtonText;
+  }
+
+  .episode-card {
+    border: 2px solid CanvasText;
+  }
+
+  /* 确保链接可识别 */
+  a {
+    text-decoration: underline;
+  }
+
+  /* 焦点环使用系统颜色 */
+  *:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px !important;
+  }
+
+  /* 输入框边框 */
+  input, select, textarea {
+    border: 2px solid ButtonText;
+  }
+}
+
+/* ============================================================
+   PWA 独立模式 (display: standalone)
+   无浏览器地址栏，需要自定义返回按钮和安全区域
+   ============================================================ */
+@media (display-mode: standalone) {
+  /* PWA 顶部安全区域 */
+  header {
+    padding-top: calc(15px + env(safe-area-inset-top, 0px));
+  }
+
+  /* PWA 底部安全区域 */
+  body {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* 独立模式下隐藏安装提示 */
+  .pwa-install-banner {
+    display: none !important;
+  }
+}
+
+/* PWA 全屏模式 */
+@media (display-mode: fullscreen) {
+  header {
+    padding-top: calc(15px + env(safe-area-inset-top, 0px));
+  }
+
+  body {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ============================================================
+   超宽屏 / 带鱼屏适配 (≥ 2560px, 21:9 等)
+   ============================================================ */
+@media (min-width: 2560px) {
+  .container {
+    max-width: 2200px;
+  }
+
+  .episode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+  }
+
+  .hero {
+    height: 400px;
+  }
+
+  .hero h2 {
+    font-size: 3.5rem;
+  }
+
+  .hero p {
+    font-size: 1.5rem;
+  }
+}
+
+/* 带鱼屏 21:9 — 限制内容宽度保持可读性 */
+@media (min-aspect-ratio: 21/9) {
+  .container {
+    max-width: 1400px;
+  }
+
+  .hero {
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ============================================================
+   车载信息娱乐系统适配
+   特征：固定横屏、触控、驾驶安全限制
+   ============================================================ */
+@media (min-width: 800px) and (max-width: 1280px) and (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  /* 大触控按钮 */
+  .btn, button[class*="btn"] {
+    min-height: 56px;
+    padding: 14px 24px;
+    font-size: 17px;
+    border-radius: 12px;
+  }
+
+  nav ul li a {
+    padding: 14px 20px;
+    font-size: 17px;
+  }
+
+  input, select, textarea {
+    min-height: 56px;
+    font-size: 18px;
+    padding: 14px 16px;
+  }
+
+  /* 驾驶安全 — 简化界面，减少干扰 */
+  .hero::before {
+    display: none;
+  }
+
+  .episode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+  }
+
+  /* 高对比焦点 */
+  *:focus-visible {
+    outline: 4px solid var(--primary) !important;
+    outline-offset: 4px !important;
+  }
+}
+
+/* ============================================================
+   高 DPI / Retina 显示优化
+   ============================================================ */
+@media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
+  /* 3x DPI 设备（如高端安卓）— 细线更细 */
+  .episode-card {
+    border-width: 0.5px;
+  }
+}
+
+/* ============================================================
+   Chrome OS / Chromebook 平板模式
+   ============================================================ */
+@media (min-width: 1024px) and (hover: none) and (pointer: coarse) {
+  /* Chromebook 触控屏模式 */
+  .btn, button[class*="btn"] {
+    min-height: 44px;
+  }
+
+  .episode-card:focus-visible {
+    transform: translateY(-4px);
+    box-shadow: 0 0 0 3px var(--primary), 0 12px 40px var(--shadow-modal);
+  }
+}
+
+/* ============================================================
+   屏幕阅读器 / 辅助技术优化
+   ============================================================ */
+
+/* 仅屏幕阅读器可见 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* 跳过导航链接 — 键盘用户快速跳到主内容 */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 0 0 8px 8px;
+  z-index: 99999;
+  font-weight: 600;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
 }
