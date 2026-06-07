@@ -497,6 +497,9 @@ const Profile = ({ user, setUser, logout }) => {
           <Link to="/account-security" className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>
             {t('profile.accountSecurity') || '账号与安全'}
           </Link>
+          <Link to="/settings" className="btn" style={{display: 'inline-block', border: '1px solid var(--border)', background: 'var(--hover-bg)', color: 'var(--foreground)'}}>
+            {t('settings.title')}
+          </Link>
           <button onClick={logout} style={{
             padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--destructive-border)',
             background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
@@ -544,7 +547,8 @@ const Profile = ({ user, setUser, logout }) => {
             minWidth: '180px', maxWidth: '220px', flexShrink: 0,
             background: 'var(--card)', borderRadius: '12px',
             border: '1px solid var(--border)', padding: '12px',
-            position: 'sticky', top: '20px'
+            position: 'sticky', top: '20px',
+            overflow: 'visible', zIndex: 100
           }}>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px'}}>
               <h4 style={{margin: 0, fontSize: '14px', color: 'var(--text-secondary)'}}>{t('profile.folder')}</h4>
@@ -679,7 +683,7 @@ const Profile = ({ user, setUser, logout }) => {
                 )}
                 {showFolderMenu === folder._id && (
                   <div style={{
-                    position: 'absolute', right: '0', top: '100%', zIndex: 10,
+                    position: 'absolute', right: '0', top: '100%', zIndex: 1000,
                     background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: '8px', padding: '4px', minWidth: '120px',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)'

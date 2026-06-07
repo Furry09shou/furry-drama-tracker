@@ -41,6 +41,7 @@ const AccountSecurity = lazy(() => import('./components/AccountSecurity'));
 const TwoFactorPage = lazy(() => import('./components/TwoFactorPage'));
 const DeleteAccount = lazy(() => import('./components/DeleteAccount'));
 const SharedFolder = lazy(() => import('./components/SharedFolder'));
+const Settings = lazy(() => import('./components/Settings'));
 const ResetPassword = lazy(() => import('./components/ResetPassword'));
 const VerifyEmail = lazy(() => import('./components/VerifyEmail'));
 const VerifyEmailChange = lazy(() => import('./components/VerifyEmailChange'));
@@ -311,6 +312,7 @@ function AppContent() {
             <Route path="/account-security" element={user ? <AccountSecurity user={user} /> : <Navigate to="/login" />} />
             <Route path="/two-factor" element={user ? <TwoFactorPage user={user} setUser={updateUser} /> : <Navigate to="/login" />} />
             <Route path="/delete-account" element={user ? <DeleteAccount user={user} /> : <Navigate to="/login" />} />
+            <Route path="/settings" element={user ? <Settings user={user} /> : <Navigate to="/login" />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/verify-email-change" element={<VerifyEmailChange />} />

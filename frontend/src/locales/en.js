@@ -1343,8 +1343,22 @@ export default {
     backOnline: 'Back online!',
     install: 'Install App',
     installDesc: 'Add Furry Drama Hub to your home screen for a better experience',
-    installBtn: 'Install',
+    installBtn: 'Install PWA App',
     dismiss: 'Dismiss',
+    close: 'Close',
+    neverRemind: "Don't Remind",
+  },
+  settings: {
+    title: 'Settings',
+    saved: 'Saved',
+    pwa: 'PWA App',
+    pwaInstallRemind: 'Install Prompt',
+    pwaInstallRemindDesc: 'Control whether to show PWA install prompt',
+    notification: 'Push Notifications',
+    notificationDesc: 'Receive push notifications for new episodes',
+    display: 'Display',
+    language: 'Language',
+    languageDesc: 'Follows browser language setting',
   },
   search: {
     suggestions: 'Search Suggestions',
@@ -1368,8 +1382,5 @@ export default {
     newValue: 'New Value',
     selectVersions: 'Select two versions to compare',
     history: 'History',
-  },
-  pwa: {
-    installBtn: 'Install App',
   },
 };

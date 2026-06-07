@@ -1343,8 +1343,22 @@ export default {
     backOnline: '已恢复网络连接',
     install: '安装应用',
     installDesc: '将兽剧聚合平台添加到主屏幕，获得更好的体验',
-    installBtn: '安装',
+    installBtn: '安装PWA应用',
     dismiss: '忽略',
+    close: '关闭',
+    neverRemind: '不再提醒',
+  },
+  settings: {
+    title: '设置',
+    saved: '已保存',
+    pwa: 'PWA 应用',
+    pwaInstallRemind: '安装提示',
+    pwaInstallRemindDesc: '控制是否显示PWA安装提示弹窗',
+    notification: '推送通知',
+    notificationDesc: '接收新剧集更新等推送通知',
+    display: '显示',
+    language: '语言',
+    languageDesc: '跟随浏览器语言设置',
   },
   search: {
     suggestions: '搜索建议',
@@ -1368,8 +1382,5 @@ export default {
     newValue: '新值',
     selectVersions: '选择两个版本进行对比',
     history: '历史',
-  },
-  pwa: {
-    installBtn: '安装应用',
   },
 };

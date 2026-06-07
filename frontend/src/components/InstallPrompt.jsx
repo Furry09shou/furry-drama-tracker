@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useI18n } from '../contexts/I18nContext';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
+const SESSION_CLOSED_KEY = 'pwa-install-session-closed';
 
 export default function InstallPrompt() {
   const { t } = useI18n();
@@ -9,7 +10,10 @@ export default function InstallPrompt() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    // "不再提醒" 永久关闭
     if (localStorage.getItem(DISMISSED_KEY) === 'true') return;
+    // "关闭" 本次会话已关闭
+    if (sessionStorage.getItem(SESSION_CLOSED_KEY) === 'true') return;
 
     const handler = (e) => {
       e.preventDefault();
@@ -34,7 +38,14 @@ export default function InstallPrompt() {
     }
   };
 
-  const handleDismiss = () => {
+  // 关闭：本次会话不再显示，下次打开还会弹
+  const handleClose = () => {
+    sessionStorage.setItem(SESSION_CLOSED_KEY, 'true');
+    setShow(false);
+  };
+
+  // 不再提醒：永久关闭，直到用户在设置中重新开启
+  const handleNeverRemind = () => {
     localStorage.setItem(DISMISSED_KEY, 'true');
     setShow(false);
   };
@@ -62,7 +73,7 @@ export default function InstallPrompt() {
           background: 'var(--card)',
           border: '1px solid var(--border)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          maxWidth: 'min(400px, calc(100vw - 32px))',
+          maxWidth: 'min(440px, calc(100vw - 32px))',
         }}
       >
         <span style={{ fontSize: '28px', flexShrink: 0 }}>📲</span>
@@ -74,30 +85,7 @@ export default function InstallPrompt() {
             {t('pwa.installDesc')}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-          <button
-            onClick={handleDismiss}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--primary)';
-              e.currentTarget.style.color = 'var(--primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.color = 'var(--text-secondary)';
-            }}
-          >
-            {t('pwa.dismiss')}
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
           <button
             onClick={handleInstall}
             style={{
@@ -111,15 +99,61 @@ export default function InstallPrompt() {
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '0.9';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1';
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
           >
             {t('pwa.installBtn')}
           </button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={handleClose}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                fontSize: '11px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                flex: 1,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--primary)';
+                e.currentTarget.style.color = 'var(--primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              {t('pwa.close')}
+            </button>
+            <button
+              onClick={handleNeverRemind}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--text-tertiary)',
+                fontSize: '11px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                flex: 1,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--destructive-text)';
+                e.currentTarget.style.color = 'var(--destructive-text)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.color = 'var(--text-tertiary)';
+              }}
+            >
+              {t('pwa.neverRemind')}
+            </button>
+          </div>
         </div>
       </div>
       <style>{`
