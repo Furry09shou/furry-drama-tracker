@@ -76,6 +76,7 @@ export default {
     friendLinkApply: '新友链申请：{name}',
     friendLinkStatus: '友链「{name}」申请{status}',
     reminder: '您已订阅该剧集的更新提醒',
+    pushSettings: '推送设置',
     pushOn: '推送已开启',
     pushOff: '开启推送',
   },

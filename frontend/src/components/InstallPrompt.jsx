@@ -8,12 +8,11 @@ export default function InstallPrompt() {
   const { t } = useI18n();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [show, setShow] = useState(false);
+  const [neverRemind, setNeverRemind] = useState(false);
 
   useEffect(() => {
     // "不再提醒" 永久关闭
     if (localStorage.getItem(DISMISSED_KEY) === 'true') return;
-    // "关闭" 本次会话已关闭
-    if (sessionStorage.getItem(SESSION_CLOSED_KEY) === 'true') return;
 
     const handler = (e) => {
       e.preventDefault();
@@ -38,15 +37,11 @@ export default function InstallPrompt() {
     }
   };
 
-  // 关闭：本次会话不再显示，下次打开还会弹
+  // 关闭：如果勾选了不再提醒则永久关闭，否则仅本次隐藏（刷新页面会重新弹出）
   const handleClose = () => {
-    sessionStorage.setItem(SESSION_CLOSED_KEY, 'true');
-    setShow(false);
-  };
-
-  // 不再提醒：永久关闭，直到用户在设置中重新开启
-  const handleNeverRemind = () => {
-    localStorage.setItem(DISMISSED_KEY, 'true');
+    if (neverRemind) {
+      localStorage.setItem(DISMISSED_KEY, 'true');
+    }
     setShow(false);
   };
 
@@ -86,37 +81,36 @@ export default function InstallPrompt() {
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
-          <button
-            onClick={handleInstall}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'var(--primary)',
-              color: '#fff',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-          >
-            {t('pwa.installBtn')}
-          </button>
           <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={handleInstall}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'var(--primary)',
+                color: '#fff',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+            >
+              {t('pwa.installBtn')}
+            </button>
             <button
               onClick={handleClose}
               style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
+                padding: '6px 14px',
+                borderRadius: '8px',
                 border: '1px solid var(--border)',
                 background: 'transparent',
                 color: 'var(--text-secondary)',
-                fontSize: '11px',
+                fontSize: '12px',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
-                flex: 1,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--primary)';
@@ -129,31 +123,20 @@ export default function InstallPrompt() {
             >
               {t('pwa.close')}
             </button>
-            <button
-              onClick={handleNeverRemind}
-              style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--text-tertiary)',
-                fontSize: '11px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                flex: 1,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--destructive-text)';
-                e.currentTarget.style.color = 'var(--destructive-text)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border)';
-                e.currentTarget.style.color = 'var(--text-tertiary)';
-              }}
-            >
-              {t('pwa.neverRemind')}
-            </button>
           </div>
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            fontSize: '11px', color: 'var(--text-tertiary)',
+            cursor: 'pointer', userSelect: 'none',
+          }}>
+            <input
+              type="checkbox"
+              checked={neverRemind}
+              onChange={(e) => setNeverRemind(e.target.checked)}
+              style={{ margin: 0, cursor: 'pointer', accentColor: 'var(--primary)' }}
+            />
+            {t('pwa.neverRemind')}
+          </label>
         </div>
       </div>
       <style>{`

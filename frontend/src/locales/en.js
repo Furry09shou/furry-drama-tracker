@@ -76,6 +76,7 @@ export default {
     friendLinkApply: 'New friend link application: {name}',
     friendLinkStatus: 'Friend link "{name}" application {status}',
     reminder: 'You have subscribed to updates for this series',
+    pushSettings: 'Push Settings',
     pushOn: 'Push on',
     pushOff: 'Enable push',
   },
