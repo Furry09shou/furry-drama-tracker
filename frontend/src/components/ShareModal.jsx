@@ -64,11 +64,30 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
     }
   };
 
+  // 微信分享：PC端显示二维码，移动端尝试调用微信
+  const handleWechatShare = () => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      // 移动端尝试通过 weixin:// 协议唤起微信
+      const weixinUrl = `weixin://dl/business/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareText)}`;
+      window.location.href = weixinUrl;
+      // 同时显示二维码作为备选
+      setTimeout(() => setShowQR(true), 500);
+    } else {
+      setShowQR(true);
+    }
+  };
+
+  // QQ分享：使用QQ分享链接，PC和移动端都可用
+  const handleQQShare = () => {
+    const qqShareUrl = `https://connect.qq.com/widget/shareqq/index.html?title=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}&summary=${encodeURIComponent(shareText)}`;
+    window.open(qqShareUrl, '_blank', 'width=600,height=500');
+  };
+
   const platforms = [
-    { name: t('share.wechat'), icon: '💬', color: '#07c160', action: () => setShowQR(true) },
-    { name: 'QQ', icon: '🐧', color: '#12b7f5', action: () => setShowQR(true) },
+    { name: t('share.wechat'), icon: '💬', color: '#07c160', action: handleWechatShare },
+    { name: 'QQ', icon: '🐧', color: '#12b7f5', action: handleQQShare },
     { name: t('share.weibo'), icon: '📢', color: '#e6162d', url: `https://service.weibo.com/share/share.php?title=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` },
-    { name: 'Twitter', icon: '🐦', color: '#1da1f2', url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` }
   ];
 
   return (
@@ -81,6 +100,7 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
         maxWidth: '400px', width: '90%',
         background: 'var(--card)', color: 'var(--foreground)',
         boxShadow: '0 25px 50px var(--shadow-strong)',
+        margin: 'auto',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>

@@ -103,9 +103,6 @@ const ChangeEmail = ({ user }) => {
             <button type="submit" disabled={loading || !password || !newEmail}>
               {loading ? (t('common.sending') || '发送中...') : (t('auth.sendVerificationEmail') || '发送验证邮件')}
             </button>
-            <Link to="/account-security">
-              <button type="button" className="btn btn-secondary">{t('common.cancel') || '取消'}</button>
-            </Link>
           </div>
         </form>
       )}

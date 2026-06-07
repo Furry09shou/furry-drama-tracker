@@ -109,7 +109,7 @@ const AccountSecurity = ({ user }) => {
             <div style={{...iconStyle, background: 'var(--warning-bg)', color: 'var(--warning-text)'}}>🔑</div>
             <div>
               <div style={{fontWeight: 500, fontSize: '15px'}}>{t('auth.password')}</div>
-              <div style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px'}}>••••••••</div>
+              <div style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px'}}>{t('profile.changePassword')}</div>
             </div>
           </div>
           <Link to="/change-password">

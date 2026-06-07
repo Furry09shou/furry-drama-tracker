@@ -127,9 +127,6 @@ const ChangePassword = () => {
         </div>
         <div className="form-group" style={{display: 'flex', gap: '10px'}}>
           <button type="submit">{t('auth.confirmChange')}</button>
-          <Link to={isAdmin ? '/admin/dashboard' : '/account-security'}>
-            <button type="button" className="btn btn-secondary">{t('common.cancel')}</button>
-          </Link>
         </div>
       </form>
     </div>
