@@ -116,7 +116,7 @@ router.post('/login', async (req, res) => {
 
 router.post('/logout', adminProtect, async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const token = req.authToken;
     const tokenHash = hashToken(token);
     await AdminSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
     res.clearCookie('adminToken', { path: '/' });

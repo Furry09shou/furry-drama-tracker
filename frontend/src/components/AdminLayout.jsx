@@ -1,62 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate, Outlet } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminLayout = () => {
   const { t } = useI18n();
   const [admin, setAdmin] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-    } else {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('adminData');
-      navigate('/admin', { replace: true });
-    }
-    const heartbeat = setInterval(() => {
-      const adminToken = getAdminToken();
-      if (adminToken) {
-        adminApi.post('/api/admin-sessions/heartbeat', {}).catch(() => {});
-      }
-    }, 5 * 60 * 1000);
-    return () => clearInterval(heartbeat);
-  }, [navigate]);
 
   useEffect(() => {
     const validateAdmin = async () => {
       try {
-        const token = getAdminToken();
-        if (!token) return;
-        await adminApi.get('/api/admin/verify');
+        const res = await adminApi.get('/api/admin/verify');
+        setAdmin(res.data.admin || res.data);
       } catch (error) {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('adminToken');
-          localStorage.removeItem('adminData');
-          setAdmin(null);
-          navigate('/admin', { replace: true });
-        }
+        setAdmin(null);
+        navigate('/admin', { replace: true });
       }
+      setLoading(false);
     };
     validateAdmin();
-  }, []);
+
+    const heartbeat = setInterval(() => {
+      adminApi.post('/api/admin-sessions/heartbeat', {}).catch(() => {});
+    }, 5 * 60 * 1000);
+    return () => clearInterval(heartbeat);
+  }, [navigate]);
 
   const handleLogout = async () => {
-    const token = getAdminToken();
-    if (token) {
-      try {
-        await adminApi.post('/api/admin/logout', {});
-      } catch (e) {}
-    }
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminData');
+    try {
+      await adminApi.post('/api/admin/logout', {});
+    } catch (e) {}
+    setAdmin(null);
     navigate('/admin', { replace: true });
   };
 
+  if (loading) return null;
   if (!admin) return null;
 
   return (

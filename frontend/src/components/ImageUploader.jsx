@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import adminApi, { getAdminToken } from '../utils/adminApi';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const ImageUploader = ({ value, onChange, label, aspectRatio, outputWidth, outputHeight, uploadEndpoint }) => {

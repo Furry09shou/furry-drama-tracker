@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
-import adminApi, { getAdminToken } from '../utils/adminApi';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const Badge = ({ count }) => {
@@ -42,8 +42,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!admin) return;
-    const token = getAdminToken();
-    if (!token) return;
     adminApi.get('/api/admin/pending-counts')
       .then(res => setPendingCounts(res.data))
       .catch(() => {});

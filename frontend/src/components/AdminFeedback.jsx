@@ -1,28 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminFeedback = () => {
   const { locale, t } = useI18n();
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [list, setList] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [replyText, setReplyText] = useState('');
   const [replyingId, setReplyingId] = useState(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
 
   useEffect(() => {
     if (!admin) return;
@@ -31,7 +20,7 @@ const AdminFeedback = () => {
     adminApi.get(`/api/feedback?${params}`)
       .then(res => { setList(res.data.list); setTotal(res.data.total); })
       .catch(() => {});
-  }, [admin, page, statusFilter]);
+  }, [page, statusFilter]);
 
   if (!admin) return null;
 

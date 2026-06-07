@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminBackup = () => {
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState('');
@@ -13,15 +13,8 @@ const AdminBackup = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-      if (adminData.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
+    if (admin.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
+  }, [admin, navigate]);
 
   if (!admin) return null;
 

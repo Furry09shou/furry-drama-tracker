@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import ImageUploader from './ImageUploader';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -24,7 +24,7 @@ const parseI18nContent = (raw) => {
 
 const AdminSiteContent = () => {
   const { lang: uiLang, t } = useI18n();
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [contents, setContents] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
   const [editLang, setEditLang] = useState('zh');
@@ -53,19 +53,12 @@ const AdminSiteContent = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-      if (adminData.role === 'superadmin') {
-        fetchContents();
-      } else {
-        navigate('/admin/dashboard', { replace: true });
-      }
+    if (admin.role === 'superadmin') {
+      fetchContents();
     } else {
-      navigate('/admin', { replace: true });
+      navigate('/admin/dashboard', { replace: true });
     }
-  }, [navigate]);
+  }, [admin, navigate]);
 
   const fetchContents = async () => {
     try {

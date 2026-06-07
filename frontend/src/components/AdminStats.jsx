@@ -1,31 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminStats = () => {
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    if (!admin) return;
     adminApi.get('/api/stats/overview')
       .then(res => { setStats(res.data); setLoading(false); })
       .catch(() => { setLoading(false); });
-  }, [admin]);
+  }, []);
 
   if (!admin) return null;
   if (loading) return <div className="admin-panel"><h2>{t('common.loading')}</h2></div>;

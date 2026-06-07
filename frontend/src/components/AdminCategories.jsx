@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
-import { useNavigate } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
+import { useOutletContext } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminCategories = () => {
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [categories, setCategories] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -14,18 +14,11 @@ const AdminCategories = () => {
   const [newCategoryOrder, setNewCategoryOrder] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
+    fetchCategories();
+  }, []);
 
   const fetchCategories = async () => {
     try {
@@ -35,10 +28,6 @@ const AdminCategories = () => {
       console.error('获取分类失败', err);
     }
   };
-
-  useEffect(() => {
-    if (admin) fetchCategories();
-  }, [admin]);
 
   const handleAdd = async (e) => {
     e.preventDefault();

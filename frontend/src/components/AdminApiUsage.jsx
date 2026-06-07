@@ -1,32 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminApiUsage = () => {
   const { t } = useI18n();
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [data, setData] = useState({ dailyTotals: {}, topEndpoints: [] });
   const [days, setDays] = useState(7);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-      if (adminData.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
+    if (admin.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
+  }, [admin, navigate]);
 
   useEffect(() => {
-    if (!admin) return;
     adminApi.get(`/api/rss/api-usage?days=${days}`)
       .then(res => setData(res.data))
       .catch(() => {});
-  }, [admin, days]);
+  }, [days]);
 
   if (!admin) return null;
 

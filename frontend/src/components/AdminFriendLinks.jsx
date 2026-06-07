@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import adminApi, { getAdminToken } from '../utils/adminApi';
-import { useNavigate } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
+import { useOutletContext } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminFriendLinks = () => {
@@ -16,14 +16,11 @@ const AdminFriendLinks = () => {
     order: 0, isActive: true
   });
   const [error, setError] = useState('');
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = getAdminToken();
-    if (!token) { navigate('/admin'); return; }
     fetchLinks();
-  }, [navigate]);
+  }, []);
 
   const fetchLinks = async () => {
     try {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminAuditLogs = () => {
   const { locale, t } = useI18n();
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -13,15 +13,8 @@ const AdminAuditLogs = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-      if (adminData.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
+    if (admin.role !== 'superadmin') navigate('/admin/dashboard', { replace: true });
+  }, [admin, navigate]);
 
   useEffect(() => {
     if (!admin) return;
@@ -31,7 +24,7 @@ const AdminAuditLogs = () => {
     adminApi.get(`/api/audit-logs?${params}`)
       .then(res => { setLogs(res.data.logs); setTotal(res.data.total); })
       .catch(() => {});
-  }, [admin, page, filter]);
+  }, [page, filter]);
 
   if (!admin) return null;
 

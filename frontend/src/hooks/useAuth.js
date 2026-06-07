@@ -1,19 +1,16 @@
 import { useState, useEffect } from 'react';
-import { getAdminToken, getAdminData } from '../utils/adminApi';
+import adminApi from '../utils/adminApi';
 
 export const useAuth = () => {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = getAdminToken();
-      const adminData = getAdminData();
-      if (token && adminData) {
-        setAdmin(adminData);
-      } else {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminData');
+    const checkAuth = async () => {
+      try {
+        const res = await adminApi.get('/api/admin/verify');
+        setAdmin(res.data.admin);
+      } catch {
         setAdmin(null);
       }
       setLoading(false);
@@ -23,12 +20,15 @@ export const useAuth = () => {
   }, []);
 
   const isAuthenticated = () => {
-    return !!getAdminToken();
+    return !!admin;
   };
 
-  const logout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminData');
+  const logout = async () => {
+    try {
+      await adminApi.post('/api/auth/admin/logout');
+    } catch {
+      // ignore
+    }
     setAdmin(null);
   };
 

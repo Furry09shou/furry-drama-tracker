@@ -16,7 +16,7 @@ router.post('/create', adminProtect, async (req, res) => {
     if (language) deviceInfo.language = language;
     deviceInfo.userAgent = ua;
 
-    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+    const adminToken = req.authToken;
     const tokenHash = hashToken(adminToken);
 
     const session = new AdminSession({
@@ -40,7 +40,7 @@ router.get('/my', adminProtect, async (req, res) => {
     const sessions = await AdminSession.find({ adminId: req.admin._id })
       .sort({ loginAt: -1 })
       .limit(20);
-    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+    const adminToken = req.authToken;
     const currentTokenHash = hashToken(adminToken);
     const result = sessions.map(s => ({
       ...s.toObject(),
@@ -62,7 +62,7 @@ router.get('/all', superAdminProtect, async (req, res) => {
     const sessions = await AdminSession.find()
       .sort({ loginAt: -1 })
       .skip((pageNum - 1) * limitNum).limit(limitNum);
-    const adminToken = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.adminToken;
+    const adminToken = req.authToken;
     const currentTokenHash = hashToken(adminToken);
     const result = sessions.map(s => ({
       ...s.toObject(),
@@ -126,7 +126,7 @@ router.delete('/admin/:adminId/all', superAdminProtect, async (req, res) => {
 
 router.post('/heartbeat', adminProtect, async (req, res) => {
   try {
-    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+    const adminToken = req.authToken;
     const tokenHash = hashToken(adminToken);
     await AdminSession.findOneAndUpdate(
       { tokenHash, isActive: true },

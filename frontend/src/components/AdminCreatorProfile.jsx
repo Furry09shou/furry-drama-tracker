@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import ImageUploader from './ImageUploader';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminCreatorProfile = () => {
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [profile, setProfile] = useState(null);
   const [displayName, setDisplayName] = useState('');
   const [avatar, setAvatar] = useState('');
@@ -17,19 +17,12 @@ const AdminCreatorProfile = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-      if (adminData.role === 'creator' || adminData.role === 'admin' || adminData.role === 'superadmin') {
-        fetchProfile();
-      } else {
-        navigate('/admin/dashboard', { replace: true });
-      }
+    if (admin.role === 'creator' || admin.role === 'admin' || admin.role === 'superadmin') {
+      fetchProfile();
     } else {
-      navigate('/admin', { replace: true });
+      navigate('/admin/dashboard', { replace: true });
     }
-  }, [navigate]);
+  }, [admin, navigate]);
 
   const fetchProfile = async () => {
     try {

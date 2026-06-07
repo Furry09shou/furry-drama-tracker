@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
-import { useNavigate } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import PasswordToggle from './PasswordToggle';
 import SearchInput from './SearchInput';
@@ -9,7 +9,7 @@ import { useI18n } from '../contexts/I18nContext';
 
 const AdminUsers = () => {
   const { t, locale } = useI18n();
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [users, setUsers] = useState([]);
   const [admins, setAdmins] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -30,18 +30,11 @@ const AdminUsers = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      if (adminData.role !== 'superadmin') {
-        navigate('/admin/dashboard', { replace: true });
-        return;
-      }
-      setAdmin(adminData);
-    } else {
-      navigate('/admin', { replace: true });
+    if (admin.role !== 'superadmin') {
+      navigate('/admin/dashboard', { replace: true });
+      return;
     }
-  }, [navigate]);
+  }, [admin, navigate]);
 
   const fetchUsers = async () => {
     try {
@@ -62,11 +55,9 @@ const AdminUsers = () => {
   };
 
   useEffect(() => {
-    if (admin) {
-      fetchUsers();
-      fetchAdmins();
-    }
-  }, [admin]);
+    fetchUsers();
+    fetchAdmins();
+  }, []);
 
   useEffect(() => {
     if (!userSearch.trim()) {

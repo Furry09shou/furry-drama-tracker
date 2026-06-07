@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 import ReviewStatusBadge from './ReviewStatusBadge';
 
 const AdminReview = () => {
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [pendingEpisodes, setPendingEpisodes] = useState([]);
   const [allEpisodes, setAllEpisodes] = useState([]);
   const [creators, setCreators] = useState([]);
@@ -19,21 +19,14 @@ const AdminReview = () => {
   const { t } = useI18n();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-      if (adminData.role === 'admin' || adminData.role === 'superadmin') {
-        fetchPendingEpisodes();
-        fetchAllEpisodes();
-        fetchCreators();
-      } else {
-        navigate('/admin/dashboard', { replace: true });
-      }
+    if (admin.role === 'admin' || admin.role === 'superadmin') {
+      fetchPendingEpisodes();
+      fetchAllEpisodes();
+      fetchCreators();
     } else {
-      navigate('/admin', { replace: true });
+      navigate('/admin/dashboard', { replace: true });
     }
-  }, [navigate]);
+  }, [admin, navigate]);
 
   const fetchPendingEpisodes = async () => {
     try {

@@ -44,8 +44,7 @@ const ChangePassword = () => {
     }
 
     try {
-      const tokenKey = isAdmin ? 'adminToken' : null;
-      const headers = tokenKey ? { Authorization: `Bearer ${localStorage.getItem(tokenKey)}` } : {};
+      const headers = {};
       const endpoint = isAdmin ? '/api/auth/admin/change-password' : '/api/auth/change-password';
 
       await axios.put(endpoint, {

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
-import { useNavigate } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
+import { useOutletContext } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminAnalytics = () => {
+  const { admin } = useOutletContext();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('7d');
@@ -12,29 +13,22 @@ const AdminAnalytics = () => {
   const [selectedEpisodes, setSelectedEpisodes] = useState([]);
   const [realtimeData, setRealtimeData] = useState({ onlineUsers: 0, todayVisits: 0, todayNewUsers: 0, todayNewEpisodes: 0 });
   const [tooltipInfo, setTooltipInfo] = useState(null);
-  const navigate = useNavigate();
   const { t } = useI18n();
   const realtimeIntervalRef = useRef(null);
 
   const fetchRealtime = useCallback(() => {
-    const token = getAdminToken();
-    if (!token) return;
     adminApi.get('/api/stats/realtime')
       .then(res => setRealtimeData(res.data))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    const token = getAdminToken();
-    if (!token) { navigate('/admin'); return; }
     adminApi.get(`/api/stats/overview?period=${period}`)
       .then(res => { setData(res.data); setLoading(false); })
       .catch(() => { setLoading(false); });
-  }, [period, navigate]);
+  }, [period]);
 
   useEffect(() => {
-    const token = getAdminToken();
-    if (!token) return;
     adminApi.get('/api/stats/activity-heatmap')
       .then(res => setHeatmapData(res.data))
       .catch(() => {});

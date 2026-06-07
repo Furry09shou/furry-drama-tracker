@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
-import { useNavigate } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
 import ImageUploader from './ImageUploader';
@@ -10,7 +10,7 @@ import EpisodeVersionHistory from './EpisodeVersionHistory';
 
 const AdminEpisodes = () => {
   const { locale, t } = useI18n();
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [episodes, setEpisodes] = useState([]);
   const [filteredEpisodes, setFilteredEpisodes] = useState([]);
   const [episodeSearch, setEpisodeSearch] = useState('');
@@ -48,26 +48,17 @@ const AdminEpisodes = () => {
   });
   const [error, setError] = useState('');
   const [historyEpisodeId, setHistoryEpisodeId] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-      fetchEpisodes();
-      fetchCategories();
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
+    fetchEpisodes();
+    fetchCategories();
+  }, []);
 
   // ===== 数据获取 =====
   const fetchEpisodes = async () => {
     try {
-      const adminData = getAdminData() || {};
       let response;
-      if (adminData.role === 'creator') {
+      if (admin.role === 'creator') {
         response = await adminApi.get('/api/creator/my-episodes');
       } else {
         response = await adminApi.get('/api/episodes');

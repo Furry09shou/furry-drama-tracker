@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import adminApi, { getAdminToken } from '../utils/adminApi';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const EpisodeVersionHistory = ({ episodeId, onClose }) => {

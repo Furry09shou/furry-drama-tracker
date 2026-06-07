@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminSessions = () => {
+  const { admin } = useOutletContext();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -13,18 +14,12 @@ const AdminSessions = () => {
   const { t, lang, locale } = useI18n();
 
   useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (!token || !adminData) {
-      navigate('/admin', { replace: true });
-      return;
-    }
-    if (adminData.role !== 'superadmin') {
+    if (admin.role !== 'superadmin') {
       navigate('/admin/dashboard', { replace: true });
       return;
     }
     fetchSessions();
-  }, [navigate]);
+  }, [admin, navigate]);
 
   const fetchSessions = async () => {
     setLoading(true);

@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
-import { useNavigate } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
+import { useOutletContext } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminReports = () => {
   const { locale, t } = useI18n();
+  const { admin } = useOutletContext();
   const [reports, setReports] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [resolveNote, setResolveNote] = useState('');
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const adminData = getAdminData();
-    if (!adminData) { navigate('/admin'); return; }
-  }, [navigate]);
 
   useEffect(() => {
     fetchReports();

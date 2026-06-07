@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import adminApi, { getAdminToken, getAdminData } from '../utils/adminApi';
-import { useNavigate } from 'react-router-dom';
+import adminApi from '../utils/adminApi';
+import { useOutletContext } from 'react-router-dom';
 import ImageUploader from './ImageUploader';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminBanners = () => {
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [banners, setBanners] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
@@ -15,18 +15,7 @@ const AdminBanners = () => {
   const [formData, setFormData] = useState({
     title: '', titleEn: '', subtitle: '', subtitleEn: '', image: '', link: '', order: 0, active: true
   });
-  const navigate = useNavigate();
   const { t } = useI18n();
-
-  useEffect(() => {
-    const token = getAdminToken();
-    const adminData = getAdminData();
-    if (token && adminData) {
-      setAdmin(adminData);
-    } else {
-      navigate('/admin', { replace: true });
-    }
-  }, [navigate]);
 
   const fetchBanners = async () => {
     try {
@@ -38,8 +27,8 @@ const AdminBanners = () => {
   };
 
   useEffect(() => {
-    if (admin) fetchBanners();
-  }, [admin]);
+    fetchBanners();
+  }, []);
 
   const handleAdd = async (e) => {
     e.preventDefault();
