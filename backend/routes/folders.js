@@ -3,6 +3,7 @@ const router = express.Router();
 const Folder = require('../models/Folder');
 const Follow = require('../models/Follow');
 const Favorite = require('../models/Favorite');
+const Episode = require('../models/Episode');
 const { protect } = require('../middlewares/authFactory');
 const { asyncHandler } = require('../utils/errorHandler');
 
@@ -110,6 +111,66 @@ router.delete('/:id/items/:episodeId', protect, async (req, res) => {
       { $set: { folderId: null } }
     );
     res.json({ message: 'Item removed from folder' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 分享收藏夹 — 生成 shareToken
+router.post('/:id/share', protect, async (req, res) => {
+  try {
+    const folder = await Folder.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!folder) {
+      return res.status(404).json({ message: 'Folder not found' });
+    }
+    if (!folder.shareToken) {
+      folder.generateShareToken();
+      await folder.save();
+    }
+    res.json({ shareToken: folder.shareToken });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 取消分享收藏夹
+router.delete('/:id/share', protect, async (req, res) => {
+  try {
+    const folder = await Folder.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!folder) {
+      return res.status(404).json({ message: 'Folder not found' });
+    }
+    folder.revokeShareToken();
+    await folder.save();
+    res.json({ message: 'Share revoked' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 公开访问分享的收藏夹（无需认证）
+router.get('/shared/:shareToken', async (req, res) => {
+  try {
+    const folder = await Folder.findOne({ shareToken: req.params.shareToken });
+    if (!folder) {
+      return res.status(404).json({ message: 'Shared folder not found' });
+    }
+    const Model = folder.type === 'follow' ? Follow : Favorite;
+    const items = await Model.find({ folderId: folder._id })
+      .populate('episodeId', 'title titleEn coverImage currentEpisodes totalEpisodes averageRating ratingCount status')
+      .sort({ createdAt: -1 });
+
+    const episodes = items
+      .filter(item => item.episodeId)
+      .map(item => item.episodeId);
+
+    res.json({
+      name: folder.name,
+      type: folder.type,
+      count: episodes.length,
+      episodes,
+      createdAt: folder.createdAt
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

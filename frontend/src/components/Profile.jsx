@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
 import useScrollReveal from '../hooks/useScrollReveal';
 import ShareModal from './ShareModal';
+import FolderShareModal from './FolderShareModal';
 
 const Profile = ({ user, setUser, logout }) => {
   const { t, lang } = useI18n();
@@ -25,6 +26,7 @@ const Profile = ({ user, setUser, logout }) => {
   const [movingFavoriteId, setMovingFavoriteId] = useState(null);
   const [showFolderMenu, setShowFolderMenu] = useState(null);
   const [shareEpisode, setShareEpisode] = useState(null);
+  const [shareFolder, setShareFolder] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('follows');
@@ -679,6 +681,16 @@ const Profile = ({ user, setUser, logout }) => {
                       onMouseLeave={(e) => e.target.style.background = 'none'}
                     >✏️ {t('profile.renameFolder')}</button>
                     <button
+                      onClick={(e) => { e.stopPropagation(); setShareFolder(folder); setShowFolderMenu(null); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px',
+                        background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
+                        color: 'var(--foreground)', borderRadius: '4px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >🔗 {t('share.shareFolder')}</button>
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         if (window.confirm(t('profile.deleteFolderConfirm').replace('{name}', folder.name))) {
@@ -805,6 +817,13 @@ const Profile = ({ user, setUser, logout }) => {
           onClose={() => setShareEpisode(null)}
           title={getLocalizedTitle(shareEpisode)}
           episodeId={shareEpisode._id}
+        />
+      )}
+      {shareFolder && (
+        <FolderShareModal
+          show={!!shareFolder}
+          onClose={() => setShareFolder(null)}
+          folder={shareFolder}
         />
       )}
     </div>

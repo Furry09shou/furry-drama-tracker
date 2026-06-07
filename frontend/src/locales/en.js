@@ -543,6 +543,12 @@ export default {
     systemShare: 'System Share',
     wechatScanTip: 'Scan QR code with WeChat to open',
     scanTip: 'Scan QR code to open',
+    shareFolder: 'Share Folder',
+    folderShareText: 'Check out my folder "{name}" - Drama tracker',
+    folderNotFound: 'Folder not found or sharing has been revoked',
+    folderCount: '{count} episodes',
+    folderEmpty: 'This folder is empty',
+    shareFailed: 'Failed to generate share link',
   },
   confirm: {
     verifyFailed: 'Verification Failed',

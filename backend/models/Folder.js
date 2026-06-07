@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const FolderSchema = new mongoose.Schema({
   userId: {
@@ -19,6 +20,11 @@ const FolderSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  shareToken: {
+    type: String,
+    default: null,
+    index: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -26,5 +32,14 @@ const FolderSchema = new mongoose.Schema({
 });
 
 FolderSchema.index({ userId: 1, type: 1 });
+
+FolderSchema.methods.generateShareToken = function() {
+  this.shareToken = crypto.randomBytes(12).toString('hex');
+  return this.shareToken;
+};
+
+FolderSchema.methods.revokeShareToken = function() {
+  this.shareToken = null;
+};
 
 module.exports = mongoose.model('Folder', FolderSchema);

@@ -543,6 +543,12 @@ export default {
     systemShare: '系统分享',
     wechatScanTip: '使用微信/QQ扫描二维码打开页面',
     scanTip: '扫描二维码打开页面',
+    shareFolder: '分享收藏夹',
+    folderShareText: '来看看我的收藏夹「{name}」- 兽剧聚合平台',
+    folderNotFound: '收藏夹不存在或已被取消分享',
+    folderCount: '共 {count} 部剧集',
+    folderEmpty: '这个收藏夹还是空的',
+    shareFailed: '生成分享链接失败',
   },
   confirm: {
     verifyFailed: '验证失败',

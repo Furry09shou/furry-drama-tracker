@@ -40,6 +40,7 @@ const ChangeEmail = lazy(() => import('./components/ChangeEmail'));
 const AccountSecurity = lazy(() => import('./components/AccountSecurity'));
 const TwoFactorPage = lazy(() => import('./components/TwoFactorPage'));
 const DeleteAccount = lazy(() => import('./components/DeleteAccount'));
+const SharedFolder = lazy(() => import('./components/SharedFolder'));
 const ResetPassword = lazy(() => import('./components/ResetPassword'));
 const VerifyEmail = lazy(() => import('./components/VerifyEmail'));
 const VerifyEmailChange = lazy(() => import('./components/VerifyEmailChange'));
@@ -313,6 +314,7 @@ function AppContent() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/verify-email-change" element={<VerifyEmailChange />} />
+            <Route path="/shared-folder/:shareToken" element={<SharedFolder />} />
             <Route path="/verify-device" element={<Login login={login} />} />
             <Route path="/calendar" element={<UpdateCalendar />} />
             <Route path="/timeline" element={<Timeline />} />
