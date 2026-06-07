@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import adminApi, { getAdminToken } from '../utils/adminApi';
+import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 import CaptchaField from './CaptchaField';
 import PasswordToggle from './PasswordToggle';
@@ -25,10 +25,18 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    const adminToken = getAdminToken();
-    if (adminToken) {
-      navigate('/admin/dashboard', { replace: true });
-    }
+    // 通过 API 验证管理员登录状态（依赖 httpOnly cookie）
+    const verifyAdmin = async () => {
+      try {
+        const res = await axios.get('/api/admin/verify', { credentials: 'include' });
+        if (res.ok !== false) {
+          navigate('/admin/dashboard', { replace: true });
+        }
+      } catch {
+        // 未登录或 token 无效，留在登录页
+      }
+    };
+    verifyAdmin();
   }, [navigate]);
 
   useEffect(() => { fetchCaptcha(); }, []);
@@ -37,9 +45,8 @@ const Admin = () => {
     e.preventDefault();
     setError('');
     try {
-      const response = await axios.post('/api/admin/login', { username, password, captchaId: captchaData.captchaId, captchaAnswer });
-      localStorage.setItem('adminToken', response.data.token);
-      localStorage.setItem('adminData', JSON.stringify(response.data));
+      await axios.post('/api/admin/login', { username, password, captchaId: captchaData.captchaId, captchaAnswer });
+      // token 通过 httpOnly cookie 自动设置，不再存储到 localStorage
       try {
         await adminApi.post('/api/admin-sessions/create', {
           screenWidth: window.screen.width,

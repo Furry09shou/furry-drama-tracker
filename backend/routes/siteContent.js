@@ -94,14 +94,19 @@ const DEFAULT_CONTENT = {
 router.get('/:key', asyncHandler(async (req, res) => {
   const sensitiveKeys = ['email'];
   if (sensitiveKeys.includes(req.params.key)) {
-    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+    const adminToken = req.cookies?.adminToken || req.headers.authorization?.replace('Bearer ', '');
     if (!adminToken) return res.status(403).json({ message: 'Forbidden' });
     try {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+      const jwtModule = require('jsonwebtoken');
+      const decoded = jwtModule.verify(adminToken, process.env.JWT_SECRET);
       if (!decoded.role || !['admin', 'superadmin', 'creator'].includes(decoded.role)) {
         return res.status(403).json({ message: 'Forbidden' });
       }
+      const AdminSession = require('../models/AdminSession');
+      const { hashToken } = require('../utils/helpers');
+      const tokenHash = hashToken(adminToken);
+      const session = await AdminSession.findOne({ tokenHash, isActive: true });
+      if (!session) return res.status(403).json({ message: 'Forbidden' });
     } catch (e) {
       return res.status(403).json({ message: 'Forbidden' });
     }

@@ -11,6 +11,14 @@ const ensureIndexes = async () => {
       { collection: 'notifications', index: { userId: 1, isRead: 1 }, name: 'userId_1_isRead_1' },
       { collection: 'adminsessions', index: { adminId: 1, isActive: 1 }, name: 'adminId_1_isActive_1' },
       { collection: 'usersessions', index: { userId: 1, isActive: 1 }, name: 'userId_1_isActive_1' },
+      { collection: 'episodes', index: { createdBy: 1 }, name: 'createdBy_1' },
+      { collection: 'episodes', index: { updatedAt: -1 }, name: 'updatedAt_-1' },
+      { collection: 'feedbacks', index: { userId: 1 }, name: 'userId_1' },
+      { collection: 'folders', index: { userId: 1, type: 1, name: 1 }, name: 'userId_1_type_1_name_1' },
+      { collection: 'usersessions', index: { isActive: 1, lastActiveAt: -1 }, name: 'isActive_1_lastActiveAt_-1' },
+      { collection: 'adminsessions', index: { isActive: 1, lastActiveAt: -1 }, name: 'isActive_1_lastActiveAt_-1' },
+      { collection: 'episodeversions', index: { episodeId: 1, version: -1 }, name: 'episodeId_1_version_-1' },
+      { collection: 'ratings', index: { episodeId: 1 }, name: 'episodeId_1' },
     ];
 
     for (const op of indexOps) {

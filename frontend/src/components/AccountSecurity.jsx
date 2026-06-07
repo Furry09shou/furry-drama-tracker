@@ -4,12 +4,21 @@ import { useI18n } from '../contexts/I18nContext';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
 
+const maskEmail = (email) => {
+  if (!email) return '';
+  const [local, domain] = email.split('@');
+  if (!domain) return email;
+  if (local.length <= 2) return `${local[0]}***@${domain}`;
+  return `${local[0]}${'*'.repeat(Math.min(local.length - 2, 5))}${local[local.length - 1]}@${domain}`;
+};
+
 const AccountSecurity = ({ user }) => {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { getAuthHeaders } = useAuth();
   const navigate = useNavigate();
 
   const [exportLoading, setExportLoading] = useState(false);
+  const [showFullEmail, setShowFullEmail] = useState(false);
 
   const handleExportData = async () => {
     setExportLoading(true);
@@ -87,7 +96,17 @@ const AccountSecurity = ({ user }) => {
             <div>
               <div style={{fontWeight: 500, fontSize: '15px'}}>{t('auth.email')}</div>
               <div style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px'}}>
-                {user?.email}
+                {showFullEmail ? user?.email : maskEmail(user?.email)}
+                <button
+                  onClick={() => setShowFullEmail(!showFullEmail)}
+                  style={{
+                    marginLeft: '6px', background: 'none', border: 'none',
+                    color: 'var(--primary)', cursor: 'pointer', fontSize: '12px',
+                    textDecoration: 'underline', padding: '0'
+                  }}
+                >
+                  {showFullEmail ? (lang === 'en' ? 'Hide' : '隐藏') : (lang === 'en' ? 'Show' : '显示')}
+                </button>
                 {user?.isEmailVerified ? (
                   <span style={{marginLeft: '8px', fontSize: '12px', color: 'var(--success-text)', background: 'var(--success-bg)', padding: '1px 8px', borderRadius: '10px', border: '1px solid var(--success-border)'}}>{t('auth.emailVerified')}</span>
                 ) : (

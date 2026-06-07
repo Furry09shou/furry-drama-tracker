@@ -9,20 +9,23 @@ const { asyncHandler } = require('../utils/errorHandler');
 router.post('/add', protect, async (req, res) => {
   const { episodeId, folderId } = req.body;
   try {
-    const existing = await Follow.findOne({ userId: req.user._id, episodeId });
-    if (existing) {
-      return res.status(400).json({ message: 'Already following' });
-    }
     const episode = await Episode.findById(episodeId);
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
-    const followData = { userId: req.user._id, episodeId, followedAtEpisodes: episode.currentEpisodes };
-    if (folderId) {
-      followData.folderId = folderId;
+    try {
+      const followData = { userId: req.user._id, episodeId, followedAtEpisodes: episode.currentEpisodes };
+      if (folderId) {
+        followData.folderId = folderId;
+      }
+      const follow = await Follow.create(followData);
+      res.json(follow);
+    } catch (error) {
+      if (error.code === 11000) {
+        return res.status(400).json({ message: 'Already following' });
+      }
+      throw error;
     }
-    const follow = await Follow.create(followData);
-    res.json(follow);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

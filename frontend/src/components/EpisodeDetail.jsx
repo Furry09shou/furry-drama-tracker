@@ -231,8 +231,9 @@ const EpisodeDetail = ({ user }) => {
     } catch (error) {
       console.error('Error rating:', error);
       if (!navigator.onLine) {
-        const { addToOfflineQueue } = require('../utils/offlineQueue');
-        addToOfflineQueue({ method: 'post', url: '/api/ratings', data: { episodeId, score } });
+        import('../utils/offlineQueue').then(({ addToOfflineQueue }) => {
+          addToOfflineQueue({ method: 'post', url: '/api/ratings', data: { episodeId, score } });
+        });
       }
     }
   };
@@ -653,7 +654,7 @@ const EpisodeDetail = ({ user }) => {
                             src={embedUrl}
                             style={{width: '100%', height: '100%', border: 'none'}}
                             allowFullScreen
-                            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
+                            sandbox="allow-scripts allow-presentation allow-popups allow-forms"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             referrerPolicy="no-referrer"
                           />

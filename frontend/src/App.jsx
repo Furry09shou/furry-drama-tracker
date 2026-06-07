@@ -59,14 +59,45 @@ const ThemeColorPicker = lazy(() => import('./components/ThemeColorPicker'));
 const AdminAnalytics = lazy(() => import('./components/AdminAnalytics'));
 const Timeline = lazy(() => import('./components/Timeline'));
 
-const LoadingFallback = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-    <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-      <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
-      <div>加载中...</div>
+const LoadingFallback = () => {
+  const lang = localStorage.getItem('lang') || 'zh';
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+        <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
+        <div>{lang === 'en' ? 'Loading...' : '加载中...'}</div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const AdminGuard = ({ children }) => {
+  const [verifying, setVerifying] = React.useState(true);
+  const [authorized, setAuthorized] = React.useState(false);
+
+  React.useEffect(() => {
+    const verifyAdmin = async () => {
+      try {
+        const res = await fetch('/api/admin/verify', {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          setAuthorized(true);
+        } else {
+          setAuthorized(false);
+        }
+      } catch {
+        setAuthorized(false);
+      }
+      setVerifying(false);
+    };
+    verifyAdmin();
+  }, []);
+
+  if (verifying) return <LoadingFallback />;
+  if (!authorized) return <Navigate to="/admin" replace />;
+  return children;
+};
 
 const FooterBeian = () => {
   const { t } = useI18n();
@@ -230,9 +261,19 @@ function AppContent() {
   const { t, lang } = useI18n();
   const { settings: siteSettingsData } = useSiteSettings();
   const [showFeedback, setShowFeedback] = useState(false);
+  const [apiError, setApiError] = useState(null);
   const location = useLocation();
 
   const isAdminRoute = location.pathname.startsWith('/admin');
+
+  useEffect(() => {
+    const handleApiError = (e) => {
+      setApiError(e.detail.message);
+      setTimeout(() => setApiError(null), 3000);
+    };
+    window.addEventListener('api-error', handleApiError);
+    return () => window.removeEventListener('api-error', handleApiError);
+  }, []);
 
   useEffect(() => {
     if (!siteSettingsData) return;
@@ -266,25 +307,25 @@ function AppContent() {
         <Routes>
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin" element={<AdminLayout />}>
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="episodes" element={<AdminEpisodes />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="categories" element={<AdminCategories />} />
-            <Route path="banners" element={<AdminBanners />} />
-            <Route path="review" element={<AdminReview />} />
-            <Route path="reports" element={<AdminReports />} />
-            <Route path="stats" element={<AdminStats />} />
-            <Route path="creator-profile" element={<AdminCreatorProfile />} />
-            <Route path="site-content" element={<AdminSiteContent />} />
-            <Route path="email-settings" element={<AdminEmailSettings />} />
-            <Route path="audit-logs" element={<AdminAuditLogs />} />
-            <Route path="backup" element={<AdminBackup />} />
-            <Route path="feedback" element={<AdminFeedback />} />
-            <Route path="api-usage" element={<AdminApiUsage />} />
-            <Route path="friend-links" element={<AdminFriendLinks />} />
-            <Route path="sessions" element={<AdminSessions />} />
-            <Route path="analytics" element={<AdminAnalytics />} />
-            <Route path="change-password" element={<ChangePassword />} />
+            <Route path="dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+            <Route path="episodes" element={<AdminGuard><AdminEpisodes /></AdminGuard>} />
+            <Route path="users" element={<AdminGuard><AdminUsers /></AdminGuard>} />
+            <Route path="categories" element={<AdminGuard><AdminCategories /></AdminGuard>} />
+            <Route path="banners" element={<AdminGuard><AdminBanners /></AdminGuard>} />
+            <Route path="review" element={<AdminGuard><AdminReview /></AdminGuard>} />
+            <Route path="reports" element={<AdminGuard><AdminReports /></AdminGuard>} />
+            <Route path="stats" element={<AdminGuard><AdminStats /></AdminGuard>} />
+            <Route path="creator-profile" element={<AdminGuard><AdminCreatorProfile /></AdminGuard>} />
+            <Route path="site-content" element={<AdminGuard><AdminSiteContent /></AdminGuard>} />
+            <Route path="email-settings" element={<AdminGuard><AdminEmailSettings /></AdminGuard>} />
+            <Route path="audit-logs" element={<AdminGuard><AdminAuditLogs /></AdminGuard>} />
+            <Route path="backup" element={<AdminGuard><AdminBackup /></AdminGuard>} />
+            <Route path="feedback" element={<AdminGuard><AdminFeedback /></AdminGuard>} />
+            <Route path="api-usage" element={<AdminGuard><AdminApiUsage /></AdminGuard>} />
+            <Route path="friend-links" element={<AdminGuard><AdminFriendLinks /></AdminGuard>} />
+            <Route path="sessions" element={<AdminGuard><AdminSessions /></AdminGuard>} />
+            <Route path="analytics" element={<AdminGuard><AdminAnalytics /></AdminGuard>} />
+            <Route path="change-password" element={<AdminGuard><ChangePassword /></AdminGuard>} />
           </Route>
         </Routes>
       </Suspense>
@@ -336,6 +377,14 @@ function AppContent() {
       <ThemeColorPicker />
       <OfflineIndicator />
       <InstallPrompt />
+      {apiError && (
+        <div style={{
+          position: 'fixed', top: '20px', right: '20px', background: '#e74c3c', color: '#fff',
+          padding: '12px 20px', borderRadius: '8px', zIndex: 10000, fontSize: '14px',
+          maxWidth: '300px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          transition: 'opacity 0.3s'
+        }}>{apiError}</div>
+      )}
     </>
   );
 }

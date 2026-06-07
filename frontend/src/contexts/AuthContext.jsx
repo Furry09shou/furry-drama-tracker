@@ -14,6 +14,18 @@ export const AuthProvider = ({ children }) => {
     return {};
   }, []);
 
+  const storeUserToLocalStorage = (user) => {
+    if (!user) return;
+    localStorage.setItem('user', JSON.stringify({
+      _id: user._id,
+      accountId: user.accountId,
+      username: user.username,
+      isEmailVerified: user.isEmailVerified,
+      adminAccess: user.adminAccess || false,
+      avatar: user.avatar || ''
+    }));
+  };
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
 
@@ -23,7 +35,7 @@ export const AuthProvider = ({ children }) => {
         const res = await axios.get(API.AUTH.ME, { skipRedirect: true, params: { _t: Date.now() } });
         const freshUser = res.data;
         setUser(freshUser);
-        localStorage.setItem('user', JSON.stringify(freshUser));
+        storeUserToLocalStorage(freshUser);
         try {
           await axios.post(API.USER_SESSIONS.CREATE, {
             screenWidth: window.screen.width,
@@ -95,7 +107,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const handleOnline = async () => {
-      const { processOfflineQueue } = require('../utils/offlineQueue');
+      const { processOfflineQueue } = await import('../utils/offlineQueue');
       await processOfflineQueue(axios);
     };
     window.addEventListener('online', handleOnline);
@@ -105,7 +117,7 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback((userData) => {
     setUser(userData);
     // token 通过 httpOnly cookie 自动管理，不再存储到 localStorage
-    localStorage.setItem('user', JSON.stringify(userData));
+    storeUserToLocalStorage(userData);
   }, []);
 
   const logout = useCallback(async () => {
@@ -120,7 +132,7 @@ export const AuthProvider = ({ children }) => {
     setUser(prev => {
       const newUser = typeof updatedData === 'function' ? updatedData(prev) : updatedData;
       if (newUser) {
-        localStorage.setItem('user', JSON.stringify(newUser));
+        storeUserToLocalStorage(newUser);
       }
       return newUser;
     });

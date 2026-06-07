@@ -45,7 +45,7 @@ router.get('/list', adminProtect, async (req, res) => {
     const query = {};
     if (status) query.status = status;
     const reports = await Report.find(query)
-      .populate('reporterId', 'username email')
+      .populate('reporterId', 'username accountId')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));

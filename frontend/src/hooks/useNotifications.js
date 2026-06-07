@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useEffectEvent } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
@@ -104,7 +104,9 @@ const useNotifications = () => {
     };
   }, [user]);
 
-  const onRefresh = useEffectEvent(() => {
+  const onRefreshRef = useRef(null);
+
+  onRefreshRef.current = () => {
     if (!user) return;
     setLoading(true);
     axios.get(`${API.NOTIFICATIONS.LIST}/list`)
@@ -115,10 +117,10 @@ const useNotifications = () => {
       })
       .catch(() => {})
       .finally(() => { if (mountedRef.current) setLoading(false); });
-  });
+  };
 
   const refreshNotifications = useCallback(() => {
-    onRefresh();
+    onRefreshRef.current?.();
   }, []);
 
   const markAllRead = useCallback(async () => {

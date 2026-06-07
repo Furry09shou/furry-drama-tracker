@@ -12,6 +12,7 @@ const Rating = require('../models/Rating');
 const Report = require('../models/Report');
 const Feedback = require('../models/Feedback');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const https = require('https');
 const crypto = require('crypto');
 const { protect, adminProtect } = require('../middlewares/authFactory');
@@ -24,15 +25,31 @@ const { asyncHandler } = require('../utils/errorHandler');
 const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
 
 const skipVerification = (user) => {
+  // DEMO_EMAILS 仅允许已存在的账号跳过验证，不允许新注册使用
   if (DEMO_EMAILS.includes(user.email.toLowerCase())) return true;
   return false;
 };
 
-const usedDeviceTokens = new Set();
-setInterval(() => { usedDeviceTokens.clear(); }, 30 * 60 * 1000);
+const usedTokenSchema = new mongoose.Schema({
+  tokenHash: { type: String, required: true, unique: true },
+  purpose: { type: String, required: true },
+  expiresAt: { type: Date, required: true }
+});
+usedTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const UsedToken = mongoose.models.UsedToken || mongoose.model('UsedToken', usedTokenSchema);
 
-const usedResetTokens = new Set();
-setInterval(() => { usedResetTokens.clear(); }, 60 * 60 * 1000);
+const markTokenUsed = async (tokenHash, purpose, ttlMs) => {
+  try {
+    await UsedToken.create({ tokenHash, purpose, expiresAt: new Date(Date.now() + ttlMs) });
+  } catch (e) {
+    // 重复键忽略
+  }
+};
+
+const isTokenUsed = async (tokenHash) => {
+  const doc = await UsedToken.findOne({ tokenHash });
+  return !!doc;
+};
 
 const escapeHtml = (str) => {
   if (!str) return '';
@@ -156,11 +173,11 @@ if (global._captchaStore.size > 10000) {
 router.get('/captcha', (req, res) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 6; i++) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
 
-  const captchaId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const captchaId = crypto.randomBytes(16).toString('hex');
   captchaStore.set(captchaId, { answer: code.toLowerCase(), expires: Date.now() + 5 * 60 * 1000, createdAt: Date.now() });
 
   for (const [key, val] of captchaStore) {
@@ -303,6 +320,12 @@ router.post('/register', async (req, res) => {
     if (passwordError) {
       return res.status(400).json({ message: passwordError });
     }
+    if (DEMO_EMAILS.includes(email.toLowerCase())) {
+      const existingDemo = await User.findOne({ email });
+      if (!existingDemo) {
+        return res.status(400).json({ message: '该邮箱不可注册' });
+      }
+    }
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: '该邮箱已被注册' });
@@ -337,8 +360,7 @@ router.post('/register', async (req, res) => {
       lastLoginRegion: await getCachedIpRegion(getClientIp(req))
     }).catch(err => {
       if (err.code === 11000) {
-        const field = Object.keys(err.keyValue)[0];
-        const message = field === 'email' ? '该邮箱已被注册' : '该账号ID已被占用';
+        const message = '该信息已被使用';
         throw { status: 400, message };
       }
       throw err;
@@ -358,8 +380,7 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({ message: field === 'email' ? '该邮箱已被注册' : field === 'accountId' ? '该账号ID已被占用' : '该信息已被使用' });
+      return res.status(400).json({ message: '该信息已被使用' });
     }
     res.status(500).json({ message: '服务器错误' });
   }
@@ -557,14 +578,14 @@ router.post('/verify-device', async (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ message: '缺少验证令牌' });
     const tokenHash = hashToken(token);
-    if (usedDeviceTokens.has(tokenHash)) {
+    if (await isTokenUsed(tokenHash)) {
       return res.status(400).json({ message: '该验证链接已被使用' });
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== 'device-verify') return res.status(400).json({ message: '无效的验证令牌' });
     const user = await User.findById(decoded.id).select('+loginAttempts +lockUntil');
     if (!user) return res.status(400).json({ message: '用户不存在' });
-    usedDeviceTokens.add(tokenHash);
+    await markTokenUsed(tokenHash, 'device-verify', 30 * 60 * 1000);
 
     if (user.twoFactorEnabled) {
       return res.json({
@@ -758,6 +779,8 @@ router.put('/admin/change-password', adminProtect, async (req, res) => {
     }
     admin.password = newPassword;
     await admin.save();
+    const AdminSession = require('../models/AdminSession');
+    await AdminSession.updateMany({ adminId: req.admin._id, isActive: true }, { isActive: false, logoutAt: new Date() });
     res.json({ message: '密码修改成功' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -799,14 +822,14 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: '无效的重置令牌' });
     }
     const resetTokenHash = hashToken(token);
-    if (usedResetTokens.has(resetTokenHash)) {
+    if (await isTokenUsed(resetTokenHash)) {
       return res.status(400).json({ message: '该重置链接已使用，请重新获取' });
     }
     const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
     }
-    usedResetTokens.add(resetTokenHash);
+    await markTokenUsed(resetTokenHash, 'reset-password', 60 * 60 * 1000);
     user.password = newPassword;
     user.passwordChangedAt = new Date();
     await user.save();
@@ -1059,7 +1082,7 @@ router.post('/request-email-change', protect, async (req, res) => {
       html: `
         <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
           <h2 style="color:#6366f1;">确认修改邮箱</h2>
-          <p>您正在将账号 <strong>${user.username || user.accountId}</strong> 的绑定邮箱修改为 <strong>${newEmail}</strong>。</p>
+          <p>您正在将账号 <strong>${escapeHtml(user.username || user.accountId)}</strong> 的绑定邮箱修改为 <strong>${newEmail}</strong>。</p>
           <p>请点击以下链接确认修改（1小时内有效）：</p>
           <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">确认修改邮箱</a>
           <p style="color:#94a3b8;font-size:13px;">如果您没有请求修改邮箱，请忽略此邮件，您的邮箱不会被更改。</p>
@@ -1086,6 +1109,10 @@ router.post('/verify-email-change', async (req, res) => {
     if (decoded.type !== 'email-change') {
       return res.status(400).json({ message: '无效的验证令牌' });
     }
+    const changeTokenHash = hashToken(token);
+    if (await isTokenUsed(changeTokenHash)) {
+      return res.status(400).json({ message: '该验证链接已使用，请重新申请' });
+    }
     const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
@@ -1098,6 +1125,7 @@ router.post('/verify-email-change', async (req, res) => {
     user.email = decoded.newEmail;
     user.isEmailVerified = true;
     await user.save();
+    await markTokenUsed(changeTokenHash, 'email-change', 60 * 60 * 1000);
 
     res.json({ message: '邮箱修改成功', email: user.email });
   } catch (error) {

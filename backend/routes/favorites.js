@@ -13,16 +13,19 @@ router.post('/add', protect, async (req, res) => {
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
-    const existing = await Favorite.findOne({ userId: req.user._id, episodeId });
-    if (existing) {
-      return res.status(400).json({ message: 'Already favorited' });
+    try {
+      const favoriteData = { userId: req.user._id, episodeId };
+      if (folderId) {
+        favoriteData.folderId = folderId;
+      }
+      await Favorite.create(favoriteData);
+      res.json({ message: 'Favorited' });
+    } catch (error) {
+      if (error.code === 11000) {
+        return res.status(400).json({ message: 'Already favorited' });
+      }
+      throw error;
     }
-    const favoriteData = { userId: req.user._id, episodeId };
-    if (folderId) {
-      favoriteData.folderId = folderId;
-    }
-    await Favorite.create(favoriteData);
-    res.json({ message: 'Favorited' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

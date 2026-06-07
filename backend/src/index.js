@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const path = require('path');
 const connectDB = require('../config/db');
 const cors = require('cors');
@@ -74,20 +75,26 @@ process.on('uncaughtException', (error) => {
 connectDB().then(async () => {
   const User = require('../models/User');
   try {
-    const usersWithoutAccountId = await User.find({ accountId: { $exists: false } });
-    for (const user of usersWithoutAccountId) {
-      let baseId = user.username.replace(/[^\w]/g, '_').toLowerCase();
-      let accountId = baseId;
-      let counter = 1;
-      while (await User.findOne({ accountId, _id: { $ne: user._id } })) {
-        accountId = `${baseId}_${counter}`;
-        counter++;
+    // 检查是否需要运行迁移
+    const Setting = mongoose.models.Setting || mongoose.model('Setting', new mongoose.Schema({ key: String, value: mongoose.Schema.Types.Mixed }));
+    const migrationDone = await Setting.findOne({ key: 'accountId_migration_v1' });
+    if (!migrationDone) {
+      const usersWithoutAccountId = await User.find({ accountId: { $exists: false } });
+      for (const user of usersWithoutAccountId) {
+        let baseId = user.username.replace(/[^\w]/g, '_').toLowerCase();
+        let accountId = baseId;
+        let counter = 1;
+        while (await User.findOne({ accountId, _id: { $ne: user._id } })) {
+          accountId = `${baseId}_${counter}`;
+          counter++;
+        }
+        user.accountId = accountId;
+        await user.save({ validateBeforeSave: false });
       }
-      user.accountId = accountId;
-      await user.save({ validateBeforeSave: false });
-    }
-    if (usersWithoutAccountId.length > 0) {
-      console.log(`已为 ${usersWithoutAccountId.length} 个用户自动生成账号ID`);
+      if (usersWithoutAccountId.length > 0) {
+        console.log(`已为 ${usersWithoutAccountId.length} 个用户自动生成账号ID`);
+      }
+      await Setting.findOneAndUpdate({ key: 'accountId_migration_v1' }, { value: true }, { upsert: true });
     }
   } catch (e) {
     console.error('迁移accountId失败:', e.message);
@@ -409,6 +416,20 @@ cron.schedule('0 * * * *', async () => {
     }
   } catch (error) {
     console.error('[Cron] Session cleanup error:', error.message);
+  }
+});
+
+// 清理已读且超过30天的通知 - 每天执行
+cron.schedule('0 3 * * *', async () => {
+  try {
+    const Notification = require('../models/Notification');
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const result = await Notification.deleteMany({ isRead: true, createdAt: { $lt: thirtyDaysAgo } });
+    if (result.deletedCount > 0) {
+      console.log(`[Cron] Cleaned ${result.deletedCount} old read notifications`);
+    }
+  } catch (error) {
+    console.error('[Cron] Notification cleanup error:', error.message);
   }
 });
 

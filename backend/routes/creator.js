@@ -5,13 +5,17 @@ const { creatorProtect } = require('../middlewares/authFactory');
 
 router.get('/my-episodes', creatorProtect, async (req, res) => {
   try {
-    const episodes = await Episode.find({
-      $or: [
-        { createdBy: req.admin._id },
-        { allowedEditors: req.admin._id }
-      ]
-    }).sort({ updatedAt: -1 });
-    res.json(episodes);
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit), 100);
+    const query = {
+      $or: [{ createdBy: req.admin._id }, { allowedEditors: req.admin._id }]
+    };
+    const total = await Episode.countDocuments(query);
+    const totalPages = Math.ceil(total / limitNum);
+    const episodes = await Episode.find(query).sort({ updatedAt: -1 })
+      .skip((pageNum - 1) * limitNum).limit(limitNum);
+    res.json({ list: episodes, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     console.error('Get creator episodes error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -20,14 +24,18 @@ router.get('/my-episodes', creatorProtect, async (req, res) => {
 
 router.get('/editable', creatorProtect, async (req, res) => {
   try {
-    const episodes = await Episode.find({
-      $or: [
-        { createdBy: req.admin._id },
-        { allowedEditors: req.admin._id }
-      ],
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit), 100);
+    const query = {
+      $or: [{ createdBy: req.admin._id }, { allowedEditors: req.admin._id }],
       reviewStatus: 'approved'
-    }).sort({ updatedAt: -1 });
-    res.json(episodes);
+    };
+    const total = await Episode.countDocuments(query);
+    const totalPages = Math.ceil(total / limitNum);
+    const episodes = await Episode.find(query).sort({ updatedAt: -1 })
+      .skip((pageNum - 1) * limitNum).limit(limitNum);
+    res.json({ list: episodes, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     console.error('Get editable episodes error:', error);
     res.status(500).json({ message: 'Server error' });

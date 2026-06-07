@@ -146,7 +146,15 @@ router.get('/export-my-data', protect, exportLimiter, asyncHandler(async (req, r
   } else {
     const exportData = {
       exportDate: new Date().toISOString(),
-      user: user,
+      user: {
+        _id: user._id,
+        accountId: user.accountId,
+        username: user.username,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+        avatar: user.avatar || '',
+        createdAt: user.createdAt
+      },
       follows: follows,
       favorites: favorites,
       ratings: ratings,

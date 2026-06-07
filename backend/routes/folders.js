@@ -23,7 +23,16 @@ router.get('/', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
   try {
     const { name, type } = req.body;
-    const folder = await Folder.create({ userId: req.user._id, name, type });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: '文件夹名称不能为空' });
+    }
+    if (name.trim().length > 50) {
+      return res.status(400).json({ message: '文件夹名称不能超过50个字符' });
+    }
+    if (!type || !['follow', 'favorite'].includes(type)) {
+      return res.status(400).json({ message: '无效的文件夹类型' });
+    }
+    const folder = await Folder.create({ userId: req.user._id, name: name.trim(), type });
     res.json(folder);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -33,9 +42,13 @@ router.post('/', protect, async (req, res) => {
 router.put('/reorder', protect, async (req, res) => {
   try {
     const { folderIds } = req.body;
-    for (let i = 0; i < folderIds.length; i++) {
-      await Folder.updateOne({ _id: folderIds[i], userId: req.user._id }, { sortOrder: i });
-    }
+    const bulkOps = folderIds.map((id, i) => ({
+      updateOne: {
+        filter: { _id: id, userId: req.user._id },
+        update: { sortOrder: i }
+      }
+    }));
+    await Folder.bulkWrite(bulkOps);
     res.json({ message: 'Reordered' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

@@ -345,29 +345,19 @@ const NavBar = ({ onFeedback }) => {
                             {t('notification.pushSettings')}
                           </button>
                         )}
-                        {unreadCount > 0 && (
-                          <button onClick={markAllRead} style={{
-                            background: 'none', border: 'none', color: 'var(--primary)',
-                            cursor: 'pointer', fontSize: '13px'
-                          }}>{t('notification.markAllRead')}</button>
-                        )}
-                        {notifications.some(n => n.isRead) && (
-                          <button onClick={clearRead} style={{
-                            background: 'none', border: 'none', color: 'var(--text-secondary)',
-                            cursor: 'pointer', fontSize: '13px'
-                          }}>{t('notification.clearRead')}</button>
-                        )}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', borderBottom: '1px solid var(--border)' }}>
                       {unreadCount > 0 && (
                         <button onClick={markAllRead} style={{ fontSize: '12px', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                          全部已读
+                          {t('notification.markAllRead')}
                         </button>
                       )}
-                      <button onClick={deleteAllRead} style={{ fontSize: '12px', color: 'var(--destructive-text)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                        清除已读
-                      </button>
+                      {notifications.some(n => n.isRead) && (
+                        <button onClick={deleteAllRead} style={{ fontSize: '12px', color: 'var(--destructive-text)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          {t('notification.clearRead')}
+                        </button>
+                      )}
                     </div>
                     <div>
                       {notifications.length === 0 ? (

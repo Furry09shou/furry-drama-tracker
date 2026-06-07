@@ -16,6 +16,8 @@ webpush.setVapidDetails(
 const sseClients = new Map();
 const MAX_SSE_CONNECTIONS = 500;
 let totalSSEConnections = 0;
+const sseIpCounts = new Map();
+const MAX_SSE_PER_IP = 10;
 
 router.get('/stream', async (req, res) => {
   const { ticket } = req.query;
@@ -34,6 +36,22 @@ router.get('/stream', async (req, res) => {
   } catch (e) {
     return res.status(401).json({ message: '认证信息无效' });
   }
+
+  // IP 级别限制
+  const clientIp = req.ip || req.connection?.remoteAddress || '';
+  const ipCount = sseIpCounts.get(clientIp) || 0;
+  if (ipCount >= MAX_SSE_PER_IP) {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no'
+    });
+    res.write(`data: ${JSON.stringify({ type: 'error', message: 'Too many connections from this IP' })}\n\n`);
+    res.end();
+    return;
+  }
+  sseIpCounts.set(clientIp, ipCount + 1);
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -65,9 +83,16 @@ router.get('/stream', async (req, res) => {
     res.write(`:heartbeat\n\n`);
   }, 30000);
 
+  const connectionTimeout = setTimeout(() => {
+    try { res.end(); } catch (e) {}
+  }, 30 * 60 * 1000); // 30分钟超时
+
   req.on('close', () => {
     clearInterval(heartbeat);
+    clearTimeout(connectionTimeout);
     totalSSEConnections--;
+    const currentIpCount = sseIpCounts.get(clientIp) || 1;
+    sseIpCounts.set(clientIp, currentIpCount - 1);
     const clients = sseClients.get(userId);
     if (clients) {
       const idx = clients.indexOf(res);

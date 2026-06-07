@@ -571,7 +571,7 @@ router.post('/batch', translateLimiter, async (req, res) => {
     if (!res.headersSent) {
       res.status(504).json({ message: 'Translation request timeout' });
     }
-  }, 120000);
+  }, 60000);
 
   try {
     const { texts, targetLang } = req.body;

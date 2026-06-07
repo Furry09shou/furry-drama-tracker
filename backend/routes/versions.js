@@ -84,6 +84,15 @@ router.post('/:episodeId/rollback/:version', adminProtect, async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
 
+    const isCreatorRole = req.admin.role === 'creator';
+    if (isCreatorRole) {
+      const isOwner = currentEpisode.createdBy && currentEpisode.createdBy.toString() === req.admin._id.toString();
+      const isAllowed = currentEpisode.allowedEditors && currentEpisode.allowedEditors.some(e => e.toString() === req.admin._id.toString());
+      if (!isOwner && !isAllowed) {
+        return res.status(403).json({ message: 'No permission to rollback this episode' });
+      }
+    }
+
     const lastVersion = await EpisodeVersion.findOne({ episodeId: req.params.episodeId })
       .sort({ version: -1 });
     const newVersionNum = (lastVersion ? lastVersion.version : 0) + 1;
@@ -95,6 +104,16 @@ router.post('/:episodeId/rollback/:version', adminProtect, async (req, res) => {
       changedBy: req.admin._id,
       changeSummary: `Rolled back to version ${req.params.version}`
     });
+
+    // 限制版本数量为50
+    const versionCount = await EpisodeVersion.countDocuments({ episodeId: req.params.episodeId });
+    if (versionCount > 50) {
+      const oldestVersions = await EpisodeVersion.find({ episodeId: req.params.episodeId })
+        .sort({ version: 1 })
+        .limit(versionCount - 50)
+        .select('_id');
+      await EpisodeVersion.deleteMany({ _id: { $in: oldestVersions.map(v => v._id) } });
+    }
 
     const rollbackData = { ...versionDoc.data, updatedAt: Date.now() };
     delete rollbackData._id;

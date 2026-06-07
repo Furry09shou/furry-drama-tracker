@@ -54,16 +54,21 @@ router.get('/my', adminProtect, async (req, res) => {
 
 router.get('/all', superAdminProtect, async (req, res) => {
   try {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit), 100);
+    const total = await AdminSession.countDocuments({});
+    const totalPages = Math.ceil(total / limitNum);
     const sessions = await AdminSession.find()
       .sort({ loginAt: -1 })
-      .limit(100);
-    const adminToken = req.headers.authorization?.replace('Bearer ', '');
+      .skip((pageNum - 1) * limitNum).limit(limitNum);
+    const adminToken = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.adminToken;
     const currentTokenHash = hashToken(adminToken);
     const result = sessions.map(s => ({
       ...s.toObject(),
       isCurrent: s.tokenHash === currentTokenHash
     }));
-    res.json(result);
+    res.json({ list: result, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

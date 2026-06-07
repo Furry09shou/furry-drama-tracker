@@ -3,6 +3,16 @@ const router = express.Router();
 const Banner = require('../models/Banner');
 const { adminProtect } = require('../middlewares/authFactory');
 
+const isValidUrl = (str) => {
+  if (!str) return true;
+  try {
+    const u = new URL(str);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
+};
+
 router.get('/', async (req, res) => {
   try {
     const banners = await Banner.find({ active: true }).sort({ order: 1, createdAt: -1 });
@@ -24,6 +34,9 @@ router.get('/all', adminProtect, async (req, res) => {
 router.post('/', adminProtect, async (req, res) => {
   try {
     const { title, titleEn, titleJa, subtitle, subtitleEn, subtitleJa, image, link, order, active } = req.body;
+    if (link && !isValidUrl(link)) {
+      return res.status(400).json({ message: '链接格式不合法，仅支持 http/https 协议' });
+    }
     const banner = await Banner.create({ title, titleEn: titleEn || '', titleJa: titleJa || '', subtitle: subtitle || '', subtitleEn: subtitleEn || '', subtitleJa: subtitleJa || '', image, link, order: order || 0, active: active !== undefined ? active : true });
     res.json(banner);
   } catch (error) {
@@ -34,6 +47,9 @@ router.post('/', adminProtect, async (req, res) => {
 router.put('/:id', adminProtect, async (req, res) => {
   try {
     const { title, titleEn, titleJa, subtitle, subtitleEn, subtitleJa, image, link, order, active } = req.body;
+    if (link && !isValidUrl(link)) {
+      return res.status(400).json({ message: '链接格式不合法，仅支持 http/https 协议' });
+    }
     const banner = await Banner.findById(req.params.id);
     if (!banner) return res.status(404).json({ message: '轮播图不存在' });
     if (title !== undefined) banner.title = title;

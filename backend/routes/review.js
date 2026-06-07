@@ -15,10 +15,16 @@ const adminOnly = (req, res, next) => {
 
 router.get('/pending', adminProtect, adminOnly, async (req, res) => {
   try {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit), 100);
+    const total = await Episode.countDocuments({ reviewStatus: 'pending' });
+    const totalPages = Math.ceil(total / limitNum);
     const episodes = await Episode.find({ reviewStatus: 'pending' })
       .populate('createdBy', 'accountId username email')
-      .sort({ updatedAt: -1 });
-    res.json(episodes);
+      .sort({ updatedAt: -1 })
+      .skip((pageNum - 1) * limitNum).limit(limitNum);
+    res.json({ list: episodes, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -26,11 +32,17 @@ router.get('/pending', adminProtect, adminOnly, async (req, res) => {
 
 router.get('/all', adminProtect, adminOnly, async (req, res) => {
   try {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit), 100);
+    const total = await Episode.countDocuments({});
+    const totalPages = Math.ceil(total / limitNum);
     const episodes = await Episode.find({})
       .populate('createdBy', 'accountId username email')
       .populate('allowedEditors', 'accountId username email')
-      .sort({ updatedAt: -1 });
-    res.json(episodes);
+      .sort({ updatedAt: -1 })
+      .skip((pageNum - 1) * limitNum).limit(limitNum);
+    res.json({ list: episodes, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

@@ -13,6 +13,8 @@ const Episode = require('../models/Episode');
 const Report = require('../models/Report');
 const Feedback = require('../models/Feedback');
 const FriendLink = require('../models/FriendLink');
+const PushSubscription = require('../models/PushSubscription');
+const Folder = require('../models/Folder');
 
 router.get('/verify', adminProtect, async (req, res) => {
   res.json({ valid: true, admin: { _id: req.admin._id, username: req.admin.username, role: req.admin.role } });
@@ -106,7 +108,6 @@ router.post('/login', async (req, res) => {
       _id: admin._id,
       username: admin.username,
       role: admin.role,
-      token,
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -127,8 +128,14 @@ router.post('/logout', adminProtect, async (req, res) => {
 
 router.get('/list', superAdminProtect, async (req, res) => {
   try {
-    const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 });
-    res.json(admins);
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit), 100);
+    const total = await Admin.countDocuments({});
+    const totalPages = Math.ceil(total / limitNum);
+    const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum).limit(limitNum);
+    res.json({ list: admins, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }
@@ -228,6 +235,8 @@ router.delete('/users/:id', superAdminProtect, async (req, res) => {
     await Report.deleteMany({ reporter: req.params.id });
     await Feedback.deleteMany({ userId: req.params.id });
     await UserSession.deleteMany({ userId: req.params.id });
+    await PushSubscription.deleteMany({ userId: req.params.id });
+    await Folder.deleteMany({ userId: req.params.id });
     const userRatings = await Rating.find({ userId: req.params.id });
     await Rating.deleteMany({ userId: req.params.id });
     const affectedEpisodeIds = [...new Set(userRatings.map(r => r.episodeId.toString()))];

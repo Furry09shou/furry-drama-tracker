@@ -40,8 +40,8 @@ const API = {
     STREAM: '/api/notifications/stream',
     LIST: '/api/notifications',
     UNREAD_COUNT: '/api/notifications/unread-count',
-    MARK_READ: (id) => `/api/notifications/${id}/read`,
-    MARK_ALL_READ: '/api/notifications/mark-all-read',
+    MARK_READ: (id) => `/api/notifications/read/${id}`,
+    MARK_ALL_READ: '/api/notifications/read-all',
     DELETE: (id) => `/api/notifications/${id}`,
   },
   // 管理

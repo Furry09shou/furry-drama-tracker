@@ -30,7 +30,7 @@ setInterval(() => {
     const toDelete = entries.slice(0, viewTracker.size - 5000);
     toDelete.forEach(([key]) => viewTracker.delete(key));
   }
-}, 5 * 60 * 1000);
+}, 10 * 60 * 1000);
 
 router.post('/upload', creatorProtect, upload.single('image'), async (req, res) => {
   try {
@@ -321,7 +321,7 @@ const viewLimiter = rateLimit({
 
 router.put('/:id/view', viewLimiter, async (req, res) => {
   try {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.headers['x-real-ip'] || req.ip || '';
+    const ip = req.ip || '';
     const viewKey = `${req.params.id}_${ip}`;
     const now = Date.now();
     const lastView = viewTracker.get(viewKey);
@@ -396,6 +396,7 @@ router.put('/single/:id', adminProtect, async (req, res) => {
     }
 
     clearCache(`episode_${singleEpisode.episodeId}`);
+    clearCacheByPrefix('episodes_');
 
     res.json(singleEpisode);
   } catch (error) {
@@ -557,6 +558,16 @@ router.put('/:id', creatorProtect, async (req, res) => {
       changedBy: req.admin._id,
       changeSummary: req.body.changeSummary || ''
     });
+
+    // 限制版本数量为50
+    const versionCount = await EpisodeVersion.countDocuments({ episodeId: req.params.id });
+    if (versionCount > 50) {
+      const oldestVersions = await EpisodeVersion.find({ episodeId: req.params.id })
+        .sort({ version: 1 })
+        .limit(versionCount - 50)
+        .select('_id');
+      await EpisodeVersion.deleteMany({ _id: { $in: oldestVersions.map(v => v._id) } });
+    }
 
     const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks'];
     const updateData = { updatedAt: Date.now() };

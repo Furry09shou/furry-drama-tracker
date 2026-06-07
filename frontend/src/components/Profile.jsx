@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Activity } from 'react';
 import axios from 'axios';
 import { Link, useLocation } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
@@ -9,6 +8,14 @@ import API from '../utils/apiEndpoints';
 import useScrollReveal from '../hooks/useScrollReveal';
 import ShareModal from './ShareModal';
 import FolderShareModal from './FolderShareModal';
+
+const maskEmail = (email) => {
+  if (!email) return '';
+  const [local, domain] = email.split('@');
+  if (!domain) return email;
+  if (local.length <= 2) return `${local[0]}***@${domain}`;
+  return `${local[0]}${'*'.repeat(Math.min(local.length - 2, 5))}${local[local.length - 1]}@${domain}`;
+};
 
 const Profile = ({ user, setUser, logout }) => {
   const { t, lang } = useI18n();
@@ -27,6 +34,7 @@ const Profile = ({ user, setUser, logout }) => {
   const [showFolderMenu, setShowFolderMenu] = useState(null);
   const [shareEpisode, setShareEpisode] = useState(null);
   const [shareFolder, setShareFolder] = useState(null);
+  const [showFullEmail, setShowFullEmail] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('follows');
@@ -440,7 +448,17 @@ const Profile = ({ user, setUser, logout }) => {
               {t('profile.accountIdLabel')}: <span style={{color: 'var(--text-tertiary)', letterSpacing: '0.5px'}}>{user.accountId || '-'}</span>
             </p>
             <p style={{margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px'}}>
-              {user.email}
+              {showFullEmail ? user.email : maskEmail(user.email)}
+              <button
+                onClick={() => setShowFullEmail(!showFullEmail)}
+                style={{
+                  marginLeft: '6px', background: 'none', border: 'none',
+                  color: 'var(--primary)', cursor: 'pointer', fontSize: '12px',
+                  textDecoration: 'underline', padding: '0'
+                }}
+              >
+                {showFullEmail ? (lang === 'en' ? 'Hide' : '隐藏') : (lang === 'en' ? 'Show' : '显示')}
+              </button>
             </p>
             {user.isEmailVerified ? (
               <span style={{
@@ -531,7 +549,7 @@ const Profile = ({ user, setUser, logout }) => {
         ))}
       </div>
 
-      <Activity mode={activeTab === 'follows' ? 'visible' : 'hidden'}>
+      <div style={{ display: activeTab === 'follows' ? 'block' : 'none' }}>
         <div className="followed-episodes">
           {followedEpisodes.length === 0 ? (
             <p>{t('profile.noFollows')}</p>
@@ -539,9 +557,9 @@ const Profile = ({ user, setUser, logout }) => {
             followedEpisodes.map(follow => renderFollowCard(follow))
           )}
         </div>
-      </Activity>
+      </div>
 
-      <Activity mode={activeTab === 'favorites' ? 'visible' : 'hidden'}>
+      <div style={{ display: activeTab === 'favorites' ? 'block' : 'none' }}>
         <div style={{display: 'flex', gap: '20px', alignItems: 'flex-start'}}>
           <div style={{
             minWidth: '180px', maxWidth: '220px', flexShrink: 0,
@@ -854,9 +872,9 @@ const Profile = ({ user, setUser, logout }) => {
             )}
           </div>
         </div>
-      </Activity>
+      </div>
 
-      <Activity mode={activeTab === 'history' ? 'visible' : 'hidden'}>
+      <div style={{ display: activeTab === 'history' ? 'block' : 'none' }}>
         <div className="followed-episodes">
           {historyEpisodes.length === 0 ? (
             <p>{t('profile.noHistory')}</p>
@@ -864,7 +882,7 @@ const Profile = ({ user, setUser, logout }) => {
             historyEpisodes.map(history => renderHistoryCard(history))
           )}
         </div>
-      </Activity>
+      </div>
       </div>
       {shareEpisode && (
         <ShareModal
