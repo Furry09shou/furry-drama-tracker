@@ -4,7 +4,7 @@ import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminEmailSettings = () => {
-  const [admin, setAdmin] = useState(null);
+  const { admin } = useOutletContext();
   const [emailData, setEmailData] = useState({
     host: '', port: '465', user: '', pass: '', fromName: '兽剧聚合平台', enabled: false
   });
