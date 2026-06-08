@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Favorite = require('../models/Favorite');
+const Folder = require('../models/Folder');
 const Episode = require('../models/Episode');
 const History = require('../models/History');
 const { protect } = require('../middlewares/authFactory');
@@ -16,6 +17,10 @@ router.post('/add', protect, async (req, res) => {
     try {
       const favoriteData = { userId: req.user._id, episodeId };
       if (folderId) {
+        const folder = await Folder.findOne({ _id: folderId, userId: req.user._id });
+        if (!folder) {
+          return res.status(400).json({ message: '收藏夹不存在或不属于当前用户' });
+        }
         favoriteData.folderId = folderId;
       }
       await Favorite.create(favoriteData);
@@ -101,6 +106,21 @@ router.get('/list', protect, async (req, res) => {
     }
 
     res.json({ list, page: pageNum, limit: limitNum, total, totalPages });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/counts', protect, async (req, res) => {
+  try {
+    const totalCount = await Favorite.countDocuments({ userId: req.user._id });
+    const unclassifiedCount = await Favorite.countDocuments({ userId: req.user._id, folderId: null });
+    const folders = await Folder.find({ userId: req.user._id, type: 'favorite', name: { $ne: '__unclassified__' } }, '_id');
+    const folderCounts = {};
+    for (const folder of folders) {
+      folderCounts[folder._id.toString()] = await Favorite.countDocuments({ userId: req.user._id, folderId: folder._id });
+    }
+    res.json({ total: totalCount, unclassified: unclassifiedCount, folders: folderCounts });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

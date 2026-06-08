@@ -25,11 +25,16 @@ const Profile = ({ user, setUser, logout }) => {
   const [historyEpisodes, setHistoryEpisodes] = useState([]);
   const [favoriteEpisodes, setFavoriteEpisodes] = useState([]);
   const [favoriteFolders, setFavoriteFolders] = useState([]);
-  const [activeFolderId, setActiveFolderId] = useState(null);
+  const [totalFavoriteCount, setTotalFavoriteCount] = useState(0);
+  const [folderCounts, setFolderCounts] = useState({});
+  const [activeFolderId, setActiveFolderId] = useState('unclassified');
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [editingFolderName, setEditingFolderName] = useState('');
+  const [editingFolderDesc, setEditingFolderDesc] = useState('');
+  const [editingFolderDescId, setEditingFolderDescId] = useState(null);
+  const [editingFolderDescValue, setEditingFolderDescValue] = useState('');
   const [movingFavoriteId, setMovingFavoriteId] = useState(null);
   const [showFolderMenu, setShowFolderMenu] = useState(null);
   const [shareEpisode, setShareEpisode] = useState(null);
@@ -61,22 +66,26 @@ const Profile = ({ user, setUser, logout }) => {
         if (!userData) { setLoading(false); return; }
         const config = { headers: getAuthHeaders() };
 
-        const [followRes, historyRes, favRes, folderRes] = await Promise.allSettled([
+        const [followRes, historyRes, favRes, folderRes, countsRes] = await Promise.allSettled([
           axios.get('/api/follows/list', config),
           axios.get('/api/histories/list', config),
-          axios.get('/api/favorites/list', config),
+          axios.get('/api/favorites/list', { headers: getAuthHeaders(), params: { folderId: 'null' } }),
           axios.get('/api/folders?type=favorite', config),
+          axios.get('/api/favorites/counts', config),
         ]);
 
         const followData = followRes.status === 'fulfilled' ? (followRes.value.data.list || followRes.value.data || []) : [];
         const historyData = historyRes.status === 'fulfilled' ? (historyRes.value.data.list || historyRes.value.data || []) : [];
         const favData = favRes.status === 'fulfilled' ? (favRes.value.data.list || favRes.value.data || []) : [];
         const folderData = folderRes.status === 'fulfilled' ? (folderRes.value.data || []) : [];
+        const countsData = countsRes.status === 'fulfilled' ? countsRes.value.data : { total: 0, unclassified: 0, folders: {} };
 
         setFollowedEpisodes(followData);
         setHistoryEpisodes(historyData);
         setFavoriteEpisodes(favData);
         setFavoriteFolders(folderData);
+        setTotalFavoriteCount(countsData.total);
+        setFolderCounts({ unclassified: countsData.unclassified, ...countsData.folders });
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -115,6 +124,13 @@ const Profile = ({ user, setUser, logout }) => {
         headers: getAuthHeaders()
       });
       setFavoriteEpisodes(prev => prev.filter(f => f.episodeId && String(f.episodeId._id) !== String(episodeId)));
+      setTotalFavoriteCount(prev => Math.max(0, prev - 1));
+      if (activeFolderId) {
+        setFolderCounts(prev => ({
+          ...prev,
+          [activeFolderId]: Math.max(0, (prev[activeFolderId] || 0) - 1)
+        }));
+      }
     } catch (err) {
       console.error('Unfavorite failed:', err);
     }
@@ -127,6 +143,7 @@ const Profile = ({ user, setUser, logout }) => {
         headers: getAuthHeaders()
       });
       setFavoriteFolders(prev => [...prev, res.data]);
+      setFolderCounts(prev => ({ ...prev, [res.data._id]: 0 }));
       setNewFolderName('');
       setShowCreateFolder(false);
     } catch (err) {
@@ -137,12 +154,16 @@ const Profile = ({ user, setUser, logout }) => {
   const handleRenameFolder = async (folderId) => {
     if (!editingFolderName.trim()) return;
     try {
-      const res = await axios.put(`/api/folders/${folderId}`, { name: editingFolderName.trim() }, {
+      const res = await axios.put(`/api/folders/${folderId}`, {
+        name: editingFolderName.trim(),
+        description: editingFolderDesc.trim()
+      }, {
         headers: getAuthHeaders()
       });
       setFavoriteFolders(prev => prev.map(f => f._id === folderId ? res.data : f));
       setEditingFolderId(null);
       setEditingFolderName('');
+      setEditingFolderDesc('');
     } catch (err) {
       console.error('Rename folder failed:', err);
     }
@@ -154,9 +175,14 @@ const Profile = ({ user, setUser, logout }) => {
         headers: getAuthHeaders()
       });
       setFavoriteFolders(prev => prev.filter(f => f._id !== folderId));
+      setFolderCounts(prev => {
+        const next = { ...prev };
+        delete next[folderId];
+        return next;
+      });
       if (activeFolderId === folderId) {
-        setActiveFolderId(null);
-        const favRes = await axios.get('/api/favorites/list', { headers: getAuthHeaders() });
+        setActiveFolderId('unclassified');
+        const favRes = await axios.get('/api/favorites/list', { headers: getAuthHeaders(), params: { folderId: 'null' } });
         setFavoriteEpisodes(favRes.data.list || favRes.data || []);
       }
     } catch (err) {
@@ -175,6 +201,15 @@ const Profile = ({ user, setUser, logout }) => {
         }
         return f;
       }));
+      // Update folder counts: decrease source folder, increase target folder
+      setFolderCounts(prev => ({
+        ...prev,
+        [folderId]: (prev[folderId] || 0) + 1,
+        ...(activeFolderId && activeFolderId !== 'unclassified' && activeFolderId !== folderId
+          ? { [activeFolderId]: Math.max(0, (prev[activeFolderId] || 0) - 1) }
+          : {}),
+        ...(activeFolderId === 'unclassified' ? { unclassified: Math.max(0, (prev.unclassified || 0) - 1) } : {}),
+      }));
       setMovingFavoriteId(null);
     } catch (err) {
       console.error('Move to folder failed:', err);
@@ -192,6 +227,12 @@ const Profile = ({ user, setUser, logout }) => {
         }
         return f;
       }));
+      // Update folder counts: decrease source folder, increase default folder
+      setFolderCounts(prev => ({
+        ...prev,
+        [folderId]: Math.max(0, (prev[folderId] || 0) - 1),
+        unclassified: (prev.unclassified || 0) + 1,
+      }));
     } catch (err) {
       console.error('Remove from folder failed:', err);
     }
@@ -200,13 +241,34 @@ const Profile = ({ user, setUser, logout }) => {
   const handleFolderClick = async (folderId) => {
     setActiveFolderId(folderId);
     try {
+      const params = {};
+      if (folderId === 'unclassified') {
+        params.folderId = 'null';
+      } else {
+        params.folderId = folderId;
+      }
       const favRes = await axios.get('/api/favorites/list', {
         headers: getAuthHeaders(),
-        params: { folderId: folderId || 'null' }
+        params
       });
       setFavoriteEpisodes(favRes.data.list || favRes.data || []);
     } catch (err) {
       console.error('Fetch folder favorites failed:', err);
+    }
+  };
+
+  const handleSaveFolderDesc = async (folderId) => {
+    try {
+      const res = await axios.put(`/api/folders/${folderId}`, {
+        description: editingFolderDescValue.trim()
+      }, {
+        headers: getAuthHeaders()
+      });
+      setFavoriteFolders(prev => prev.map(f => f._id === folderId ? res.data : f));
+      setEditingFolderDescId(null);
+      setEditingFolderDescValue('');
+    } catch (err) {
+      console.error('Update folder description failed:', err);
     }
   };
 
@@ -531,7 +593,7 @@ const Profile = ({ user, setUser, logout }) => {
       <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap'}}>
         {[
           { key: 'follows', label: t('profile.myFollows'), count: followedEpisodes.length },
-          { key: 'favorites', label: t('profile.myFavorites'), count: favoriteEpisodes.length },
+          { key: 'favorites', label: t('profile.myFavorites'), count: totalFavoriteCount },
           { key: 'history', label: t('profile.myHistory'), count: historyEpisodes.length },
         ].map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -562,7 +624,7 @@ const Profile = ({ user, setUser, logout }) => {
       <div style={{ display: activeTab === 'favorites' ? 'block' : 'none' }}>
         <div style={{display: 'flex', gap: '20px', alignItems: 'flex-start'}}>
           <div style={{
-            minWidth: '180px', maxWidth: '220px', flexShrink: 0,
+            minWidth: '0', maxWidth: '220px', flex: '0 1 180px',
             background: 'var(--card)', borderRadius: '12px',
             border: '1px solid var(--border)', padding: '12px',
             position: 'sticky', top: '20px',
@@ -608,18 +670,6 @@ const Profile = ({ user, setUser, logout }) => {
                 </div>
               </div>
             )}
-            <div
-              onClick={() => handleFolderClick(null)}
-              style={{
-                padding: '7px 10px', borderRadius: '6px', cursor: 'pointer',
-                fontSize: '13px', marginBottom: '2px',
-                background: activeFolderId === null ? 'var(--primary-bg)' : 'transparent',
-                color: activeFolderId === null ? 'var(--primary)' : 'var(--foreground)',
-                fontWeight: activeFolderId === null ? 600 : 400,
-                border: activeFolderId === null ? '1px solid var(--primary-border)' : '1px solid transparent',
-                transition: 'all 0.15s'
-              }}
-            >📁 {t('profile.allFavorites')}</div>
             <div style={{position: 'relative'}}>
               <div
                 onClick={() => handleFolderClick('unclassified')}
@@ -633,9 +683,9 @@ const Profile = ({ user, setUser, logout }) => {
                   transition: 'all 0.15s',
                   position: 'relative'
                 }}
-              >📂 {t('profile.unclassified')}
+              >📂 {t('profile.defaultFolder')} <span style={{fontSize: '11px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>({folderCounts.unclassified || 0})</span>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShareFolder({ _id: '__unclassified__', name: t('profile.unclassified'), isUnclassified: true }); }}
+                  onClick={(e) => { e.stopPropagation(); setShareFolder({ _id: '__unclassified__', name: t('profile.defaultFolder'), isUnclassified: true }); }}
                   style={{
                     position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer',
@@ -656,10 +706,23 @@ const Profile = ({ user, setUser, logout }) => {
                       onChange={(e) => setEditingFolderName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleRenameFolder(folder._id); if (e.key === 'Escape') setEditingFolderId(null); }}
                       autoFocus
+                      placeholder={t('profile.folderNamePlaceholder')}
                       style={{
                         width: '100%', padding: '4px 8px', borderRadius: '4px', fontSize: '13px',
                         background: 'var(--input)', border: '1px solid var(--border)',
                         color: 'var(--foreground)', boxSizing: 'border-box'
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={editingFolderDesc}
+                      onChange={(e) => setEditingFolderDesc(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleRenameFolder(folder._id); if (e.key === 'Escape') setEditingFolderId(null); }}
+                      placeholder={t('profile.folderDescPlaceholder')}
+                      style={{
+                        width: '100%', padding: '4px 8px', borderRadius: '4px', fontSize: '12px',
+                        background: 'var(--input)', border: '1px solid var(--border)',
+                        color: 'var(--foreground)', boxSizing: 'border-box', marginTop: '4px'
                       }}
                     />
                     <div style={{display: 'flex', gap: '4px', marginTop: '4px'}}>
@@ -687,7 +750,7 @@ const Profile = ({ user, setUser, logout }) => {
                       position: 'relative'
                     }}
                   >
-                    📂 {folder.name}
+                    📂 {folder.name} <span style={{fontSize: '11px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>({folderCounts[folder._id] || 0})</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowFolderMenu(showFolderMenu === folder._id ? null : folder._id); }}
                       style={{
@@ -707,7 +770,7 @@ const Profile = ({ user, setUser, logout }) => {
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                   }}>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setEditingFolderId(folder._id); setEditingFolderName(folder.name); setShowFolderMenu(null); }}
+                      onClick={(e) => { e.stopPropagation(); setEditingFolderId(folder._id); setEditingFolderName(folder.name); setEditingFolderDesc(folder.description || ''); setShowFolderMenu(null); }}
                       style={{
                         display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px',
                         background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
@@ -749,40 +812,90 @@ const Profile = ({ user, setUser, logout }) => {
           </div>
           <div className="followed-episodes" style={{flex: 1}}>
             {/* 收藏夹信息板块 */}
-            {activeFolderId && activeFolderId !== null && (
+            {activeFolderId && (
               <div style={{
                 background: 'var(--card)', borderRadius: '12px',
                 border: '1px solid var(--border)', padding: '16px 20px',
-                marginBottom: '16px', display: 'flex', alignItems: 'center',
-                justifyContent: 'space-between', gap: '12px'
+                marginBottom: '16px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '24px' }}>
-                    {activeFolderId === 'unclassified' ? '📂' : '📁'}
-                  </span>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '16px' }}>
-                      {activeFolderId === 'unclassified'
-                        ? t('profile.unclassified')
-                        : favoriteFolders.find(f => f._id === activeFolderId)?.name || ''}
-                    </h3>
-                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      {t('share.folderCount', { count: favoriteEpisodes.length })}
-                    </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '24px' }}>
+                      {activeFolderId === 'unclassified' ? '📂' : '📁'}
+                    </span>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px' }}>
+                        {activeFolderId === 'unclassified'
+                          ? t('profile.defaultFolder')
+                          : favoriteFolders.find(f => f._id === activeFolderId)?.name || ''}
+                      </h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {t('share.folderCount', { count: favoriteEpisodes.length })}
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      if (activeFolderId === 'unclassified') {
+                        setShareFolder({ _id: '__unclassified__', name: t('profile.defaultFolder'), isUnclassified: true });
+                      } else {
+                        const folder = favoriteFolders.find(f => f._id === activeFolderId);
+                        if (folder) setShareFolder(folder);
+                      }
+                    }}
+                    style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >🔗 {t('share.shareFolder')}</button>
                 </div>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    if (activeFolderId === 'unclassified') {
-                      setShareFolder({ _id: '__unclassified__', name: t('profile.unclassified'), isUnclassified: true });
-                    } else {
-                      const folder = favoriteFolders.find(f => f._id === activeFolderId);
-                      if (folder) setShareFolder(folder);
-                    }
-                  }}
-                  style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                >🔗 {t('share.shareFolder')}</button>
+                {activeFolderId !== 'unclassified' && (() => {
+                  const currentFolder = favoriteFolders.find(f => f._id === activeFolderId);
+                  if (!currentFolder) return null;
+                  const isEditingDesc = editingFolderDescId === activeFolderId;
+                  return (
+                    <div style={{ marginTop: '10px', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+                      {isEditingDesc ? (
+                        <div>
+                          <input
+                            type="text"
+                            value={editingFolderDescValue}
+                            onChange={(e) => setEditingFolderDescValue(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveFolderDesc(activeFolderId); if (e.key === 'Escape') setEditingFolderDescId(null); }}
+                            placeholder={t('profile.folderDescPlaceholder')}
+                            autoFocus
+                            style={{
+                              width: '100%', padding: '6px 10px', borderRadius: '6px', fontSize: '13px',
+                              background: 'var(--input)', border: '1px solid var(--border)',
+                              color: 'var(--foreground)', boxSizing: 'border-box'
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                            <button onClick={() => handleSaveFolderDesc(activeFolderId)} style={{
+                              padding: '4px 12px', borderRadius: '6px', fontSize: '12px',
+                              background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer'
+                            }}>{t('common.save')}</button>
+                            <button onClick={() => setEditingFolderDescId(null)} style={{
+                              padding: '4px 12px', borderRadius: '6px', fontSize: '12px',
+                              background: 'var(--hover-bg)', color: 'var(--foreground)', border: '1px solid var(--border)', cursor: 'pointer'
+                            }}>{t('common.cancel')}</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => { setEditingFolderDescId(activeFolderId); setEditingFolderDescValue(currentFolder.description || ''); }}
+                          style={{ cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '6px' }}
+                        >
+                          <p style={{
+                            margin: 0, fontSize: '13px', color: currentFolder.description ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+                            fontStyle: currentFolder.description ? 'normal' : 'italic', flex: 1
+                          }}>
+                            {currentFolder.description || t('profile.folderDescPlaceholder')}
+                          </p>
+                          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', flexShrink: 0 }}>✏️</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
             {favoriteEpisodes.length === 0 ? (

@@ -16,6 +16,10 @@ const FolderSchema = new mongoose.Schema({
     enum: ['follow', 'favorite'],
     required: true
   },
+  description: {
+    type: String,
+    default: ''
+  },
   sortOrder: {
     type: Number,
     default: 0

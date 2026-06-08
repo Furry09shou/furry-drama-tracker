@@ -266,10 +266,13 @@ export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved === 'system') return getSystemTheme();
-    return saved || 'dark';
+    if (saved === 'light' || saved === 'dark') return saved;
+    return getSystemTheme();
   });
   const [themeMode, setThemeMode] = useState(() => {
-    return localStorage.getItem('theme') || 'dark';
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+    return 'system';
   });
   const [accentColor, setAccentColorState] = useState(() => {
     const saved = localStorage.getItem('accent_color');
@@ -319,11 +322,22 @@ export const ThemeProvider = ({ children }) => {
     localStorage.setItem('accent_color', color);
   };
 
+  const setThemeModeTo = (mode) => {
+    if (!['dark', 'light', 'system'].includes(mode)) return;
+    setThemeMode(mode);
+    localStorage.setItem('theme', mode);
+    if (mode === 'system') {
+      setTheme(getSystemTheme());
+    } else {
+      setTheme(mode);
+    }
+  };
+
   const themeIcon = themeMode === 'dark' ? '☀️' : themeMode === 'light' ? '🌙' : '💻';
   const themeTitle = themeMode === 'dark' ? 'Switch to light' : themeMode === 'light' ? 'Follow system' : 'Switch to dark';
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, themeMode, themeIcon, themeTitle, accentColor, setAccentColor, presetColors: PRESET_COLORS }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, themeMode, setThemeModeTo, themeIcon, themeTitle, accentColor, setAccentColor, presetColors: PRESET_COLORS }}>
       {children}
     </ThemeContext.Provider>
   );

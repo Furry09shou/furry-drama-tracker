@@ -32,6 +32,7 @@ const EpisodeDetail = ({ user }) => {
   const [episodeSortOrder, setEpisodeSortOrder] = useState('desc');
   const [favoriteFolders, setFavoriteFolders] = useState([]);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const favoriteBtnRef = useRef(null);
 
   const navigate = useNavigate();
   const { id: episodeId } = useParams();
@@ -385,19 +386,25 @@ const EpisodeDetail = ({ user }) => {
             {user && (
               <div style={{position: 'relative', display: 'inline-block'}}>
                 <button
+                  ref={favoriteBtnRef}
                   className={`btn ${isFavorite ? 'btn-secondary' : ''}`}
                   onClick={handleOpenFolderPicker}
                   style={isFavorite ? {borderColor: 'var(--warning-text)', color: 'var(--warning-text)'} : {}}
                 >
                   {isFavorite ? t('episode.favorited') : t('episode.favoriteLabel')}
                 </button>
-                {showFolderPicker && !isFavorite && (
+                {showFolderPicker && !isFavorite && favoriteBtnRef.current && createPortal(
                   <div style={{
-                    position: 'absolute', top: '100%', left: '0', zIndex: 20,
+                    position: 'fixed',
+                    top: favoriteBtnRef.current.getBoundingClientRect().bottom + 4,
+                    left: favoriteBtnRef.current.getBoundingClientRect().left,
+                    zIndex: 9999,
                     background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: '8px', padding: '6px', minWidth: '180px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', marginTop: '4px'
-                  }}>
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       onClick={() => handleFavorite(null)}
                       style={{
@@ -405,9 +412,9 @@ const EpisodeDetail = ({ user }) => {
                         background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
                         color: 'var(--foreground)', borderRadius: '4px'
                       }}
-                      onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
-                      onMouseLeave={(e) => e.target.style.background = 'none'}
-                    >📁 {t('profile.unclassified')}</button>
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                    >📁 {t('profile.defaultFolder')}</button>
                     {favoriteFolders.map(folder => (
                       <button
                         key={folder._id}
@@ -417,8 +424,8 @@ const EpisodeDetail = ({ user }) => {
                           background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
                           color: 'var(--foreground)', borderRadius: '4px'
                         }}
-                        onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
-                        onMouseLeave={(e) => e.target.style.background = 'none'}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                       >📂 {folder.name}</button>
                     ))}
                     <div style={{borderTop: '1px solid var(--border)', margin: '4px 0'}} />
@@ -429,10 +436,11 @@ const EpisodeDetail = ({ user }) => {
                         background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px',
                         color: 'var(--text-tertiary)', borderRadius: '4px'
                       }}
-                      onMouseEnter={(e) => e.target.style.background = 'var(--hover-bg)'}
-                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                     >{t('common.cancel')}</button>
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             )}

@@ -59,6 +59,11 @@ const SharedFolder = () => {
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
           {t('share.folderCount', { count: data.count })}
         </p>
+        {data.description && (
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', margin: '6px 0 0', fontStyle: 'italic' }}>
+            {data.description}
+          </p>
+        )}
       </div>
 
       {data.episodes.length === 0 ? (

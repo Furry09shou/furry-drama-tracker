@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
+import { useTheme } from '../contexts/ThemeContext';
 import usePushNotifications from '../hooks/usePushNotifications';
 import { useAuth } from '../contexts/AuthContext';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
 
 const Settings = ({ user }) => {
-  const { t } = useI18n();
+  const { t, lang, switchLang, supportedLanguages } = useI18n();
+  const { themeMode, setThemeModeTo } = useTheme();
   const navigate = useNavigate();
   const { getAuthHeaders } = useAuth();
   const push = usePushNotifications();
@@ -33,7 +35,6 @@ const Settings = ({ user }) => {
 
   const handleToggleNotification = async () => {
     if (notificationEnabled) {
-      // 关闭通知权限无法通过API撤销，只能提示用户去浏览器设置中关闭
       setNotificationEnabled(false);
       showSaved();
     } else {
@@ -53,7 +54,34 @@ const Settings = ({ user }) => {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const themeOptions = [
+    { mode: 'system', label: t('settings.themeSystem'), icon: '💻' },
+    { mode: 'light', label: t('settings.themeLight'), icon: '☀️' },
+    { mode: 'dark', label: t('settings.themeDark'), icon: '🌙' },
+  ];
+
   const settingsGroups = [
+    {
+      title: t('settings.display'),
+      items: [
+        {
+          key: 'language',
+          label: t('settings.language'),
+          desc: t('settings.languageDesc'),
+          type: 'select',
+          options: supportedLanguages.map(l => ({ value: l.code, label: `${l.flag} ${l.label}` })),
+          value: lang,
+          onChange: (val) => { switchLang(val); showSaved(); },
+        },
+        {
+          key: 'theme',
+          label: t('settings.theme'),
+          desc: t('settings.themeDesc'),
+          type: 'theme',
+          value: themeMode,
+        },
+      ],
+    },
     {
       title: t('settings.pwa'),
       items: [
@@ -73,18 +101,6 @@ const Settings = ({ user }) => {
           value: notificationEnabled,
           onChange: handleToggleNotification,
           disabled: !('Notification' in window),
-        },
-      ],
-    },
-    {
-      title: t('settings.display'),
-      items: [
-        {
-          key: 'language',
-          label: t('settings.language'),
-          desc: t('settings.languageDesc'),
-          type: 'info',
-          value: navigator.language.startsWith('zh') ? '中文' : 'English',
         },
       ],
     },
@@ -153,6 +169,42 @@ const Settings = ({ user }) => {
                       boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                     }} />
                   </button>
+                ) : item.type === 'select' ? (
+                  <select
+                    value={item.value}
+                    onChange={(e) => item.onChange(e.target.value)}
+                    style={{
+                      padding: '6px 10px', borderRadius: '8px', fontSize: '13px',
+                      background: 'var(--input)', border: '1px solid var(--border)',
+                      color: 'var(--foreground)', cursor: 'pointer', flexShrink: 0,
+                    }}
+                  >
+                    {item.options.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                ) : item.type === 'theme' ? (
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    {themeOptions.map(opt => (
+                      <button
+                        key={opt.mode}
+                        onClick={() => {
+                          setThemeModeTo(opt.mode);
+                          showSaved();
+                        }}
+                        style={{
+                          padding: '6px 10px', borderRadius: '8px', fontSize: '13px',
+                          background: themeMode === opt.mode ? 'var(--primary-bg)' : 'var(--hover-bg)',
+                          color: themeMode === opt.mode ? 'var(--primary)' : 'var(--foreground)',
+                          border: themeMode === opt.mode ? '1px solid var(--primary-border)' : '1px solid var(--border)',
+                          cursor: 'pointer', fontWeight: themeMode === opt.mode ? 600 : 400,
+                          transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '4px',
+                        }}
+                      >
+                        {opt.icon} {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 ) : (
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0 }}>
                     {item.value}

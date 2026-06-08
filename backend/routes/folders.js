@@ -70,6 +70,9 @@ router.put('/:id', protect, async (req, res) => {
       }
       folder.name = req.body.name.trim();
     }
+    if (req.body.description !== undefined) {
+      folder.description = req.body.description.trim();
+    }
     await folder.save();
     res.json(folder);
   } catch (error) {
@@ -197,7 +200,8 @@ router.get('/shared/:shareToken', async (req, res) => {
       .map(item => item.episodeId);
 
     res.json({
-      name: isUnclassified ? '未分类' : folder.name,
+      name: isUnclassified ? '默认收藏夹' : folder.name,
+      description: isUnclassified ? '' : (folder.description || ''),
       type: folder.type,
       count: episodes.length,
       episodes,
