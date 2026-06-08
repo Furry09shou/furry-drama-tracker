@@ -31,7 +31,7 @@ const AdminReview = () => {
   const fetchPendingEpisodes = async () => {
     try {
       const res = await adminApi.get('/api/review/pending');
-      setPendingEpisodes(res.data);
+      setPendingEpisodes(res.data.list || res.data);
     } catch (err) {
       console.error('获取待审核剧集失败', err);
     }
@@ -40,7 +40,7 @@ const AdminReview = () => {
   const fetchAllEpisodes = async () => {
     try {
       const res = await adminApi.get('/api/review/all');
-      setAllEpisodes(res.data);
+      setAllEpisodes(res.data.list || res.data);
     } catch (err) {
       console.error('获取所有剧集失败', err);
     }

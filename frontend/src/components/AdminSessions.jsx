@@ -25,7 +25,7 @@ const AdminSessions = () => {
     setLoading(true);
     try {
       const res = await adminApi.get('/api/admin-sessions/all');
-      setSessions(res.data);
+      setSessions(res.data.list || res.data);
     } catch (err) {
       setError(t('adminSessions.loadFailed'));
     }

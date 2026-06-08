@@ -48,7 +48,7 @@ const AdminUsers = () => {
   const fetchAdmins = async () => {
     try {
       const res = await adminApi.get('/api/admin/list');
-      setAdmins(res.data);
+      setAdmins(res.data.list || res.data);
     } catch (err) {
       console.error('获取管理员列表失败', err);
     }
