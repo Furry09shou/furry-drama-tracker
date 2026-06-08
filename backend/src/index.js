@@ -37,6 +37,7 @@ const userSessionRoutes = require('../routes/userSessions');
 const twoFactorRoutes = require('../routes/twoFactor');
 const translateRoutes = require('../routes/translate');
 const folderRoutes = require('../routes/folders');
+const savedFolderRoutes = require('../routes/savedFolders');
 const activityRoutes = require('../routes/activity');
 const versionRoutes = require('../routes/versions');
 const { sanitizeInput, sanitizeHeaders } = require('../middlewares/security');
@@ -368,6 +369,7 @@ const routeMounts = [
   ['/api/2fa', twoFactorRoutes],
   ['/api/translate', translateRoutes],
   ['/api/folders', folderRoutes],
+  ['/api/saved-folders', savedFolderRoutes],
   ['/api/activity', activityRoutes],
   ['/api/versions', versionRoutes],
 ];

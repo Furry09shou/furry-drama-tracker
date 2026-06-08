@@ -37,6 +37,7 @@ const Profile = ({ user, setUser, logout }) => {
   const [editingFolderDescValue, setEditingFolderDescValue] = useState('');
   const [movingFavoriteId, setMovingFavoriteId] = useState(null);
   const [showFolderMenu, setShowFolderMenu] = useState(null);
+  const [savedFolders, setSavedFolders] = useState([]);
   const [shareEpisode, setShareEpisode] = useState(null);
   const [shareFolder, setShareFolder] = useState(null);
   const [showFullEmail, setShowFullEmail] = useState(false);
@@ -66,12 +67,13 @@ const Profile = ({ user, setUser, logout }) => {
         if (!userData) { setLoading(false); return; }
         const config = { headers: getAuthHeaders() };
 
-        const [followRes, historyRes, favRes, folderRes, countsRes] = await Promise.allSettled([
+        const [followRes, historyRes, favRes, folderRes, countsRes, savedRes] = await Promise.allSettled([
           axios.get('/api/follows/list', config),
           axios.get('/api/histories/list', config),
           axios.get('/api/favorites/list', { headers: getAuthHeaders(), params: { folderId: 'null' } }),
           axios.get('/api/folders?type=favorite', config),
           axios.get('/api/favorites/counts', config),
+          axios.get('/api/saved-folders', config),
         ]);
 
         const followData = followRes.status === 'fulfilled' ? (followRes.value.data.list || followRes.value.data || []) : [];
@@ -86,6 +88,7 @@ const Profile = ({ user, setUser, logout }) => {
         setFavoriteFolders(folderData);
         setTotalFavoriteCount(countsData.total);
         setFolderCounts({ unclassified: countsData.unclassified, ...countsData.folders });
+        setSavedFolders(savedRes.status === 'fulfilled' ? (savedRes.value.data || []) : []);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -809,6 +812,48 @@ const Profile = ({ user, setUser, logout }) => {
                 )}
               </div>
             ))}
+            {savedFolders.length > 0 && (
+              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: '0 0 4px 10px', fontWeight: 600 }}>{t('profile.savedFolders')}</p>
+                {savedFolders.map(sf => (
+                  <Link
+                    key={sf._id}
+                    to={`/shared-folder/${sf.shareToken}`}
+                    style={{ textDecoration: 'none', display: 'block' }}
+                  >
+                    <div
+                      style={{
+                        padding: '7px 10px', borderRadius: '6px', cursor: 'pointer',
+                        fontSize: '13px', marginBottom: '2px',
+                        background: 'transparent',
+                        color: 'var(--foreground)',
+                        transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span>🌐 {sf.folderName}</span>
+                      <button
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          try {
+                            await axios.delete(`/api/saved-folders/${sf._id}`, { headers: getAuthHeaders() });
+                            setSavedFolders(prev => prev.filter(s => s._id !== sf._id));
+                          } catch (err) {}
+                        }}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: 'var(--text-tertiary)', fontSize: '12px', padding: '2px 4px'
+                        }}
+                        title={t('profile.removeSavedFolder')}
+                      >✕</button>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
           <div className="followed-episodes" style={{flex: 1}}>
             {/* 收藏夹信息板块 */}
@@ -831,6 +876,13 @@ const Profile = ({ user, setUser, logout }) => {
                       </h3>
                       <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
                         {t('share.folderCount', { count: favoriteEpisodes.length })}
+                        {activeFolderId !== 'unclassified' && (() => {
+                          const f = favoriteFolders.find(f => f._id === activeFolderId);
+                          const parts = [];
+                          if (f?.userId?.username) parts.push(t('profile.createdBy', { name: f.userId.username }));
+                          if (f?.createdAt) parts.push(t('profile.createdAt', { date: new Date(f.createdAt).toLocaleDateString() }));
+                          return parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
+                        })()}
                       </p>
                     </div>
                   </div>

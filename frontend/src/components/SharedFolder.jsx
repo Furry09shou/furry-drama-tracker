@@ -2,15 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useI18n } from '../contexts/I18nContext';
+import { useAuth } from '../contexts/AuthContext';
 import useTranslation from '../hooks/useTranslation';
 
 const SharedFolder = () => {
   const { shareToken } = useParams();
   const { t } = useI18n();
   const { getLocalizedTitle } = useTranslation();
+  const { user, getAuthHeaders } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const fetchFolder = async () => {
@@ -25,6 +29,58 @@ const SharedFolder = () => {
     };
     if (shareToken) fetchFolder();
   }, [shareToken]);
+
+  // 检查是否已收藏该收藏夹
+  useEffect(() => {
+    if (!user || !data) return;
+    const checkSaved = async () => {
+      try {
+        const res = await axios.get('/api/saved-folders', { headers: getAuthHeaders() });
+        const isSaved = res.data.some(sf => sf.shareToken === shareToken);
+        setSaved(isSaved);
+      } catch (err) {
+        // ignore
+      }
+    };
+    checkSaved();
+  }, [user, data, shareToken]);
+
+  const handleSaveFolder = async () => {
+    if (!user || !data) return;
+    setSaving(true);
+    try {
+      await axios.post('/api/saved-folders', {
+        shareToken,
+        creatorName: data.creatorName
+      }, { headers: getAuthHeaders() });
+      setSaved(true);
+    } catch (err) {
+      if (err.response?.data?.message) {
+        alert(err.response.data.message);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUnsaveFolder = async () => {
+    if (!user || !data) return;
+    setSaving(true);
+    try {
+      const res = await axios.get('/api/saved-folders', { headers: getAuthHeaders() });
+      const savedFolder = res.data.find(sf => sf.shareToken === shareToken);
+      if (savedFolder) {
+        await axios.delete(`/api/saved-folders/${savedFolder._id}`, { headers: getAuthHeaders() });
+        setSaved(false);
+      }
+    } catch (err) {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isOwnFolder = user && data && user._id === data.creatorId;
 
   if (loading) {
     return (
@@ -58,11 +114,36 @@ const SharedFolder = () => {
         </div>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
           {t('share.folderCount', { count: data.count })}
+          {data.creatorName && ` · ${t('profile.createdBy', { name: data.creatorName })}`}
+          {data.createdAt && ` · ${t('profile.createdAt', { date: new Date(data.createdAt).toLocaleDateString() })}`}
         </p>
         {data.description && (
           <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', margin: '6px 0 0', fontStyle: 'italic' }}>
             {data.description}
           </p>
+        )}
+        {user && !isOwnFolder && (
+          <div style={{ marginTop: '12px' }}>
+            {saved ? (
+              <button
+                onClick={handleUnsaveFolder}
+                disabled={saving}
+                className="btn btn-secondary"
+                style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                ⭐ {t('share.folderSaved')}
+              </button>
+            ) : (
+              <button
+                onClick={handleSaveFolder}
+                disabled={saving}
+                className="btn"
+                style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                ☆ {t('share.saveFolder')}
+              </button>
+            )}
+          </div>
         )}
       </div>
 

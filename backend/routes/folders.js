@@ -4,6 +4,7 @@ const Folder = require('../models/Folder');
 const Follow = require('../models/Follow');
 const Favorite = require('../models/Favorite');
 const Episode = require('../models/Episode');
+const User = require('../models/User');
 const { protect } = require('../middlewares/authFactory');
 const { asyncHandler } = require('../utils/errorHandler');
 
@@ -13,7 +14,7 @@ router.get('/', protect, async (req, res) => {
     if (req.query.type) {
       filter.type = req.query.type;
     }
-    const folders = await Folder.find(filter).sort({ sortOrder: 1, createdAt: 1 });
+    const folders = await Folder.find(filter).sort({ sortOrder: 1, createdAt: 1 }).populate('userId', 'username');
     res.json(folders);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -199,13 +200,19 @@ router.get('/shared/:shareToken', async (req, res) => {
       .filter(item => item.episodeId)
       .map(item => item.episodeId);
 
+    // 获取创建者信息
+    const creator = await User.findById(folder.userId).select('username');
+    const creatorName = creator ? creator.username : 'Unknown';
+
     res.json({
       name: isUnclassified ? '默认收藏夹' : folder.name,
       description: isUnclassified ? '' : (folder.description || ''),
       type: folder.type,
       count: episodes.length,
       episodes,
-      createdAt: folder.createdAt
+      createdAt: folder.createdAt,
+      creatorId: folder.userId,
+      creatorName
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
