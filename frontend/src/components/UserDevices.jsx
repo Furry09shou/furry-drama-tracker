@@ -123,7 +123,7 @@ const UserDevices = ({ user }) => {
 
   return (
     <div className="user-profile">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Link to="/account-security" className="btn btn-secondary">{t('common.back')}</Link>
           <h2 style={{ margin: 0 }}>{t('devices.manageDevices')}</h2>

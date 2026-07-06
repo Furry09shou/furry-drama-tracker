@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
       accountId: user.accountId,
       username: user.username,
       isEmailVerified: user.isEmailVerified,
-      adminAccess: user.adminAccess || false,
+      role: user.role || 'user',
       avatar: user.avatar || ''
     }));
   };

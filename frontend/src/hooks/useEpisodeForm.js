@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '../contexts/I18nContext';
 
 const initialEpisodeState = {
   title: '',
@@ -10,6 +11,7 @@ const initialEpisodeState = {
 };
 
 export const useEpisodeForm = (initialEpisode = null) => {
+  const { t } = useI18n();
   const [formData, setFormData] = useState(
     initialEpisode || initialEpisodeState
   );
@@ -40,11 +42,11 @@ export const useEpisodeForm = (initialEpisode = null) => {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.title.trim()) newErrors.title = '标题不能为空';
-    if (!formData.description.trim()) newErrors.description = '描述不能为空';
-    if (!formData.coverImage.trim()) newErrors.coverImage = '封面图片不能为空';
-    if (formData.totalEpisodes <= 0) newErrors.totalEpisodes = '总集数必须大于0';
-    
+    if (!formData.title.trim()) newErrors.title = t('adminEpisodes.titleRequired');
+    if (!formData.description.trim()) newErrors.description = t('adminEpisodes.descriptionRequired');
+    if (!formData.coverImage.trim()) newErrors.coverImage = t('adminEpisodes.coverRequired');
+    if (formData.totalEpisodes <= 0) newErrors.totalEpisodes = t('adminEpisodes.totalEpisodesRequired');
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

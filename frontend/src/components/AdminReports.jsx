@@ -65,7 +65,7 @@ const AdminReports = () => {
         <h2 style={{ margin: 0 }}>{t('adminReports.title')}</h2>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {['pending', 'resolved', 'dismissed', ''].map(s => (
           <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
             className={statusFilter === s ? 'btn' : 'btn btn-secondary'}

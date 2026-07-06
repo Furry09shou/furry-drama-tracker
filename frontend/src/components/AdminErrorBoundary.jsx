@@ -1,5 +1,5 @@
 import React from 'react';
-import { useI18n } from '../contexts/I18nContext';
+import I18nContext from '../contexts/I18nContext';
 
 class AdminErrorBoundary extends React.Component {
   constructor(props) {
@@ -17,6 +17,7 @@ class AdminErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const t = this.context?.t || ((k) => k);
       return (
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -24,9 +25,9 @@ class AdminErrorBoundary extends React.Component {
           color: 'var(--text-secondary)'
         }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-          <h2 style={{ color: 'var(--foreground)', marginBottom: '8px' }}>管理面板出现错误</h2>
+          <h2 style={{ color: 'var(--foreground)', marginBottom: '8px' }}>{t('admin.errorTitle')}</h2>
           <p style={{ fontSize: '14px', marginBottom: '16px' }}>
-            {this.state.error?.message || '未知错误'}
+            {this.state.error?.message || t('admin.unknownError')}
           </p>
           <button
             onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
@@ -36,7 +37,7 @@ class AdminErrorBoundary extends React.Component {
               border: 'none', cursor: 'pointer', fontSize: '14px'
             }}
           >
-            刷新页面
+            {t('common.refreshPage')}
           </button>
         </div>
       );
@@ -44,5 +45,7 @@ class AdminErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+AdminErrorBoundary.contextType = I18nContext;
 
 export default AdminErrorBoundary;

@@ -58,9 +58,10 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  adminAccess: {
-    type: Boolean,
-    default: false
+  role: {
+    type: String,
+    default: 'user',
+    enum: ['user', 'creator', 'admin', 'superadmin']
   },
   passwordChangedAt: {
     type: Date,

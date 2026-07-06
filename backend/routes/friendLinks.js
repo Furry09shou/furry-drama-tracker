@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const FriendLink = require('../models/FriendLink');
-const Admin = require('../models/Admin');
+const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { sendPushToUser } = require('./notifications');
 const { adminProtect, protect } = require('../middlewares/authFactory');
@@ -85,7 +85,7 @@ router.post('/apply', optionalProtect, async (req, res) => {
       name, url, logo: logo || '', description: description || '',
       order: 0, isActive: false, status: 'pending', applicantId
     });
-    const superAdmins = await Admin.find({ role: 'superadmin' });
+    const superAdmins = await User.find({ role: 'superadmin' });
     if (superAdmins.length > 0) {
       const notifications = superAdmins.map(a => ({
         userId: a._id,

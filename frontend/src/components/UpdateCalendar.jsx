@@ -118,7 +118,8 @@ const UpdateCalendar = () => {
             <button onClick={goToday} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>{t('calendar.today')}</button>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
           {days.map((d, i) => {
             const dateKey = formatDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
             const isToday = d.toDateString() === today.toDateString();
@@ -164,6 +165,7 @@ const UpdateCalendar = () => {
               </div>
             );
           })}
+        </div>
         </div>
       </>
     );

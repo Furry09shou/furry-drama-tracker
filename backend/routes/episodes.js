@@ -424,7 +424,7 @@ router.delete('/single/:id', adminProtect, async (req, res) => {
 
 router.post('/', creatorProtect, async (req, res) => {
   try {
-    const isCreator = req.admin.role === 'creator';
+    const isCreator = req.user.role === 'creator';
     const episodeData = {
       title: req.body.title,
       titleEn: req.body.titleEn || '',
@@ -441,7 +441,7 @@ router.post('/', creatorProtect, async (req, res) => {
       updateDay: req.body.updateDay || '',
       premiereDate: req.body.premiereDate || null,
       platformLinks: req.body.platformLinks || {},
-      createdBy: req.admin._id,
+      createdBy: req.user._id,
       reviewStatus: isCreator ? 'pending' : 'approved'
     };
 
@@ -465,10 +465,10 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
 
-    const isCreatorRole = req.admin.role === 'creator';
+    const isCreatorRole = req.user.role === 'creator';
     if (isCreatorRole) {
-      const isOwner = episode.createdBy && episode.createdBy.toString() === req.admin._id.toString();
-      const isAllowed = episode.allowedEditors && episode.allowedEditors.some(e => e.toString() === req.admin._id.toString());
+      const isOwner = episode.createdBy && episode.createdBy.toString() === req.user._id.toString();
+      const isAllowed = episode.allowedEditors && episode.allowedEditors.some(e => e.toString() === req.user._id.toString());
       if (!isOwner && !isAllowed) {
         return res.status(403).json({ message: 'No permission to add episodes' });
       }
@@ -537,11 +537,11 @@ router.put('/:id', creatorProtect, async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
 
-    const isCreatorRole = req.admin.role === 'creator';
+    const isCreatorRole = req.user.role === 'creator';
 
     if (isCreatorRole) {
-      const isOwner = episode.createdBy && episode.createdBy.toString() === req.admin._id.toString();
-      const isAllowed = episode.allowedEditors && episode.allowedEditors.some(e => e.toString() === req.admin._id.toString());
+      const isOwner = episode.createdBy && episode.createdBy.toString() === req.user._id.toString();
+      const isAllowed = episode.allowedEditors && episode.allowedEditors.some(e => e.toString() === req.user._id.toString());
       if (!isOwner && !isAllowed) {
         return res.status(403).json({ message: 'You do not have permission to edit this episode' });
       }
@@ -555,7 +555,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
       episodeId: req.params.id,
       version: newVersionNum,
       data: episode.toObject(),
-      changedBy: req.admin._id,
+      changedBy: req.user._id,
       changeSummary: req.body.changeSummary || ''
     });
 

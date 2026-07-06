@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const AuditLogSchema = new mongoose.Schema({
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin',
+    ref: 'User',
   },
   adminName: {
     type: String,

@@ -24,7 +24,7 @@ const AdminSessions = () => {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await adminApi.get('/api/admin-sessions/all');
+      const res = await adminApi.get('/api/user-sessions/all');
       setSessions(res.data.list || res.data);
     } catch (err) {
       setError(t('adminSessions.loadFailed'));
@@ -35,7 +35,7 @@ const AdminSessions = () => {
   const handleLogoutSession = async (id) => {
     if (!window.confirm(t('adminSessions.confirmLogoutDevice'))) return;
     try {
-      await adminApi.delete(`/api/admin-sessions/${id}`);
+      await adminApi.delete(`/api/user-sessions/admin/${id}`);
       setSuccess(t('adminSessions.deviceLoggedOut'));
       fetchSessions();
       setTimeout(() => setSuccess(''), 3000);
@@ -44,10 +44,10 @@ const AdminSessions = () => {
     }
   };
 
-  const handleLogoutAllAdmin = async (adminId, username) => {
+  const handleLogoutAllAdmin = async (userId, username) => {
     if (!window.confirm(t('adminSessions.confirmLogoutAll', { username }))) return;
     try {
-      await adminApi.delete(`/api/admin-sessions/admin/${adminId}/all`);
+      await adminApi.delete(`/api/user-sessions/admin/user/${userId}/all`);
       setSuccess(t('adminSessions.allDevicesLoggedOut', { username }));
       fetchSessions();
       setTimeout(() => setSuccess(''), 3000);
@@ -86,8 +86,8 @@ const AdminSessions = () => {
     return map[role] || 'var(--text-secondary)';
   };
 
-  const uniqueAdmins = [...new Map(sessions.map(s => [s.adminId, { id: s.adminId, username: s.adminUsername, role: s.adminRole }])).values()];
-  const filteredSessions = filterAdmin ? sessions.filter(s => s.adminId === filterAdmin) : sessions;
+  const uniqueAdmins = [...new Map(sessions.map(s => [s.userId, { id: s.userId, username: s.username, role: s.userRole }])).values()];
+  const filteredSessions = filterAdmin ? sessions.filter(s => s.userId === filterAdmin) : sessions;
 
   return (
     <div className="admin-panel">
@@ -130,7 +130,7 @@ const AdminSessions = () => {
           {filteredSessions.map(session => (
             <div key={session._id} style={{
               background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)',
-              padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px',
+              padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
               opacity: session.isActive ? 1 : 0.6, transition: 'opacity 0.2s'
             }}>
               <div style={{ fontSize: '28px', flexShrink: 0 }}>
@@ -189,7 +189,7 @@ const AdminSessions = () => {
                   }}>{t('adminSessions.logout')}</button>
                 )}
                 {session.isActive && !session.isCurrent && (
-                  <button onClick={() => handleLogoutAllAdmin(session.adminId, session.adminUsername)} style={{
+                  <button onClick={() => handleLogoutAllAdmin(session.userId, session.username)} style={{
                     padding: '6px 14px', borderRadius: '8px', fontSize: '13px',
                     background: 'var(--hover-bg)', color: 'var(--text-secondary)',
                     border: '1px solid var(--border)', cursor: 'pointer',

@@ -15,7 +15,7 @@ const VerifyEmailChange = () => {
     const token = searchParams.get('token');
     if (!token) {
       setStatus('error');
-      setMessage('缺少验证令牌');
+      setMessage(t('auth.missingVerifyToken'));
       return;
     }
 
@@ -27,9 +27,9 @@ const VerifyEmailChange = () => {
       })
       .catch(err => {
         setStatus('error');
-        setMessage(err.response?.data?.message || '验证失败');
+        setMessage(err.response?.data?.message || t('auth.verifyFailed'));
       });
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   return (
     <div style={{
@@ -39,15 +39,15 @@ const VerifyEmailChange = () => {
       {status === 'verifying' && (
         <>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-          <h2 style={{ color: 'var(--foreground)' }}>正在验证邮箱变更...</h2>
+          <h2 style={{ color: 'var(--foreground)' }}>{t('auth.verifyingEmailChange')}</h2>
         </>
       )}
       {status === 'success' && (
         <>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-          <h2 style={{ color: 'var(--success-text)' }}>邮箱修改成功</h2>
+          <h2 style={{ color: 'var(--success-text)' }}>{t('auth.emailChangeSuccess')}</h2>
           {newEmail && <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-            新邮箱：{newEmail}
+            {t('auth.newEmailLabel')}{newEmail}
           </p>}
           <button
             onClick={() => navigate('/profile', { replace: true })}
@@ -57,14 +57,14 @@ const VerifyEmailChange = () => {
               border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 500
             }}
           >
-            返回个人资料
+            {t('auth.backToProfile')}
           </button>
         </>
       )}
       {status === 'error' && (
         <>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
-          <h2 style={{ color: 'var(--destructive-text)' }}>验证失败</h2>
+          <h2 style={{ color: 'var(--destructive-text)' }}>{t('auth.verifyFailed')}</h2>
           <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>{message}</p>
           <button
             onClick={() => navigate('/profile', { replace: true })}
@@ -74,7 +74,7 @@ const VerifyEmailChange = () => {
               border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 500
             }}
           >
-            返回个人资料
+            {t('auth.backToProfile')}
           </button>
         </>
       )}

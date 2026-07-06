@@ -8,7 +8,7 @@ const SeriesSchema = new mongoose.Schema({
   descriptionEn: { type: String, default: '' },
   descriptionJa: { type: String, default: '' },
   episodes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Episode' }],
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

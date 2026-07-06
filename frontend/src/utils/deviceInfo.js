@@ -1,9 +1,9 @@
 export const getDeviceInfo = () => {
   const ua = navigator.userAgent;
-  let browser = '', browserVersion = '', os = '', osVersion = '', deviceType = '桌面端', deviceModel = '', carrier = '';
+  let browser = '', browserVersion = '', os = '', osVersion = '', deviceType = 'desktop', deviceModel = '', carrier = '';
 
-  if (/Mobile|Android|iPhone|iPad|iPod/i.test(ua)) deviceType = '移动端';
-  else if (/Tablet/i.test(ua)) deviceType = '平板';
+  if (/Mobile|Android|iPhone|iPad|iPod/i.test(ua)) deviceType = 'mobile';
+  else if (/Tablet/i.test(ua)) deviceType = 'tablet';
 
   if (/Edg\/(\d+[\.\d]*)/.test(ua)) { browser = 'Microsoft Edge'; browserVersion = ua.match(/Edg\/(\d+[\.\d]*)/)?.[1] || ''; }
   else if (/Chrome\/(\d+[\.\d]*)/.test(ua) && !/Edg/.test(ua)) { browser = 'Google Chrome'; browserVersion = ua.match(/Chrome\/(\d+[\.\d]*)/)?.[1] || ''; }

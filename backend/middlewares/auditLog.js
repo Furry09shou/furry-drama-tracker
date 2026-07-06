@@ -4,13 +4,11 @@ const logAction = (action, target = '', details = '') => {
   return async (req, res, next) => {
     const originalEnd = res.end;
     res.end = function (...args) {
-      const actor = req.admin || req.user;
+      const actor = req.user;
       if (actor && res.statusCode < 400) {
         AuditLog.create({
-          adminId: req.admin ? req.admin._id : undefined,
-          adminName: req.admin ? req.admin.username : undefined,
-          userId: req.user ? req.user._id : undefined,
-          userName: req.user ? (req.user.username || req.user.accountId) : undefined,
+          userId: actor._id,
+          userName: actor.username || actor.accountId,
           action,
           target,
           details,

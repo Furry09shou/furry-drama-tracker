@@ -522,7 +522,7 @@ const Profile = ({ user, setUser, logout }) => {
                   textDecoration: 'underline', padding: '0'
                 }}
               >
-                {showFullEmail ? (lang === 'en' ? 'Hide' : '隐藏') : (lang === 'en' ? 'Show' : '显示')}
+                {showFullEmail ? t('common.hide') : t('common.show')}
               </button>
             </p>
             {user.isEmailVerified ? (
@@ -578,7 +578,7 @@ const Profile = ({ user, setUser, logout }) => {
         </div>
         <div style={{display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
           <Link to="/account-security" className="btn" style={{display: 'inline-block', border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--primary-light)'}}>
-            {t('profile.accountSecurity') || '账号与安全'}
+            {t('profile.accountSecurity')}
           </Link>
           <Link to="/settings" className="btn" style={{display: 'inline-block', border: '1px solid var(--border)', background: 'var(--hover-bg)', color: 'var(--foreground)'}}>
             {t('settings.title')}

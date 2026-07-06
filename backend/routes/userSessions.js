@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const UserSession = require('../models/UserSession');
-const { protect } = require('../middlewares/authFactory');
+const User = require('../models/User');
+const { protect, adminProtect, superAdminProtect } = require('../middlewares/authFactory');
 const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
 const { asyncHandler } = require('../utils/errorHandler');
 
@@ -124,6 +125,58 @@ router.post('/heartbeat', protect, async (req, res) => {
       { lastActiveAt: new Date() }
     );
     res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== 管理员级会话管理端点 =====
+
+// 列出所有用户的会话（仅管理员）
+router.get('/all', adminProtect, async (req, res) => {
+  try {
+    const sessions = await UserSession.find({})
+      .populate('userId', 'username accountId email role avatar')
+      .sort({ loginAt: -1 })
+      .limit(200);
+    const userToken = req.authToken;
+    const currentTokenHash = hashToken(userToken);
+    const result = sessions.map(s => {
+      const obj = s.toObject();
+      obj.isCurrent = s.tokenHash === currentTokenHash;
+      obj.username = s.userId?.username;
+      obj.userId = s.userId?._id;
+      obj.userRole = s.userId?.role;
+      return obj;
+    });
+    res.json({ list: result });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 管理员下线任意会话
+router.delete('/admin/:id', superAdminProtect, async (req, res) => {
+  try {
+    const session = await UserSession.findById(req.params.id);
+    if (!session) return res.status(404).json({ message: '会话不存在' });
+    session.isActive = false;
+    session.logoutAt = new Date();
+    await session.save();
+    res.json({ message: '已下线该设备' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 管理员下线某用户的所有会话
+router.delete('/admin/user/:userId/all', superAdminProtect, async (req, res) => {
+  try {
+    await UserSession.updateMany(
+      { userId: req.params.userId, isActive: true },
+      { isActive: false, logoutAt: new Date() }
+    );
+    res.json({ message: '已下线该用户所有设备' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

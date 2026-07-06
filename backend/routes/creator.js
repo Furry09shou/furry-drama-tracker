@@ -9,7 +9,7 @@ router.get('/my-episodes', creatorProtect, async (req, res) => {
     const pageNum = parseInt(page);
     const limitNum = Math.min(parseInt(limit), 100);
     const query = {
-      $or: [{ createdBy: req.admin._id }, { allowedEditors: req.admin._id }]
+      $or: [{ createdBy: req.user._id }, { allowedEditors: req.user._id }]
     };
     const total = await Episode.countDocuments(query);
     const totalPages = Math.ceil(total / limitNum);
@@ -28,7 +28,7 @@ router.get('/editable', creatorProtect, async (req, res) => {
     const pageNum = parseInt(page);
     const limitNum = Math.min(parseInt(limit), 100);
     const query = {
-      $or: [{ createdBy: req.admin._id }, { allowedEditors: req.admin._id }],
+      $or: [{ createdBy: req.user._id }, { allowedEditors: req.user._id }],
       reviewStatus: 'approved'
     };
     const total = await Episode.countDocuments(query);

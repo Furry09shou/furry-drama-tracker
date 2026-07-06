@@ -7,11 +7,11 @@ const { asyncHandler } = require('../utils/errorHandler');
 
 router.get('/my-profile', creatorProtect, async (req, res) => {
   try {
-    let profile = await CreatorProfile.findOne({ adminId: req.admin._id });
+    let profile = await CreatorProfile.findOne({ adminId: req.user._id });
     if (!profile) {
       profile = await CreatorProfile.create({
-        adminId: req.admin._id,
-        displayName: req.admin.username
+        adminId: req.user._id,
+        displayName: req.user.username
       });
     }
     res.json(profile);
@@ -31,7 +31,7 @@ router.put('/my-profile', creatorProtect, async (req, res) => {
       updatedAt: Date.now()
     };
     let profile = await CreatorProfile.findOneAndUpdate(
-      { adminId: req.admin._id },
+      { adminId: req.user._id },
       updateData,
       { new: true, upsert: true, runValidators: true }
     );

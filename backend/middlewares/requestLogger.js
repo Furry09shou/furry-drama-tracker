@@ -11,7 +11,7 @@ const requestLogger = (req, res, next) => {
       status,
       duration: `${duration}ms`,
       ip: req.ip || '',
-      userId: req.user?._id || req.admin?._id || '',
+      userId: req.user?._id || '',
     };
 
     // 只记录慢请求、错误请求和写操作

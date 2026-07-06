@@ -171,7 +171,7 @@ const NavBar = ({ onFeedback }) => {
   };
 
   const moreMenuItems = [
-    ...(user ? [{ to: user.adminAccess ? '/admin/dashboard' : '/admin/stats', label: user.adminAccess ? t('nav.admin') : t('nav.admin') }] : []),
+    ...(user && ['admin', 'superadmin', 'creator'].includes(user.role) ? [{ to: '/admin/dashboard', label: t('nav.admin') }] : []),
     { to: '/friend-links', label: t('nav.friendLinks') },
     { to: '/privacy', label: t('nav.privacy') },
     { to: '/terms', label: t('nav.terms') },

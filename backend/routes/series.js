@@ -129,7 +129,7 @@ router.post('/', creatorProtect, async (req, res) => {
   try {
     const { name, description, episodes } = req.body;
     if (!name) return res.status(400).json({ message: '名称必填' });
-    const series = await Series.create({ name, description, episodes: episodes || [], createdBy: req.admin._id });
+    const series = await Series.create({ name, description, episodes: episodes || [], createdBy: req.user._id });
     res.status(201).json(series);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -177,7 +177,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
   try {
     const existing = await Series.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Not found' });
-    if (req.admin.role !== 'superadmin' && req.admin.role !== 'admin' && existing.createdBy && existing.createdBy.toString() !== req.admin._id.toString()) {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && existing.createdBy && existing.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: '无权修改此系列' });
     }
     const { name, description, episodes } = req.body;

@@ -65,7 +65,7 @@ router.put('/resolve/:id', adminProtect, async (req, res) => {
     }
     const report = await Report.findByIdAndUpdate(
       req.params.id,
-      { status, resolveNote: resolveNote || '', resolvedBy: req.admin._id },
+      { status, resolveNote: resolveNote || '', resolvedBy: req.user._id },
       { new: true }
     );
     if (!report) {

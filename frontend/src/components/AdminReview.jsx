@@ -116,7 +116,7 @@ const AdminReview = () => {
         </div>
       </div>
 
-      <div style={{display: 'flex', gap: '10px', marginBottom: '20px'}}>
+      <div style={{display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap'}}>
         <button
           className={`btn ${activeTab === 'pending' ? '' : 'btn-secondary'}`}
           onClick={() => setActiveTab('pending')}
@@ -138,6 +138,7 @@ const AdminReview = () => {
           {pendingEpisodes.length === 0 ? (
             <p style={{color: 'var(--text-secondary)', textAlign: 'center', padding: '40px'}}>{t('adminReview.noPendingEpisodes')}</p>
           ) : (
+            <div style={{ overflowX: 'auto' }}>
             <table className="admin-table">
               <thead>
                 <tr>
@@ -185,12 +186,14 @@ const AdminReview = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
 
       {activeTab === 'all' && (
         <div>
+          <div style={{ overflowX: 'auto' }}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -251,11 +254,12 @@ const AdminReview = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {activeTab === 'assign' && (
-        <div className="form-container" style={{maxWidth: '600px'}}>
+        <div className="form-container" style={{maxWidth: '600px', margin: '0 auto'}}>
           <h3 style={{marginBottom: '15px'}}>{t('adminReview.assignEditPermission')}</h3>
           <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>{t('adminReview.assignEditPermissionDesc')}</p>
           <div className="form-group">

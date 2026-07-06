@@ -44,7 +44,7 @@ const AdminAuditLogs = () => {
         <input placeholder={t('adminAuditLogs.filterAdminPlaceholder')} value={filter.admin} onChange={e => { setFilter(p => ({ ...p, admin: e.target.value })); setPage(1); }} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px' }} />
       </div>
 
-      <div style={{ borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ borderRadius: '12px', border: '1px solid var(--border)', overflowX: 'auto', overflowY: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr style={{ background: 'var(--glass-bg)' }}>

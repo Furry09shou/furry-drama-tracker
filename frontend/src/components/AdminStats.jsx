@@ -52,7 +52,7 @@ const AdminStats = () => {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(400px, 100%), 1fr))', gap: '20px', marginBottom: '24px' }}>
         <div style={{ background: 'var(--card)', borderRadius: '12px', padding: '20px', border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--foreground)' }}>📈 {t('adminStats.newUsers7d')}</h3>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '100px' }}>
@@ -102,7 +102,7 @@ const AdminStats = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(400px, 100%), 1fr))', gap: '20px' }}>
         <div style={{ background: 'var(--card)', borderRadius: '12px', padding: '20px', border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--foreground)' }}>⭐ {t('adminStats.topRated')}</h3>
           {(stats.topRated || []).map((ep, i) => (

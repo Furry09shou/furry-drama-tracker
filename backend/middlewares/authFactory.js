@@ -1,11 +1,11 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Admin = require('../models/Admin');
 const UserSession = require('../models/UserSession');
-const AdminSession = require('../models/AdminSession');
 const { hashToken } = require('../utils/helpers');
 
-const createAuthMiddleware = ({ modelType, allowedRoles = [], reqProperty }) => {
+// 统一鉴权工厂：所有身份均通过 User + UserSession + token cookie 校验
+// 通过 allowedRoles 控制访问权限（基于 User.role）
+const createAuthMiddleware = ({ allowedRoles = [] }) => {
   return async (req, res, next) => {
     let token;
 
@@ -14,8 +14,7 @@ const createAuthMiddleware = ({ modelType, allowedRoles = [], reqProperty }) => 
     }
 
     if (!token && req.cookies) {
-      const cookieName = modelType === 'admin' ? 'adminToken' : 'token';
-      token = req.cookies[cookieName];
+      token = req.cookies.token;
     }
 
     if (!token) {
@@ -25,27 +24,23 @@ const createAuthMiddleware = ({ modelType, allowedRoles = [], reqProperty }) => 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      if (modelType === 'admin' && allowedRoles.length > 0) {
-        if (!allowedRoles.includes(decoded.role)) {
-          return res.status(403).json({ message: 'Not authorized' });
-        }
+      const user = await User.findById(decoded.id).select('-password');
+
+      if (!user) {
+        return res.status(401).json({ message: '用户不存在' });
       }
 
-      const Model = modelType === 'user' ? User : Admin;
-      const entity = await Model.findById(decoded.id).select('-password');
-
-      if (!entity) {
-        return res.status(401).json({ message: `${modelType === 'user' ? '用户' : '管理员'}不存在` });
+      if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: 'Not authorized' });
       }
 
       const tokenHash = hashToken(token);
-      const SessionModel = modelType === 'user' ? UserSession : AdminSession;
-      const session = await SessionModel.findOne({ tokenHash, isActive: true });
+      const session = await UserSession.findOne({ tokenHash, isActive: true });
       if (!session) {
         return res.status(401).json({ message: 'Session invalid or expired' });
       }
 
-      req[reqProperty] = entity;
+      req.user = user;
       req.authToken = token;
       next();
     } catch (error) {
@@ -56,8 +51,12 @@ const createAuthMiddleware = ({ modelType, allowedRoles = [], reqProperty }) => 
 
 module.exports = {
   createAuthMiddleware,
-  protect: createAuthMiddleware({ modelType: 'user', allowedRoles: [], reqProperty: 'user' }),
-  adminProtect: createAuthMiddleware({ modelType: 'admin', allowedRoles: ['admin', 'superadmin', 'creator'], reqProperty: 'admin' }),
-  creatorProtect: createAuthMiddleware({ modelType: 'admin', allowedRoles: ['creator', 'admin', 'superadmin'], reqProperty: 'admin' }),
-  superAdminProtect: createAuthMiddleware({ modelType: 'admin', allowedRoles: ['superadmin'], reqProperty: 'admin' })
+  // 普通登录用户
+  protect: createAuthMiddleware({ allowedRoles: [] }),
+  // 管理员（admin / superadmin）
+  adminProtect: createAuthMiddleware({ allowedRoles: ['admin', 'superadmin'] }),
+  // 创作者及以上（creator / admin / superadmin）
+  creatorProtect: createAuthMiddleware({ allowedRoles: ['creator', 'admin', 'superadmin'] }),
+  // 超级管理员
+  superAdminProtect: createAuthMiddleware({ allowedRoles: ['superadmin'] }),
 };

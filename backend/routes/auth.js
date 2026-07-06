@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const xss = require('xss');
 const User = require('../models/User');
-const Admin = require('../models/Admin');
 const UserSession = require('../models/UserSession');
 const Follow = require('../models/Follow');
 const History = require('../models/History');
@@ -769,7 +768,7 @@ router.put('/admin/change-password', adminProtect, async (req, res) => {
     if (passwordError) {
       return res.status(400).json({ message: passwordError });
     }
-    const admin = await Admin.findById(req.admin._id);
+    const admin = await User.findById(req.user._id).select('+password');
     if (!admin) {
       return res.status(404).json({ message: '管理员不存在' });
     }
@@ -779,8 +778,7 @@ router.put('/admin/change-password', adminProtect, async (req, res) => {
     }
     admin.password = newPassword;
     await admin.save();
-    const AdminSession = require('../models/AdminSession');
-    await AdminSession.updateMany({ adminId: req.admin._id, isActive: true }, { isActive: false, logoutAt: new Date() });
+    await UserSession.updateMany({ userId: req.user._id, isActive: true }, { isActive: false, logoutAt: new Date() });
     res.json({ message: '密码修改成功' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });

@@ -23,13 +23,13 @@ const ChangeEmail = ({ user }) => {
     setSuccess('');
 
     if (!password || !newEmail) {
-      setError(t('common.requiredFields') || '请填写所有必填项');
+      setError(t('common.requiredFields'));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail)) {
-      setError(t('auth.invalidEmail') || '邮箱格式不正确');
+      setError(t('auth.invalidEmail'));
       return;
     }
 
@@ -41,7 +41,7 @@ const ChangeEmail = ({ user }) => {
       }, { headers: getAuthHeaders() });
       setSuccess(res.data.message);
     } catch (err) {
-      setError(err.response?.data?.message || t('common.operationFailed') || '请求失败');
+      setError(err.response?.data?.message || t('common.operationFailed'));
     }
     setLoading(false);
   };
@@ -64,7 +64,7 @@ const ChangeEmail = ({ user }) => {
       </div>
       {user?.email && (
         <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px'}}>
-          {t('profile.currentEmail') || '当前邮箱'}：{user.email}
+          {t('profile.currentEmail')}：{user.email}
         </p>
       )}
       {error && <div className="error-message">{error}</div>}
@@ -78,30 +78,30 @@ const ChangeEmail = ({ user }) => {
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>{t('auth.currentPassword') || '当前密码'}</label>
+            <label>{t('auth.currentPassword')}</label>
             <PasswordToggle
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               show={showPassword}
               onToggle={() => setShowPassword(!showPassword)}
-              placeholder={t('auth.enterCurrentPassword') || '请输入当前密码'}
+              placeholder={t('auth.enterCurrentPassword')}
               required
               autoFocus
             />
           </div>
           <div className="form-group">
-            <label>{t('auth.newEmail') || '新邮箱'}</label>
+            <label>{t('auth.newEmail')}</label>
             <input
               type="email"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              placeholder={t('auth.enterNewEmail') || '请输入新邮箱地址'}
+              placeholder={t('auth.enterNewEmail')}
               required
             />
           </div>
           <div className="form-group" style={{display: 'flex', gap: '10px'}}>
             <button type="submit" disabled={loading || !password || !newEmail}>
-              {loading ? (t('common.sending') || '发送中...') : (t('auth.sendVerificationEmail') || '发送验证邮件')}
+              {loading ? t('common.sending') : t('auth.sendVerificationEmail')}
             </button>
           </div>
         </form>

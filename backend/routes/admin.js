@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Admin = require('../models/Admin');
-const AdminSession = require('../models/AdminSession');
 const User = require('../models/User');
+const UserSession = require('../models/UserSession');
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
@@ -16,26 +15,9 @@ const FriendLink = require('../models/FriendLink');
 const PushSubscription = require('../models/PushSubscription');
 const Folder = require('../models/Folder');
 
-router.get('/verify', adminProtect, async (req, res) => {
-  res.json({ valid: true, admin: { _id: req.admin._id, username: req.admin.username, role: req.admin.role } });
-});
-
-router.get('/pending-counts', adminProtect, async (req, res) => {
-  try {
-    const [episodes, reports, feedbacks, friendLinks] = await Promise.all([
-      Episode.countDocuments({ status: 'pending' }),
-      Report.countDocuments({ status: 'pending' }),
-      Feedback.countDocuments({ status: 'pending' }),
-      FriendLink.countDocuments({ status: 'pending' })
-    ]);
-    res.json({ episodes, reports, feedbacks, friendLinks });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误' });
-  }
-});
-
+// 管理员登录：使用 User 模型（仅允许 admin/superadmin 角色通过此后台登录入口）
 router.post('/login', async (req, res) => {
-  const { username, password, screenWidth, screenHeight, language, captchaId, captchaAnswer } = req.body;
+  const { username, account, email, password, screenWidth, screenHeight, language, captchaId, captchaAnswer } = req.body;
 
   try {
     if (!global._captchaStore || !captchaId || !captchaAnswer) {
@@ -55,24 +37,36 @@ router.post('/login', async (req, res) => {
     }
     global._captchaStore.delete(captchaId);
 
-    const admin = await Admin.findOne({ username }).select('+loginAttempts +lockUntil');
-    if (!admin) {
+    // 登录标识符：兼容 username / account / email 三种字段名
+    const identifier = account || email || username;
+    if (!identifier) {
+      return res.status(400).json({ message: '请输入账号' });
+    }
+
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { accountId: identifier }]
+    }).select('+loginAttempts +lockUntil +password');
+    if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    if (admin.isLocked) {
+    if (!['admin', 'superadmin'].includes(user.role)) {
+      return res.status(403).json({ message: '无管理后台权限' });
+    }
+
+    if (user.isLocked) {
       return res.status(423).json({ message: '账号已被锁定，请30分钟后再试' });
     }
 
-    const isMatch = await admin.matchPassword(password);
+    const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      await admin.incLoginAttempts();
+      await user.incLoginAttempts();
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    await admin.resetLoginAttempts();
+    await user.resetLoginAttempts();
 
-    const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: '30d'
     });
 
@@ -85,18 +79,21 @@ router.post('/login', async (req, res) => {
     if (language) deviceInfo.language = language;
     deviceInfo.userAgent = ua;
 
-    const session = new AdminSession({
-      adminId: admin._id,
-      adminUsername: admin.username,
-      adminRole: admin.role,
+    const session = new UserSession({
+      userId: user._id,
       tokenHash,
       deviceInfo,
       ip
     });
     await session.save();
 
+    // 更新最后登录信息
+    user.lastLoginAt = new Date();
+    user.lastLoginIp = ip;
+    await user.save();
+
     const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie('adminToken', token, {
+    res.cookie('token', token, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
@@ -105,10 +102,32 @@ router.post('/login', async (req, res) => {
     });
 
     res.json({
-      _id: admin._id,
-      username: admin.username,
-      role: admin.role,
+      _id: user._id,
+      username: user.username,
+      accountId: user.accountId,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
     });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+router.get('/verify', adminProtect, async (req, res) => {
+  const u = req.user;
+  res.json({ valid: true, admin: { _id: u._id, username: u.username, accountId: u.accountId, email: u.email, role: u.role, avatar: u.avatar } });
+});
+
+router.get('/pending-counts', adminProtect, async (req, res) => {
+  try {
+    const [episodes, reports, feedbacks, friendLinks] = await Promise.all([
+      Episode.countDocuments({ status: 'pending' }),
+      Report.countDocuments({ status: 'pending' }),
+      Feedback.countDocuments({ status: 'pending' }),
+      FriendLink.countDocuments({ status: 'pending' })
+    ]);
+    res.json({ episodes, reports, feedbacks, friendLinks });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }
@@ -118,22 +137,24 @@ router.post('/logout', adminProtect, async (req, res) => {
   try {
     const token = req.authToken;
     const tokenHash = hashToken(token);
-    await AdminSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
-    res.clearCookie('adminToken', { path: '/' });
+    await UserSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
+    res.clearCookie('token', { path: '/' });
     res.json({ message: '退出成功' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }
 });
 
+// 列出具有管理/创作者权限的账户
 router.get('/list', superAdminProtect, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const pageNum = parseInt(page);
     const limitNum = Math.min(parseInt(limit), 100);
-    const total = await Admin.countDocuments({});
+    const query = { role: { $in: ['admin', 'superadmin', 'creator'] } };
+    const total = await User.countDocuments(query);
     const totalPages = Math.ceil(total / limitNum);
-    const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 })
+    const admins = await User.find(query).select('-password').sort({ createdAt: -1 })
       .skip((pageNum - 1) * limitNum).limit(limitNum);
     res.json({ list: admins, page: pageNum, limit: limitNum, total, totalPages });
   } catch (error) {
@@ -141,29 +162,57 @@ router.get('/list', superAdminProtect, async (req, res) => {
   }
 });
 
+// 创建具有管理/创作者权限的账户
 router.post('/register', superAdminProtect, async (req, res) => {
-  const { username, password, role = 'admin' } = req.body;
+  const { username, email, password, role = 'admin', accountId } = req.body;
 
   try {
     const passwordError = validatePassword(password);
     if (passwordError) {
       return res.status(400).json({ message: passwordError });
     }
-    const adminExists = await Admin.findOne({ username });
-    if (adminExists) {
-      return res.status(400).json({ message: '管理员已存在' });
+    if (!email) {
+      return res.status(400).json({ message: '请输入邮箱' });
+    }
+    if (!['admin', 'superadmin', 'creator'].includes(role)) {
+      return res.status(400).json({ message: '无效的角色' });
+    }
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
+      return res.status(400).json({ message: '该邮箱已注册' });
+    }
+    // 自动生成 accountId
+    let finalAccountId = accountId;
+    if (!finalAccountId) {
+      const baseId = (username || email).replace(/[^\w]/g, '_').toLowerCase();
+      finalAccountId = baseId;
+      let counter = 1;
+      while (await User.findOne({ accountId: finalAccountId })) {
+        finalAccountId = `${baseId}_${counter}`;
+        counter++;
+      }
+    } else {
+      const idExists = await User.findOne({ accountId: finalAccountId });
+      if (idExists) {
+        return res.status(400).json({ message: '该账号ID已存在' });
+      }
     }
 
-    const admin = await Admin.create({
-      username,
+    const user = await User.create({
+      accountId: finalAccountId,
+      username: username || finalAccountId,
+      email,
       password,
-      role
+      role,
+      isEmailVerified: true
     });
 
     res.json({
-      _id: admin._id,
-      username: admin.username,
-      role: admin.role
+      _id: user._id,
+      username: user.username,
+      accountId: user.accountId,
+      email: user.email,
+      role: user.role
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -172,15 +221,25 @@ router.post('/register', superAdminProtect, async (req, res) => {
 
 router.delete('/:id', superAdminProtect, async (req, res) => {
   try {
-    if (req.admin._id.toString() === req.params.id) {
+    if (req.user._id.toString() === req.params.id) {
       return res.status(400).json({ message: '不能删除自己的账号' });
     }
-    const admin = await Admin.findById(req.params.id);
-    if (!admin) {
-      return res.status(404).json({ message: '管理员不存在' });
+    const target = await User.findById(req.params.id);
+    if (!target) {
+      return res.status(404).json({ message: '账户不存在' });
     }
-    await Admin.findByIdAndDelete(req.params.id);
-    res.json({ message: '管理员已删除' });
+    if (!['admin', 'superadmin', 'creator'].includes(target.role)) {
+      return res.status(400).json({ message: '该账户不是管理/创作者账户' });
+    }
+    if (target.role === 'superadmin') {
+      const superAdminCount = await User.countDocuments({ role: 'superadmin' });
+      if (superAdminCount <= 1) {
+        return res.status(400).json({ message: '不能删除最后一个超级管理员' });
+      }
+    }
+    await User.findByIdAndDelete(req.params.id);
+    await UserSession.deleteMany({ userId: req.params.id });
+    res.json({ message: '账户已删除' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }
@@ -219,14 +278,18 @@ router.delete('/users/:id', superAdminProtect, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
     }
+    if (user.role === 'superadmin') {
+      const superAdminCount = await User.countDocuments({ role: 'superadmin' });
+      if (superAdminCount <= 1) {
+        return res.status(400).json({ message: '不能删除最后一个超级管理员' });
+      }
+    }
     await User.findByIdAndDelete(req.params.id);
     const Follow = require('../models/Follow');
     const History = require('../models/History');
     const Notification = require('../models/Notification');
     const Favorite = require('../models/Favorite');
     const Rating = require('../models/Rating');
-    const Report = require('../models/Report');
-    const Feedback = require('../models/Feedback');
     const UserSession = require('../models/UserSession');
     await Follow.deleteMany({ userId: req.params.id });
     await History.deleteMany({ userId: req.params.id });
@@ -240,8 +303,6 @@ router.delete('/users/:id', superAdminProtect, async (req, res) => {
     const userRatings = await Rating.find({ userId: req.params.id });
     await Rating.deleteMany({ userId: req.params.id });
     const affectedEpisodeIds = [...new Set(userRatings.map(r => r.episodeId.toString()))];
-    const Episode = require('../models/Episode');
-const { asyncHandler } = require('../utils/errorHandler');
     if (affectedEpisodeIds.length > 0) {
       const stats = await Rating.aggregate([
         { $match: { episodeId: { $in: affectedEpisodeIds.map(id => mongoose.Types.ObjectId(id)) } } },
@@ -269,34 +330,35 @@ const { asyncHandler } = require('../utils/errorHandler');
   }
 });
 
+// 修改账户角色
 router.put('/role/:id', superAdminProtect, async (req, res) => {
   try {
     const { role } = req.body;
-    if (!['superadmin', 'admin', 'creator'].includes(role)) {
+    if (!['user', 'creator', 'admin', 'superadmin'].includes(role)) {
       return res.status(400).json({ message: '无效的角色' });
     }
-    if (req.admin._id.toString() === req.params.id) {
+    if (req.user._id.toString() === req.params.id) {
       return res.status(400).json({ message: '不能修改自己的角色' });
     }
     if (role === 'superadmin') {
       return res.status(400).json({ message: '不能通过此接口设置超级管理员' });
     }
-    const targetAdmin = await Admin.findById(req.params.id);
-    if (!targetAdmin) {
-      return res.status(404).json({ message: '管理员不存在' });
+    const target = await User.findById(req.params.id);
+    if (!target) {
+      return res.status(404).json({ message: '账户不存在' });
     }
-    if (targetAdmin.role === 'superadmin') {
-      const superAdminCount = await Admin.countDocuments({ role: 'superadmin' });
+    if (target.role === 'superadmin') {
+      const superAdminCount = await User.countDocuments({ role: 'superadmin' });
       if (superAdminCount <= 1) {
         return res.status(400).json({ message: '不能降级最后一个超级管理员' });
       }
     }
-    const admin = await Admin.findByIdAndUpdate(
+    const updated = await User.findByIdAndUpdate(
       req.params.id,
       { role },
       { new: true }
     ).select('-password');
-    res.json(admin);
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }
@@ -304,7 +366,7 @@ router.put('/role/:id', superAdminProtect, async (req, res) => {
 
 router.get('/creators', adminProtect, async (req, res) => {
   try {
-    const creators = await Admin.find({ role: 'creator' }).select('-password');
+    const creators = await User.find({ role: 'creator' }).select('-password');
     res.json(creators);
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -315,9 +377,9 @@ router.post('/verify-password', adminProtect, async (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ message: '请输入密码' });
   try {
-    const admin = await Admin.findById(req.admin._id);
-    if (!admin) return res.status(404).json({ message: '未找到' });
-    const isMatch = await admin.matchPassword(password);
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return res.status(404).json({ message: '未找到' });
+    const isMatch = await user.matchPassword(password);
     if (!isMatch) return res.status(400).json({ message: '密码错误' });
     res.json({ verified: true });
   } catch (error) {
@@ -325,6 +387,7 @@ router.post('/verify-password', adminProtect, async (req, res) => {
   }
 });
 
+// 切换账户的管理权限（user <-> admin），供前端兼容调用
 router.put('/user-admin-access/:id', superAdminProtect, async (req, res) => {
   try {
     const { adminAccess } = req.body;
@@ -335,9 +398,12 @@ router.put('/user-admin-access/:id', superAdminProtect, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
     }
-    user.adminAccess = adminAccess;
+    if (['superadmin', 'creator'].includes(user.role)) {
+      return res.status(400).json({ message: '不能修改超级管理员或创作者的权限' });
+    }
+    user.role = adminAccess ? 'admin' : 'user';
     await user.save();
-    res.json({ message: adminAccess ? '已授予管理后台权限' : '已撤销管理后台权限', adminAccess });
+    res.json({ message: adminAccess ? '已授予管理后台权限' : '已撤销管理后台权限', adminAccess, role: user.role });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }

@@ -64,7 +64,11 @@ axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status >= 500) {
-      window.dispatchEvent(new CustomEvent('api-error', { detail: { status: error.response.status, message: error.response.data?.message || '服务器暂时不可用，请稍后再试' } }));
+      window.dispatchEvent(new CustomEvent('api-error', { detail: {
+        status: error.response.status,
+        message: error.response.data?.message,
+        messageKey: 'common.serverUnavailable',
+      } }));
     }
     return Promise.reject(error);
   }

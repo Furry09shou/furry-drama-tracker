@@ -32,7 +32,6 @@ const backupRoutes = require('../routes/backup');
 const rssRoutes = require('../routes/rss');
 const autoStatusRoutes = require('../routes/autoStatus');
 const friendLinkRoutes = require('../routes/friendLinks');
-const adminSessionRoutes = require('../routes/adminSessions');
 const userSessionRoutes = require('../routes/userSessions');
 const twoFactorRoutes = require('../routes/twoFactor');
 const translateRoutes = require('../routes/translate');
@@ -97,8 +96,27 @@ connectDB().then(async () => {
       }
       await Setting.findOneAndUpdate({ key: 'accountId_migration_v1' }, { value: true }, { upsert: true });
     }
+
+    // 迁移 adminAccess -> role（一次性）
+    const roleMigrationDone = await Setting.findOne({ key: 'role_migration_v1' });
+    if (!roleMigrationDone) {
+      const usersWithAdminAccess = await User.find({ adminAccess: true, role: { $ne: 'superadmin' } });
+      for (const u of usersWithAdminAccess) {
+        if (u.role === 'user' || !u.role) {
+          u.role = 'admin';
+          u.adminAccess = undefined;
+          await u.save({ validateBeforeSave: false });
+        }
+      }
+      // 清除所有用户的 adminAccess 字段
+      await User.updateMany({}, { $unset: { adminAccess: '' } });
+      if (usersWithAdminAccess.length > 0) {
+        console.log(`已将 ${usersWithAdminAccess.length} 个 adminAccess 用户迁移为 admin 角色`);
+      }
+      await Setting.findOneAndUpdate({ key: 'role_migration_v1' }, { value: true }, { upsert: true });
+    }
   } catch (e) {
-    console.error('迁移accountId失败:', e.message);
+    console.error('迁移失败:', e.message);
   }
   const { ensureIndexes } = require('./indexes');
   ensureIndexes();
@@ -364,7 +382,6 @@ const routeMounts = [
   ['/api/rss', rssRoutes],
   ['/api/auto-status', autoStatusRoutes],
   ['/api/friend-links', friendLinkRoutes],
-  ['/api/admin-sessions', adminSessionRoutes],
   ['/api/user-sessions', userSessionRoutes],
   ['/api/2fa', twoFactorRoutes],
   ['/api/translate', translateRoutes],
@@ -404,17 +421,12 @@ startCronJobs();
 cron.schedule('0 * * * *', async () => {
   try {
     const UserSession = require('../models/UserSession');
-    const AdminSession = require('../models/AdminSession');
     const userResult = await UserSession.updateMany(
       { isActive: true, lastActiveAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
       { isActive: false, logoutAt: new Date() }
     );
-    const adminResult = await AdminSession.updateMany(
-      { isActive: true, lastActiveAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
-      { isActive: false, logoutAt: new Date() }
-    );
-    if (userResult.modifiedCount > 0 || adminResult.modifiedCount > 0) {
-      console.log(`[Cron] Cleaned expired sessions: ${userResult.modifiedCount} user, ${adminResult.modifiedCount} admin`);
+    if (userResult.modifiedCount > 0) {
+      console.log(`[Cron] Cleaned expired sessions: ${userResult.modifiedCount} user`);
     }
   } catch (error) {
     console.error('[Cron] Session cleanup error:', error.message);

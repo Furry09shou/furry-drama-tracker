@@ -49,7 +49,7 @@ const AdminFeedback = () => {
         <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{t('adminFeedback.totalCount', { total })}</span>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {['', 'pending', 'read', 'replied'].map(s => (
           <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }} style={{
             padding: '6px 14px', borderRadius: '16px', fontSize: '13px', cursor: 'pointer',

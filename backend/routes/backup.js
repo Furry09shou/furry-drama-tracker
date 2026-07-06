@@ -34,7 +34,7 @@ const COLLECTION_FIELDS = {
 };
 
 function requireSuperAdmin(req, res, next) {
-  if (req.admin && req.admin.role === 'superadmin') return next();
+  if (req.user && req.user.role === 'superadmin') return next();
   return res.status(403).json({ message: '需要超级管理员权限' });
 }
 
@@ -120,7 +120,7 @@ router.post('/import', adminProtect, requireSuperAdmin, async (req, res) => {
         results[col] = `error: 导入失败`;
       }
     }
-    await logManual(req.admin._id, req.admin.username, '数据恢复', '全库', JSON.stringify(results));
+    await logManual(req.user._id, req.user.username, '数据恢复', '全库', JSON.stringify(results));
     res.json({ message: '数据恢复完成', results });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

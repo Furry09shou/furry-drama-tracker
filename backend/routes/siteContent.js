@@ -91,26 +91,13 @@ const DEFAULT_CONTENT = {
   }
 };
 
-router.get('/:key', asyncHandler(async (req, res) => {
+router.get('/:key', (req, res, next) => {
   const sensitiveKeys = ['email'];
   if (sensitiveKeys.includes(req.params.key)) {
-    const adminToken = req.cookies?.adminToken || req.headers.authorization?.replace('Bearer ', '');
-    if (!adminToken) return res.status(403).json({ message: 'Forbidden' });
-    try {
-      const jwtModule = require('jsonwebtoken');
-      const decoded = jwtModule.verify(adminToken, process.env.JWT_SECRET);
-      if (!decoded.role || !['admin', 'superadmin', 'creator'].includes(decoded.role)) {
-        return res.status(403).json({ message: 'Forbidden' });
-      }
-      const AdminSession = require('../models/AdminSession');
-      const { hashToken } = require('../utils/helpers');
-      const tokenHash = hashToken(adminToken);
-      const session = await AdminSession.findOne({ tokenHash, isActive: true });
-      if (!session) return res.status(403).json({ message: 'Forbidden' });
-    } catch (e) {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
+    return adminProtect(req, res, next);
   }
+  next();
+}, asyncHandler(async (req, res) => {
   let content = await SiteContent.findOne({ key: req.params.key });
   if (!content && DEFAULT_CONTENT[req.params.key]) {
     content = await SiteContent.create(DEFAULT_CONTENT[req.params.key]);

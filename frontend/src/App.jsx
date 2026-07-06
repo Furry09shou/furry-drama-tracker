@@ -60,12 +60,12 @@ const AdminAnalytics = lazy(() => import('./components/AdminAnalytics'));
 const Timeline = lazy(() => import('./components/Timeline'));
 
 const LoadingFallback = () => {
-  const lang = localStorage.getItem('lang') || 'zh';
+  const { t } = useI18n();
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
       <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
         <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
-        <div>{lang === 'en' ? 'Loading...' : '加载中...'}</div>
+        <div>{t('common.loading')}</div>
       </div>
     </div>
   );
@@ -268,12 +268,13 @@ function AppContent() {
 
   useEffect(() => {
     const handleApiError = (e) => {
-      setApiError(e.detail.message);
+      const msg = e.detail.message || (e.detail.messageKey ? t(e.detail.messageKey) : '');
+      setApiError(msg);
       setTimeout(() => setApiError(null), 3000);
     };
     window.addEventListener('api-error', handleApiError);
     return () => window.removeEventListener('api-error', handleApiError);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!siteSettingsData) return;
@@ -334,7 +335,7 @@ function AppContent() {
 
   return (
     <>
-      <a href="#main-content" className="skip-link">跳到主要内容</a>
+      <a href="#main-content" className="skip-link">{t('common.skipToMain')}</a>
       <NavBarErrorBoundary>
         <NavBar onFeedback={() => setShowFeedback(true)} />
       </NavBarErrorBoundary>
@@ -408,6 +409,7 @@ function App() {
 }
 
 class NavBarErrorBoundary extends Component {
+  static contextType = I18nContext;
   constructor(props) {
     super(props);
     this.state = { hasError: false };
@@ -417,10 +419,11 @@ class NavBarErrorBoundary extends Component {
   }
   render() {
     if (this.state.hasError) {
+      const t = this.context?.t || ((k) => k);
       return (
         <header style={{ padding: '12px 20px', background: 'var(--card)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link to="/" style={{ fontWeight: 700, fontSize: '18px', color: 'var(--primary)', textDecoration: 'none' }}>兽剧</Link>
-          <button onClick={() => window.location.reload()} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: '6px', background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '13px' }}>刷新</button>
+          <Link to="/" style={{ fontWeight: 700, fontSize: '18px', color: 'var(--primary)', textDecoration: 'none' }}>{t('admin.brand')}</Link>
+          <button onClick={() => window.location.reload()} style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: '6px', background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '13px' }}>{t('common.refresh')}</button>
         </header>
       );
     }

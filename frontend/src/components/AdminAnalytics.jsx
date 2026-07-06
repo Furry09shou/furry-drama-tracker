@@ -340,7 +340,7 @@ const AdminAnalytics = () => {
   const retention = data.retention || [];
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1000px' }}>
+    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ margin: 0 }}>{t('adminAnalytics.title')}</h2>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -391,7 +391,7 @@ const AdminAnalytics = () => {
 
       <EpisodeLifecycleChart />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div style={{ background: 'var(--card)', borderRadius: '12px', padding: '20px', border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>{t('adminAnalytics.topByViews')}</h3>
           <SimpleBarChart items={topByViews} maxValue={Math.max(...topByViews.map(i => i.value), 1)} />

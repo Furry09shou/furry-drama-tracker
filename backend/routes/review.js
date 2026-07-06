@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Episode = require('../models/Episode');
-const Admin = require('../models/Admin');
+const User = require('../models/User');
 const { adminProtect } = require('../middlewares/authFactory');
 const { clearCache, clearCacheByPrefix } = require('../middlewares/cache');
 
 const adminOnly = (req, res, next) => {
-  if (req.admin && (req.admin.role === 'admin' || req.admin.role === 'superadmin')) {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
     next();
   } else {
     return res.status(403).json({ message: '需要管理员权限' });
@@ -87,7 +87,7 @@ router.put('/reject/:id', adminProtect, adminOnly, async (req, res) => {
 router.put('/assign-editor/:episodeId', adminProtect, adminOnly, async (req, res) => {
   try {
     const { editorId } = req.body;
-    const editor = await Admin.findById(editorId);
+    const editor = await User.findById(editorId);
     if (!editor) {
       return res.status(404).json({ message: 'Editor not found' });
     }

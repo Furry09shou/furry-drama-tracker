@@ -51,6 +51,8 @@ const AccountSecurity = ({ user }) => {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '14px 0',
+    flexWrap: 'wrap',
+    gap: '8px',
   };
 
   const labelStyle = {
@@ -105,7 +107,7 @@ const AccountSecurity = ({ user }) => {
                     textDecoration: 'underline', padding: '0'
                   }}
                 >
-                  {showFullEmail ? (lang === 'en' ? 'Hide' : '隐藏') : (lang === 'en' ? 'Show' : '显示')}
+                  {showFullEmail ? t('common.hide') : t('common.show')}
                 </button>
                 {user?.isEmailVerified ? (
                   <span style={{marginLeft: '8px', fontSize: '12px', color: 'var(--success-text)', background: 'var(--success-bg)', padding: '1px 8px', borderRadius: '10px', border: '1px solid var(--success-border)'}}>{t('auth.emailVerified')}</span>

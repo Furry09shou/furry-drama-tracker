@@ -6,7 +6,7 @@ import { useI18n } from '../contexts/I18nContext';
 const AdminEmailSettings = () => {
   const { admin } = useOutletContext();
   const [emailData, setEmailData] = useState({
-    host: '', port: '465', user: '', pass: '', fromName: '兽剧聚合平台', enabled: false
+    host: '', port: '465', user: '', pass: '', fromName: '', enabled: false
   });
   const [showPass, setShowPass] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,7 +35,7 @@ const AdminEmailSettings = () => {
           port: data.port || '465',
           user: data.user || '',
           pass: data.pass || '',
-          fromName: data.fromName || '兽剧聚合平台',
+          fromName: data.fromName || t('site.defaultName'),
           enabled: data.enabled || false
         });
       }
@@ -92,7 +92,7 @@ const AdminEmailSettings = () => {
         </div>
       </div>
 
-      <div className="form-container" style={{ maxWidth: '700px' }}>
+      <div className="form-container" style={{ maxWidth: '700px', margin: '0 auto' }}>
         <div style={{
           padding: '14px 18px', marginBottom: '24px', borderRadius: '10px',
           background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)',

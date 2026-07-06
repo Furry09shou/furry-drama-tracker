@@ -25,7 +25,7 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
-      await adminApi.post('/api/auth/admin/logout');
+      await adminApi.post('/api/admin/logout');
     } catch {
       // ignore
     }

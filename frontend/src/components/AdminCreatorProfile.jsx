@@ -71,7 +71,7 @@ const AdminCreatorProfile = () => {
         </div>
       </div>
 
-      <div className="form-container" style={{maxWidth: '700px'}}>
+      <div className="form-container" style={{maxWidth: '700px', margin: '0 auto'}}>
         <div className="form-group">
           <label>{t('adminCreatorProfile.displayName')}</label>
           <input

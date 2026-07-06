@@ -84,10 +84,10 @@ router.post('/:episodeId/rollback/:version', adminProtect, async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
 
-    const isCreatorRole = req.admin.role === 'creator';
+    const isCreatorRole = req.user.role === 'creator';
     if (isCreatorRole) {
-      const isOwner = currentEpisode.createdBy && currentEpisode.createdBy.toString() === req.admin._id.toString();
-      const isAllowed = currentEpisode.allowedEditors && currentEpisode.allowedEditors.some(e => e.toString() === req.admin._id.toString());
+      const isOwner = currentEpisode.createdBy && currentEpisode.createdBy.toString() === req.user._id.toString();
+      const isAllowed = currentEpisode.allowedEditors && currentEpisode.allowedEditors.some(e => e.toString() === req.user._id.toString());
       if (!isOwner && !isAllowed) {
         return res.status(403).json({ message: 'No permission to rollback this episode' });
       }
@@ -101,7 +101,7 @@ router.post('/:episodeId/rollback/:version', adminProtect, async (req, res) => {
       episodeId: req.params.episodeId,
       version: newVersionNum,
       data: currentEpisode.toObject(),
-      changedBy: req.admin._id,
+      changedBy: req.user._id,
       changeSummary: `Rolled back to version ${req.params.version}`
     });
 

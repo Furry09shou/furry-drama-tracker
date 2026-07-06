@@ -467,7 +467,7 @@ const EpisodeDetail = ({ user }) => {
                 </span>
                 {[1,2,3,4,5].map(star => (
                   <button key={star} onClick={() => handleRate(star)}
-                    aria-label={`${star} 星`}
+                    aria-label={t('episode.starRating', { star })}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
                     style={{

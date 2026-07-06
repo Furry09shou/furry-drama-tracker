@@ -180,7 +180,7 @@ const EpisodeVersionHistory = ({ episodeId, onClose }) => {
                 <thead>
                   <tr>
                     <th>{t('version.version')}</th>
-                    <th>{t('common.date') || '日期'}</th>
+                    <th>{t('common.date')}</th>
                     <th>{t('version.changedBy')}</th>
                     <th>{t('version.changeSummary')}</th>
                     <th>{t('adminEpisodes.actions')}</th>

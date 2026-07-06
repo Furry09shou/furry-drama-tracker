@@ -45,17 +45,16 @@ const Admin = () => {
     e.preventDefault();
     setError('');
     try {
-      await axios.post('/api/admin/login', { username, password, captchaId: captchaData.captchaId, captchaAnswer });
-      // token 通过 httpOnly cookie 自动设置，不再存储到 localStorage
-      try {
-        await adminApi.post('/api/admin-sessions/create', {
-          screenWidth: window.screen.width,
-          screenHeight: window.screen.height,
-          language: navigator.language
-        });
-      } catch (sessionErr) {
-        console.error('Failed to create session:', sessionErr);
-      }
+      await axios.post('/api/admin/login', {
+        username,
+        password,
+        captchaId: captchaData.captchaId,
+        captchaAnswer,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+        language: navigator.language
+      });
+      // token 通过 httpOnly cookie 自动设置，会话在登录接口内创建
       navigate('/admin/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || t('admin.loginFailed'));
@@ -69,7 +68,7 @@ const Admin = () => {
       {error && <div className="error-message">{error}</div>}
       <form onSubmit={handleLogin}>
         <div className="form-group">
-          <label>{t('admin.username')}</label>
+          <label>{t('admin.emailOrAccount')}</label>
           <input
             type="text"
             value={username}

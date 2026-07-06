@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import adminApi from '../utils/adminApi';
+import { useI18n } from '../contexts/I18nContext';
 
 export const useImageUpload = () => {
+  const { t } = useI18n();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
@@ -9,13 +11,13 @@ export const useImageUpload = () => {
     if (!file) return null;
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('图片大小不能超过5MB');
+      setError(t('adminEpisodes.imageSizeExceeded'));
       return null;
     }
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      setError('只支持 JPEG、PNG、GIF、WebP 格式的图片');
+      setError(t('adminEpisodes.imageFormatUnsupported'));
       return null;
     }
 
@@ -29,7 +31,7 @@ export const useImageUpload = () => {
       });
       return response.data.url;
     } catch (err) {
-      setError(err.response?.data?.message || '图片上传失败');
+      setError(err.response?.data?.message || t('adminEpisodes.imageUploadFailed'));
       return null;
     } finally {
       setUploading(false);

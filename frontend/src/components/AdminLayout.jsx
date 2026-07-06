@@ -23,7 +23,7 @@ const AdminLayout = () => {
     validateAdmin();
 
     const heartbeat = setInterval(() => {
-      adminApi.post('/api/admin-sessions/heartbeat', {}).catch(() => {});
+      adminApi.post('/api/user-sessions/heartbeat', {}).catch(() => {});
     }, 5 * 60 * 1000);
     return () => clearInterval(heartbeat);
   }, [navigate]);

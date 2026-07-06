@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import adminApi from '../utils/adminApi';
+import { useI18n } from '../contexts/I18nContext';
 
 export const useEpisodes = () => {
+  const { t } = useI18n();
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -13,7 +15,7 @@ export const useEpisodes = () => {
       setEpisodes(Array.isArray(response.data) ? response.data : (response.data.episodes || []));
       setError('');
     } catch (err) {
-      setError('获取剧集列表失败');
+      setError(t('adminEpisodes.fetchEpisodesFailed'));
       console.error('Error fetching episodes:', err);
     } finally {
       setLoading(false);
@@ -26,7 +28,7 @@ export const useEpisodes = () => {
       await fetchEpisodes();
       return response.data;
     } catch (err) {
-      setError(err.response?.data?.message || '添加剧集失败');
+      setError(err.response?.data?.message || t('adminEpisodes.addEpisodeFailed'));
       throw err;
     }
   };
@@ -37,7 +39,7 @@ export const useEpisodes = () => {
       await fetchEpisodes();
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || '更新剧集失败');
+      setError(err.response?.data?.message || t('adminEpisodes.updateEpisodeFailed'));
       throw err;
     }
   };
@@ -48,7 +50,7 @@ export const useEpisodes = () => {
       await fetchEpisodes();
       setError('');
     } catch (err) {
-      setError('删除剧集失败');
+      setError(err.response?.data?.message || t('adminEpisodes.deleteEpisodeFailed'));
       throw err;
     }
   };
@@ -68,7 +70,7 @@ export const useEpisodes = () => {
       await adminApi.post(`/api/episodes/${episodeId}/episodes`, singleEpisodeData);
       await fetchEpisodes();
     } catch (err) {
-      setError(err.response?.data?.message || '添加单集失败');
+      setError(err.response?.data?.message || t('singleEpisode.addFailed'));
       throw err;
     }
   };
@@ -78,7 +80,7 @@ export const useEpisodes = () => {
       await adminApi.put(`/api/episodes/single/${id}`, singleEpisodeData);
       await fetchEpisodes();
     } catch (err) {
-      setError(err.response?.data?.message || '更新单集失败');
+      setError(err.response?.data?.message || t('singleEpisode.editFailed'));
       throw err;
     }
   };
@@ -88,13 +90,14 @@ export const useEpisodes = () => {
       await adminApi.delete(`/api/episodes/single/${id}`);
       await fetchEpisodes();
     } catch (err) {
-      setError('删除单集失败');
+      setError(err.response?.data?.message || t('singleEpisode.deleteFailed'));
       throw err;
     }
   };
 
   useEffect(() => {
     fetchEpisodes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

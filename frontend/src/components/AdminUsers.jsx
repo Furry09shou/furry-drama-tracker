@@ -7,6 +7,21 @@ import PasswordToggle from './PasswordToggle';
 import SearchInput from './SearchInput';
 import { useI18n } from '../contexts/I18nContext';
 
+const DEVICE_TYPE_KEY_MAP = {
+  mobile: 'adminUsers.mobile',
+  tablet: 'adminUsers.tablet',
+  desktop: 'adminUsers.desktop',
+  '移动端': 'adminUsers.mobile',
+  '平板': 'adminUsers.tablet',
+  '桌面端': 'adminUsers.desktop',
+};
+
+const getDeviceIcon = (type) => {
+  if (type === 'mobile' || type === '移动端') return '📱';
+  if (type === 'tablet' || type === '平板') return '📟';
+  return '🖥️';
+};
+
 const AdminUsers = () => {
   const { t, locale } = useI18n();
   const { admin } = useOutletContext();
@@ -21,6 +36,7 @@ const AdminUsers = () => {
   const [detailUser, setDetailUser] = useState(null);
   const [newUser, setNewUser] = useState({
     username: '',
+    email: '',
     password: '',
     role: 'admin'
   });
@@ -28,6 +44,12 @@ const AdminUsers = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+
+  const getDeviceTypeLabel = (type) => {
+    if (!type) return t('adminUsers.unknown');
+    const key = DEVICE_TYPE_KEY_MAP[type];
+    return key ? t(key) : type;
+  };
 
   useEffect(() => {
     if (admin.role !== 'superadmin') {
@@ -90,7 +112,7 @@ const AdminUsers = () => {
     try {
       await adminApi.post('/api/admin/register', newUser);
       setShowAddForm(false);
-      setNewUser({ username: '', password: '', role: 'admin' });
+      setNewUser({ username: '', email: '', password: '', role: 'admin' });
       setSuccess(t('adminUsers.adminCreated'));
       fetchAdmins();
     } catch (error) {
@@ -150,6 +172,15 @@ const AdminUsers = () => {
               type="text"
               value={newUser.username}
               onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>{t('adminUsers.email')}</label>
+            <input
+              type="email"
+              value={newUser.email}
+              onChange={(e) => setNewUser({...newUser, email: e.target.value})}
               required
             />
           </div>
@@ -287,29 +318,36 @@ const AdminUsers = () => {
                         {u.email}
                       </td>
                       <td style={{padding: '12px 20px'}}>
-                        <button
-                          onClick={async () => {
-                            const newVal = !u.adminAccess;
-                            if (!window.confirm(newVal ? t('adminUsers.grantConfirm', { name: u.username }) : t('adminUsers.revokeConfirm', { name: u.username }))) return;
-                            try {
-                              await adminApi.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: newVal });
-                              fetchUsers();
-                              setSuccess(newVal ? t('adminUsers.accessGranted') : t('adminUsers.accessRevoked'));
-                            } catch (err) {
-                              setError(err.response?.data?.message || t('adminUsers.operationFailed'));
-                            }
-                          }}
-                          style={{
-                            padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500',
-                            cursor: 'pointer', border: '1px solid',
-                            background: u.adminAccess ? 'var(--success-bg-subtle)' : 'var(--hover-bg)',
-                            color: u.adminAccess ? 'var(--success-text)' : 'var(--text-secondary)',
-                            borderColor: u.adminAccess ? 'var(--success-border)' : 'var(--border)',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {u.adminAccess ? t('adminUsers.authorised') : t('adminUsers.unauthorised')}
-                        </button>
+                        {['superadmin', 'creator'].includes(u.role) ? (
+                          <span style={{
+                            ...getRoleBadgeStyle(u.role),
+                            padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500'
+                          }}>{getRoleLabel(u.role)}</span>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              const newVal = u.role !== 'admin';
+                              if (!window.confirm(newVal ? t('adminUsers.grantConfirm', { name: u.username }) : t('adminUsers.revokeConfirm', { name: u.username }))) return;
+                              try {
+                                await adminApi.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: newVal });
+                                fetchUsers();
+                                setSuccess(newVal ? t('adminUsers.accessGranted') : t('adminUsers.accessRevoked'));
+                              } catch (err) {
+                                setError(err.response?.data?.message || t('adminUsers.operationFailed'));
+                              }
+                            }}
+                            style={{
+                              padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500',
+                              cursor: 'pointer', border: '1px solid',
+                              background: u.role === 'admin' ? 'var(--success-bg-subtle)' : 'var(--hover-bg)',
+                              color: u.role === 'admin' ? 'var(--success-text)' : 'var(--text-secondary)',
+                              borderColor: u.role === 'admin' ? 'var(--success-border)' : 'var(--border)',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {u.role === 'admin' ? t('adminUsers.authorised') : t('adminUsers.unauthorised')}
+                          </button>
+                        )}
                       </td>
                       <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
                         {new Date(u.createdAt).toLocaleDateString(locale)}
@@ -350,14 +388,14 @@ const AdminUsers = () => {
           <div style={{padding: '12px 20px', borderBottom: '1px solid var(--border)'}}>
             <SearchInput
               data={admins}
-              searchKey={['username']}
+              searchKey={['username', 'email', 'accountId']}
               placeholder={t('adminUsers.searchAdminPlaceholder')}
               onSearch={setAdminSearch}
               onSelect={(item) => setAdminSearch(item.username)}
               displayRender={(item) => (
                 <div>
                   <span style={{fontWeight: '500'}}>{item.username}</span>
-                  <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px'}}>{item.role === 'superadmin' ? t('adminUsers.superAdmin') : t('adminUsers.admin')}</span>
+                  <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px'}}>{item.email}</span>
                 </div>
               )}
             />
@@ -372,6 +410,7 @@ const AdminUsers = () => {
                 <thead>
                   <tr style={{borderBottom: '1px solid var(--border)'}}>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.username')}</th>
+                    <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.email')}</th>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.role')}</th>
                     <th style={{padding: '12px 20px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.createTime')}</th>
                     <th style={{padding: '12px 20px', textAlign: 'right', color: 'var(--text-secondary)', fontWeight: '500', fontSize: '14px'}}>{t('adminUsers.actions')}</th>
@@ -395,6 +434,9 @@ const AdminUsers = () => {
                             <span style={{fontSize: '12px', color: 'var(--success-text)', background: 'var(--success-bg-subtle)', padding: '2px 8px', borderRadius: '4px'}}>{t('adminUsers.current')}</span>
                           )}
                         </div>
+                      </td>
+                      <td style={{padding: '12px 20px', color: 'var(--text-secondary)', fontSize: '14px'}}>
+                        {a.email}
                       </td>
                       <td style={{padding: '12px 20px'}}>
                         <span style={{
@@ -428,6 +470,7 @@ const AdminUsers = () => {
                                 border: '1px solid var(--border)', cursor: 'pointer'
                               }}
                             >
+                              <option value="user">{t('adminUsers.normalUser')}</option>
                               <option value="admin">{t('adminUsers.admin')}</option>
                               <option value="superadmin">{t('adminUsers.superAdmin')}</option>
                               <option value="creator">{t('adminUsers.creator')}</option>
@@ -472,7 +515,7 @@ const AdminUsers = () => {
               <div style={{padding: '12px 0', borderTop: '1px solid var(--border)', marginTop: '8px'}}>
                 <h4 style={{color: 'var(--primary)', marginBottom: '8px'}}>{t('adminUsers.deviceInfo')}</h4>
               </div>
-              <InfoRow label={t('adminUsers.deviceType')} value={detailUser.deviceInfo?.deviceType || t('adminUsers.unknown')} icon={detailUser.deviceInfo?.deviceType === '移动端' ? '📱' : detailUser.deviceInfo?.deviceType === '平板' ? '📟' : '🖥️'} />
+              <InfoRow label={t('adminUsers.deviceType')} value={getDeviceTypeLabel(detailUser.deviceInfo?.deviceType)} icon={getDeviceIcon(detailUser.deviceInfo?.deviceType)} />
               <InfoRow label={t('adminUsers.deviceModel')} value={detailUser.deviceInfo?.deviceModel || t('adminUsers.unknown')} icon="📲" />
               <InfoRow label={t('adminUsers.os')} value={detailUser.deviceInfo?.os ? `${detailUser.deviceInfo.os} ${detailUser.deviceInfo.osVersion || ''}`.trim() : t('adminUsers.unknown')} />
               <InfoRow label={t('adminUsers.browser')} value={detailUser.deviceInfo?.browser ? `${detailUser.deviceInfo.browser} ${detailUser.deviceInfo.browserVersion || ''}`.trim() : t('adminUsers.unknown')} />

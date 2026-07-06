@@ -4,7 +4,7 @@ const EpisodeVersionSchema = new mongoose.Schema({
   episodeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Episode', required: true },
   version: { type: Number, required: true },
   data: { type: mongoose.Schema.Types.Mixed, required: true },
-  changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+  changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   changeSummary: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
