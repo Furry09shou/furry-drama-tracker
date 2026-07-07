@@ -6,6 +6,28 @@ const Notification = require('../models/Notification');
 const { sendPushToUser } = require('./notifications');
 const { adminProtect, protect } = require('../middlewares/authFactory');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { verifySolution, sha } = require('altcha/lib');
+
+const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || (process.env.JWT_SECRET ? crypto.createHash('sha256').update('altcha-' + process.env.JWT_SECRET).digest('hex') : crypto.randomBytes(32).toString('hex'));
+
+const verifyAltcha = async (payload) => {
+  if (!payload) return false;
+  try {
+    const json = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+    const { challenge, solution } = json;
+    if (!challenge || !solution) return false;
+    const result = await verifySolution({
+      challenge,
+      solution,
+      hmacSignatureSecret: ALTCHA_HMAC_KEY,
+      deriveKey: sha.deriveKey,
+    });
+    return result.verified === true;
+  } catch {
+    return false;
+  }
+};
 
 const optionalProtect = async (req, res, next) => {
   try {
@@ -52,28 +74,13 @@ router.get('/', async (req, res) => {
 
 router.post('/apply', optionalProtect, async (req, res) => {
   try {
-    const { name, url, logo, description, captchaId, captchaAnswer } = req.body;
+    const { name, url, logo, description } = req.body;
     if (!name || !url) {
       return res.status(400).json({ message: '站点名称和链接为必填项' });
     }
-    // 验证验证码
-    if (!captchaId || !captchaAnswer) {
-      return res.status(400).json({ message: '请输入验证码' });
+    if (!(await verifyAltcha(req.body.altcha))) {
+      return res.status(400).json({ message: '验证码错误或已过期' });
     }
-    // 使用内存验证码存储验证
-    const captchaVerified = global._captchaStore && global._captchaStore.get(captchaId);
-    if (!captchaVerified) {
-      return res.status(400).json({ message: '验证码无效或已过期' });
-    }
-    if (captchaVerified.expires < Date.now()) {
-      global._captchaStore.delete(captchaId);
-      return res.status(400).json({ message: '验证码已过期' });
-    }
-    if (String(captchaVerified.answer) !== String(captchaAnswer).trim().toLowerCase()) {
-      global._captchaStore.delete(captchaId);
-      return res.status(400).json({ message: '验证码错误' });
-    }
-    global._captchaStore.delete(captchaId);
     if (!isValidUrl(url)) {
       return res.status(400).json({ message: '链接格式不合法，仅支持 http/https 协议' });
     }

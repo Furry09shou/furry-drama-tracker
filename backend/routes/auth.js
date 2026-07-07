@@ -14,6 +14,7 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const https = require('https');
 const crypto = require('crypto');
+const { createChallenge, verifySolution, sha } = require('altcha/lib');
 const { protect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { logManual } = require('../middlewares/auditLog');
@@ -134,117 +135,39 @@ const getCachedIpRegion = async (ip) => {
  *           type: string
  */
 
-// 验证码存储（内存Map，5分钟过期，挂载到global以便其他路由共享）
-if (!global._captchaStore) global._captchaStore = new Map();
-const captchaStore = global._captchaStore;
+const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || (process.env.JWT_SECRET ? crypto.createHash('sha256').update('altcha-' + process.env.JWT_SECRET).digest('hex') : crypto.randomBytes(32).toString('hex'));
 
-// 验证码存储大小限制
-if (global._captchaStore.size > 10000) {
-  const now = Date.now();
-  for (const [k, v] of global._captchaStore) {
-    if (now - v.createdAt > 5 * 60 * 1000) global._captchaStore.delete(k);
+router.get('/captcha', async (req, res) => {
+  try {
+    const challenge = await createChallenge({
+      algorithm: 'SHA-256',
+      hmacSignatureSecret: ALTCHA_HMAC_KEY,
+      deriveKey: sha.deriveKey,
+      cost: 5000,
+    });
+    res.json(challenge);
+  } catch (e) {
+    console.error('[Altcha] Failed to create challenge:', e.message);
+    res.status(500).json({ message: '服务器错误' });
   }
-  if (global._captchaStore.size > 10000) {
-    const entries = [...global._captchaStore.entries()].sort((a, b) => a[1].createdAt - b[1].createdAt);
-    entries.slice(0, global._captchaStore.size - 5000).forEach(([k]) => global._captchaStore.delete(k));
-  }
-}
-
-/**
- * @swagger
- * /api/auth/captcha:
- *   get:
- *     tags: [认证]
- *     summary: 获取图形验证码
- *     responses:
- *       200:
- *         description: 返回验证码ID和SVG图片
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 captchaId:
- *                   type: string
- *                 svg:
- *                   type: string
- */
-router.get('/captcha', (req, res) => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-
-  const captchaId = crypto.randomBytes(16).toString('hex');
-  captchaStore.set(captchaId, { answer: code.toLowerCase(), expires: Date.now() + 5 * 60 * 1000, createdAt: Date.now() });
-
-  for (const [key, val] of captchaStore) {
-    if (val.expires < Date.now()) captchaStore.delete(key);
-  }
-
-  const width = 120;
-  const height = 40;
-  const colors = ['#e74c3c', '#2ecc71', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#f39c12'];
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`;
-  svg += `<rect width="${width}" height="${height}" fill="#f0f0f0" rx="4"/>`;
-
-  for (let i = 0; i < 5; i++) {
-    const x1 = Math.random() * width;
-    const y1 = Math.random() * height;
-    const x2 = Math.random() * width;
-    const y2 = Math.random() * height;
-    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${colors[Math.floor(Math.random() * colors.length)]}" stroke-width="1" opacity="0.4"/>`;
-  }
-
-  for (let i = 0; i < 30; i++) {
-    const cx = Math.random() * width;
-    const cy = Math.random() * height;
-    const r = Math.random() * 2 + 0.5;
-    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${colors[Math.floor(Math.random() * colors.length)]}" opacity="0.3"/>`;
-  }
-
-  for (let i = 0; i < code.length; i++) {
-    const x = 18 + i * 26;
-    const y = 26 + (Math.random() * 8 - 4);
-    const rotate = Math.random() * 30 - 15;
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const fontSize = 22 + Math.floor(Math.random() * 6);
-    svg += `<text x="${x}" y="${y}" fill="${color}" font-size="${fontSize}" font-weight="bold" font-family="Arial, sans-serif" transform="rotate(${rotate}, ${x}, ${y})">${escapeHtml(code[i])}</text>`;
-  }
-
-  svg += '</svg>';
-
-  res.json({ captchaId, svg });
 });
 
-// 验证验证码的辅助函数
-const verifyCaptcha = (captchaId, captchaAnswer) => {
-  if (!captchaId || !captchaAnswer) {
-    console.log(`[Captcha] Verification failed: missing captchaId or captchaAnswer (id=${typeof captchaId}, answer=${typeof captchaAnswer})`);
+const verifyAltcha = async (payload) => {
+  if (!payload) return false;
+  try {
+    const json = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+    const { challenge, solution } = json;
+    if (!challenge || !solution) return false;
+    const result = await verifySolution({
+      challenge,
+      solution,
+      hmacSignatureSecret: ALTCHA_HMAC_KEY,
+      deriveKey: sha.deriveKey,
+    });
+    return result.verified === true;
+  } catch {
     return false;
   }
-  captchaAnswer = String(captchaAnswer).toLowerCase().trim();
-  if (!captchaAnswer) {
-    console.log(`[Captcha] Verification failed: captchaAnswer empty after trim`);
-    return false;
-  }
-  const stored = captchaStore.get(captchaId);
-  if (!stored) {
-    console.log(`[Captcha] Verification failed: captchaId not found in store (id=${captchaId.substring(0, 16)}...)`);
-    return false;
-  }
-  if (stored.expires < Date.now()) {
-    console.log(`[Captcha] Verification failed: captcha expired (expired=${new Date(stored.expires).toISOString()})`);
-    captchaStore.delete(captchaId);
-    return false;
-  }
-  const isCorrect = String(stored.answer).slice(0, 4) === String(captchaAnswer).trim();
-  captchaStore.delete(captchaId);
-  if (!isCorrect) {
-    console.log(`[Captcha] Verification failed: answer mismatch (expected=${stored.answer}, got=${captchaAnswer})`);
-  }
-  return isCorrect;
 };
 
 router.get('/check-accountId', async (req, res) => {
@@ -311,12 +234,13 @@ router.post('/register', async (req, res) => {
   const accountId = xss(req.body.accountId?.trim());
   const username = xss(req.body.username?.trim());
   const email = xss(req.body.email?.trim());
-  const { password, deviceInfo, captchaId, captchaAnswer } = req.body;
+  const { password, deviceInfo } = req.body;
+  const altchaPayload = req.body.altcha;
   const ua = req.headers['user-agent'] || '';
   const parsed = parseUserAgent(ua);
 
   try {
-    if (!verifyCaptcha(captchaId, captchaAnswer)) {
+    if (!(await verifyAltcha(altchaPayload))) {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
 
@@ -438,12 +362,13 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   const email = xss(req.body.email?.trim());
-  const { password, deviceInfo, captchaId, captchaAnswer } = req.body;
+  const { password, deviceInfo } = req.body;
+  const altchaPayload = req.body.altcha;
   const ua = req.headers['user-agent'] || '';
   const parsed = parseUserAgent(ua);
 
   try {
-    if (!verifyCaptcha(captchaId, captchaAnswer)) {
+    if (!(await verifyAltcha(altchaPayload))) {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
 
@@ -800,9 +725,9 @@ router.put('/admin/change-password', adminProtect, async (req, res) => {
 
 router.post('/forgot-password', async (req, res) => {
   const email = xss(req.body.email?.trim());
-  const { captchaId, captchaAnswer } = req.body;
+  const altchaPayload = req.body.altcha;
   try {
-    if (!verifyCaptcha(captchaId, captchaAnswer)) {
+    if (!(await verifyAltcha(altchaPayload))) {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
     const user = await User.findOne({ email });

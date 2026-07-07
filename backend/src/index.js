@@ -126,7 +126,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "blob:"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:"],
       fontSrc: ["'self'"],
@@ -227,9 +227,18 @@ const globalLimiter = rateLimit({
   message: { message: '请求过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path.startsWith('/api/translate'),
+  skip: (req) => req.path.startsWith('/api/translate') || req.path.startsWith('/api/auth/captcha'),
 });
 app.use('/api/', globalLimiter);
+
+const captchaLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 1000,
+  message: { message: '请求过于频繁，请稍后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/captcha', captchaLimiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

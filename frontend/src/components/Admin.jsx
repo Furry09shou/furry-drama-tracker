@@ -1,31 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import adminApi from '../utils/adminApi';
-import { useI18n } from '../contexts/I18nContext';
-import CaptchaField from './CaptchaField';
-import PasswordToggle from './PasswordToggle';
 
 const Admin = () => {
-  const { t } = useI18n();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const [verifying, setVerifying] = useState(true);
-
-  const fetchCaptcha = async () => {
-    try {
-      const res = await axios.get('/api/auth/captcha');
-      setCaptchaData({ captchaId: res.data.captchaId, svg: res.data.svg });
-      setCaptchaAnswer('');
-    } catch (e) {}
-  };
 
   useEffect(() => {
     const verifyAdmin = async () => {
@@ -35,76 +13,11 @@ const Admin = () => {
       } catch {
         navigate('/login', { replace: true });
       }
-      setVerifying(false);
     };
     verifyAdmin();
   }, [navigate]);
 
-  useEffect(() => { fetchCaptcha(); }, []);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (loading) return;
-    setError('');
-    setLoading(true);
-    try {
-      await axios.post('/api/admin/login', {
-        username,
-        password,
-        captchaId: captchaData.captchaId,
-        captchaAnswer,
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
-        language: navigator.language
-      });
-      navigate('/admin/dashboard', { replace: true });
-    } catch (err) {
-      setError(err.response?.data?.message || t('admin.loginFailed'));
-      fetchCaptcha();
-      setLoading(false);
-    }
-  };
-
-  if (verifying) return null;
-
-  return (
-    <div className="auth-form">
-      <h2>{t('admin.adminLogin')}</h2>
-      {error && <div className="error-message">{error}</div>}
-      <form onSubmit={handleLogin}>
-        <div className="form-group">
-          <label>{t('admin.emailOrAccount')}</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label>{t('admin.password')}</label>
-          <PasswordToggle
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            show={showPassword}
-            onToggle={() => setShowPassword(!showPassword)}
-            placeholder={t('admin.password')}
-            required
-          />
-        </div>
-        <CaptchaField
-          captchaData={captchaData}
-          captchaAnswer={captchaAnswer}
-          setCaptchaAnswer={setCaptchaAnswer}
-          onRefresh={fetchCaptcha}
-          t={t}
-        />
-        <div className="form-group">
-          <button type="submit" disabled={loading}>{loading ? t('common.loading') : t('admin.login')}</button>
-        </div>
-      </form>
-    </div>
-  );
+  return null;
 };
 
 export default Admin;

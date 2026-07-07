@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { getDeviceInfo } from '../utils/deviceInfo';
 import { useI18n } from '../contexts/I18nContext';
 import PasswordToggle from './PasswordToggle';
-import CaptchaField from './CaptchaField';
 
 const Register = () => {
   const { t } = useI18n();
@@ -20,27 +19,20 @@ const Register = () => {
   const [registered, setRegistered] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
-  const [captchaLoading, setCaptchaLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [altchaPayload, setAltchaPayload] = useState(null);
+  const altchaRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchCaptcha();
+    const el = altchaRef.current;
+    if (!el) return;
+    const handler = (ev) => {
+      if (ev.detail?.payload) setAltchaPayload(ev.detail.payload);
+    };
+    el.addEventListener('statechange', handler);
+    return () => el.removeEventListener('statechange', handler);
   }, []);
-
-  const fetchCaptcha = async () => {
-    setCaptchaLoading(true);
-    try {
-      const res = await axios.get('/api/auth/captcha');
-      setCaptchaData({ captchaId: res.data.captchaId, svg: res.data.svg });
-      setCaptchaAnswer('');
-    } catch (e) {
-      console.error('Failed to fetch captcha:', e);
-    }
-    setCaptchaLoading(false);
-  };
 
   const handleChange = (e) => {
     setFormData({
@@ -76,7 +68,8 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitting || captchaLoading || !captchaData.captchaId) return;
+    if (submitting) return;
+    if (!altchaPayload) return;
     if (formData.password.length < 8) {
       setError(t('auth.passwordHint'));
       return;
@@ -89,23 +82,17 @@ const Register = () => {
       setError(t('auth.agreeTermsFirst'));
       return;
     }
-    if (!captchaAnswer.trim()) {
-      setError(t('auth.enterCaptcha'));
-      return;
-    }
     setSubmitting(true);
     try {
       await axios.post('/api/auth/register', {
         ...formData,
-        captchaId: captchaData.captchaId,
-        captchaAnswer: captchaAnswer.trim(),
+        altcha: altchaPayload,
         deviceInfo: getDeviceInfo()
       });
       setRegisteredEmail(formData.email);
       setRegistered(true);
     } catch (error) {
       setError(error.response?.data?.message || t('auth.registerFailed'));
-      fetchCaptcha();
     }
     setSubmitting(false);
   };
@@ -212,14 +199,13 @@ const Register = () => {
           {fieldErrors.password && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.password}</p>}
           <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>{t('auth.passwordHint')}</span>
         </div>
-        <CaptchaField
-          captchaData={captchaData}
-          captchaAnswer={captchaAnswer}
-          setCaptchaAnswer={setCaptchaAnswer}
-          onRefresh={fetchCaptcha}
-          captchaLoading={captchaLoading}
-          t={t}
-        />
+        <altcha-widget
+          ref={altchaRef}
+          challenge="/api/auth/captcha"
+          auto="onload"
+          hidefooter="true"
+          hidelogo="true"
+        ></altcha-widget>
         <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
           <input
             type="checkbox"
@@ -242,7 +228,7 @@ const Register = () => {
           </label>
         </div>
         <div className="form-group">
-          <button type="submit" disabled={submitting || captchaLoading || !agreedToTerms || !captchaData.captchaId} style={{ opacity: agreedToTerms ? 1 : 0.5, cursor: agreedToTerms ? 'pointer' : 'not-allowed' }}>{t('auth.registerButton')}</button>
+          <button type="submit" disabled={submitting || !agreedToTerms} style={{ opacity: agreedToTerms ? 1 : 0.5, cursor: agreedToTerms ? 'pointer' : 'not-allowed' }}>{t('auth.registerButton')}</button>
         </div>
       </form>
     </div>

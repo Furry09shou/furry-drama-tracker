@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useI18n } from '../contexts/I18nContext';
@@ -18,8 +18,8 @@ const FriendLinks = () => {
   const [applyMsgType, setApplyMsgType] = useState('');
   const [activeTab, setActiveTab] = useState('links');
   const [myApplications, setMyApplications] = useState([]);
-  const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [altchaPayload, setAltchaPayload] = useState(null);
+  const altchaRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,16 +41,15 @@ const FriendLinks = () => {
     }
   }, [activeTab]);
 
-  const fetchCaptcha = async () => {
-    try {
-      const res = await axios.get('/api/auth/captcha');
-      setCaptchaData({ captchaId: res.data.captchaId, svg: res.data.svg });
-    } catch (e) {}
-  };
-
   useEffect(() => {
-    if (showApplyModal) fetchCaptcha();
-  }, [showApplyModal]);
+    const el = altchaRef.current;
+    if (!el) return;
+    const handler = (ev) => {
+      if (ev.detail?.payload) setAltchaPayload(ev.detail.payload);
+    };
+    el.addEventListener('statechange', handler);
+    return () => el.removeEventListener('statechange', handler);
+  }, []);
 
   const handleApply = async (e) => {
     e.preventDefault();
@@ -59,7 +58,7 @@ const FriendLinks = () => {
       setApplyMsgType('error');
       return;
     }
-    if (!captchaAnswer.trim()) {
+    if (!altchaPayload) {
       setApplyMsg(t('friendLink.captchaRequired'));
       setApplyMsgType('error');
       return;
@@ -70,13 +69,11 @@ const FriendLinks = () => {
     try {
       await axios.post('/api/friend-links/apply', {
         ...applyForm,
-        captchaId: captchaData.captchaId,
-        captchaAnswer: captchaAnswer.trim()
+        altcha: altchaPayload
       }, { headers: getAuthHeaders() });
       setApplyMsg(t('friendLink.applySuccess'));
       setApplyMsgType('success');
       setApplyForm({ name: '', url: '', logo: '', description: '' });
-      setCaptchaAnswer('');
       setTimeout(() => {
         setShowApplyModal(false);
         setApplyMsg('');
@@ -84,8 +81,6 @@ const FriendLinks = () => {
     } catch (err) {
       setApplyMsg(err.response?.data?.message || t('friendLink.submitFailed'));
       setApplyMsgType('error');
-      fetchCaptcha();
-      setCaptchaAnswer('');
     }
     setApplyLoading(false);
   };
@@ -317,23 +312,13 @@ const FriendLinks = () => {
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
                   {t('friendLink.captchaLabel')} <span style={{ color: 'var(--destructive-text)' }}>*</span>
                 </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input type="text" value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} placeholder={t('friendLink.captchaPlaceholder')} style={{
-                    flex: 1, padding: '10px 14px', borderRadius: '10px',
-                    border: '1px solid var(--border)', background: 'var(--hover-bg)',
-                    color: 'var(--foreground)', fontSize: '14px', outline: 'none',
-                    boxSizing: 'border-box', minWidth: 0
-                  }} />
-                  {captchaData.svg && (
-                    <img
-                      src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`}
-                      alt={t('friendLink.captchaLabel')}
-                      onClick={fetchCaptcha}
-                      style={{ height: '40px', cursor: 'pointer', borderRadius: '10px', flexShrink: 0 }}
-                      title={t('friendLink.clickToRefresh')}
-                    />
-                  )}
-                </div>
+                <altcha-widget
+                  ref={altchaRef}
+                  challenge="/api/auth/captcha"
+                  auto="onload"
+                  hidefooter="true"
+                  hidelogo="true"
+                ></altcha-widget>
               </div>
 
               {applyMsg && (

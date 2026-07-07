@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getDeviceInfo } from '../utils/deviceInfo';
 import { useI18n } from '../contexts/I18nContext';
 import PasswordToggle from './PasswordToggle';
-import CaptchaField from './CaptchaField';
 import API from '../utils/apiEndpoints';
 
 const Login = ({ login }) => {
@@ -27,9 +26,6 @@ const Login = ({ login }) => {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
   const [resendSuccess, setResendSuccess] = useState(false);
-  const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
-  const [captchaLoading, setCaptchaLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [needDeviceVerify, setNeedDeviceVerify] = useState(false);
   const [deviceVerifyEmail, setDeviceVerifyEmail] = useState('');
@@ -38,22 +34,24 @@ const Login = ({ login }) => {
   const [twoFAEmail, setTwoFAEmail] = useState('');
   const [twoFAToken, setTwoFAToken] = useState('');
   const [twoFALoading, setTwoFALoading] = useState(false);
+  const [altchaPayload, setAltchaPayload] = useState(null);
+  const cleanupRef = useRef(null);
+
+  const altchaRef = useCallback((el) => {
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+    setAltchaPayload(null);
+    if (!el) return;
+    const handler = (ev) => {
+      if (ev.detail?.payload) setAltchaPayload(ev.detail.payload);
+    };
+    el.addEventListener('statechange', handler);
+    cleanupRef.current = () => el.removeEventListener('statechange', handler);
+  }, []);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-
-  const fetchCaptcha = async () => {
-    setCaptchaLoading(true);
-    try {
-      const res = await axios.get('/api/auth/captcha');
-      setCaptchaData({ captchaId: res.data.captchaId, svg: res.data.svg });
-      setCaptchaAnswer('');
-    } catch (e) {
-      console.error('Failed to fetch captcha:', e);
-    }
-    setCaptchaLoading(false);
-  };
-
-  useEffect(() => { fetchCaptcha(); }, []);
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -92,7 +90,8 @@ const Login = ({ login }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitting || captchaLoading || !captchaData.captchaId) return;
+    if (submitting) return;
+    if (!altchaPayload) return;
     setError('');
     setNeedVerification(false);
     setNeedDeviceVerify(false);
@@ -102,8 +101,7 @@ const Login = ({ login }) => {
       const response = await axios.post(API.AUTH.LOGIN, {
         ...formData,
         deviceInfo: getDeviceInfo(),
-        captchaId: captchaData.captchaId,
-        captchaAnswer
+        altcha: altchaPayload,
       });
       if (response.data.need2FA) {
         setNeed2FA(true);
@@ -115,7 +113,6 @@ const Login = ({ login }) => {
       navigate('/');
     } catch (error) {
       const data = error.response?.data;
-      fetchCaptcha();
       if (data?.needVerification) {
         setNeedVerification(true);
         setVerifyEmail(data.email || formData.email);
@@ -151,16 +148,16 @@ const Login = ({ login }) => {
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
-    if (submitting || captchaLoading || !captchaData.captchaId) return;
+    if (submitting) return;
+    if (!altchaPayload) return;
     setError('');
     setSuccessMsg('');
     setSubmitting(true);
     try {
-      await axios.post(API.AUTH.FORGOT_PASSWORD, { email: forgotEmail, captchaId: captchaData.captchaId, captchaAnswer });
+      await axios.post(API.AUTH.FORGOT_PASSWORD, { email: forgotEmail, altcha: altchaPayload });
       setSuccessMsg(t('auth.resetLinkSent'));
       setShowForgot(false);
     } catch (err) {
-      fetchCaptcha();
       setError(err.response?.data?.message || t('auth.forgotPasswordFailed'));
     }
     setSubmitting(false);
@@ -184,9 +181,7 @@ const Login = ({ login }) => {
     }
   };
 
-
   if (deviceVerifyLoading) {
-    // ===== 设备验证加载中 =====
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '60px 20px'}}>
         <div style={{fontSize: '48px', marginBottom: '16px'}}>🔐</div>
@@ -197,7 +192,6 @@ const Login = ({ login }) => {
   }
 
   if (needDeviceVerify) {
-    // ===== 设备验证 =====
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '40px 20px'}}>
         <div style={{fontSize: '48px', marginBottom: '16px'}}>📧</div>
@@ -210,7 +204,7 @@ const Login = ({ login }) => {
         <p style={{color: 'var(--text-secondary)', fontSize: '13px', marginTop: '16px'}}>
           {t('auth.verifyLinkExpiry')}
         </p>
-        <button onClick={() => { setNeedDeviceVerify(false); fetchCaptcha(); }} style={{
+        <button onClick={() => setNeedDeviceVerify(false)} style={{
           marginTop: '24px', padding: '10px 24px', borderRadius: '8px',
           background: 'var(--hover-bg)', border: '1px solid var(--border)',
           color: 'var(--foreground)', cursor: 'pointer', fontSize: '14px'
@@ -220,7 +214,6 @@ const Login = ({ login }) => {
   }
 
   if (need2FA) {
-    // ===== 2FA验证 =====
     return (
       <div className="auth-form">
         <h2>{t('twoFactor.title')}</h2>
@@ -239,9 +232,7 @@ const Login = ({ login }) => {
               maxLength={6}
               required
               autoFocus
-              style={{
-                letterSpacing: '0.3em', textAlign: 'center', fontSize: '20px'
-              }}
+              style={{ letterSpacing: '0.3em', textAlign: 'center', fontSize: '20px' }}
             />
           </div>
           <div className="form-group">
@@ -251,7 +242,7 @@ const Login = ({ login }) => {
           </div>
         </form>
         <div style={{textAlign: 'center', marginTop: '10px', position: 'relative', zIndex: 1}}>
-          <span onClick={() => { setNeed2FA(false); setTwoFAToken(''); setError(''); fetchCaptcha(); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>
+          <span onClick={() => { setNeed2FA(false); setTwoFAToken(''); setError(''); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>
             {t('auth.backToLogin')}
           </span>
         </div>
@@ -260,7 +251,6 @@ const Login = ({ login }) => {
   }
 
   if (showReset) {
-    // ===== 重置密码 =====
     return (
       <div className="auth-form">
         <h2>{t('auth.resetPassword')}</h2>
@@ -275,8 +265,7 @@ const Login = ({ login }) => {
               placeholder={t('auth.newPasswordPlaceholder')}
               show={showNewPassword}
               onToggle={() => setShowNewPassword(!showNewPassword)}
-              required
-              minLength={8}
+              required minLength={8}
             />
           </div>
           <div className="form-group">
@@ -287,8 +276,7 @@ const Login = ({ login }) => {
               placeholder={t('auth.confirmNewPasswordPlaceholder')}
               show={showConfirmPassword}
               onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
-              required
-              minLength={8}
+              required minLength={8}
             />
           </div>
           <div className="form-group"><button type="submit">{t('auth.confirmPasswordReset')}</button></div>
@@ -301,35 +289,32 @@ const Login = ({ login }) => {
   }
 
   if (showForgot) {
-    // ===== 忘记密码 =====
     return (
       <div className="auth-form">
         <h2>{t('auth.forgotPasswordTitle')}</h2>
-            <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px'}}>{t('auth.forgotPasswordDesc')}</p>
+        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px'}}>{t('auth.forgotPasswordDesc')}</p>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleForgotPassword}>
           <div className="form-group">
             <label>{t('auth.email')}</label>
             <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder={t('auth.enterRegisteredEmail')} />
           </div>
-          <CaptchaField
-            captchaData={captchaData}
-            captchaAnswer={captchaAnswer}
-            setCaptchaAnswer={setCaptchaAnswer}
-            onRefresh={fetchCaptcha}
-            captchaLoading={captchaLoading}
-            t={t}
-          />
-          <div className="form-group"><button type="submit" disabled={captchaLoading || !captchaData.captchaId}>{t('auth.verifyEmail')}</button></div>
+          <altcha-widget
+            ref={altchaRef}
+            challenge="/api/auth/captcha"
+            auto="onload"
+            hidefooter="true"
+            hidelogo="true"
+          ></altcha-widget>
+          <div className="form-group"><button type="submit" disabled={submitting}>{t('auth.verifyEmail')}</button></div>
         </form>
         <div style={{textAlign: 'center', marginTop: '15px', position: 'relative', zIndex: 1}}>
-          <span onClick={() => { setShowForgot(false); setError(''); fetchCaptcha(); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>{t('auth.backToLogin')}</span>
+          <span onClick={() => { setShowForgot(false); setError(''); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>{t('auth.backToLogin')}</span>
         </div>
       </div>
     );
   }
-  
-  // ===== 登录表单 =====
+
   return (
     <div className="auth-form">
       <h2>{t('auth.loginTitle')}</h2>
@@ -393,16 +378,15 @@ const Login = ({ login }) => {
           />
           {fieldErrors.password && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.password}</p>}
         </div>
-        <CaptchaField
-          captchaData={captchaData}
-          captchaAnswer={captchaAnswer}
-          setCaptchaAnswer={setCaptchaAnswer}
-          onRefresh={fetchCaptcha}
-          captchaLoading={captchaLoading}
-          t={t}
-        />
+        <altcha-widget
+          ref={altchaRef}
+          challenge="/api/auth/captcha"
+          auto="onload"
+          hidefooter="true"
+          hidelogo="true"
+        ></altcha-widget>
         <div className="form-group">
-          <button type="submit" disabled={submitting || captchaLoading || !captchaData.captchaId}>{submitting ? t('common.loading') : t('auth.loginButton')}</button>
+          <button type="submit" disabled={submitting}>{submitting ? t('common.loading') : t('auth.loginButton')}</button>
         </div>
       </form>
       <div style={{textAlign: 'center', marginTop: '10px', position: 'relative', zIndex: 1}}>

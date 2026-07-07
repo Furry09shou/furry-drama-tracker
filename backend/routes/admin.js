@@ -5,6 +5,8 @@ const UserSession = require('../models/UserSession');
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
+const { createChallenge, verifySolution, sha } = require('altcha/lib');
 const { superAdminProtect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
@@ -15,27 +17,34 @@ const FriendLink = require('../models/FriendLink');
 const PushSubscription = require('../models/PushSubscription');
 const Folder = require('../models/Folder');
 
+const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || (process.env.JWT_SECRET ? crypto.createHash('sha256').update('altcha-' + process.env.JWT_SECRET).digest('hex') : crypto.randomBytes(32).toString('hex'));
+
+const verifyAdminAltcha = async (payload) => {
+  if (!payload) return false;
+  try {
+    const json = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+    const { challenge, solution } = json;
+    if (!challenge || !solution) return false;
+    const result = await verifySolution({
+      challenge,
+      solution,
+      hmacSignatureSecret: ALTCHA_HMAC_KEY,
+      deriveKey: sha.deriveKey,
+    });
+    return result.verified === true;
+  } catch {
+    return false;
+  }
+};
+
 // 管理员登录：使用 User 模型（仅允许 admin/superadmin 角色通过此后台登录入口）
 router.post('/login', async (req, res) => {
-  const { username, account, email, password, screenWidth, screenHeight, language, captchaId, captchaAnswer } = req.body;
+  const { username, account, email, password, screenWidth, screenHeight, language } = req.body;
 
   try {
-    if (!global._captchaStore || !captchaId || !captchaAnswer) {
-      return res.status(400).json({ message: '请输入验证码' });
+    if (!(await verifyAdminAltcha(req.body.altcha))) {
+      return res.status(400).json({ message: '验证码错误或已过期' });
     }
-    const stored = global._captchaStore.get(captchaId);
-    if (!stored) {
-      return res.status(400).json({ message: '验证码无效或已过期' });
-    }
-    if (stored.expires < Date.now()) {
-      global._captchaStore.delete(captchaId);
-      return res.status(400).json({ message: '验证码已过期' });
-    }
-    if (String(stored.answer) !== String(captchaAnswer).trim().toLowerCase()) {
-      global._captchaStore.delete(captchaId);
-      return res.status(400).json({ message: '验证码错误' });
-    }
-    global._captchaStore.delete(captchaId);
 
     // 登录标识符：兼容 username / account / email 三种字段名
     const identifier = account || email || username;
