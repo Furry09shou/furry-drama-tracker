@@ -533,6 +533,28 @@ nav ul li a[style*="primary"] {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
+/* 自定义表单验证样式 —— 替代浏览器原生"请输入此字段"提示 */
+input:invalid, textarea:invalid, select:invalid {
+  border-color: var(--destructive-border, #ef4444) !important;
+}
+input:invalid:focus, textarea:invalid:focus, select:invalid:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+.form-group input:invalid, .form-group textarea:invalid {
+  border-color: var(--destructive-border, #ef4444);
+}
+input[data-errmsg]::after,
+textarea[data-errmsg]::after {
+  display: none;
+}
+/* 自定义验证提示文字 */
+.validation-msg {
+  color: var(--destructive-text, #ef4444);
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
 .form-group button {
   width: 100%;
   padding: 14px;
