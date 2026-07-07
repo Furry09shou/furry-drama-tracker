@@ -450,13 +450,10 @@ router.post('/login', async (req, res) => {
             <p style="color:#999;font-size:12px">此链接30分钟内有效</p>
           </div>`
         };
-        const transporter = require('nodemailer').createTransport({
-          host: process.env.EMAIL_HOST,
-          port: parseInt(process.env.EMAIL_PORT || '465'),
-          secure: parseInt(process.env.EMAIL_PORT || '465') === 465,
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-        });
-        transporter.sendMail(mailOptions).catch(() => {});
+        const transporter = await createTransporter();
+        if (transporter) {
+          transporter.sendMail(mailOptions).catch(() => {});
+        }
       } catch (e) {}
       return res.status(403).json({
         message: '检测到新设备登录，验证邮件已发送至您的邮箱，请确认后登录',

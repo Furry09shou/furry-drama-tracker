@@ -56,7 +56,7 @@ router.post('/login', async (req, res) => {
       $or: [{ email: identifier }, { accountId: identifier }]
     }).select('+loginAttempts +lockUntil +password');
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: '用户名或密码错误' });
     }
 
     if (!['admin', 'superadmin'].includes(user.role)) {
@@ -70,7 +70,7 @@ router.post('/login', async (req, res) => {
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       await user.incLoginAttempts();
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: '用户名或密码错误' });
     }
 
     await user.resetLoginAttempts();

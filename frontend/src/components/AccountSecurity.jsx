@@ -13,20 +13,23 @@ const maskEmail = (email) => {
 };
 
 const AccountSecurity = ({ user }) => {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { getAuthHeaders } = useAuth();
   const navigate = useNavigate();
 
   const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState('');
   const [showFullEmail, setShowFullEmail] = useState(false);
 
   const handleExportData = async () => {
     setExportLoading(true);
+    setExportError('');
     try {
       const res = await fetch(API.USERS.EXPORT, {
         headers: getAuthHeaders(),
         credentials: 'include'
       });
+      if (!res.ok) throw new Error('export failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -34,7 +37,9 @@ const AccountSecurity = ({ user }) => {
       a.download = `my_data_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (e) {}
+    } catch (e) {
+      setExportError(t('profile.exportDataFailed'));
+    }
     setExportLoading(false);
   };
 
@@ -194,6 +199,9 @@ const AccountSecurity = ({ user }) => {
             {exportLoading ? t('common.processing') : t('profile.exportData')}
           </button>
         </div>
+        {exportError && (
+          <div style={{fontSize: '13px', color: 'var(--destructive-text)', marginTop: '8px'}}>{exportError}</div>
+        )}
       </div>
 
       {/* 注销账号 */}

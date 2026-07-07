@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useI18n } from '../contexts/I18nContext';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
-const SESSION_CLOSED_KEY = 'pwa-install-session-closed';
 
 export default function InstallPrompt() {
   const { t } = useI18n();
@@ -14,16 +13,24 @@ export default function InstallPrompt() {
     // "不再提醒" 永久关闭
     if (localStorage.getItem(DISMISSED_KEY) === 'true') return;
 
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    // 检查全局是否已捕获 beforeinstallprompt（可能在 React 挂载前就已触发）
+    if (window.__pwaDeferredPrompt) {
+      setDeferredPrompt(window.__pwaDeferredPrompt);
       setShow(true);
+    }
+
+    // 监听后续的 pwa-install-available 自定义事件
+    const handleAvailable = () => {
+      if (window.__pwaDeferredPrompt) {
+        setDeferredPrompt(window.__pwaDeferredPrompt);
+        setShow(true);
+      }
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('pwa-install-available', handleAvailable);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('pwa-install-available', handleAvailable);
     };
   }, []);
 
@@ -32,12 +39,13 @@ export default function InstallPrompt() {
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
+    window.__pwaDeferredPrompt = null;
     if (outcome === 'accepted') {
       setShow(false);
     }
   };
 
-  // 关闭：如果勾选了不再提醒则永久关闭，否则仅本次隐藏（刷新页面会重新弹出）
+  // 关闭：如果勾选了不再提醒则永久关闭，否则仅隐藏当前提示（刷新页面会重新弹出）
   const handleClose = () => {
     if (neverRemind) {
       localStorage.setItem(DISMISSED_KEY, 'true');

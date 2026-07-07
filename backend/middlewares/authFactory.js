@@ -27,7 +27,7 @@ const createAuthMiddleware = ({ allowedRoles = [] }) => {
       const user = await User.findById(decoded.id).select('-password');
 
       if (!user) {
-        return res.status(401).json({ message: '用户不存在' });
+        return res.status(401).json({ message: 'Not authorized, user not found' });
       }
 
       if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
@@ -44,7 +44,7 @@ const createAuthMiddleware = ({ allowedRoles = [] }) => {
       req.authToken = token;
       next();
     } catch (error) {
-      return res.status(401).json({ message: '未授权，令牌验证失败' });
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   };
 };

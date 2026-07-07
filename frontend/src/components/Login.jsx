@@ -55,19 +55,18 @@ const Login = ({ login }) => {
 
   useEffect(() => {
     const token = searchParams.get('token');
-    if (token) {
-      setDeviceVerifyLoading(true);
-      axios.post('/api/auth/verify-device', { token })
-        .then(res => {
-          login(res.data);
-          navigate('/');
-        })
-        .catch(err => {
-          setError(err.response?.data?.message || t('auth.deviceVerifyFailed'));
-        })
-        .finally(() => setDeviceVerifyLoading(false));
-    }
-  }, [searchParams]);
+    if (!token) return;
+    setDeviceVerifyLoading(true);
+    axios.post('/api/auth/verify-device', { token })
+      .then(res => {
+        login(res.data);
+        navigate('/');
+      })
+      .catch(err => {
+        setError(err.response?.data?.message || t('auth.deviceVerifyFailed'));
+      })
+      .finally(() => setDeviceVerifyLoading(false));
+  }, [searchParams, navigate, login, t]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

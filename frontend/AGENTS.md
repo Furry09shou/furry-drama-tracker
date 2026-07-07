@@ -32,10 +32,10 @@ Vite proxies `/api` and `/uploads` to `http://localhost:5000` (the backend). If 
 ## Key Conventions
 
 - **No TypeScript** — plain JSX throughout.
-- **No ESLint config file** — relies on eslint plugin defaults via `package.json` script. The lint command uses `--ext js,jsx --max-warnings 0`.
+- **ESLint** — flat config in `eslint.config.js` (ESLint 9). Run `npm run lint` to check.
 - **Production builds strip console/debugger** — configured in `vite.config.js` via `esbuild.drop`.
 - **Env vars** must be prefixed `VITE_` to be exposed to client code. Only `VITE_API_BASE_URL` is used (for cross-origin deployment).
-- **Admin vs User auth** — separate token storage: `localStorage.token` / `localStorage.user` for users; `localStorage.adminToken` / `localStorage.adminData` for admins. The 401 interceptor redirects accordingly.
+- **Auth** — unified role-based system: `localStorage.token` / `localStorage.user` for all users. Admin permissions are determined by the `User.role` field (`user`/`creator`/`admin`/`superadmin`). The 401 interceptor redirects accordingly.
 - **i18n** — `t('key.path')` function from `useI18n()` hook. Fallback language is `zh`. New strings must be added to both `src/locales/zh.js` and `src/locales/en.js`.
 - **Components** are flat files in `src/components/`. No folder-per-component pattern. Admin components are prefixed `Admin*`.
 

@@ -49,7 +49,7 @@ Other env vars used (non-fatal if missing):
   12. Rate limiters (per-endpoint)
   13. Route handlers
 - **Auth middleware**: `middlewares/authFactory.js` exports `protect` (user), `adminProtect` (admin/superadmin/creator), `creatorProtect` (creator+), `superAdminProtect` (superadmin only). All verify JWT + check session validity in DB.
-- **Sessions**: Token hashes stored in `UserSession` / `AdminSession` models. Auth middleware validates session is active.
+- **Sessions**: Token hashes stored in the `UserSession` model. Auth middleware validates session is active.
 - **Audit logging**: `middlewares/auditLog.js` — `logAction` (admin), `logUserAction` (user), `logManual` (programmatic).
 - **Cron jobs**: `src/cron.js` — runs via `setInterval` (no external scheduler):
   - Expired account deletion (every 6h)
@@ -78,7 +78,7 @@ Other env vars used (non-fatal if missing):
 - **Dual API versioning**: every route is auto-mounted at both `/api/...` and `/api/v1/...`. Do not add `/v1/` manually in route files.
 - **CSRF is enforced** on all non-GET requests. The frontend must fetch a CSRF token first (`GET /api/csrf-token`) and send it as `X-XSRF-TOKEN` header.
 - **accountId migration**: on startup, the app auto-migrates users missing an `accountId` field. This is a one-time migration that runs every boot.
-- **Auth tokens are dual**: JWT in `Authorization: Bearer` header **and** in cookies (`token` for users, `adminToken` for admins). Both are checked.
+- **Auth tokens are dual**: JWT in `Authorization: Bearer` header **and** in the `token` cookie. Both are checked.
 - **`sanitizeInput` strips `$`-prefixed keys and keys containing `.`** from req.body/query/params — this prevents MongoDB operator injection but means you cannot pass fields starting with `$` or containing `.` through the API.
 - **No test suite exists**. The `npm test` script is a placeholder that exits with an error.
 - **Cron uses `setInterval`**, not a proper cron library. Jobs start in `startCronJobs()` called at the end of `src/index.js`.

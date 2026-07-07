@@ -246,6 +246,7 @@ export default {
     manageDevicesDesc: 'View and manage logged-in devices',
     exportData: 'Export My Data',
     exportDataDesc: 'Download all your data',
+    exportDataFailed: 'Export failed, please try again later',
     currentEmail: 'Current Email',
     myFollows: 'My Follows',
     myFavorites: 'My Favorites',

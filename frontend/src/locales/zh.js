@@ -246,6 +246,7 @@ export default {
     manageDevicesDesc: '查看和管理已登录的设备',
     exportData: '导出我的数据',
     exportDataDesc: '下载你的所有数据',
+    exportDataFailed: '导出失败，请稍后重试',
     currentEmail: '当前邮箱',
     myFollows: '我的追番',
     myFavorites: '我的收藏',

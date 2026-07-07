@@ -15,6 +15,17 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// 全局捕获 beforeinstallprompt 事件，防止 React 挂载前事件已触发导致丢失
+window.__pwaDeferredPrompt = null;
+window.__pwaPromptFired = false;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.__pwaDeferredPrompt = e;
+  window.__pwaPromptFired = true;
+  // 如果 React 组件已挂载，通过自定义事件通知
+  window.dispatchEvent(new CustomEvent('pwa-install-available'));
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
