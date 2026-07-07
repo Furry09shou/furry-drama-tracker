@@ -7,11 +7,13 @@ const jwt = require('jsonwebtoken');
 const webpush = require('web-push');
 const { asyncHandler } = require('../utils/errorHandler');
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:admin@furry-drama-tracker.com',
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:admin@furry-drama-tracker.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 const sseClients = new Map();
 const MAX_SSE_CONNECTIONS = 500;

@@ -14,7 +14,10 @@ const Admin = () => {
   const [error, setError] = useState('');
   const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
   const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const [verifying, setVerifying] = useState(true);
 
   const fetchCaptcha = async () => {
     try {
@@ -25,16 +28,14 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    // 通过 API 验证管理员登录状态（依赖 httpOnly cookie）
     const verifyAdmin = async () => {
       try {
-        const res = await axios.get('/api/admin/verify', { credentials: 'include' });
-        if (res.ok !== false) {
-          navigate('/admin/dashboard', { replace: true });
-        }
+        await axios.get('/api/admin/verify', { withCredentials: true });
+        navigate('/admin/dashboard', { replace: true });
       } catch {
-        // 未登录或 token 无效，留在登录页
+        navigate('/login', { replace: true });
       }
+      setVerifying(false);
     };
     verifyAdmin();
   }, [navigate]);
@@ -43,7 +44,9 @@ const Admin = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
+    setLoading(true);
     try {
       await axios.post('/api/admin/login', {
         username,
@@ -54,13 +57,15 @@ const Admin = () => {
         screenHeight: window.screen.height,
         language: navigator.language
       });
-      // token 通过 httpOnly cookie 自动设置，会话在登录接口内创建
       navigate('/admin/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || t('admin.loginFailed'));
       fetchCaptcha();
+      setLoading(false);
     }
   };
+
+  if (verifying) return null;
 
   return (
     <div className="auth-form">
@@ -95,7 +100,7 @@ const Admin = () => {
           t={t}
         />
         <div className="form-group">
-          <button type="submit">{t('admin.login')}</button>
+          <button type="submit" disabled={loading}>{loading ? t('common.loading') : t('admin.login')}</button>
         </div>
       </form>
     </div>

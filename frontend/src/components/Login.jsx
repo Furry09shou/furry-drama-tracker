@@ -29,6 +29,8 @@ const Login = ({ login }) => {
   const [resendSuccess, setResendSuccess] = useState(false);
   const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
   const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [needDeviceVerify, setNeedDeviceVerify] = useState(false);
   const [deviceVerifyEmail, setDeviceVerifyEmail] = useState('');
   const [deviceVerifyLoading, setDeviceVerifyLoading] = useState(false);
@@ -40,11 +42,15 @@ const Login = ({ login }) => {
   const navigate = useNavigate();
 
   const fetchCaptcha = async () => {
+    setCaptchaLoading(true);
     try {
       const res = await axios.get('/api/auth/captcha');
       setCaptchaData({ captchaId: res.data.captchaId, svg: res.data.svg });
       setCaptchaAnswer('');
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to fetch captcha:', e);
+    }
+    setCaptchaLoading(false);
   };
 
   useEffect(() => { fetchCaptcha(); }, []);
@@ -86,10 +92,12 @@ const Login = ({ login }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting || captchaLoading || !captchaData.captchaId) return;
     setError('');
     setNeedVerification(false);
     setNeedDeviceVerify(false);
     setNeed2FA(false);
+    setSubmitting(true);
     try {
       const response = await axios.post(API.AUTH.LOGIN, {
         ...formData,
@@ -100,6 +108,7 @@ const Login = ({ login }) => {
       if (response.data.need2FA) {
         setNeed2FA(true);
         setTwoFAEmail(response.data.email || formData.email);
+        setSubmitting(false);
         return;
       }
       login(response.data);
@@ -119,6 +128,7 @@ const Login = ({ login }) => {
         setError(data?.message || t('auth.loginFailed'));
       }
     }
+    setSubmitting(false);
   };
 
   const handle2FAVerify = async (e) => {
@@ -141,8 +151,10 @@ const Login = ({ login }) => {
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
+    if (submitting || captchaLoading || !captchaData.captchaId) return;
     setError('');
     setSuccessMsg('');
+    setSubmitting(true);
     try {
       await axios.post(API.AUTH.FORGOT_PASSWORD, { email: forgotEmail, captchaId: captchaData.captchaId, captchaAnswer });
       setSuccessMsg(t('auth.resetLinkSent'));
@@ -151,6 +163,7 @@ const Login = ({ login }) => {
       fetchCaptcha();
       setError(err.response?.data?.message || t('auth.forgotPasswordFailed'));
     }
+    setSubmitting(false);
   };
 
   const handleResetPassword = async (e) => {
@@ -304,9 +317,10 @@ const Login = ({ login }) => {
             captchaAnswer={captchaAnswer}
             setCaptchaAnswer={setCaptchaAnswer}
             onRefresh={fetchCaptcha}
+            captchaLoading={captchaLoading}
             t={t}
           />
-          <div className="form-group"><button type="submit">{t('auth.verifyEmail')}</button></div>
+          <div className="form-group"><button type="submit" disabled={captchaLoading || !captchaData.captchaId}>{t('auth.verifyEmail')}</button></div>
         </form>
         <div style={{textAlign: 'center', marginTop: '15px', position: 'relative', zIndex: 1}}>
           <span onClick={() => { setShowForgot(false); setError(''); fetchCaptcha(); }} style={{color: 'var(--primary)', cursor: 'pointer', fontSize: '14px', padding: '4px 8px', display: 'inline-block', userSelect: 'none'}}>{t('auth.backToLogin')}</span>
@@ -384,10 +398,11 @@ const Login = ({ login }) => {
           captchaAnswer={captchaAnswer}
           setCaptchaAnswer={setCaptchaAnswer}
           onRefresh={fetchCaptcha}
+          captchaLoading={captchaLoading}
           t={t}
         />
         <div className="form-group">
-          <button type="submit">{t('auth.loginButton')}</button>
+          <button type="submit" disabled={submitting || captchaLoading || !captchaData.captchaId}>{submitting ? t('common.loading') : t('auth.loginButton')}</button>
         </div>
       </form>
       <div style={{textAlign: 'center', marginTop: '10px', position: 'relative', zIndex: 1}}>

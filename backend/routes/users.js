@@ -71,7 +71,7 @@ router.put('/profile', protect, async (req, res) => {
       username: user.username,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
-      adminAccess: user.adminAccess || false,
+      role: user.role || 'user',
       avatar: user.avatar || ''
     });
   } catch (error) {

@@ -95,7 +95,7 @@ const AdminGuard = ({ children }) => {
   }, []);
 
   if (verifying) return <LoadingFallback />;
-  if (!authorized) return <Navigate to="/admin" replace />;
+  if (!authorized) return <Navigate to="/login" replace />;
   return children;
 };
 

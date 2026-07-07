@@ -220,17 +220,30 @@ router.get('/captcha', (req, res) => {
 
 // 验证验证码的辅助函数
 const verifyCaptcha = (captchaId, captchaAnswer) => {
-  if (!captchaId || !captchaAnswer) return false;
+  if (!captchaId || !captchaAnswer) {
+    console.log(`[Captcha] Verification failed: missing captchaId or captchaAnswer (id=${typeof captchaId}, answer=${typeof captchaAnswer})`);
+    return false;
+  }
   captchaAnswer = String(captchaAnswer).toLowerCase().trim();
-  if (!captchaAnswer) return false;
+  if (!captchaAnswer) {
+    console.log(`[Captcha] Verification failed: captchaAnswer empty after trim`);
+    return false;
+  }
   const stored = captchaStore.get(captchaId);
-  if (!stored) return false;
+  if (!stored) {
+    console.log(`[Captcha] Verification failed: captchaId not found in store (id=${captchaId.substring(0, 16)}...)`);
+    return false;
+  }
   if (stored.expires < Date.now()) {
+    console.log(`[Captcha] Verification failed: captcha expired (expired=${new Date(stored.expires).toISOString()})`);
     captchaStore.delete(captchaId);
     return false;
   }
-  const isCorrect = String(stored.answer) === String(captchaAnswer).trim();
+  const isCorrect = String(stored.answer).slice(0, 4) === String(captchaAnswer).trim();
   captchaStore.delete(captchaId);
+  if (!isCorrect) {
+    console.log(`[Captcha] Verification failed: answer mismatch (expected=${stored.answer}, got=${captchaAnswer})`);
+  }
   return isCorrect;
 };
 
@@ -564,7 +577,7 @@ router.post('/login', async (req, res) => {
       username: user.username,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
-      adminAccess: user.adminAccess || false,
+      role: user.role || 'user',
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -602,7 +615,7 @@ router.post('/verify-device', async (req, res) => {
 
     res.json({
       _id: user._id, accountId: user.accountId, username: user.username, email: user.email,
-      isEmailVerified: user.isEmailVerified, adminAccess: user.adminAccess || false,
+      isEmailVerified: user.isEmailVerified, role: user.role || 'user',
     });
   } catch (error) {
     if (error.name === 'TokenExpiredError') return res.status(400).json({ message: '验证链接已过期，请重新登录' });
@@ -655,7 +668,7 @@ router.post('/login-2fa', async (req, res) => {
       username: user.username,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
-      adminAccess: user.adminAccess || false,
+      role: user.role || 'user',
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -720,7 +733,7 @@ router.get('/me', protect, async (req, res) => {
       username: user.username,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
-      adminAccess: user.adminAccess || false,
+      role: user.role || 'user',
       avatar: user.avatar || ''
     });
   } catch (error) {

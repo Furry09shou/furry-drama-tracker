@@ -16,7 +16,7 @@ const AdminLayout = () => {
         setAdmin(res.data.admin || res.data);
       } catch (error) {
         setAdmin(null);
-        navigate('/admin', { replace: true });
+        navigate('/login', { replace: true });
       }
       setLoading(false);
     };
@@ -33,7 +33,7 @@ const AdminLayout = () => {
       await adminApi.post('/api/admin/logout', {});
     } catch (e) {}
     setAdmin(null);
-    navigate('/admin', { replace: true });
+    navigate('/login', { replace: true });
   };
 
   if (loading) return null;

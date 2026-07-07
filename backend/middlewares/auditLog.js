@@ -29,8 +29,8 @@ const logManual = async (...args) => {
       logData = args[0];
     } else {
       logData = {
-        adminId: args[0],
-        adminName: args[1],
+        userId: args[0],
+        userName: args[1],
         action: args[2],
         target: args[3] || '',
         details: args[4] || '',

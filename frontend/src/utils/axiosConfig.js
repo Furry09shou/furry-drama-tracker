@@ -43,15 +43,13 @@ axios.interceptors.response.use(
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
       const skipRedirect = error.config?.skipRedirect;
-      if (url.includes('/admin')) {
-        window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'admin' } }));
-        if (!skipRedirect && !window.location.pathname.startsWith('/admin')) {
-          window.location.href = '/admin';
-        }
-      } else {
-        localStorage.removeItem('user');
-        window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
-        if (!skipRedirect && !window.location.pathname.startsWith('/admin') && window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/reset-password') {
+      const isAdminPage = window.location.pathname.startsWith('/admin');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
+      if (!skipRedirect) {
+        if (isAdminPage) {
+          window.location.href = '/login';
+        } else if (!isAdminPage && window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/reset-password') {
           window.location.href = '/login';
         }
       }

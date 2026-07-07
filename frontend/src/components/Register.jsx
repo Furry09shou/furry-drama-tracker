@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getDeviceInfo } from '../utils/deviceInfo';
 import { useI18n } from '../contexts/I18nContext';
 import PasswordToggle from './PasswordToggle';
+import CaptchaField from './CaptchaField';
 
 const Register = () => {
   const { t } = useI18n();
@@ -21,6 +22,8 @@ const Register = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [captchaData, setCaptchaData] = useState({ captchaId: '', svg: '' });
   const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,10 +31,15 @@ const Register = () => {
   }, []);
 
   const fetchCaptcha = async () => {
+    setCaptchaLoading(true);
     try {
       const res = await axios.get('/api/auth/captcha');
       setCaptchaData({ captchaId: res.data.captchaId, svg: res.data.svg });
-    } catch (e) {}
+      setCaptchaAnswer('');
+    } catch (e) {
+      console.error('Failed to fetch captcha:', e);
+    }
+    setCaptchaLoading(false);
   };
 
   const handleChange = (e) => {
@@ -68,6 +76,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting || captchaLoading || !captchaData.captchaId) return;
     if (formData.password.length < 8) {
       setError(t('auth.passwordHint'));
       return;
@@ -84,6 +93,7 @@ const Register = () => {
       setError(t('auth.enterCaptcha'));
       return;
     }
+    setSubmitting(true);
     try {
       await axios.post('/api/auth/register', {
         ...formData,
@@ -96,8 +106,8 @@ const Register = () => {
     } catch (error) {
       setError(error.response?.data?.message || t('auth.registerFailed'));
       fetchCaptcha();
-      setCaptchaAnswer('');
     }
+    setSubmitting(false);
   };
   
   if (registered) {
@@ -202,29 +212,14 @@ const Register = () => {
           {fieldErrors.password && <p style={{color: 'var(--destructive-text)', fontSize: '12px', margin: '2px 0 0 0'}}>{fieldErrors.password}</p>}
           <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>{t('auth.passwordHint')}</span>
         </div>
-        <div className="form-group">
-          <label htmlFor="captcha">{t('auth.captcha')}</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <input
-              type="text"
-              id="captcha"
-              value={captchaAnswer}
-              onChange={(e) => setCaptchaAnswer(e.target.value)}
-              required
-              placeholder={t('auth.enterCaptcha')}
-              style={{ flex: 1, minWidth: 0 }}
-            />
-            {captchaData.svg && (
-              <img
-                src={`data:image/svg+xml;utf8,${encodeURIComponent(captchaData.svg)}`}
-                alt={t('auth.captcha')}
-                onClick={fetchCaptcha}
-                style={{ height: '40px', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}
-                title={t('common.clickToRefresh')}
-              />
-            )}
-          </div>
-        </div>
+        <CaptchaField
+          captchaData={captchaData}
+          captchaAnswer={captchaAnswer}
+          setCaptchaAnswer={setCaptchaAnswer}
+          onRefresh={fetchCaptcha}
+          captchaLoading={captchaLoading}
+          t={t}
+        />
         <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
           <input
             type="checkbox"
@@ -247,7 +242,7 @@ const Register = () => {
           </label>
         </div>
         <div className="form-group">
-          <button type="submit" disabled={!agreedToTerms} style={{ opacity: agreedToTerms ? 1 : 0.5, cursor: agreedToTerms ? 'pointer' : 'not-allowed' }}>{t('auth.registerButton')}</button>
+          <button type="submit" disabled={submitting || captchaLoading || !agreedToTerms || !captchaData.captchaId} style={{ opacity: agreedToTerms ? 1 : 0.5, cursor: agreedToTerms ? 'pointer' : 'not-allowed' }}>{t('auth.registerButton')}</button>
         </div>
       </form>
     </div>

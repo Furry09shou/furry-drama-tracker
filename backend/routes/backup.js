@@ -19,7 +19,7 @@ const ALLOWED_IMPORT_COLLECTIONS = [
 
 const COLLECTION_FIELDS = {
   episodes: ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks', 'views', 'averageRating', 'ratingCount', 'reviewStatus', 'reviewNote', 'createdBy', 'allowedEditors', 'createdAt', 'updatedAt'],
-  users: ['accountId', 'username', 'email', 'isEmailVerified', 'adminAccess', 'avatar', 'deletionRequestedAt', 'createdAt', 'updatedAt'],
+  users: ['accountId', 'username', 'email', 'isEmailVerified', 'role', 'avatar', 'deletionRequestedAt', 'createdAt', 'updatedAt'],
   categories: ['name', 'nameEn', 'nameJa', 'description', 'descriptionEn', 'descriptionJa', 'icon', 'order', 'createdAt'],
   banners: ['title', 'titleEn', 'titleJa', 'subtitle', 'subtitleEn', 'subtitleJa', 'image', 'link', 'order', 'active', 'createdAt'],
   ratings: ['userId', 'episodeId', 'score', 'createdAt', 'updatedAt'],
