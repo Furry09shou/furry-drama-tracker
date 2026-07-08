@@ -56,92 +56,27 @@ export default function InstallPrompt() {
   if (!show) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 9998,
-        animation: 'slideUp 0.3s ease',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '14px 18px',
-          borderRadius: '16px',
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          maxWidth: 'min(440px, calc(100vw - 32px))',
-        }}
-      >
-        <span style={{ fontSize: '28px', flexShrink: 0 }}>📲</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--foreground)' }}>
-            {t('pwa.install')}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.4 }}>
-            {t('pwa.installDesc')}
-          </div>
+    <div className="pwa-prompt-wrapper">
+      <div className="pwa-prompt-card">
+        <span className="pwa-prompt-icon">📲</span>
+        <div className="pwa-prompt-text">
+          <div className="pwa-prompt-title">{t('pwa.install')}</div>
+          <div className="pwa-prompt-desc">{t('pwa.installDesc')}</div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button
-              onClick={handleInstall}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'var(--primary)',
-                color: '#fff',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-            >
+        <div className="pwa-prompt-actions">
+          <div className="pwa-prompt-buttons">
+            <button className="pwa-prompt-btn-install" onClick={handleInstall}>
               {t('pwa.installBtn')}
             </button>
-            <button
-              onClick={handleClose}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--text-secondary)',
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--primary)';
-                e.currentTarget.style.color = 'var(--primary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border)';
-                e.currentTarget.style.color = 'var(--text-secondary)';
-              }}
-            >
+            <button className="pwa-prompt-btn-close" onClick={handleClose}>
               {t('pwa.close')}
             </button>
           </div>
-          <label style={{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            fontSize: '11px', color: 'var(--text-tertiary)',
-            cursor: 'pointer', userSelect: 'none',
-          }}>
+          <label className="pwa-prompt-never">
             <input
               type="checkbox"
               checked={neverRemind}
               onChange={(e) => setNeverRemind(e.target.checked)}
-              style={{ margin: 0, cursor: 'pointer', accentColor: 'var(--primary)' }}
             />
             {t('pwa.neverRemind')}
           </label>
@@ -149,14 +84,106 @@ export default function InstallPrompt() {
       </div>
       <style>{`
         @keyframes slideUp {
-          from {
-            transform: translateX(-50%) translateY(20px);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-          }
+          from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+          to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+        }
+
+        /* === wrapper === */
+        .pwa-prompt-wrapper {
+          position: fixed;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 9998;
+          animation: slideUp 0.3s ease;
+          width: calc(100vw - 16px);
+          max-width: 440px;
+        }
+
+        /* === card === */
+        .pwa-prompt-card {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 14px;
+          border-radius: 12px;
+          background: var(--card);
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+        }
+
+        /* === icon === */
+        .pwa-prompt-icon { font-size: 24px; flex-shrink: 0; }
+
+        /* === text === */
+        .pwa-prompt-text { flex: 1; min-width: 0; }
+        .pwa-prompt-title {
+          font-weight: 600; font-size: 13px;
+          color: var(--foreground); line-height: 1.3;
+        }
+        .pwa-prompt-desc {
+          font-size: 11px; color: var(--text-secondary);
+          margin-top: 1px; line-height: 1.35;
+        }
+
+        /* === actions === */
+        .pwa-prompt-actions {
+          display: flex; flex-direction: column;
+          gap: 4px; flex-shrink: 0;
+        }
+        .pwa-prompt-buttons { display: flex; gap: 6px; }
+
+        .pwa-prompt-btn-install {
+          padding: 5px 12px; border-radius: 6px; border: none;
+          background: var(--primary); color: #fff;
+          font-size: 11px; font-weight: 600;
+          cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .pwa-prompt-btn-install:hover { opacity: 0.9; }
+
+        .pwa-prompt-btn-close {
+          padding: 5px 12px; border-radius: 6px;
+          border: 1px solid var(--border); background: transparent;
+          color: var(--text-secondary); font-size: 11px;
+          cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .pwa-prompt-btn-close:hover {
+          border-color: var(--primary); color: var(--primary);
+        }
+
+        .pwa-prompt-never {
+          display: flex; align-items: center; gap: 4px;
+          font-size: 10px; color: var(--text-tertiary);
+          cursor: pointer; user-select: none;
+        }
+        .pwa-prompt-never input {
+          margin: 0; cursor: pointer; accent-color: var(--primary);
+          width: 12px; height: 12px;
+        }
+
+        /* === ≤480px：紧凑横排 === */
+        @media (max-width: 480px) {
+          .pwa-prompt-wrapper { bottom: 8px; width: calc(100vw - 12px); }
+          .pwa-prompt-card { padding: 8px 10px; gap: 8px; border-radius: 10px; }
+          .pwa-prompt-icon { font-size: 20px; }
+          .pwa-prompt-title { font-size: 12px; }
+          .pwa-prompt-desc { font-size: 10px; }
+          .pwa-prompt-btn-install,
+          .pwa-prompt-btn-close { padding: 4px 10px; font-size: 10px; }
+          .pwa-prompt-never { font-size: 9px; }
+        }
+
+        /* === ≤360px：极小屏，去掉描述，单行更紧凑 === */
+        @media (max-width: 360px) {
+          .pwa-prompt-wrapper { bottom: 6px; width: calc(100vw - 8px); }
+          .pwa-prompt-card { padding: 7px 8px; gap: 6px; border-radius: 8px; }
+          .pwa-prompt-icon { font-size: 18px; }
+          .pwa-prompt-desc { display: none; }
+          .pwa-prompt-title { font-size: 11px; }
+          .pwa-prompt-btn-install,
+          .pwa-prompt-btn-close { padding: 4px 8px; font-size: 10px; border-radius: 5px; }
+          .pwa-prompt-actions { gap: 3px; }
+          .pwa-prompt-never { font-size: 9px; }
         }
       `}</style>
     </div>
