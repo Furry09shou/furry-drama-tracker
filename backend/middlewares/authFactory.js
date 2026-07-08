@@ -53,8 +53,8 @@ module.exports = {
   createAuthMiddleware,
   // 普通登录用户
   protect: createAuthMiddleware({ allowedRoles: [] }),
-  // 管理员（admin / superadmin）
-  adminProtect: createAuthMiddleware({ allowedRoles: ['admin', 'superadmin'] }),
+  // 管理员（creator / admin / superadmin）
+  adminProtect: createAuthMiddleware({ allowedRoles: ['creator', 'admin', 'superadmin'] }),
   // 创作者及以上（creator / admin / superadmin）
   creatorProtect: createAuthMiddleware({ allowedRoles: ['creator', 'admin', 'superadmin'] }),
   // 超级管理员
