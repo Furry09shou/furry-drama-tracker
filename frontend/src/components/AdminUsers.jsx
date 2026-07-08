@@ -295,67 +295,32 @@ const AdminUsers = () => {
                       {u.email}
                     </td>
                     <td style={{padding: '12px 20px'}}>
-                      {admin._id !== u._id && ['superadmin', 'creator'].includes(u.role) ? (
+                      {admin._id === u._id ? (
                         <span style={{
                           ...getRoleBadgeStyle(u.role),
                           padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500'
                         }}>{getRoleLabel(u.role)}</span>
-                      ) : admin._id !== u._id && u.role === 'admin' ? (
-                        <span style={{
-                          ...getRoleBadgeStyle(u.role),
-                          padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500'
-                        }}>{getRoleLabel(u.role)}</span>
-                      ) : admin._id === u._id ? (
-                        <span style={{
-                          ...getRoleBadgeStyle(u.role),
-                          padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500'
-                        }}>{getRoleLabel(u.role)}</span>
-                      ) : u.role === 'user' ? (
-                        <button
-                          onClick={async () => {
-                            if (!window.confirm(t('adminUsers.grantConfirm', { name: u.username }))) return;
-                            try {
-                              await adminApi.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: true });
-                              fetchUsers();
-                              setSuccess(t('adminUsers.accessGranted'));
-                            } catch (err) {
-                              setError(err.response?.data?.message || t('adminUsers.operationFailed'));
-                            }
-                          }}
-                          style={{
-                            padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500',
-                            cursor: 'pointer', border: '1px solid',
-                            background: 'var(--hover-bg)',
-                            color: 'var(--text-secondary)',
-                            borderColor: 'var(--border)',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {t('adminUsers.unauthorised')}
-                        </button>
                       ) : (
                         <select
                           value={u.role}
                           onChange={async (e) => {
                             const newRole = e.target.value;
-                            if (newRole === 'user') {
-                              if (!window.confirm(t('adminUsers.revokeConfirm', { name: u.username }))) return;
-                              try {
+                            if (newRole === u.role) return;
+                            if (!window.confirm(t('adminUsers.roleChangeConfirm', { name: u.username, role: getRoleLabel(newRole) }))) return;
+                            try {
+                              if (newRole === 'user') {
                                 await adminApi.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: false });
-                                fetchUsers();
                                 setSuccess(t('adminUsers.accessRevoked'));
-                              } catch (err) {
-                                setError(err.response?.data?.message || t('adminUsers.operationFailed'));
-                              }
-                            } else {
-                              if (!window.confirm(t('adminUsers.roleChangeConfirm', { name: u.username, role: getRoleLabel(newRole) }))) return;
-                              try {
+                              } else if (u.role === 'user' && newRole === 'admin') {
+                                await adminApi.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: true });
+                                setSuccess(t('adminUsers.accessGranted'));
+                              } else {
                                 await adminApi.put(`/api/admin/role/${u._id}`, { role: newRole });
-                                fetchUsers();
                                 setSuccess(t('adminUsers.roleUpdated'));
-                              } catch (err) {
-                                setError(err.response?.data?.message || t('adminUsers.updateRoleFailed'));
                               }
+                              fetchUsers();
+                            } catch (err) {
+                              setError(err.response?.data?.message || t('adminUsers.operationFailed'));
                             }
                           }}
                           style={{
@@ -364,10 +329,9 @@ const AdminUsers = () => {
                             ...getRoleBadgeStyle(u.role),
                           }}
                         >
-                          <option value="admin">{t('adminUsers.admin')}</option>
-                          <option value="superadmin">{t('adminUsers.superAdmin')}</option>
-                          <option value="creator">{t('adminUsers.creator')}</option>
                           <option value="user">{t('adminUsers.normalUser')}</option>
+                          <option value="admin">{t('adminUsers.admin')}</option>
+                          <option value="creator">{t('adminUsers.creator')}</option>
                         </select>
                       )}
                     </td>
