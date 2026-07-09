@@ -100,7 +100,7 @@ const Register = () => {
   if (registered) {
     return (
       <div className="auth-form" style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📧</div>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }} aria-hidden="true">📧</div>
         <h2>{t('auth.needVerify')}</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.7 }}>
           {t('auth.verifySent')} <strong style={{ color: 'var(--foreground)' }}>{registeredEmail}</strong>

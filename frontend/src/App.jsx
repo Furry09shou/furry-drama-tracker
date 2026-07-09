@@ -78,10 +78,8 @@ const AdminGuard = ({ children }) => {
   React.useEffect(() => {
     const verifyAdmin = async () => {
       try {
-        const res = await fetch('/api/admin/verify', {
-          credentials: 'include'
-        });
-        if (res.ok) {
+        const res = await axios.get('/api/admin/verify');
+        if (res.status === 200) {
           setAuthorized(true);
         } else {
           setAuthorized(false);

@@ -36,6 +36,8 @@ export default {
     goToLogin: '前往登录',
     backToHome: '返回首页',
     goBack: '返回上一步',
+    showPassword: '显示密码',
+    hidePassword: '隐藏密码',
     clickToRefresh: '点击刷新',
     pageLoadError: '页面加载出错',
     pleaseWait: '请稍候',
@@ -69,6 +71,7 @@ export default {
     calendar: '日历',
     timeline: '动态',
     notifications: '通知',
+    menu: '菜单',
     more: '更多 ▾',
   },
   notification: {

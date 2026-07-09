@@ -20,6 +20,7 @@ const { validatePassword } = require('../middlewares/security');
 const { logManual } = require('../middlewares/auditLog');
 const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser } = require('../utils/email');
 const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie, timingSafeCompare } = require('../utils/helpers');
+const { encryptField, decryptField, encryptArray, decryptArray } = require('../utils/crypto');
 const { asyncHandler } = require('../utils/errorHandler');
 
 const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
@@ -588,12 +589,16 @@ router.post('/login-2fa', async (req, res) => {
       return res.status(403).json({ message: '请先验证邮箱后再登录' });
     }
 
-    if (!verifyTOTP(user.twoFactorSecret, twoFactorToken) && !user.twoFactorBackupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {
+    const secret = decryptField(user.twoFactorSecret);
+    const backupCodes = decryptArray(user.twoFactorBackupCodes);
+
+    if (!verifyTOTP(secret, twoFactorToken) && !backupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {
       return res.status(400).json({ message: '验证码无效' });
     }
 
-    if (user.twoFactorBackupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {
-      user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => !timingSafeCompare(c, twoFactorToken));
+    if (backupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {
+      const remaining = backupCodes.filter(c => !timingSafeCompare(c, twoFactorToken));
+      user.twoFactorBackupCodes = encryptArray(remaining);
     }
 
     user.deviceInfo = buildDeviceInfo(deviceInfo, parsed, ua, req);

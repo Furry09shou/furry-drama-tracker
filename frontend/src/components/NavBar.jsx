@@ -260,13 +260,14 @@ const NavBar = ({ onFeedback }) => {
               onClick={() => setShowNotifPanel(!showNotifPanel)}
               aria-expanded={showNotifPanel}
               aria-haspopup="true"
+              aria-label={t('nav.notifications') || '通知'}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--foreground)', fontSize: '20px', position: 'relative',
                 padding: '6px', lineHeight: 1
               }}
             >
-              🔔
+              <span aria-hidden="true">🔔</span>
               {unreadCount > 0 && (
                 <span style={{
                   position: 'absolute', top: '0', right: '-2px',
@@ -280,14 +281,14 @@ const NavBar = ({ onFeedback }) => {
           <button onClick={toggleTheme} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--foreground)', fontSize: '18px', padding: '6px'
-          }} title={themeTitle}>
+          }} title={themeTitle} aria-label={themeTitle}>
             {themeIcon}
           </button>
           <LanguageSwitcher style={{ fontSize: '12px' }} />
-          <button className="mobile-menu-btn" onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMobileMore(false); }} aria-expanded={showMobileMenu} aria-haspopup="true" style={{
+          <button className="mobile-menu-btn" onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMobileMore(false); }} aria-expanded={showMobileMenu} aria-haspopup="true" aria-label={t('nav.menu')} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--foreground)', fontSize: '22px', padding: '6px'
-          }}>☰</button>
+          }}><span aria-hidden="true">☰</span></button>
         </div>
         <ul className={showMobileMenu ? 'mobile-open' : ''}>
           <li><a href="/" onClick={(e) => { e.preventDefault(); setShowMobileMenu(false); if (document.startViewTransition) { document.startViewTransition(() => navigate('/')); } else { navigate('/'); } }} style={{ color: isActive('/') ? 'var(--primary)' : undefined }}>{t('nav.home')}</a></li>
@@ -302,13 +303,14 @@ const NavBar = ({ onFeedback }) => {
                   className="desktop-only-notif"
                   aria-expanded={showNotifPanel}
                   aria-haspopup="true"
+                  aria-label={t('nav.notifications') || '通知'}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--foreground)', fontSize: '20px', position: 'relative',
                     padding: '4px 8px', lineHeight: 1
                   }}
                 >
-                  🔔
+                  <span aria-hidden="true">🔔</span>
                   {unreadCount > 0 && (
                     <span style={{
                       position: 'absolute', top: '-2px', right: '0',
@@ -411,7 +413,7 @@ const NavBar = ({ onFeedback }) => {
                 <button onClick={toggleTheme} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
-                }} title={themeTitle}>
+                }} title={themeTitle} aria-label={themeTitle}>
                   {themeIcon}
                 </button>
               </li>
@@ -522,7 +524,7 @@ const NavBar = ({ onFeedback }) => {
                 <button onClick={toggleTheme} style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px'
-                }} title={themeTitle}>
+                }} title={themeTitle} aria-label={themeTitle}>
                   {themeIcon}
                 </button>
               </li>

@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect } = require('../middlewares/authFactory');
 const User = require('../models/User');
 const { verifyTOTP, generateTOTPSecret, generateBackupCodes, timingSafeCompare } = require('../utils/helpers');
+const { encryptField, decryptField, encryptArray, decryptArray } = require('../utils/crypto');
 const { logManual } = require('../middlewares/auditLog');
 const { asyncHandler } = require('../utils/errorHandler');
 
@@ -11,9 +12,10 @@ router.post('/enable', protect, async (req, res) => {
     const secret = generateTOTPSecret();
     const backupCodes = generateBackupCodes();
 
+    // 加密存储 TOTP 密钥和备份码
     await User.findByIdAndUpdate(req.user._id, {
-      twoFactorSecret: secret,
-      twoFactorBackupCodes: backupCodes,
+      twoFactorSecret: encryptField(secret),
+      twoFactorBackupCodes: encryptArray(backupCodes),
       twoFactorEnabled: false,
     });
 
@@ -50,7 +52,8 @@ router.post('/verify-enable', protect, async (req, res) => {
       return res.status(400).json({ message: '2FA not set up' });
     }
 
-    if (!verifyTOTP(user.twoFactorSecret, token)) {
+    const secret = decryptField(user.twoFactorSecret);
+    if (!verifyTOTP(secret, token)) {
       return res.status(400).json({ message: 'Invalid verification code' });
     }
 
@@ -82,12 +85,16 @@ router.post('/disable', protect, async (req, res) => {
       return res.status(400).json({ message: '2FA not enabled' });
     }
 
-    if (!verifyTOTP(user.twoFactorSecret, token) && !user.twoFactorBackupCodes.some(c => timingSafeCompare(c, token))) {
+    const secret = decryptField(user.twoFactorSecret);
+    const backupCodes = decryptArray(user.twoFactorBackupCodes);
+
+    if (!verifyTOTP(secret, token) && !backupCodes.some(c => timingSafeCompare(c, token))) {
       return res.status(400).json({ message: 'Invalid verification code' });
     }
 
-    if (user.twoFactorBackupCodes.some(c => timingSafeCompare(c, token))) {
-      user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => !timingSafeCompare(c, token));
+    if (backupCodes.some(c => timingSafeCompare(c, token))) {
+      const remaining = backupCodes.filter(c => !timingSafeCompare(c, token));
+      user.twoFactorBackupCodes = encryptArray(remaining);
     }
 
     user.twoFactorEnabled = false;
@@ -120,9 +127,13 @@ router.post('/verify', protect, async (req, res) => {
       return res.status(400).json({ message: '2FA not enabled for this account' });
     }
 
-    if (verifyTOTP(user.twoFactorSecret, token) || user.twoFactorBackupCodes.some(c => timingSafeCompare(c, token))) {
-      if (user.twoFactorBackupCodes.some(c => timingSafeCompare(c, token))) {
-        user.twoFactorBackupCodes = user.twoFactorBackupCodes.filter(c => !timingSafeCompare(c, token));
+    const secret = decryptField(user.twoFactorSecret);
+    const backupCodes = decryptArray(user.twoFactorBackupCodes);
+
+    if (verifyTOTP(secret, token) || backupCodes.some(c => timingSafeCompare(c, token))) {
+      if (backupCodes.some(c => timingSafeCompare(c, token))) {
+        const remaining = backupCodes.filter(c => !timingSafeCompare(c, token));
+        user.twoFactorBackupCodes = encryptArray(remaining);
         await user.save();
       }
       return res.json({ verified: true });

@@ -36,6 +36,8 @@ export default {
     goToLogin: 'Go to login',
     backToHome: 'Back to home',
     goBack: 'Go back',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     clickToRefresh: 'Click to refresh',
     pageLoadError: 'Page load error',
     pleaseWait: 'Please wait',
@@ -69,6 +71,7 @@ export default {
     calendar: 'Calendar',
     timeline: 'Timeline',
     notifications: 'Notifications',
+    menu: 'Menu',
     more: 'More ▾',
   },
   notification: {

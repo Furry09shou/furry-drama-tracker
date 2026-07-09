@@ -111,6 +111,7 @@ const Settings = ({ user }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <button
           onClick={() => navigate('/profile')}
+          aria-label={t('common.goBack')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--foreground)', fontSize: '18px', padding: '4px 8px',

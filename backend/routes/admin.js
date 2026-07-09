@@ -17,6 +17,9 @@ const FriendLink = require('../models/FriendLink');
 const PushSubscription = require('../models/PushSubscription');
 const Folder = require('../models/Folder');
 
+// 测试环境跳过验证的邮箱列表
+const DEMO_EMAILS = (process.env.DEMO_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+
 const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || (process.env.JWT_SECRET ? crypto.createHash('sha256').update('altcha-' + process.env.JWT_SECRET).digest('hex') : crypto.randomBytes(32).toString('hex'));
 
 const verifyAdminAltcha = async (payload) => {
@@ -74,6 +77,11 @@ router.post('/login', async (req, res) => {
     }
 
     await user.resetLoginAttempts();
+
+    // 邮箱验证检查（测试环境 DEMO_EMAILS 跳过）
+    if (!user.isEmailVerified && !DEMO_EMAILS.includes(user.email.toLowerCase())) {
+      return res.status(403).json({ message: '请先验证邮箱后再登录管理后台' });
+    }
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: '30d'

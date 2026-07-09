@@ -6,36 +6,7 @@ const { asyncHandler } = require('../utils/errorHandler');
 const nodemailer = require('nodemailer');
 const { clearEmailCache } = require('../utils/email');
 const { createUploadConfig } = require('../utils/upload');
-const crypto = require('crypto');
-// 字段加密密钥：优先使用独立的 ENCRYPTION_KEY，回退到 JWT_SECRET 以兼容旧数据
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET;
-const ALGORITHM = 'aes-256-cbc';
-
-const encryptField = (text) => {
-  if (!text || !ENCRYPTION_KEY) return text;
-  try {
-    const key = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return `enc:${iv.toString('hex')}:${encrypted}`;
-  } catch { return text; }
-};
-
-const decryptField = (text) => {
-  if (!text || !text.startsWith('enc:')) return text;
-  try {
-    const parts = text.split(':');
-    const iv = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-    const key = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-  } catch { return text; }
-};
+const { encryptField, decryptField } = require('../utils/crypto');
 
 const siteUpload = createUploadConfig('site', 5 * 1024 * 1024);
 
