@@ -187,7 +187,6 @@ const AdminUsers = () => {
             <CustomSelect
               options={[
                 { value: 'admin', label: t('adminUsers.admin') },
-                { value: 'superadmin', label: t('adminUsers.superAdmin') },
                 { value: 'creator', label: t('adminUsers.creator') }
               ]}
               value={newUser.role}

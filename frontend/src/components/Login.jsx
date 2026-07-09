@@ -34,6 +34,7 @@ const Login = ({ login }) => {
   const [twoFAEmail, setTwoFAEmail] = useState('');
   const [twoFAToken, setTwoFAToken] = useState('');
   const [twoFALoading, setTwoFALoading] = useState(false);
+  const [twoFactorChallenge, setTwoFactorChallenge] = useState('');
   const [altchaPayload, setAltchaPayload] = useState(null);
   const cleanupRef = useRef(null);
 
@@ -105,6 +106,7 @@ const Login = ({ login }) => {
       if (response.data.need2FA) {
         setNeed2FA(true);
         setTwoFAEmail(response.data.email || formData.email);
+        setTwoFactorChallenge(response.data.twoFactorChallenge || '');
         setSubmitting(false);
         return;
       }
@@ -135,6 +137,7 @@ const Login = ({ login }) => {
       const response = await axios.post('/api/auth/login-2fa', {
         email: twoFAEmail,
         twoFactorToken: twoFAToken,
+        twoFactorChallenge,
         deviceInfo: getDeviceInfo()
       });
       login(response.data);

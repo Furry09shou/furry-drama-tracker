@@ -1,8 +1,13 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const crypto = require('crypto');
 const User = require('../models/User');
 
 dotenv.config();
+
+const generateSecurePassword = () => {
+  return crypto.randomBytes(12).toString('base64url').slice(0, 20);
+};
 
 const seedAdmin = async () => {
   try {
@@ -17,8 +22,8 @@ const seedAdmin = async () => {
     }
 
     // 检查邮箱是否被占用
-    const email = 'admin@furry09.com';
-    const accountId = 'admin';
+    const email = process.env.SUPERADMIN_EMAIL || 'admin@furry09.com';
+    const accountId = process.env.SUPERADMIN_ACCOUNT_ID || 'admin';
     const emailExists = await User.findOne({ email });
     if (emailExists) {
       // 已有该邮箱用户，直接提升为超级管理员
@@ -28,19 +33,27 @@ const seedAdmin = async () => {
       process.exit(0);
     }
 
+    // 从环境变量读取密码，未设置则生成随机安全密码
+    const password = process.env.SUPERADMIN_PASSWORD || generateSecurePassword();
+
     const admin = await User.create({
       accountId,
       username: 'admin',
       email,
-      password: 'admin123',
+      password,
       role: 'superadmin',
       isEmailVerified: true
     });
 
     console.log('超级管理员创建成功!');
-    console.log('邮箱: admin@furry09.com');
-    console.log('账号ID: admin');
-    console.log('密码: admin123');
+    console.log('邮箱:', email);
+    console.log('账号ID:', accountId);
+    if (process.env.SUPERADMIN_PASSWORD) {
+      console.log('密码: (来自 SUPERADMIN_PASSWORD 环境变量)');
+    } else {
+      console.log('密码:', password);
+      console.log('⚠️  请立即修改此密码！这是唯一一次显示，关闭后无法再次查看。');
+    }
     process.exit(0);
   } catch (error) {
     console.error('超级管理员创建失败:', error);

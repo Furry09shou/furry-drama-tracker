@@ -463,9 +463,15 @@ router.post('/login', async (req, res) => {
     }
 
     if (user.twoFactorEnabled) {
+      const twoFactorChallenge = jwt.sign(
+        { id: user._id, purpose: '2fa-challenge' },
+        process.env.JWT_SECRET,
+        { expiresIn: '5m' }
+      );
       return res.json({
         need2FA: true,
-        email: user.email
+        email: user.email,
+        twoFactorChallenge
       });
     }
 
@@ -546,13 +552,40 @@ router.post('/verify-device', async (req, res) => {
 });
 
 router.post('/login-2fa', async (req, res) => {
-  const { email, twoFactorToken, deviceInfo } = req.body;
+  const { email, twoFactorToken, twoFactorChallenge, deviceInfo } = req.body;
   const ua = req.headers['user-agent'] || '';
   const parsed = parseUserAgent(ua);
   try {
-    const user = await User.findOne({ email }).select('+twoFactorSecret +twoFactorBackupCodes');
+    // 验证 2FA 挑战令牌（证明已通过密码验证）
+    if (!twoFactorChallenge) {
+      return res.status(400).json({ message: '缺少2FA挑战令牌，请重新登录' });
+    }
+    let challengePayload;
+    try {
+      challengePayload = jwt.verify(twoFactorChallenge, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(400).json({ message: '2FA挑战令牌已过期或无效，请重新登录' });
+    }
+    if (challengePayload.purpose !== '2fa-challenge') {
+      return res.status(400).json({ message: '无效的2FA挑战令牌' });
+    }
+
+    const user = await User.findOne({ email }).select('+loginAttempts +lockUntil +twoFactorSecret +twoFactorBackupCodes');
     if (!user || !user.twoFactorEnabled) {
       return res.status(400).json({ message: '该账号未启用两步验证' });
+    }
+    if (user._id.toString() !== challengePayload.id) {
+      return res.status(400).json({ message: '验证失败' });
+    }
+
+    // 重新检查账号锁定状态
+    if (user.isLocked) {
+      return res.status(423).json({ message: '账号已被锁定，请30分钟后再试' });
+    }
+
+    // 重新检查邮箱验证
+    if (!user.isEmailVerified && !skipVerification(user)) {
+      return res.status(403).json({ message: '请先验证邮箱后再登录' });
     }
 
     if (!verifyTOTP(user.twoFactorSecret, twoFactorToken) && !user.twoFactorBackupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {

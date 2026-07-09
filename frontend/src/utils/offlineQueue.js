@@ -1,13 +1,26 @@
 const QUEUE_KEY = 'offline_queue';
+const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24小时过期
+
+const hashAction = (action) => {
+  return `${action.method}:${action.url}:${JSON.stringify(action.data || {})}`;
+};
 
 export const addToOfflineQueue = (action) => {
   const queue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
-  queue.push({ ...action, timestamp: Date.now() });
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+  const now = Date.now();
+  // 清理已过期项
+  const fresh = queue.filter(item => now - item.timestamp < MAX_AGE_MS);
+  // 去重：相同请求不重复入队
+  const newKey = hashAction(action);
+  if (fresh.some(item => hashAction(item) === newKey)) return;
+  fresh.push({ ...action, timestamp: now });
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(fresh));
 };
 
 export const getOfflineQueue = () => {
-  return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  const queue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  const now = Date.now();
+  return queue.filter(item => now - item.timestamp < MAX_AGE_MS);
 };
 
 export const clearOfflineQueue = () => {
@@ -19,17 +32,17 @@ export const processOfflineQueue = async (axios) => {
   if (queue.length === 0) return;
 
   const results = [];
+  const failedActions = [];
   for (const action of queue) {
     try {
       const res = await axios({ method: action.method, url: action.url, data: action.data });
       results.push({ success: true, action, response: res.data });
     } catch (err) {
       results.push({ success: false, action, error: err.message });
+      failedActions.push(action);
     }
   }
 
-  // Only remove successful actions from queue
-  const failedActions = queue.filter((_, i) => !results[i].success);
   localStorage.setItem(QUEUE_KEY, JSON.stringify(failedActions));
 
   return results;

@@ -130,7 +130,11 @@ const EpisodeDetail = ({ user }) => {
     if (!url) return null;
     try {
       const urlObj = new URL(url);
-      if (urlObj.hostname.includes('bilibili.com') || urlObj.hostname.includes('b23.tv')) {
+      const h = urlObj.hostname;
+      const isBilibili = h === 'bilibili.com' || h.endsWith('.bilibili.com') || h === 'b23.tv';
+      const isYoutube = h === 'youtube.com' || h.endsWith('.youtube.com') || h === 'youtu.be';
+      const isNico = h === 'nicovideo.jp' || h.endsWith('.nicovideo.jp');
+      if (isBilibili) {
         const bvMatch = url.match(/\/(BV[\w]+)/);
         const aidMatch = url.match(/\/av(\d+)/);
         const page = urlObj.searchParams.get('p');
@@ -138,11 +142,11 @@ const EpisodeDetail = ({ user }) => {
         if (bvMatch) return `https://player.bilibili.com/player.html?bvid=${bvMatch[1]}&autoplay=0&high_quality=1${pageParam}`;
         if (aidMatch) return `https://player.bilibili.com/player.html?aid=${aidMatch[1]}&autoplay=0&high_quality=1${pageParam}`;
       }
-      if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
+      if (isYoutube) {
         const videoId = url.match(/(?:v=|youtu\.be\/)([\w-]+)/);
         if (videoId) return `https://www.youtube.com/embed/${videoId[1]}?autoplay=0`;
       }
-      if (urlObj.hostname.includes('nicovideo.jp')) {
+      if (isNico) {
         const smMatch = url.match(/(sm\d+)/);
         if (smMatch) return `https://embed.nicovideo.jp/watch/${smMatch[1]}`;
       }
@@ -662,8 +666,8 @@ const EpisodeDetail = ({ user }) => {
                             src={embedUrl}
                             style={{width: '100%', height: '100%', border: 'none'}}
                             allowFullScreen
-                            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                             referrerPolicy="strict-origin-when-cross-origin"
                           />
                         ) : (
