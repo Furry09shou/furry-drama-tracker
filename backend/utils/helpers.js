@@ -41,8 +41,10 @@ const getClientIp = (req) => {
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const verifyTOTP = (secret, token) => {
+  if (typeof token !== 'string' || !/^\d{6}$/.test(token)) return false;
   const window = 1;
   const currentTime = Math.floor(Date.now() / 30000);
+  let verified = false;
   for (let i = -window; i <= window; i++) {
     const time = currentTime + i;
     const timeBuffer = Buffer.alloc(8);
@@ -61,9 +63,14 @@ const verifyTOTP = (secret, token) => {
     const mod = code % 1000000;
     const generatedToken = mod.toString().padStart(6, '0');
 
-    if (generatedToken === token) return true;
+    // 常量时间比较，避免计时攻击
+    const a = Buffer.from(generatedToken, 'utf8');
+    const b = Buffer.from(token, 'utf8');
+    if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
+      verified = true;
+    }
   }
-  return false;
+  return verified;
 };
 
 const generateTOTPSecret = () => {
@@ -73,7 +80,8 @@ const generateTOTPSecret = () => {
 const generateBackupCodes = () => {
   const codes = [];
   for (let i = 0; i < 10; i++) {
-    codes.push(crypto.randomBytes(4).toString('hex'));
+    // 8字节 = 64位熵，避免可预测
+    codes.push(crypto.randomBytes(8).toString('hex'));
   }
   return codes;
 };

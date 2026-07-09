@@ -155,26 +155,29 @@ const AdminUsers = () => {
         </div>
         <form onSubmit={handleAddUser}>
           <div className="form-group">
-            <label>{t('adminUsers.username')}</label>
+            <label htmlFor="newUserUsername">{t('adminUsers.username')}</label>
             <input
               type="text"
+              id="newUserUsername"
               value={newUser.username}
               onChange={(e) => setNewUser({...newUser, username: e.target.value})}
               required
             />
           </div>
           <div className="form-group">
-            <label>{t('adminUsers.email')}</label>
+            <label htmlFor="newUserEmail">{t('adminUsers.email')}</label>
             <input
               type="email"
+              id="newUserEmail"
               value={newUser.email}
               onChange={(e) => setNewUser({...newUser, email: e.target.value})}
               required
             />
           </div>
           <div className="form-group">
-            <label>{t('adminUsers.password')}</label>
+            <label htmlFor="newUserPassword">{t('adminUsers.password')}</label>
             <PasswordToggle
+              id="newUserPassword"
               value={newUser.password}
               onChange={(e) => setNewUser({...newUser, password: e.target.value})}
               show={showNewUserPassword}

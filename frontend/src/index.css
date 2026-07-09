@@ -36,6 +36,7 @@ body {
 
 header {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border-bottom: 1px solid var(--glass-border);
   padding: 15px 0;
@@ -48,8 +49,11 @@ header {
 /* PWA/移动端安全区域适配 */
 @supports (padding: env(safe-area-inset-top)) {
   header {
+    padding-top: 15px;
     padding-top: calc(15px + env(safe-area-inset-top));
+    padding-left: 0;
     padding-left: env(safe-area-inset-left);
+    padding-right: 0;
     padding-right: env(safe-area-inset-right);
   }
 }
@@ -117,6 +121,7 @@ nav ul li a[style*="primary"] {
 
 .hero {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
@@ -179,6 +184,7 @@ nav ul li a[style*="primary"] {
 
 .episode-card {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
@@ -322,6 +328,7 @@ nav ul li a[style*="primary"] {
 
 .episode-detail {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
@@ -468,6 +475,7 @@ nav ul li a[style*="primary"] {
   max-width: 450px;
   margin: 60px auto;
   background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
@@ -593,6 +601,7 @@ textarea[data-errmsg]::after {
 
 .user-profile {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
@@ -718,6 +727,7 @@ textarea[data-errmsg]::after {
 
 .admin-panel {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
@@ -851,6 +861,7 @@ textarea[data-errmsg]::after {
 
 .dashboard-card {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
@@ -890,6 +901,7 @@ textarea[data-errmsg]::after {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.8);
+  -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
@@ -899,6 +911,7 @@ textarea[data-errmsg]::after {
 
 .modal-content {
   background: var(--popover);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
@@ -990,6 +1003,7 @@ textarea[data-errmsg]::after {
 
 .select-dropdown {
   background: var(--popover);
+  -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
@@ -1476,6 +1490,7 @@ input::-webkit-caps-lock-indicator {
 /* Dialog 元素样式 */
 dialog::backdrop {
   background: var(--overlay-bg);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
@@ -1504,6 +1519,7 @@ dialog[open] {
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 8px 32px var(--shadow-modal);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
 }
 
@@ -2404,6 +2420,7 @@ nav ul li a:focus-visible {
 
   @supports (padding: env(safe-area-inset-top)) {
     header {
+      padding-top: 6px;
       padding-top: calc(6px + env(safe-area-inset-top));
     }
   }

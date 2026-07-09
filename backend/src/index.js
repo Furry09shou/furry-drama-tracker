@@ -59,7 +59,8 @@ if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
 }
 
 const app = express();
-app.set('trust proxy', 1);
+// 仅在生产环境（反向代理后）信任代理，开发环境无需信任
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
 
 app.use(cookieParser());
 
@@ -339,12 +340,12 @@ app.get('/api/health', async (req, res) => {
       }
     });
   } catch (error) {
+    // 不暴露内部错误细节
     res.status(503).json({
       status: 'error',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      db: 'disconnected',
-      error: error.message
+      db: 'disconnected'
     });
   }
 });
@@ -418,8 +419,11 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ message: '文件上传错误: ' + err.message });
   }
   const isDev = process.env.NODE_ENV !== 'production';
-  res.status(err.status || 500).json({
-    message: err.message || 'Server error',
+  const status = err.status || 500;
+  // 客户端错误（4xx）可返回具体信息；服务端错误（5xx）在生产环境返回通用信息
+  const message = status < 500 || isDev ? (err.message || '服务器错误') : '服务器内部错误';
+  res.status(status).json({
+    message,
     ...(isDev && { stack: err.stack })
   });
 });

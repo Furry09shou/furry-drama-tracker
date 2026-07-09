@@ -89,6 +89,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!user) return;
     const heartbeat = () => {
+      if (document.visibilityState === 'hidden') return;
       axios.post(API.USER_SESSIONS.HEARTBEAT, {}, { skipRedirect: true }).catch(() => {});
     };
     const interval = setInterval(heartbeat, 5 * 60 * 1000);

@@ -68,15 +68,25 @@ document.addEventListener('invalid', (e) => {
 }, true);
 
 // 输入时清除验证错误状态
+let inputRafId = null;
+let pendingInputEvent = null;
 document.addEventListener('input', (e) => {
-  const el = e.target;
-  if (el.validity) {
-    el.setCustomValidity('');
-    const hint = el.nextElementSibling;
-    if (hint && hint.classList.contains('validation-msg')) {
-      hint.remove();
+  pendingInputEvent = e;
+  if (inputRafId !== null) return;
+  inputRafId = requestAnimationFrame(() => {
+    inputRafId = null;
+    const evt = pendingInputEvent;
+    pendingInputEvent = null;
+    if (!evt) return;
+    const el = evt.target;
+    if (el.validity) {
+      el.setCustomValidity('');
+      const hint = el.nextElementSibling;
+      if (hint && hint.classList.contains('validation-msg')) {
+        hint.remove();
+      }
     }
-  }
+  });
 });
 
 ReactDOM.createRoot(document.getElementById('root')).render(

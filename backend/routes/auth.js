@@ -826,6 +826,11 @@ router.post('/verify-email', async (req, res) => {
     if (decoded.purpose !== 'verify-email') {
       return res.status(400).json({ message: '无效的验证令牌' });
     }
+    // 一次性使用：基于令牌哈希防止重放
+    const tokenHash = hashToken(token);
+    if (await isTokenUsed(tokenHash)) {
+      return res.status(400).json({ message: '该验证链接已被使用，请勿重复使用' });
+    }
     const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
@@ -835,6 +840,7 @@ router.post('/verify-email', async (req, res) => {
     }
     user.isEmailVerified = true;
     await user.save();
+    await markTokenUsed(tokenHash, 'verify-email', 25 * 60 * 60 * 1000);
     res.json({ message: '邮箱验证成功' });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -1093,7 +1099,13 @@ router.post('/verify-email-change', async (req, res) => {
     await user.save();
     await markTokenUsed(changeTokenHash, 'email-change', 60 * 60 * 1000);
 
-    res.json({ message: '邮箱修改成功', email: user.email });
+    // 邮箱变更后注销该用户所有其他会话，防止旧邮箱持有者劫持会话
+    await UserSession.updateMany(
+      { userId: user._id, isActive: true },
+      { isActive: false, logoutAt: new Date() }
+    );
+
+    res.json({ message: '邮箱修改成功，请重新登录', email: user.email });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       return res.status(400).json({ message: '验证链接已过期，请重新申请' });

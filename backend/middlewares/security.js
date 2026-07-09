@@ -1,6 +1,9 @@
 const xss = require('xss');
 
 const sanitizeInput = (req, res, next) => {
+  // 这些字段不应被 XSS 过滤（可能包含合法特殊字符或破坏密码内容）
+  const skipFields = new Set(['password', 'newPassword', 'currentPassword', 'confirmPassword', 'oldPassword']);
+
   const sanitize = (obj) => {
     if (typeof obj === 'string') {
       return xss(obj);
@@ -14,7 +17,12 @@ const sanitizeInput = (req, res, next) => {
         if (key.startsWith('$') || key.includes('.')) {
           continue;
         }
-        sanitized[key] = sanitize(obj[key]);
+        // 跳过密码类字段，保留原始值
+        if (skipFields.has(key) && typeof obj[key] === 'string') {
+          sanitized[key] = obj[key];
+        } else {
+          sanitized[key] = sanitize(obj[key]);
+        }
       }
       return sanitized;
     }

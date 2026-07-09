@@ -186,7 +186,7 @@ const Login = ({ login }) => {
   if (deviceVerifyLoading) {
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '60px 20px'}}>
-        <div style={{fontSize: '48px', marginBottom: '16px'}}>🔐</div>
+        <div aria-hidden="true" style={{fontSize: '48px', marginBottom: '16px'}}>🔐</div>
         <h2>{t('auth.verifyingDevice')}</h2>
         <p style={{color: 'var(--text-secondary)'}}>{t('common.pleaseWait')}</p>
       </div>
@@ -196,7 +196,7 @@ const Login = ({ login }) => {
   if (needDeviceVerify) {
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '40px 20px'}}>
-        <div style={{fontSize: '48px', marginBottom: '16px'}}>📧</div>
+        <div aria-hidden="true" style={{fontSize: '48px', marginBottom: '16px'}}>📧</div>
         <h2>{t('auth.newDeviceVerify')}</h2>
         <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: '12px'}}>
           {t('auth.newDeviceDesc')}<br/>
@@ -225,9 +225,10 @@ const Login = ({ login }) => {
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handle2FAVerify}>
           <div className="form-group">
-            <label>{t('twoFactor.code')}</label>
+            <label htmlFor="twoFAToken">{t('twoFactor.code')}</label>
             <input
               type="text"
+              id="twoFAToken"
               value={twoFAToken}
               onChange={(e) => setTwoFAToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="000000"
@@ -260,8 +261,9 @@ const Login = ({ login }) => {
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleResetPassword}>
           <div className="form-group">
-            <label>{t('auth.newPassword')}</label>
+            <label htmlFor="newPassword">{t('auth.newPassword')}</label>
             <PasswordToggle
+              id="newPassword"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder={t('auth.newPasswordPlaceholder')}
@@ -271,8 +273,9 @@ const Login = ({ login }) => {
             />
           </div>
           <div className="form-group">
-            <label>{t('auth.confirmNewPassword')}</label>
+            <label htmlFor="confirmPassword">{t('auth.confirmNewPassword')}</label>
             <PasswordToggle
+              id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder={t('auth.confirmNewPasswordPlaceholder')}
@@ -298,8 +301,8 @@ const Login = ({ login }) => {
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleForgotPassword}>
           <div className="form-group">
-            <label>{t('auth.email')}</label>
-            <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder={t('auth.enterRegisteredEmail')} />
+            <label htmlFor="forgotEmail">{t('auth.email')}</label>
+            <input type="email" id="forgotEmail" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required placeholder={t('auth.enterRegisteredEmail')} />
           </div>
           <altcha-widget
             ref={altchaRef}

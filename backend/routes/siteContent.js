@@ -7,7 +7,8 @@ const nodemailer = require('nodemailer');
 const { clearEmailCache } = require('../utils/email');
 const { createUploadConfig } = require('../utils/upload');
 const crypto = require('crypto');
-const ENCRYPTION_KEY = process.env.JWT_SECRET; // Use JWT_SECRET as encryption key
+// 字段加密密钥：优先使用独立的 ENCRYPTION_KEY，回退到 JWT_SECRET 以兼容旧数据
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET;
 const ALGORITHM = 'aes-256-cbc';
 
 const encryptField = (text) => {

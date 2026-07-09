@@ -41,20 +41,25 @@ const EpisodeDetail = ({ user }) => {
   const [episodesRef, episodesVisible] = useScrollReveal();
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchEpisode = async () => {
       try {
-        const response = await axios.get(`${API.EPISODES}/${episodeId}`);
+        const response = await axios.get(`${API.EPISODES}/${episodeId}`, { signal: controller.signal });
         setEpisode(response.data);
         setLoading(false);
         try {
-          await axios.put(`/api/episodes/${episodeId}/view`);
-        } catch (viewErr) {}
+          await axios.put(`/api/episodes/${episodeId}/view`, undefined, { signal: controller.signal });
+        } catch (viewErr) {
+          if (axios.isCancel?.(viewErr) || viewErr?.name === 'CanceledError') return;
+        }
       } catch (error) {
+        if (axios.isCancel?.(error) || error?.name === 'CanceledError') return;
         console.error('Error fetching episode:', error);
         setLoading(false);
       }
     };
     fetchEpisode();
+    return () => controller.abort();
   }, [episodeId]);
 
   useEffect(() => {
@@ -71,7 +76,8 @@ const EpisodeDetail = ({ user }) => {
     if (!user) return;
     const userData = localStorage.getItem('user');
     if (!userData) return;
-    const config = { headers: getAuthHeaders() };
+    const controller = new AbortController();
+    const config = { headers: getAuthHeaders(), signal: controller.signal };
     axios.get(`${API.EPISODES}/${episodeId}/user-status`, config)
       .then(res => {
         setIsFollowing(res.data.isFollowing);
@@ -82,7 +88,10 @@ const EpisodeDetail = ({ user }) => {
         setUserRating(res.data.score);
         setIsFavorite(res.data.isFavorite);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (axios.isCancel?.(err) || err?.name === 'CanceledError') return;
+      });
+    return () => controller.abort();
   }, [user, episodeId]);
 
   const handleWatch = async (singleEpisode) => {
@@ -638,7 +647,7 @@ const EpisodeDetail = ({ user }) => {
               <h3 style={{margin: 0, color: 'var(--foreground)'}}>
                 {t('episode.epPrefix')}{watchModal.episodeNumber}{t('episode.epSuffix')} - {getLocalizedTitle(watchModal)}
               </h3>
-              <button onClick={() => closeWatchModal()} style={{
+              <button onClick={() => closeWatchModal()} aria-label={t('common.close')} style={{
                 background: 'none', border: 'none', color: 'var(--foreground)',
                 fontSize: '24px', cursor: 'pointer', padding: '0 4px', lineHeight: 1
               }}>✕</button>

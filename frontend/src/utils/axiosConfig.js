@@ -7,6 +7,8 @@ let csrfToken = null;
 let csrfReady = null;
 let csrfResolve = null;
 
+let isHandling401 = false;
+
 const initCsrf = () => {
   csrfReady = new Promise(resolve => { csrfResolve = resolve; });
   axios.get('/api/csrf-token').then(res => {
@@ -41,17 +43,26 @@ axios.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      const url = error.config?.url || '';
+      if (isHandling401) {
+        return Promise.reject(error);
+      }
       const skipRedirect = error.config?.skipRedirect;
       const isAdminPage = window.location.pathname.startsWith('/admin');
-      localStorage.removeItem('user');
-      window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
+      let willRedirect = false;
       if (!skipRedirect) {
         if (isAdminPage) {
-          window.location.href = '/login';
-        } else if (!isAdminPage && window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/reset-password') {
-          window.location.href = '/login';
+          willRedirect = true;
+        } else if (window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/reset-password') {
+          willRedirect = true;
         }
+      }
+      isHandling401 = true;
+      localStorage.removeItem('user');
+      window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
+      if (willRedirect) {
+        window.location.href = '/login';
+      } else {
+        isHandling401 = false;
       }
     }
     return Promise.reject(error);
