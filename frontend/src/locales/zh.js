@@ -119,6 +119,7 @@ export default {
     statusCompleted: '已完结',
     statusUpcoming: '即将上映',
     yearRecent5: '近5年',
+    yearEarlier: '更早',
     noResults: '暂无剧集',
     loadMore: '加载更多',
     searchResult: '搜索结果 "{query}"，共 {count} 条',

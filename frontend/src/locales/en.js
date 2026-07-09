@@ -119,6 +119,7 @@ export default {
     statusCompleted: 'Completed',
     statusUpcoming: 'Upcoming',
     yearRecent5: 'Recent 5Y',
+    yearEarlier: 'Earlier',
     noResults: 'No dramas found',
     loadMore: 'Load More',
     searchResult: 'Search results for "{query}", {count} found',

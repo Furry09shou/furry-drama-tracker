@@ -100,14 +100,13 @@ router.get('/', async (req, res) => {
 
     if (year) {
       let yearCondition;
-      if (year === 'recent5') {
-        const currentYear = new Date().getFullYear();
-        const start = new Date(currentYear - 4, 0, 1);
-        const end = new Date(currentYear + 1, 0, 1);
+      if (year === 'earlier') {
+        // 2016年之前的剧
+        const cutoff = new Date(2016, 0, 1);
         yearCondition = {
           $or: [
-            { premiereDate: { $gte: start, $lt: end } },
-            { createdAt: { $gte: start, $lt: end } }
+            { premiereDate: { $lt: cutoff } },
+            { createdAt: { $lt: cutoff } }
           ]
         };
       } else {

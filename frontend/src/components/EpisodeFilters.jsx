@@ -11,10 +11,11 @@ const RATING_OPTIONS = [
 
 const YEAR_OPTIONS = (() => {
   const currentYear = new Date().getFullYear();
-  const options = [{ value: '', labelKey: 'common.all' }, { value: 'recent5', labelKey: 'home.yearRecent5' }];
-  for (let y = currentYear; y >= currentYear - 10; y--) {
+  const options = [{ value: '', labelKey: 'common.all' }];
+  for (let y = currentYear; y >= 2016; y--) {
     options.push({ value: String(y), label: String(y) });
   }
+  options.push({ value: 'earlier', labelKey: 'home.yearEarlier' });
   return options;
 })();
 
