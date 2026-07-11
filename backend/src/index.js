@@ -259,7 +259,7 @@ const authLimiter = rateLimit({
 });
 const adminAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 5,
   message: { message: '登录尝试过多，请15分钟后再试' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -295,7 +295,15 @@ const passwordResetLimiter = rateLimit({
 app.use('/api/auth/forgot-password', passwordResetLimiter);
 app.use('/api/auth/reset-password', passwordResetLimiter);
 app.use('/api/auth/change-password', passwordResetLimiter);
-app.use('/api/auth/admin/change-password', passwordResetLimiter);
+
+const changeEmailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { message: '操作过于频繁，请稍后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/change-email', changeEmailLimiter);
 
 const twoFactorLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

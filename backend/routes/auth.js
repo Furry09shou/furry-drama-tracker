@@ -26,8 +26,8 @@ const { asyncHandler } = require('../utils/errorHandler');
 const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
 
 const skipVerification = (user) => {
-  // DEMO_EMAILS 仅允许已存在的账号跳过验证，不允许新注册使用
-  if (DEMO_EMAILS.includes(user.email.toLowerCase())) return true;
+  // DEMO_EMAILS 仅在非生产环境生效，允许已存在的账号跳过验证
+  if (process.env.NODE_ENV !== 'production' && DEMO_EMAILS.includes(user.email.toLowerCase())) return true;
   return false;
 };
 
@@ -507,6 +507,7 @@ router.post('/login', async (req, res) => {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       role: user.role || 'user',
+      forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -629,6 +630,7 @@ router.post('/login-2fa', async (req, res) => {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       role: user.role || 'user',
+      forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -734,25 +736,57 @@ router.put('/change-password', protect, async (req, res) => {
   }
 });
 
-router.put('/admin/change-password', adminProtect, async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
+// 超管强制修改邮箱（从默认 admin@furry09.com 改为自己的邮箱）
+router.put('/change-email', protect, async (req, res) => {
+  const { newEmail, password } = req.body;
   try {
-    const passwordError = validatePassword(newPassword);
-    if (passwordError) {
-      return res.status(400).json({ message: passwordError });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      return res.status(400).json({ message: '邮箱格式不正确' });
     }
-    const admin = await User.findById(req.user._id).select('+password');
-    if (!admin) {
-      return res.status(404).json({ message: '管理员不存在' });
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: '用户不存在' });
     }
-    const isMatch = await admin.matchPassword(currentPassword);
+    // 验证密码
+    const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: '当前密码不正确' });
+      return res.status(400).json({ message: '密码不正确' });
     }
-    admin.password = newPassword;
-    await admin.save();
-    await UserSession.updateMany({ userId: req.user._id, isActive: true }, { isActive: false, logoutAt: new Date() });
-    res.json({ message: '密码修改成功' });
+    // 检查新邮箱是否已被占用
+    const existing = await User.findOne({ email: newEmail.toLowerCase(), _id: { $ne: user._id } });
+    if (existing) {
+      return res.status(400).json({ message: '该邮箱已被其他账号使用' });
+    }
+    const oldEmail = user.email;
+    user.email = newEmail.toLowerCase();
+    user.isEmailVerified = false;
+    await user.save();
+
+    // 发送验证邮件
+    const verifyToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    try {
+      await sendVerificationEmail(user.email, verifyToken);
+    } catch (e) {
+      console.error('验证邮件发送失败:', e.message);
+    }
+
+    logManual({
+      userId: user._id,
+      userName: user.username || user.accountId,
+      action: 'CHANGE_EMAIL',
+      target: 'auth',
+      details: `Email changed from ${oldEmail} to ${user.email}`,
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent'] || '',
+    });
+
+    res.json({
+      message: '邮箱修改成功，请查收验证邮件',
+      email: user.email,
+      isEmailVerified: false,
+      forceEmailChange: false,
+    });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }

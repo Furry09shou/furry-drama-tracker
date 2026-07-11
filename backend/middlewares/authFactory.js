@@ -59,4 +59,17 @@ module.exports = {
   creatorProtect: createAuthMiddleware({ allowedRoles: ['creator', 'admin', 'superadmin'] }),
   // 超级管理员
   superAdminProtect: createAuthMiddleware({ allowedRoles: ['superadmin'] }),
+  // 超管未改邮箱时拦截写操作（GET / change-email / logout 放行）
+  requireEmailChanged: (req, res, next) => {
+    if (req.user && req.user.role === 'superadmin' && req.user.email === 'admin@furry09.com') {
+      const path = req.path.toLowerCase();
+      const method = req.method.toUpperCase();
+      // 允许：GET 请求、修改邮箱、登出、获取自身信息
+      if (method === 'GET' || path.includes('change-email') || path.includes('logout') || path.includes('verify')) {
+        return next();
+      }
+      return res.status(403).json({ message: '请先修改管理员邮箱后再进行操作', forceEmailChange: true });
+    }
+    next();
+  },
 };

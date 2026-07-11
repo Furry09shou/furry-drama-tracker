@@ -64,6 +64,17 @@ axios.interceptors.response.use(
       } else {
         isHandling401 = false;
       }
+    } else if (error.response?.status === 403 && error.response.data?.forceEmailChange) {
+      // 超管未改邮箱，后端拦截写操作
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        try {
+          const u = JSON.parse(stored);
+          u.forceEmailChange = true;
+          localStorage.setItem('user', JSON.stringify(u));
+          window.dispatchEvent(new CustomEvent('auth:force-email-change'));
+        } catch {}
+      }
     }
     return Promise.reject(error);
   }

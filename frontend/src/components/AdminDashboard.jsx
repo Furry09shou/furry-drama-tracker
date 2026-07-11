@@ -190,11 +190,6 @@ const AdminDashboard = () => {
           </Link>
         )}
 
-        <Link to="/admin/change-password" className="dashboard-card">
-          <div className="card-icon">🔐</div>
-          <h3>{t('adminDashboard.changePassword')}</h3>
-          <p>{t('adminDashboard.changePasswordDesc')}</p>
-        </Link>
       </div>
 
       {admin.role === 'superadmin' && (

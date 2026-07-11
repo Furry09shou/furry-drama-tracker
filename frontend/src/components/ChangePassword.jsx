@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 import PasswordToggle from './PasswordToggle';
+import API from '../utils/apiEndpoints';
 
 const ChangePassword = () => {
   const { t } = useI18n();
@@ -15,9 +16,6 @@ const ChangePassword = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const isAdmin = location.pathname.includes('/admin');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,14 +42,9 @@ const ChangePassword = () => {
     }
 
     try {
-      const headers = {};
-      const endpoint = isAdmin ? '/api/auth/admin/change-password' : '/api/auth/change-password';
-
-      await axios.put(endpoint, {
+      await axios.put(API.AUTH.CHANGE_PASSWORD, {
         currentPassword,
         newPassword
-      }, {
-        headers
       });
 
       setSuccess(t('auth.passwordChangeSuccess'));
@@ -60,11 +53,7 @@ const ChangePassword = () => {
       setConfirmPassword('');
 
       setTimeout(() => {
-        if (isAdmin) {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/account-security');
-        }
+        navigate('/account-security');
       }, 1500);
     } catch (err) {
       setError(err.response?.data?.message || t('auth.passwordChangeFailed'));
@@ -76,7 +65,7 @@ const ChangePassword = () => {
     <div className="auth-form" style={{maxWidth: '480px', margin: '0 auto'}}>
       <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px'}}>
         <button
-          onClick={() => navigate(isAdmin ? '/admin/dashboard' : '/account-security')}
+          onClick={() => navigate('/account-security')}
           style={{
             background: 'var(--hover-bg)', border: '1px solid var(--border)',
             borderRadius: '8px', padding: '6px 10px', cursor: 'pointer',
@@ -92,8 +81,9 @@ const ChangePassword = () => {
       {success && <div className="success-message" style={{padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{success}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label>{t('auth.currentPassword')}</label>
+          <label htmlFor="current-password">{t('auth.currentPassword')}</label>
           <PasswordToggle
+            id="current-password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             show={showCurrentPassword}
@@ -102,8 +92,9 @@ const ChangePassword = () => {
           />
         </div>
         <div className="form-group">
-          <label>{t('auth.newPassword')}</label>
+          <label htmlFor="new-password">{t('auth.newPassword')}</label>
           <PasswordToggle
+            id="new-password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             show={showNewPassword}
@@ -114,8 +105,9 @@ const ChangePassword = () => {
           <span style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block'}}>{t('auth.passwordHint')}</span>
         </div>
         <div className="form-group">
-          <label>{t('auth.confirmNewPassword')}</label>
+          <label htmlFor="confirm-password">{t('auth.confirmNewPassword')}</label>
           <PasswordToggle
+            id="confirm-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             show={showConfirmPassword}

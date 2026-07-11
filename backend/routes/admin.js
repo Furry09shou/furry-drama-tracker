@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { createChallenge, verifySolution, sha } = require('altcha/lib');
-const { superAdminProtect, adminProtect } = require('../middlewares/authFactory');
+const { superAdminProtect, adminProtect, requireEmailChanged } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
 const Episode = require('../models/Episode');
@@ -17,8 +17,8 @@ const FriendLink = require('../models/FriendLink');
 const PushSubscription = require('../models/PushSubscription');
 const Folder = require('../models/Folder');
 
-// 测试环境跳过验证的邮箱列表
-const DEMO_EMAILS = (process.env.DEMO_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+// 测试环境跳过验证的邮箱列表（仅非生产环境生效）
+const DEMO_EMAILS = (process.env.NODE_ENV !== 'production' && process.env.DEMO_EMAILS ? process.env.DEMO_EMAILS : '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
 const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || (process.env.JWT_SECRET ? crypto.createHash('sha256').update('altcha-' + process.env.JWT_SECRET).digest('hex') : crypto.randomBytes(32).toString('hex'));
 
@@ -125,6 +125,7 @@ router.post('/login', async (req, res) => {
       email: user.email,
       role: user.role,
       avatar: user.avatar,
+      forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -180,7 +181,7 @@ router.get('/list', superAdminProtect, async (req, res) => {
 });
 
 // 创建具有管理/创作者权限的账户
-router.post('/register', superAdminProtect, async (req, res) => {
+router.post('/register', superAdminProtect, requireEmailChanged, async (req, res) => {
   const { username, email, password, role = 'admin', accountId } = req.body;
 
   try {
@@ -191,8 +192,8 @@ router.post('/register', superAdminProtect, async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: '请输入邮箱' });
     }
-    if (!['admin', 'superadmin', 'creator'].includes(role)) {
-      return res.status(400).json({ message: '无效的角色' });
+    if (!['admin', 'creator'].includes(role)) {
+      return res.status(400).json({ message: '无效的角色，仅可创建 admin 或 creator' });
     }
     const emailExists = await User.findOne({ email });
     if (emailExists) {
@@ -236,7 +237,7 @@ router.post('/register', superAdminProtect, async (req, res) => {
   }
 });
 
-router.delete('/:id', superAdminProtect, async (req, res) => {
+router.delete('/:id', superAdminProtect, requireEmailChanged, async (req, res) => {
   try {
     if (req.user._id.toString() === req.params.id) {
       return res.status(400).json({ message: '不能删除自己的账号' });
@@ -289,8 +290,12 @@ router.get('/users', adminProtect, async (req, res) => {
   }
 });
 
-router.delete('/users/:id', superAdminProtect, async (req, res) => {
+router.delete('/users/:id', superAdminProtect, requireEmailChanged, async (req, res) => {
   try {
+    // 不能删除自己
+    if (req.user._id.toString() === req.params.id) {
+      return res.status(400).json({ message: '不能删除自己的账号' });
+    }
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: '用户不存在' });
@@ -348,7 +353,7 @@ router.delete('/users/:id', superAdminProtect, async (req, res) => {
 });
 
 // 修改账户角色
-router.put('/role/:id', superAdminProtect, async (req, res) => {
+router.put('/role/:id', superAdminProtect, requireEmailChanged, async (req, res) => {
   try {
     const { role } = req.body;
     if (!['user', 'creator', 'admin', 'superadmin'].includes(role)) {
@@ -405,7 +410,7 @@ router.post('/verify-password', adminProtect, async (req, res) => {
 });
 
 // 切换账户的管理权限（user <-> admin），供前端兼容调用
-router.put('/user-admin-access/:id', superAdminProtect, async (req, res) => {
+router.put('/user-admin-access/:id', superAdminProtect, requireEmailChanged, async (req, res) => {
   try {
     const { adminAccess } = req.body;
     if (typeof adminAccess !== 'boolean') {

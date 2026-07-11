@@ -28,6 +28,11 @@ export default function OfflineIndicator() {
     const handleSessionExpired = () => {
       setSessionExpired(true);
       setVisible(true);
+      // 3秒后自动隐藏提示
+      setTimeout(() => {
+        setVisible(false);
+        setTimeout(() => setSessionExpired(false), 300);
+      }, 3000);
     };
 
     window.addEventListener('online', handleOnline);

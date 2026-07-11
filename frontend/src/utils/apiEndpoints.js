@@ -6,6 +6,7 @@ const API = {
     LOGOUT: '/api/auth/logout',
     ME: '/api/auth/me',
     CHANGE_PASSWORD: '/api/auth/change-password',
+    CHANGE_EMAIL: '/api/auth/change-email',
     REQUEST_EMAIL_CHANGE: '/api/auth/request-email-change',
     VERIFY_EMAIL_CHANGE: '/api/auth/verify-email-change',
     RESET_PASSWORD: '/api/auth/reset-password',

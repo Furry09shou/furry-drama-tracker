@@ -8,6 +8,7 @@ import { SiteSettingsProvider, useSiteSettings } from './contexts/SiteSettingsCo
 import useTranslation from './hooks/useTranslation';
 import NavBar from './components/NavBar';
 import AdminErrorBoundary from './components/AdminErrorBoundary';
+import ForceEmailChange from './components/ForceEmailChange';
 import Home from './components/Home';
 import EpisodeDetail from './components/EpisodeDetail';
 import Login from './components/Login';
@@ -74,23 +75,20 @@ const LoadingFallback = () => {
 const AdminGuard = ({ children }) => {
   const [verifying, setVerifying] = React.useState(true);
   const [authorized, setAuthorized] = React.useState(false);
+  const location = useLocation();
 
   React.useEffect(() => {
     const verifyAdmin = async () => {
       try {
         const res = await axios.get('/api/admin/verify');
-        if (res.status === 200) {
-          setAuthorized(true);
-        } else {
-          setAuthorized(false);
-        }
+        setAuthorized(res.status === 200);
       } catch {
         setAuthorized(false);
       }
       setVerifying(false);
     };
     verifyAdmin();
-  }, []);
+  }, [location.pathname]);
 
   if (verifying) return <LoadingFallback />;
   if (!authorized) return <Navigate to="/login" replace />;
@@ -324,7 +322,6 @@ function AppContent() {
             <Route path="friend-links" element={<AdminGuard><AdminFriendLinks /></AdminGuard>} />
             <Route path="sessions" element={<AdminGuard><AdminSessions /></AdminGuard>} />
             <Route path="analytics" element={<AdminGuard><AdminAnalytics /></AdminGuard>} />
-            <Route path="change-password" element={<AdminGuard><ChangePassword /></AdminGuard>} />
           </Route>
         </Routes>
       </Suspense>
@@ -376,6 +373,9 @@ function AppContent() {
       <ThemeColorPicker />
       <OfflineIndicator />
       <InstallPrompt />
+      {user?.forceEmailChange && (
+        <ForceEmailChange onUpdate={updateUser} onLogout={logout} />
+      )}
       {apiError && (
         <div style={{
           position: 'fixed', top: '20px', right: '20px', background: '#e74c3c', color: '#fff',

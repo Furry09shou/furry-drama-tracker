@@ -82,8 +82,15 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
       }
     };
+    const handleForceEmailChange = () => {
+      setUser(prev => prev ? { ...prev, forceEmailChange: true } : prev);
+    };
     window.addEventListener('auth:session-expired', handleSessionExpired);
-    return () => window.removeEventListener('auth:session-expired', handleSessionExpired);
+    window.addEventListener('auth:force-email-change', handleForceEmailChange);
+    return () => {
+      window.removeEventListener('auth:session-expired', handleSessionExpired);
+      window.removeEventListener('auth:force-email-change', handleForceEmailChange);
+    };
   }, []);
 
   useEffect(() => {
