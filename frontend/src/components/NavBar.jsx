@@ -184,18 +184,6 @@ const NavBar = ({ onFeedback }) => {
   // ===== 移动端更多菜单 - 可提取为 MobileMenu 组件 =====
   const renderMobileMoreItems = () => (
     <>
-      {installPrompt && !isInstalled && (
-        <li>
-          <button onClick={() => { handleInstallClick(); setShowMobileMore(false); }} style={{
-            display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px',
-            color: 'var(--foreground)', background: 'none', border: 'none',
-            fontSize: '14px', fontWeight: 500, cursor: 'pointer', borderRadius: '8px',
-            transition: 'background 0.2s'
-          }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
-             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >{t('pwa.installBtn')}</button>
-        </li>
-      )}
       {moreMenuItems.map((item) => (
         <li key={item.to}>
           <Link to={item.to} onClick={() => { setShowMobileMenu(false); setShowMobileMore(false); }} style={{
@@ -442,17 +430,6 @@ const NavBar = ({ onFeedback }) => {
                     backdropFilter: 'blur(20px)', padding: 0
                   }}
                 >
-                  {installPrompt && !isInstalled && (
-                    <button onClick={() => { handleInstallClick(); setShowMoreMenu(false); }} role="menuitem" style={{
-                      display: 'block', width: '100%', padding: '12px 16px',
-                      color: 'var(--foreground)', background: 'none', border: 'none',
-                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
-                      transition: 'background 0.2s',
-                      borderBottom: '1px solid var(--border)'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >{t('pwa.installBtn')}</button>
-                  )}
                   {moreMenuItems.map((item, i) => (
                     <Link key={item.to} to={item.to} onClick={() => { setShowMoreMenu(false); setShowMobileMenu(false); }} role="menuitem" style={{
                       display: 'block', padding: '12px 16px', color: 'var(--foreground)',
@@ -553,17 +530,6 @@ const NavBar = ({ onFeedback }) => {
                     backdropFilter: 'blur(20px)', padding: 0
                   }}
                 >
-                  {installPrompt && !isInstalled && (
-                    <button onClick={() => { handleInstallClick(); setShowMoreMenu(false); }} role="menuitem" style={{
-                      display: 'block', width: '100%', padding: '12px 16px',
-                      color: 'var(--foreground)', background: 'none', border: 'none',
-                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
-                      transition: 'background 0.2s',
-                      borderBottom: '1px solid var(--border)'
-                    }} onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-bg)'}
-                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >{t('pwa.installBtn')}</button>
-                  )}
                   {moreMenuItems.map((item, i) => (
                     <Link key={item.to} to={item.to} onClick={() => { setShowMoreMenu(false); setShowMobileMenu(false); }} role="menuitem" style={{
                       display: 'block', padding: '12px 16px', color: 'var(--foreground)',
