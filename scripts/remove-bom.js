@@ -20,6 +20,6 @@ function removeBOM(dir) {
   return fixed;
 }
 
-const target = path.join(__dirname, 'frontend', 'src');
+const target = path.join(__dirname, '..', 'frontend', 'src');
 const count = removeBOM(target);
 console.log(`Total fixed: ${count}`);

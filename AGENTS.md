@@ -9,7 +9,11 @@ Full-stack web app for aggregating and tracking furry drama series (兽剧). Two
 ```
 backend/     Express + MongoDB API (CommonJS, port 5000)
 frontend/    React + Vite SPA (ESM, port 3000, proxies to backend)
+scripts/     One-off utility scripts
+docs/        Design & migration plans
 ```
+
+Utility scripts live in `scripts/`. There is no root `package.json` — each package manages its own dependencies independently.
 
 ## Startup Order
 
