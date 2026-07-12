@@ -153,7 +153,14 @@ router.get('/captcha', async (req, res) => {
   }
 });
 
-const verifyAltcha = async (payload) => {
+// 开发/测试用 API 口令，绕过 altcha 验证
+const DEV_API_TOKEN = process.env.DEV_API_TOKEN;
+
+const verifyAltcha = async (payload, req) => {
+  // 开发环境口令绕过
+  if (DEV_API_TOKEN && req?.headers?.['x-dev-token'] === DEV_API_TOKEN) {
+    return true;
+  }
   if (!payload) return false;
   try {
     const json = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
@@ -241,7 +248,7 @@ router.post('/register', async (req, res) => {
   const parsed = parseUserAgent(ua);
 
   try {
-    if (!(await verifyAltcha(altchaPayload))) {
+    if (!(await verifyAltcha(altchaPayload, req))) {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
 
@@ -369,7 +376,7 @@ router.post('/login', async (req, res) => {
   const parsed = parseUserAgent(ua);
 
   try {
-    if (!(await verifyAltcha(altchaPayload))) {
+    if (!(await verifyAltcha(altchaPayload, req))) {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
 
@@ -405,7 +412,7 @@ router.post('/login', async (req, res) => {
     }
     await user.resetLoginAttempts();
 
-    if (!user.isEmailVerified && !skipVerification(user)) {
+    if (!user.isEmailVerified && !skipVerification(user) && !(DEV_API_TOKEN && req.headers['x-dev-token'] === DEV_API_TOKEN)) {
       const verifyToken = jwt.sign(
         { id: user._id, purpose: 'verify-email' },
         process.env.JWT_SECRET,
@@ -425,7 +432,7 @@ router.post('/login', async (req, res) => {
     const knownSessions = await UserSession.find({ userId: user._id, isActive: true });
     const isKnownDevice = knownSessions.some(s => s.deviceInfo?.userAgent === currentUa);
 
-    if (!isKnownDevice && knownSessions.length > 0 && !skipVerification(user)) {
+    if (!isKnownDevice && knownSessions.length > 0 && !skipVerification(user) && !(DEV_API_TOKEN && req.headers['x-dev-token'] === DEV_API_TOKEN)) {
       const deviceVerifyToken = jwt.sign(
         { id: user._id, purpose: 'device-verify', ip: currentIp, ua: currentUa },
         process.env.JWT_SECRET,
@@ -586,7 +593,7 @@ router.post('/login-2fa', async (req, res) => {
     }
 
     // 重新检查邮箱验证
-    if (!user.isEmailVerified && !skipVerification(user)) {
+    if (!user.isEmailVerified && !skipVerification(user) && !(DEV_API_TOKEN && req.headers['x-dev-token'] === DEV_API_TOKEN)) {
       return res.status(403).json({ message: '请先验证邮箱后再登录' });
     }
 
@@ -796,7 +803,7 @@ router.post('/forgot-password', async (req, res) => {
   const email = xss(req.body.email?.trim());
   const altchaPayload = req.body.altcha;
   try {
-    if (!(await verifyAltcha(altchaPayload))) {
+    if (!(await verifyAltcha(altchaPayload, req))) {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
     const user = await User.findOne({ email });
