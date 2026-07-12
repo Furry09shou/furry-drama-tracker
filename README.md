@@ -99,13 +99,13 @@ cd frontend && npm run dev
 
 ### 架构概览
 
-生产环境推荐使用 **Nginx 反向代理** 将前后端统一到同一域名下：
+生产环境使用**反向代理**将前后端统一到同一域名下。选择你喜欢的 Web 服务器：
 
 ```
 浏览器 (HTTPS)
     │
     ▼
-Nginx (端口 443)
+反向代理 — Caddy / Apache / Nginx (端口 443)
     ├── /api/*        → 后端 localhost:5000
     ├── /uploads/*    → 后端 localhost:5000
     └── /*            → 前端静态文件 (dist/)
@@ -198,7 +198,135 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-### 步骤 5：配置 Nginx
+### 步骤 5：配置 Web 服务器
+
+选择以下任一方案。**推荐 Caddy** — 配置最简，自动 HTTPS。
+
+#### 方案 A：Caddy (推荐)
+
+Caddy 自动申请和续期 Let's Encrypt 证书，无需额外配置。
+
+```caddyfile
+# /etc/caddy/Caddyfile
+
+你的域名 {
+    root * /opt/furry-drama-tracker/frontend/dist
+
+    # SPA 回退 — 所有非文件请求返回 index.html
+    try_files {path} /index.html
+
+    # API 反向代理
+    handle_path /api/* {
+        reverse_proxy localhost:5000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 上传文件代理 (带缓存)
+    handle_path /uploads/* {
+        reverse_proxy localhost:5000
+        header Cache-Control "public, max-age=604800, immutable"
+    }
+
+    # 静态资源长缓存
+    @assets path /assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+
+    # 编码压缩
+    encode gzip zstd
+
+    # 日志 (可选)
+    log {
+        output file /var/log/caddy/furry-drama.log
+    }
+}
+```
+
+启动：
+
+```bash
+sudo systemctl enable --now caddy
+# 修改配置后重载
+sudo systemctl reload caddy
+```
+
+> Caddy 自动处理 HTTP→HTTPS 重定向和证书，不需要额外配置 80 端口。
+
+#### 方案 B：Apache
+
+需要启用以下模块：
+
+```bash
+sudo a2enmod proxy proxy_http rewrite headers ssl
+sudo systemctl restart apache2
+```
+
+```apache
+# /etc/apache2/sites-available/furry-drama.conf
+
+<VirtualHost *:443>
+    ServerName 你的域名
+
+    SSLEngine on
+    SSLCertificateFile     /etc/ssl/你的域名.crt
+    SSLCertificateKeyFile  /etc/ssl/你的域名.key
+
+    DocumentRoot /opt/furry-drama-tracker/frontend/dist
+
+    # 静态资源长缓存
+    <Location /assets/>
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </Location>
+
+    # PWA 图标
+    <FilesMatch "\.(png|svg|ico|woff2)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+
+    # API 反向代理
+    ProxyPass /api/ http://127.0.0.1:5000/api/
+    ProxyPassReverse /api/ http://127.0.0.1:5000/api/
+
+    # 上传文件代理
+    ProxyPass /uploads/ http://127.0.0.1:5000/uploads/
+    ProxyPassReverse /uploads/ http://127.0.0.1:5000/uploads/
+    <Location /uploads/>
+        Header set Cache-Control "public, max-age=604800, immutable"
+    </Location>
+
+    # SPA 回退 — 所有非文件请求返回 index.html
+    <Directory /opt/furry-drama-tracker/frontend/dist>
+        Options -Indexes
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteCond %{REQUEST_URI} !^/api/
+        RewriteCond %{REQUEST_URI} !^/uploads/
+        RewriteRule ^ index.html [L]
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/furry-drama-error.log
+    CustomLog ${APACHE_LOG_DIR}/furry-drama-access.log combined
+</VirtualHost>
+
+# HTTP → HTTPS 重定向
+<VirtualHost *:80>
+    ServerName 你的域名
+    Redirect permanent / https://你的域名/
+</VirtualHost>
+```
+
+启用站点：
+
+```bash
+sudo a2ensite furry-drama.conf
+sudo systemctl reload apache2
+```
+
+#### 方案 C：Nginx
 
 ```nginx
 server {
