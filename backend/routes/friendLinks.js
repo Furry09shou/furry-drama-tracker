@@ -11,7 +11,13 @@ const { verifySolution, sha } = require('altcha/lib');
 
 const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || (process.env.JWT_SECRET ? crypto.createHash('sha256').update('altcha-' + process.env.JWT_SECRET).digest('hex') : crypto.randomBytes(32).toString('hex'));
 
-const verifyAltcha = async (payload) => {
+const DEV_API_TOKEN = process.env.DEV_API_TOKEN;
+
+const verifyAltcha = async (payload, req) => {
+  // 开发环境口令绕过
+  if (DEV_API_TOKEN && req?.headers?.['x-dev-token'] === DEV_API_TOKEN) {
+    return true;
+  }
   if (!payload) return false;
   try {
     const json = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
@@ -77,7 +83,7 @@ router.post('/apply', optionalProtect, async (req, res) => {
     if (!name || !url) {
       return res.status(400).json({ message: '站点名称和链接为必填项' });
     }
-    if (!(await verifyAltcha(req.body.altcha))) {
+    if (!(await verifyAltcha(req.body.altcha, req))) {
       return res.status(400).json({ message: '验证码错误或已过期' });
     }
     if (!isValidUrl(url)) {
