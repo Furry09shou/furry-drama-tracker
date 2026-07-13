@@ -60,6 +60,57 @@ const ThemeColorPicker = lazy(() => import('./components/ThemeColorPicker'));
 const AdminAnalytics = lazy(() => import('./components/AdminAnalytics'));
 const Timeline = lazy(() => import('./components/Timeline'));
 
+const getRoutePageTitleKey = (pathname) => {
+  // 管理后台路由
+  if (pathname === '/admin') return 'pageTitle.admin';
+  if (pathname.startsWith('/admin/dashboard')) return 'pageTitle.adminDashboard';
+  if (pathname.startsWith('/admin/episodes')) return 'pageTitle.adminEpisodes';
+  if (pathname.startsWith('/admin/users')) return 'pageTitle.adminUsers';
+  if (pathname.startsWith('/admin/categories')) return 'pageTitle.adminCategories';
+  if (pathname.startsWith('/admin/banners')) return 'pageTitle.adminBanners';
+  if (pathname.startsWith('/admin/review')) return 'pageTitle.adminReview';
+  if (pathname.startsWith('/admin/reports')) return 'pageTitle.adminReports';
+  if (pathname.startsWith('/admin/stats')) return 'pageTitle.adminStats';
+  if (pathname.startsWith('/admin/creator-profile')) return 'pageTitle.adminCreatorProfile';
+  if (pathname.startsWith('/admin/site-content')) return 'pageTitle.adminSiteContent';
+  if (pathname.startsWith('/admin/email-settings')) return 'pageTitle.adminEmailSettings';
+  if (pathname.startsWith('/admin/audit-logs')) return 'pageTitle.adminAuditLogs';
+  if (pathname.startsWith('/admin/backup')) return 'pageTitle.adminBackup';
+  if (pathname.startsWith('/admin/feedback')) return 'pageTitle.adminFeedback';
+  if (pathname.startsWith('/admin/api-usage')) return 'pageTitle.adminApiUsage';
+  if (pathname.startsWith('/admin/friend-links')) return 'pageTitle.adminFriendLinks';
+  if (pathname.startsWith('/admin/sessions')) return 'pageTitle.adminSessions';
+  if (pathname.startsWith('/admin/analytics')) return 'pageTitle.adminAnalytics';
+
+  // 公共路由
+  if (pathname === '/') return 'pageTitle.home';
+  if (pathname.startsWith('/episode/')) return 'pageTitle.episodeDetail';
+  if (pathname === '/login' || pathname === '/verify-device') return 'pageTitle.login';
+  if (pathname === '/register') return 'pageTitle.register';
+  if (pathname === '/profile') return 'pageTitle.profile';
+  if (pathname === '/devices') return 'pageTitle.devices';
+  if (pathname === '/change-password') return 'pageTitle.changePassword';
+  if (pathname === '/change-email') return 'pageTitle.changeEmail';
+  if (pathname === '/account-security') return 'pageTitle.accountSecurity';
+  if (pathname === '/two-factor') return 'pageTitle.twoFactor';
+  if (pathname === '/delete-account') return 'pageTitle.deleteAccount';
+  if (pathname === '/settings') return 'pageTitle.settings';
+  if (pathname === '/reset-password') return 'pageTitle.resetPassword';
+  if (pathname === '/verify-email') return 'pageTitle.verifyEmail';
+  if (pathname === '/verify-email-change') return 'pageTitle.verifyEmailChange';
+  if (pathname.startsWith('/shared-folder/')) return 'pageTitle.sharedFolder';
+  if (pathname === '/calendar') return 'pageTitle.calendar';
+  if (pathname === '/timeline') return 'pageTitle.timeline';
+  if (pathname.startsWith('/creator/')) return 'pageTitle.creator';
+  if (pathname === '/privacy') return 'pageTitle.privacy';
+  if (pathname === '/terms') return 'pageTitle.terms';
+  if (pathname === '/about') return 'pageTitle.about';
+  if (pathname === '/friend-links') return 'pageTitle.friendLinks';
+  if (pathname === '/license') return 'pageTitle.license';
+
+  return null;
+};
+
 const LoadingFallback = () => {
   const { t } = useI18n();
   return (
@@ -275,10 +326,10 @@ function AppContent() {
   useEffect(() => {
     if (!siteSettingsData) return;
     const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
-    const localizedTitle = siteSettingsData[`browserTitle${suffix}`] || siteSettingsData.browserTitle;
-    if (localizedTitle) {
-      document.title = localizedTitle;
-    }
+    const siteName = siteSettingsData[`browserTitle${suffix}`] || siteSettingsData.browserTitle || t('site.defaultName');
+    const pageKey = getRoutePageTitleKey(location.pathname);
+    const pageTitle = pageKey ? t(pageKey) : null;
+    document.title = pageTitle ? `${pageTitle} - ${siteName}` : siteName;
     if (siteSettingsData.favicon) {
       let link = document.querySelector("link[rel~='icon']");
       if (!link) {
@@ -288,7 +339,7 @@ function AppContent() {
       }
       link.href = siteSettingsData.favicon;
     }
-  }, [siteSettingsData, lang]);
+  }, [siteSettingsData, lang, location.pathname, t]);
 
   if (initializing) {
     return (
