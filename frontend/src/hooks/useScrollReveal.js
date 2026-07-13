@@ -13,6 +13,12 @@ const useScrollReveal = (options = {}) => {
     el.classList.add('reveal-hidden');
     setIsReady(true);
 
+    // IntersectionObserver 不支持时直接显示
+    if (!('IntersectionObserver' in window)) {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {

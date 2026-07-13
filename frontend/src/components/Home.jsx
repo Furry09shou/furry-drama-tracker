@@ -322,6 +322,7 @@ const Home = () => {
                     <img
                       src={ep.coverImage}
                       alt={ep.title}
+                      loading="lazy"
                       decoding="async"
                       style={{
                         width: '100%',

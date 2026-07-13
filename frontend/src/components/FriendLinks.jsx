@@ -178,7 +178,7 @@ const FriendLinks = () => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}>
                   {link.logo ? (
-                    <img src={link.logo} alt="" style={{
+                    <img src={link.logo} alt="" loading="lazy" style={{
                       width: '36px', height: '36px', borderRadius: '8px',
                       objectFit: 'cover', flexShrink: 0,
                       border: '1px solid var(--border)'
@@ -224,7 +224,7 @@ const FriendLinks = () => {
                     fontSize: '14px'
                   }}>
                     {app.logo ? (
-                      <img src={app.logo} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+                      <img src={app.logo} alt="" loading="lazy" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
                     ) : (
                       <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--primary-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔗</div>
                     )}

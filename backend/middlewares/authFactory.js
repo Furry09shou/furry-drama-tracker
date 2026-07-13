@@ -44,6 +44,9 @@ const createAuthMiddleware = ({ allowedRoles = [] }) => {
       req.authToken = token;
       next();
     } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token expired', messageKey: 'auth.tokenExpired' });
+      }
       return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   };

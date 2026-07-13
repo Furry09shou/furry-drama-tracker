@@ -133,6 +133,7 @@ const CreatorPage = () => {
                 <img
                   src={ep.coverImage}
                   alt={ep.title}
+                  loading="lazy"
                   style={{width: '100%', aspectRatio: '3/4', objectFit: 'cover'}}
                 />
                 <div style={{padding: '12px'}}>

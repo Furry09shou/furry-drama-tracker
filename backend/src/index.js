@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
+const compression = require('compression');
 const authRoutes = require('../routes/auth');
 const episodeRoutes = require('../routes/episodes');
 const followRoutes = require('../routes/follows');
@@ -63,6 +64,7 @@ const app = express();
 app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
 
 app.use(cookieParser());
+app.use(compression());
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection:', reason);
@@ -184,8 +186,12 @@ app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    if (res.statusCode >= 400 || duration > 1000 || req.path.includes('/list') || req.path.includes('/histories') || req.path.includes('/follows')) {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const slowThreshold = isDev ? 1000 : 3000;
+    if (isDev && (res.statusCode >= 400 || duration > 1000 || req.path.includes('/list') || req.path.includes('/histories') || req.path.includes('/follows'))) {
       console.log(`${req.method} ${req.path} - ${res.statusCode} - ${duration}ms${duration > 1000 ? ' [SLOW]' : ''}`);
+    } else if (duration > slowThreshold) {
+      console.warn(`[Slow] ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`);
     }
   });
   next();
@@ -342,25 +348,15 @@ app.use('/uploads', (req, res, next) => {
 
 app.get('/api/health', async (req, res) => {
   try {
-    const mongoose = require('mongoose');
     await mongoose.connection.db.admin().ping();
-    const memUsage = process.memoryUsage();
     res.json({
       status: 'ok',
-      uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      db: 'connected',
-      memory: {
-        rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
-        heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
-        heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
-      }
+      db: 'connected'
     });
   } catch (error) {
-    // 不暴露内部错误细节
     res.status(503).json({
       status: 'error',
-      uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       db: 'disconnected'
     });
@@ -431,13 +427,15 @@ app.use((err, req, res, next) => {
   if (err.message === 'Not allowed by CORS') {
     return res.status(403).json({ message: 'CORS policy denied' });
   }
-  console.error(`[Error] ${req.method} ${req.path}:`, err.message);
+  const isDev = process.env.NODE_ENV !== 'production';
+  // 生产环境仅记录 5xx 错误日志，4xx 为正常客户端错误不打日志
+  if (isDev || (err.status || 500) >= 500) {
+    console.error(`[Error] ${req.method} ${req.path}:`, err.message);
+  }
   if (err.name === 'MulterError') {
     return res.status(400).json({ message: '文件上传错误: ' + err.message });
   }
-  const isDev = process.env.NODE_ENV !== 'production';
   const status = err.status || 500;
-  // 客户端错误（4xx）可返回具体信息；服务端错误（5xx）在生产环境返回通用信息
   const message = status < 500 || isDev ? (err.message || '服务器错误') : '服务器内部错误';
   res.status(status).json({
     message,

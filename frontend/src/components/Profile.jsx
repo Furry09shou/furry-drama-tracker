@@ -295,7 +295,7 @@ const Profile = ({ user, setUser, logout }) => {
     return (
       <div key={episode._id} className="followed-episode-card">
         <Link to={`/episode/${episode._id}`}>
-          <img src={episode.coverImage} alt={episode.title} />
+          <img src={episode.coverImage} alt={episode.title} loading="lazy" />
         </Link>
         <div className="followed-episode-info">
           <h4>
@@ -355,7 +355,7 @@ const Profile = ({ user, setUser, logout }) => {
     return (
       <div key={episode._id} className="followed-episode-card">
         <Link to={`/episode/${episode._id}`}>
-          <img src={episode.coverImage} alt={episode.title} />
+          <img src={episode.coverImage} alt={episode.title} loading="lazy" />
         </Link>
         <div className="followed-episode-info">
           <h4>{getLocalizedTitle(episode)}</h4>
@@ -959,7 +959,7 @@ const Profile = ({ user, setUser, logout }) => {
                 return (
                   <div key={fav._id} className="followed-episode-card" style={{position: 'relative'}}>
                     <Link to={`/episode/${episode._id}`}>
-                      <img src={episode.coverImage} alt={episode.title} />
+                      <img src={episode.coverImage} alt={episode.title} loading="lazy" />
                     </Link>
                     <div className="followed-episode-info">
                       <h4>{getLocalizedTitle(episode)}</h4>

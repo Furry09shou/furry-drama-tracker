@@ -19,9 +19,10 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
         <div key={episode._id} className="episode-card">
           <div className="episode-cover">
             {episode.coverImage && (
-              <img 
-                src={episode.coverImage} 
-                alt={episode.title} 
+              <img
+                src={episode.coverImage}
+                alt={episode.title}
+                loading="lazy"
                 style={{
                   width: '100%',
                   height: '120px',

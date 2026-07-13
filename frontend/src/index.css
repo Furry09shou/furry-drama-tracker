@@ -58,6 +58,13 @@ header {
   }
 }
 
+/* backdrop-filter 不支持时的 fallback */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass-nav, .glass-card, .glass-modal, .glass-overlay {
+    background: var(--bg-solid, rgba(26, 26, 37, 0.95)) !important;
+  }
+}
+
 nav {
   display: flex;
   justify-content: space-between;
