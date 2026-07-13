@@ -7,12 +7,14 @@ import ShareModal from './ShareModal';
 import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
+import { useSiteSettings } from '../contexts/SiteSettingsContext';
 import API from '../utils/apiEndpoints';
 import useScrollReveal from '../hooks/useScrollReveal';
 
 const EpisodeDetail = ({ user }) => {
   const { t, lang } = useI18n();
   const { getLocalizedTitle, getLocalizedDescription } = useTranslation();
+  const { settings: siteSettingsData } = useSiteSettings();
   const { getAuthHeaders } = useAuth();
   const [episode, setEpisode] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +95,20 @@ const EpisodeDetail = ({ user }) => {
       });
     return () => controller.abort();
   }, [user, episodeId]);
+
+  // 剧集详情页标题：剧集名称 - 网站名称
+  useEffect(() => {
+    if (!episode) return;
+    const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
+    const siteName = siteSettingsData?.[`browserTitle${suffix}`] || siteSettingsData?.browserTitle || t('site.defaultName');
+    const episodeTitle = getLocalizedTitle(episode);
+    if (episodeTitle) {
+      document.title = `${episodeTitle} - ${siteName}`;
+    }
+    return () => {
+      // 组件卸载时恢复标题由 App.jsx 的 useEffect 处理
+    };
+  }, [episode, lang, siteSettingsData, t, getLocalizedTitle]);
 
   const handleWatch = async (singleEpisode) => {
     try {
