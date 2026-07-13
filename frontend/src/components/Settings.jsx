@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useI18n } from '../contexts/I18nContext';
 import { useTheme } from '../contexts/ThemeContext';
 import usePushNotifications from '../hooks/usePushNotifications';
 import { useAuth } from '../contexts/AuthContext';
+import API from '../utils/apiEndpoints';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
 
@@ -21,6 +23,31 @@ const Settings = ({ user }) => {
     Notification.permission === 'granted'
   );
   const [saved, setSaved] = useState(false);
+  const [emailPrefs, setEmailPrefs] = useState({
+    episodeUpdate: true,
+    newDeviceLogin: true,
+    feedbackReply: true,
+    friendLinkStatus: true,
+    friendLinkApply: true,
+  });
+
+  useEffect(() => {
+    if (user?.emailNotificationPrefs) {
+      setEmailPrefs(prev => ({ ...prev, ...user.emailNotificationPrefs }));
+    }
+  }, [user]);
+
+  const handleToggleEmailPref = async (key) => {
+    const newVal = !emailPrefs[key];
+    setEmailPrefs(prev => ({ ...prev, [key]: newVal }));
+    showSaved();
+    try {
+      await axios.put(API.AUTH.EMAIL_NOTIFICATION_PREFS, { [key]: newVal });
+    } catch (e) {
+      // 回滚
+      setEmailPrefs(prev => ({ ...prev, [key]: !newVal }));
+    }
+  };
 
   const handleTogglePwaRemind = () => {
     const newVal = !pwaInstallRemind;
@@ -104,6 +131,52 @@ const Settings = ({ user }) => {
         },
       ],
     },
+    {
+      title: t('settings.emailNotifications'),
+      groupDesc: t('settings.emailNotificationsDesc'),
+      items: [
+        {
+          key: 'emailEpisodeUpdate',
+          label: t('settings.emailEpisodeUpdate'),
+          desc: t('settings.emailEpisodeUpdateDesc'),
+          type: 'toggle',
+          value: emailPrefs.episodeUpdate,
+          onChange: () => handleToggleEmailPref('episodeUpdate'),
+        },
+        {
+          key: 'emailNewDeviceLogin',
+          label: t('settings.emailNewDeviceLogin'),
+          desc: t('settings.emailNewDeviceLoginDesc'),
+          type: 'toggle',
+          value: emailPrefs.newDeviceLogin,
+          onChange: () => handleToggleEmailPref('newDeviceLogin'),
+        },
+        {
+          key: 'emailFeedbackReply',
+          label: t('settings.emailFeedbackReply'),
+          desc: t('settings.emailFeedbackReplyDesc'),
+          type: 'toggle',
+          value: emailPrefs.feedbackReply,
+          onChange: () => handleToggleEmailPref('feedbackReply'),
+        },
+        {
+          key: 'emailFriendLinkStatus',
+          label: t('settings.emailFriendLinkStatus'),
+          desc: t('settings.emailFriendLinkStatusDesc'),
+          type: 'toggle',
+          value: emailPrefs.friendLinkStatus,
+          onChange: () => handleToggleEmailPref('friendLinkStatus'),
+        },
+        {
+          key: 'emailFriendLinkApply',
+          label: t('settings.emailFriendLinkApply'),
+          desc: t('settings.emailFriendLinkApplyDesc'),
+          type: 'toggle',
+          value: emailPrefs.friendLinkApply,
+          onChange: () => handleToggleEmailPref('friendLinkApply'),
+        },
+      ],
+    },
   ];
 
   return (
@@ -132,6 +205,12 @@ const Settings = ({ user }) => {
             fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600,
             textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px',
           }}>{group.title}</h3>
+          {group.groupDesc && (
+            <p style={{
+              fontSize: '12px', color: 'var(--text-secondary)',
+              margin: '0 0 8px 0', lineHeight: 1.5,
+            }}>{group.groupDesc}</p>
+          )}
           <div style={{
             background: 'var(--card)', borderRadius: '12px',
             border: '1px solid var(--border)', overflow: 'hidden',

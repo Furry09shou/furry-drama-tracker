@@ -11,6 +11,7 @@ const { protect, adminProtect, creatorProtect } = require('../middlewares/authFa
 const { setCache, getCache, clearCache, clearCacheByPrefix } = require('../middlewares/cache');
 const { escapeRegex } = require('../utils/helpers');
 const { createUploadConfig } = require('../utils/upload');
+const { sendBatchNotificationEmails } = require('../utils/notifyHelper');
 
 const upload = createUploadConfig('cover', 5 * 1024 * 1024);
 
@@ -519,6 +520,14 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
             data: { url: `/episode/${req.params.id}` }
           });
         });
+        // 发送邮件通知
+        sendBatchNotificationEmails(
+          uniqueUserIds.map(uid => ({
+            userId: uid,
+            prefKey: 'episodeUpdate',
+            args: [updatedEpisode.title, req.body.episodeNumber],
+          }))
+        );
       }
     }
 
@@ -614,6 +623,20 @@ router.put('/:id', creatorProtect, async (req, res) => {
               data: { url: `/episode/${req.params.id}` }
             });
           });
+          // 发送邮件通知（每个集数一封）
+          const epNumbers = [];
+          for (let epNum = oldCurrentEpisodes + 1; epNum <= req.body.currentEpisodes; epNum++) {
+            epNumbers.push(epNum);
+          }
+          sendBatchNotificationEmails(
+            uniqueUserIds.flatMap(uid =>
+              epNumbers.map(epNum => ({
+                userId: uid,
+                prefKey: 'episodeUpdate',
+                args: [updatedEpisode.title, epNum],
+              }))
+            )
+          );
         }
       }
     }

@@ -19,6 +19,7 @@ const { protect, adminProtect } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { logManual } = require('../middlewares/auditLog');
 const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser } = require('../utils/email');
+const { sendNotificationEmailToUser } = require('../utils/notifyHelper');
 const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie, timingSafeCompare } = require('../utils/helpers');
 const { encryptField, decryptField, encryptArray, decryptArray } = require('../utils/crypto');
 const { asyncHandler } = require('../utils/errorHandler');
@@ -507,6 +508,16 @@ router.post('/login', async (req, res) => {
       userAgent: req.headers['user-agent'] || '',
     });
 
+    // 新设备登录提醒邮件（已知设备首次登录或跳过验证的登录）
+    sendNotificationEmailToUser(
+      user._id,
+      'newDeviceLogin',
+      { browser: parsed.browser, browserVersion: parsed.browserVersion, os: parsed.os, osVersion: parsed.osVersion, deviceType: parsed.deviceType },
+      getClientIp(req),
+      user.lastLoginRegion,
+      new Date()
+    );
+
     res.json({
       _id: user._id,
       accountId: user.accountId,
@@ -549,6 +560,17 @@ router.post('/verify-device', async (req, res) => {
     const parsed = parseUserAgent(ua);
     await createUserSession(user._id, loginToken, null, parsed, ua, decoded.ip || '');
     setAuthCookie(res, loginToken);
+
+    // 新设备登录提醒邮件
+    const verifyRegion = await getCachedIpRegion(decoded.ip || '');
+    sendNotificationEmailToUser(
+      user._id,
+      'newDeviceLogin',
+      { browser: parsed.browser, browserVersion: parsed.browserVersion, os: parsed.os, osVersion: parsed.osVersion, deviceType: parsed.deviceType },
+      decoded.ip || '',
+      verifyRegion,
+      new Date()
+    );
 
     res.json({
       _id: user._id, accountId: user.accountId, username: user.username, email: user.email,
@@ -630,6 +652,16 @@ router.post('/login-2fa', async (req, res) => {
 
     setAuthCookie(res, token);
 
+    // 新设备登录提醒邮件（2FA 登录完成）
+    sendNotificationEmailToUser(
+      user._id,
+      'newDeviceLogin',
+      { browser: parsed.browser, browserVersion: parsed.browserVersion, os: parsed.os, osVersion: parsed.osVersion, deviceType: parsed.deviceType },
+      getClientIp(req),
+      user.lastLoginRegion,
+      new Date()
+    );
+
     res.json({
       _id: user._id,
       accountId: user.accountId,
@@ -703,7 +735,8 @@ router.get('/me', protect, async (req, res) => {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       role: user.role || 'user',
-      avatar: user.avatar || ''
+      avatar: user.avatar || '',
+      emailNotificationPrefs: user.emailNotificationPrefs || {}
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -794,6 +827,30 @@ router.put('/change-email', protect, async (req, res) => {
       isEmailVerified: false,
       forceEmailChange: false,
     });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// 更新邮件通知偏好
+router.put('/email-notification-prefs', protect, async (req, res) => {
+  try {
+    const allowedKeys = ['episodeUpdate', 'newDeviceLogin', 'feedbackReply', 'friendLinkStatus', 'friendLinkApply'];
+    const prefs = {};
+    for (const key of allowedKeys) {
+      if (typeof req.body[key] === 'boolean') {
+        prefs[key] = req.body[key];
+      }
+    }
+    if (Object.keys(prefs).length === 0) {
+      return res.status(400).json({ message: '没有可更新的偏好设置' });
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { ...Object.fromEntries(Object.entries(prefs).map(([k, v]) => [`emailNotificationPrefs.${k}`, v])) } },
+      { new: true }
+    ).select('emailNotificationPrefs');
+    res.json({ message: '通知偏好已更新', emailNotificationPrefs: user.emailNotificationPrefs });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }

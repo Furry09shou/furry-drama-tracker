@@ -155,4 +155,123 @@ const sendVerificationEmail = async (email, verifyToken) => {
   }
 };
 
-module.exports = { sendPasswordResetEmail, sendVerificationEmail, clearEmailCache, createTransporter, getFromName, getFromUser };
+// ===== 通知邮件 =====
+
+const sendNotificationEmail = async (email, subject, htmlContent) => {
+  const transporter = await createTransporter();
+  if (!transporter) {
+    return false;
+  }
+  const fromName = await getFromName();
+  const fromUser = await getFromUser();
+  try {
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromUser}>`,
+      to: email,
+      subject,
+      html: htmlContent
+    });
+    return true;
+  } catch (error) {
+    console.error('[Email] Notification send error:', error);
+    return false;
+  }
+};
+
+const sendEpisodeUpdateEmail = async (email, episodeTitle, episodeNumber) => {
+  const url = `${process.env.FRONTEND_URL || 'http://localhost:3000'}`;
+  return sendNotificationEmail(email, `《${episodeTitle}》更新了第${episodeNumber}集`, `
+    <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
+      <h2 style="color:#6366f1;">追番更新提醒</h2>
+      <p>您关注的剧集有新更新：</p>
+      <div style="background:#f0f4ff;padding:16px;border-radius:8px;margin:12px 0;">
+        <p style="margin:4px 0;font-size:16px;"><strong>《${episodeTitle}》</strong></p>
+        <p style="margin:4px 0;color:#64748b;">已更新至第 ${episodeNumber} 集</p>
+      </div>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">前往观看</a>
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+      <p style="color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
+    </div>
+  `);
+};
+
+const sendNewDeviceLoginEmail = async (email, deviceInfo, ip, region, loginTime) => {
+  const url = `${process.env.FRONTEND_URL || 'http://localhost:3000'}`;
+  const timeStr = new Date(loginTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+  return sendNotificationEmail(email, '新设备登录提醒', `
+    <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
+      <h2 style="color:#f59e0b;">新设备登录提醒</h2>
+      <p>您的账号于以下时间在新设备上登录：</p>
+      <div style="background:#fef3c7;padding:16px;border-radius:8px;margin:12px 0;border:1px solid #fde68a;">
+        <p style="margin:4px 0;"><strong>登录时间：</strong>${timeStr}</p>
+        <p style="margin:4px 0;"><strong>浏览器：</strong>${deviceInfo.browser || '未知'} ${deviceInfo.browserVersion || ''}</p>
+        <p style="margin:4px 0;"><strong>操作系统：</strong>${deviceInfo.os || '未知'} ${deviceInfo.osVersion || ''}</p>
+        <p style="margin:4px 0;"><strong>设备类型：</strong>${deviceInfo.deviceType || '未知'}</p>
+        <p style="margin:4px 0;"><strong>IP地址：</strong>${ip || '未知'}${region ? ' (' + region + ')' : ''}</p>
+      </div>
+      <p style="color:#ef4444;font-weight:600;">如非本人操作，请立即修改密码并检查账号安全设置。</p>
+      <a href="${url}/account-security" style="display:inline-block;padding:12px 24px;background:#ef4444;color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">前往安全设置</a>
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+      <p style="color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
+    </div>
+  `);
+};
+
+const sendFeedbackReplyEmail = async (email, replyContent) => {
+  const url = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/profile`;
+  return sendNotificationEmail(email, '您的反馈已收到回复', `
+    <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
+      <h2 style="color:#6366f1;">反馈回复通知</h2>
+      <p>您提交的反馈已收到管理员的回复：</p>
+      <div style="background:#f0f4ff;padding:16px;border-radius:8px;margin:12px 0;border-left:4px solid #6366f1;">
+        <p style="margin:0;">${replyContent}</p>
+      </div>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">查看详情</a>
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+      <p style="color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
+    </div>
+  `);
+};
+
+const sendFriendLinkStatusEmail = async (email, linkName, statusLabel) => {
+  const url = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/profile`;
+  return sendNotificationEmail(email, `友链申请${statusLabel}`, `
+    <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
+      <h2 style="color:#6366f1;">友链审核结果</h2>
+      <p>您申请的友链「<strong>${linkName}</strong>」审核结果：</p>
+      <div style="background:#f0f4ff;padding:16px;border-radius:8px;margin:12px 0;">
+        <p style="margin:0;font-size:18px;">${statusLabel}</p>
+      </div>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">查看详情</a>
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+      <p style="color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
+    </div>
+  `);
+};
+
+const sendFriendLinkApplyEmail = async (email, applicantName) => {
+  const url = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/friend-links`;
+  return sendNotificationEmail(email, '新友链申请', `
+    <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
+      <h2 style="color:#6366f1;">新友链申请</h2>
+      <p>收到来自「<strong>${applicantName}</strong>」的友链申请，请前往管理后台审核。</p>
+      <a href="${url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">前往审核</a>
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+      <p style="color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
+    </div>
+  `);
+};
+
+module.exports = {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+  clearEmailCache,
+  createTransporter,
+  getFromName,
+  getFromUser,
+  sendEpisodeUpdateEmail,
+  sendNewDeviceLoginEmail,
+  sendFeedbackReplyEmail,
+  sendFriendLinkStatusEmail,
+  sendFriendLinkApplyEmail,
+};

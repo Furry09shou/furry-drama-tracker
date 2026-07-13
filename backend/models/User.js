@@ -79,6 +79,13 @@ const UserSchema = new mongoose.Schema({
     type: String,
     select: false
   }],
+  emailNotificationPrefs: {
+    episodeUpdate: { type: Boolean, default: true },
+    newDeviceLogin: { type: Boolean, default: true },
+    feedbackReply: { type: Boolean, default: true },
+    friendLinkStatus: { type: Boolean, default: true },
+    friendLinkApply: { type: Boolean, default: true },
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -17,6 +17,7 @@ const API = {
     DELETION_STATUS: '/api/auth/deletion-status',
     REQUEST_DELETION: '/api/auth/request-deletion',
     CANCEL_DELETION: '/api/auth/cancel-deletion',
+    EMAIL_NOTIFICATION_PREFS: '/api/auth/email-notification-prefs',
   },
   // 剧集
   EPISODES: '/api/episodes',

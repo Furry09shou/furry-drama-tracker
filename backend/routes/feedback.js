@@ -6,6 +6,7 @@ const Notification = require('../models/Notification');
 const { sendPushToUser } = require('./notifications');
 const { protect, adminProtect } = require('../middlewares/authFactory');
 const { asyncHandler } = require('../utils/errorHandler');
+const { sendNotificationEmailToUser } = require('../utils/notifyHelper');
 
 const feedbackLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -81,6 +82,7 @@ router.put('/:id', adminProtect, async (req, res) => {
         message: `您的反馈已收到回复：${reply.slice(0, 50)}...`,
         metadata: { reply: reply.slice(0, 50) }
       });
+      sendNotificationEmailToUser(fb.userId, 'feedbackReply', reply.slice(0, 200));
       sendPushToUser(String(fb.userId), {
         title: '反馈回复',
         body: `您的反馈已收到回复：${reply.slice(0, 50)}...`,

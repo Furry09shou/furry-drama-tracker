@@ -8,6 +8,7 @@ const { adminProtect, protect } = require('../middlewares/authFactory');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { verifySolution, sha } = require('altcha/lib');
+const { sendBatchNotificationEmails, sendNotificationEmailToUser } = require('../utils/notifyHelper');
 
 const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || (process.env.JWT_SECRET ? crypto.createHash('sha256').update('altcha-' + process.env.JWT_SECRET).digest('hex') : crypto.randomBytes(32).toString('hex'));
 
@@ -114,6 +115,13 @@ router.post('/apply', optionalProtect, async (req, res) => {
           data: { url: '/admin/friend-links' }
         });
       });
+      sendBatchNotificationEmails(
+        superAdmins.map(a => ({
+          userId: a._id,
+          prefKey: 'friendLinkApply',
+          args: [name],
+        }))
+      );
     }
     res.json({ message: '申请已提交，等待管理员审核' });
   } catch (error) {
@@ -197,6 +205,7 @@ router.put('/:id', adminProtect, async (req, res) => {
         message: `友链「${link.name}」申请${statusLabel}`,
         metadata: { name: link.name, status: statusLabel }
       });
+      sendNotificationEmailToUser(link.applicantId, 'friendLinkStatus', link.name, statusLabel);
       sendPushToUser(String(link.applicantId), {
         title: '友链审核结果',
         body: `友链「${link.name}」申请${statusLabel}`,
