@@ -145,7 +145,8 @@ router.get('/captcha', async (req, res) => {
       algorithm: 'SHA-256',
       hmacSignatureSecret: ALTCHA_HMAC_KEY,
       deriveKey: sha.deriveKey,
-      cost: 5000,
+      cost: 50000,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
     res.json(challenge);
   } catch (e) {
@@ -387,7 +388,7 @@ router.post('/login', async (req, res) => {
     }
 
     if (user.isLocked) {
-      return res.status(423).json({ message: '账号已被锁定，请30分钟后再试' });
+      return res.status(400).json({ message: '用户名或密码错误' });
     }
 
     if (user.deletionRequestedAt) {
@@ -402,7 +403,7 @@ router.post('/login', async (req, res) => {
         await Report.deleteMany({ userId: user._id });
         await Feedback.deleteMany({ userId: user._id });
         await UserSession.deleteMany({ userId: user._id });
-        return res.status(400).json({ message: '该账号已被注销' });
+        return res.status(400).json({ message: '用户名或密码错误' });
       }
     }
 
@@ -804,9 +805,9 @@ router.put('/change-email', protect, async (req, res) => {
     await user.save();
 
     // 发送验证邮件
-    const verifyToken = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const verifyToken = jwt.sign({ id: user._id, purpose: 'verify-email' }, process.env.JWT_SECRET, { expiresIn: '1h' });
     try {
-      await sendVerificationEmail(user.email, verifyToken);
+      sendVerificationEmail(user.email, verifyToken).catch(() => {});
     } catch (e) {
       console.error('验证邮件发送失败:', e.message);
     }
@@ -872,7 +873,9 @@ router.post('/forgot-password', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    await sendPasswordResetEmail(email, resetToken);
+    sendPasswordResetEmail(email, resetToken).catch(err => {
+      console.error('[Email] Password reset email failed:', err.message);
+    });
     res.json({ message: '如果该邮箱已注册，重置链接已发送至邮箱' });
   } catch (error) {
     res.json({ message: '如果该邮箱已注册，重置链接已发送至邮箱' });
@@ -979,9 +982,17 @@ router.post('/resend-verification', protect, async (req, res) => {
 
 router.post('/resend-verification-by-email', async (req, res) => {
   const { email } = req.body;
+  const altchaPayload = req.body.altcha;
   try {
     if (!email) {
       return res.status(400).json({ message: '请提供邮箱地址' });
+    }
+    if (!(await verifyAltcha(altchaPayload, req))) {
+      return res.status(400).json({ message: '验证码错误或已过期' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: '邮箱格式不正确' });
     }
     const user = await User.findOne({ email });
     if (!user) {
@@ -995,11 +1006,8 @@ router.post('/resend-verification-by-email', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-    const sent = await sendVerificationEmail(user.email, verifyToken);
-    if (!sent) {
-      return res.json({ message: '邮件服务未配置，请联系管理员' });
-    }
-    res.json({ message: '验证邮件已发送至您的邮箱' });
+    sendVerificationEmail(user.email, verifyToken).catch(() => {});
+    res.json({ message: '如果该邮箱已注册且未验证，验证邮件已发送' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }
@@ -1101,10 +1109,15 @@ router.get('/sse-ticket', protect, async (req, res) => {
 
 // 申请修改邮箱 - 验证密码后发送验证邮件到新邮箱
 router.post('/request-email-change', protect, async (req, res) => {
-  const { password, newEmail } = req.body;
+  const { password } = req.body;
+  const newEmail = xss(req.body.newEmail?.trim());
+  const altchaPayload = req.body.altcha;
   try {
     if (!password || !newEmail) {
       return res.status(400).json({ message: '请填写密码和新邮箱' });
+    }
+    if (!(await verifyAltcha(altchaPayload, req))) {
+      return res.status(400).json({ message: '验证码错误或已过期' });
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail)) {
@@ -1157,7 +1170,7 @@ router.post('/request-email-change', protect, async (req, res) => {
       html: `
         <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
           <h2 style="color:#6366f1;">确认修改邮箱</h2>
-          <p>您正在将账号 <strong>${escapeHtml(user.username || user.accountId)}</strong> 的绑定邮箱修改为 <strong>${newEmail}</strong>。</p>
+          <p>您正在将账号 <strong>${escapeHtml(user.username || user.accountId)}</strong> 的绑定邮箱修改为 <strong>${escapeHtml(newEmail)}</strong>。</p>
           <p>请点击以下链接确认修改（1小时内有效）：</p>
           <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">确认修改邮箱</a>
           <p style="color:#94a3b8;font-size:13px;">如果您没有请求修改邮箱，请忽略此邮件，您的邮箱不会被更改。</p>

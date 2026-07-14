@@ -1,6 +1,42 @@
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 
+// === 目标邮箱限流（防止邮件炸弹） ===
+const emailTargetTracker = new Map();
+const EMAIL_TARGET_MAX_PER_HOUR = 10;
+const EMAIL_TARGET_WINDOW_MS = 60 * 60 * 1000; // 1 小时
+
+const checkEmailTargetLimit = (targetEmail) => {
+  const key = targetEmail.toLowerCase();
+  const now = Date.now();
+
+  if (!emailTargetTracker.has(key)) {
+    emailTargetTracker.set(key, []);
+  }
+  const timestamps = emailTargetTracker.get(key);
+  const valid = timestamps.filter(t => now - t < EMAIL_TARGET_WINDOW_MS);
+
+  if (valid.length >= EMAIL_TARGET_MAX_PER_HOUR) {
+    return false;
+  }
+  valid.push(now);
+  emailTargetTracker.set(key, valid);
+  return true;
+};
+
+// 定期清理过期记录（每 10 分钟）
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamps] of emailTargetTracker) {
+    const valid = timestamps.filter(t => now - t < EMAIL_TARGET_WINDOW_MS);
+    if (valid.length === 0) {
+      emailTargetTracker.delete(key);
+    } else {
+      emailTargetTracker.set(key, valid);
+    }
+  }
+}, 10 * 60 * 1000);
+
 let cachedConfig = null;
 let cacheTime = 0;
 const CACHE_TTL = 5 * 60 * 1000;
@@ -52,6 +88,8 @@ const createTransporter = async () => {
       host: dbConfig.host,
       port: parseInt(dbConfig.port || '465'),
       secure: parseInt(dbConfig.port || '465') === 465,
+      requireTLS: true,
+      tls: { minVersion: 'TLSv1.2' },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
@@ -68,6 +106,8 @@ const createTransporter = async () => {
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT || '465'),
     secure: parseInt(process.env.EMAIL_PORT || '465') === 465,
+    requireTLS: true,
+    tls: { minVersion: 'TLSv1.2' },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
@@ -91,6 +131,10 @@ const getFromUser = async () => {
 };
 
 const sendPasswordResetEmail = async (email, resetToken) => {
+  if (!checkEmailTargetLimit(email)) {
+    console.log(`[Email] Rate limit exceeded for target ${email}`);
+    return false;
+  }
   const transporter = await createTransporter();
   if (!transporter) {
     console.log(`[Email] Password reset requested for ${email} (email service not configured)`);
@@ -124,6 +168,10 @@ const sendPasswordResetEmail = async (email, resetToken) => {
 };
 
 const sendVerificationEmail = async (email, verifyToken) => {
+  if (!checkEmailTargetLimit(email)) {
+    console.log(`[Email] Rate limit exceeded for target ${email}`);
+    return false;
+  }
   const transporter = await createTransporter();
   if (!transporter) {
     console.log(`[Email] Verification requested for ${email} (email service not configured)`);
