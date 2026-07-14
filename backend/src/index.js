@@ -4,7 +4,7 @@ const path = require('path');
 const connectDB = require('../config/db');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const compression = require('compression');
@@ -332,7 +332,22 @@ const emailVerifyLimiter = rateLimit({
 });
 app.use('/api/auth/verify-email', emailVerifyLimiter);
 app.use('/api/auth/resend-verification', emailVerifyLimiter);
+app.use('/api/auth/resend-verification-by-email', emailVerifyLimiter);
 app.use('/api/auth/verify-device', twoFactorLimiter);
+
+const requestEmailChangeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { message: '操作过于频繁，请稍后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const ip = ipKeyGenerator(req);
+    const targetEmail = req.body?.newEmail || 'unknown';
+    return `${ip}:${targetEmail.toLowerCase()}`;
+  },
+});
+app.use('/api/auth/request-email-change', requestEmailChangeLimiter);
 
 // 静态文件访问日志（不阻止访问，仅记录）
 app.use('/uploads', (req, res, next) => {

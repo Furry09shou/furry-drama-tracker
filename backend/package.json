@@ -34,7 +34,8 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "smtp-server": "^3.19.2"
   },
   "keywords": [
     "furry",
