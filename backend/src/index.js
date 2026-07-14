@@ -4,7 +4,7 @@ const path = require('path');
 const connectDB = require('../config/db');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const compression = require('compression');
@@ -342,9 +342,9 @@ const requestEmailChangeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    const uid = req.user?._id || req.ip;
+    const ip = ipKeyGenerator(req);
     const targetEmail = req.body?.newEmail || 'unknown';
-    return `${uid}:${targetEmail.toLowerCase()}`;
+    return `${ip}:${targetEmail.toLowerCase()}`;
   },
 });
 app.use('/api/auth/request-email-change', requestEmailChangeLimiter);

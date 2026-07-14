@@ -81,15 +81,18 @@ const clearEmailCache = () => {
   cacheTime = 0;
 };
 
+const isLocalhost = (host) => host === '127.0.0.1' || host === 'localhost' || host === '::1';
+
 const createTransporter = async () => {
   const dbConfig = await getEmailConfig();
   if (dbConfig) {
+    const isLocal = isLocalhost(dbConfig.host);
     return nodemailer.createTransport({
       host: dbConfig.host,
       port: parseInt(dbConfig.port || '465'),
       secure: parseInt(dbConfig.port || '465') === 465,
-      requireTLS: true,
-      tls: { minVersion: 'TLSv1.2' },
+      requireTLS: !isLocal,
+      tls: isLocal ? undefined : { minVersion: 'TLSv1.2' },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
@@ -102,12 +105,13 @@ const createTransporter = async () => {
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     return null;
   }
+  const isLocal = isLocalhost(process.env.EMAIL_HOST);
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT || '465'),
     secure: parseInt(process.env.EMAIL_PORT || '465') === 465,
-    requireTLS: true,
-    tls: { minVersion: 'TLSv1.2' },
+    requireTLS: !isLocal,
+    tls: isLocal ? undefined : { minVersion: 'TLSv1.2' },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
