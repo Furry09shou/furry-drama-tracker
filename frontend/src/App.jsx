@@ -341,51 +341,26 @@ function AppContent() {
     }
   }, [siteSettingsData, lang, location.pathname, t]);
 
-  // ===== PWA 运行时动态更新：根据站点设置覆盖 manifest、图标、主题色等 =====
+  // ===== PWA 运行时更新：指向后端动态 manifest 端点，并更新图标、主题色等 meta =====
   useEffect(() => {
     if (!siteSettingsData) return;
     const pwaName = siteSettingsData.pwaName || siteSettingsData.siteName || t('site.defaultName');
     const pwaShortName = siteSettingsData.pwaShortName || (pwaName || '').slice(0, 12);
-    const pwaDescription = siteSettingsData.pwaDescription || '';
     const pwaThemeColor = siteSettingsData.pwaThemeColor || '#6366f1';
-    const pwaBackgroundColor = siteSettingsData.pwaBackgroundColor || '#0f172a';
-    const pwaIcon192 = siteSettingsData.pwaIcon192 || '/icon-192x192.png';
-    const pwaIcon512 = siteSettingsData.pwaIcon512 || '/icon-512x512.png';
-    const pwaMaskableIcon = siteSettingsData.pwaMaskableIcon || pwaIcon512;
 
-    // 生成动态 manifest 并替换 <link rel="manifest">
-    try {
-      const manifest = {
-        name: pwaName,
-        short_name: pwaShortName,
-        description: pwaDescription || '兽剧内容聚合平台',
-        start_url: '/',
-        display: 'standalone',
-        orientation: 'any',
-        background_color: pwaBackgroundColor,
-        theme_color: pwaThemeColor,
-        categories: ['entertainment', 'social'],
-        scope: '/',
-        icons: [
-          { src: pwaIcon192, sizes: '192x192', type: 'image/png' },
-          { src: pwaIcon512, sizes: '512x512', type: 'image/png' },
-          { src: pwaMaskableIcon, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      };
-      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-      const blobUrl = URL.createObjectURL(blob);
-      let manifestLink = document.querySelector("link[rel='manifest']");
-      if (!manifestLink) {
-        manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        document.head.appendChild(manifestLink);
-      }
-      const prevHref = manifestLink.getAttribute('href');
-      if (prevHref && prevHref.startsWith('blob:')) {
-        URL.revokeObjectURL(prevHref);
-      }
-      manifestLink.setAttribute('href', blobUrl);
-    } catch (e) {}
+    // 将 manifest 链接指向后端动态端点（同源 HTTP，满足浏览器可安装性要求）
+    // 不再使用 blob: URL，因为 blob: URL 会导致浏览器无法验证 manifest，安装提示不弹出
+    let manifestLink = document.querySelector("link[rel='manifest']");
+    if (!manifestLink) {
+      manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      document.head.appendChild(manifestLink);
+    }
+    const currentHref = manifestLink.getAttribute('href') || '';
+    // 仅在尚未指向动态端点时更新，避免重复设置
+    if (!currentHref.includes('/api/site-content/pwa-manifest')) {
+      manifestLink.setAttribute('href', '/api/site-content/pwa-manifest');
+    }
 
     // 更新 apple-touch-icon
     if (siteSettingsData.pwaIcon512 || siteSettingsData.pwaIcon192) {

@@ -63,6 +63,56 @@ const DEFAULT_CONTENT = {
   }
 };
 
+// 公开 PWA manifest 端点：根据站点设置动态返回 manifest，使浏览器安装提示展示自定义名称和图标
+router.get('/pwa-manifest', asyncHandler(async (req, res) => {
+  let settingsData = null;
+  try {
+    let content = await SiteContent.findOne({ key: 'settings' });
+    if (!content && DEFAULT_CONTENT.settings) {
+      content = await SiteContent.create(DEFAULT_CONTENT.settings);
+    }
+    if (content && content.content) {
+      settingsData = JSON.parse(content.content);
+    }
+  } catch {}
+
+  const s = settingsData || {};
+  const pwaName = s.pwaName || s.siteName || '兽剧聚合平台';
+  const pwaShortName = s.pwaShortName || (pwaName || '').slice(0, 12);
+  const pwaDescription = s.pwaDescription || '兽剧内容聚合平台 - 发现和追踪你喜爱的兽剧内容';
+  const pwaThemeColor = s.pwaThemeColor || '#6366f1';
+  const pwaBackgroundColor = s.pwaBackgroundColor || '#0f172a';
+  const pwaIcon192 = s.pwaIcon192 || '/icon-192x192.png';
+  const pwaIcon512 = s.pwaIcon512 || '/icon-512x512.png';
+  const pwaMaskableIcon = s.pwaMaskableIcon || pwaIcon512;
+
+  const manifest = {
+    name: pwaName,
+    short_name: pwaShortName,
+    description: pwaDescription,
+    start_url: '/',
+    display: 'standalone',
+    orientation: 'any',
+    background_color: pwaBackgroundColor,
+    theme_color: pwaThemeColor,
+    categories: ['entertainment', 'social'],
+    scope: '/',
+    icons: [
+      { src: pwaIcon192, sizes: '192x192', type: 'image/png' },
+      { src: pwaIcon512, sizes: '512x512', type: 'image/png' },
+      { src: pwaMaskableIcon, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+    shortcuts: [
+      { name: '最新剧集', short_name: '最新', url: '/?tab=latest', icons: [{ src: pwaIcon192, sizes: '192x192' }] },
+      { name: '搜索', short_name: '搜索', url: '/?action=search', icons: [{ src: pwaIcon192, sizes: '192x192' }] }
+    ],
+  };
+
+  res.set('Content-Type', 'application/manifest+json');
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json(manifest);
+}));
+
 router.get('/:key', (req, res, next) => {
   const sensitiveKeys = ['email'];
   if (sensitiveKeys.includes(req.params.key)) {
