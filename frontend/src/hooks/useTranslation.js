@@ -113,10 +113,16 @@ const useTranslation = () => {
 
   const getLocalizedContent = useCallback((siteContent, field) => {
     if (!siteContent) return '';
-    const content = siteContent.content;
-    if (!content) return '';
+    // 支持两种入参：{ content: JSON字符串 } 或已解析的对象
+    let parsed = siteContent;
     try {
-      const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+      const raw = siteContent.content;
+      if (typeof raw === 'string') {
+        parsed = JSON.parse(raw);
+      } else if (raw && typeof raw === 'object') {
+        parsed = raw;
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return '';
       if (lang === 'zh') return parsed[field] || '';
       const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
       const localizedField = `${field}${suffix}`;

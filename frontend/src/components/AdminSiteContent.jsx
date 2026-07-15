@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import adminApi from '../utils/adminApi';
 import ImageUploader from './ImageUploader';
 import { useI18n } from '../contexts/I18nContext';
+import { useSiteSettings } from '../contexts/SiteSettingsContext';
 
 const LANGS = [
   { code: 'zh', label: '中文', flag: '🇨🇳' },
@@ -24,6 +25,7 @@ const parseI18nContent = (raw) => {
 
 const AdminSiteContent = () => {
   const { lang: uiLang, t } = useI18n();
+  const { refreshSettings } = useSiteSettings();
   const { admin } = useOutletContext();
   const [contents, setContents] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
@@ -45,9 +47,13 @@ const AdminSiteContent = () => {
     welcomeTitleEn: '',
     welcomeSubtitleEn: '',
     browserTitleEn: '',
+    pwaName: '', pwaShortName: '', pwaDescription: '',
+    pwaIcon192: '', pwaIcon512: '', pwaMaskableIcon: '',
+    pwaBackgroundColor: '#0f172a', pwaThemeColor: '#6366f1',
   });
   const [newUpdate, setNewUpdate] = useState('');
   const [changelogInputs, setChangelogInputs] = useState({});
+  const [editingChangelogIdx, setEditingChangelogIdx] = useState(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
@@ -116,6 +122,14 @@ const AdminSiteContent = () => {
           welcomeTitleEn: data.welcomeTitleEn || '',
           welcomeSubtitleEn: data.welcomeSubtitleEn || '',
           browserTitleEn: data.browserTitleEn || '',
+          pwaName: data.pwaName || '',
+          pwaShortName: data.pwaShortName || '',
+          pwaDescription: data.pwaDescription || '',
+          pwaIcon192: data.pwaIcon192 || '',
+          pwaIcon512: data.pwaIcon512 || '',
+          pwaMaskableIcon: data.pwaMaskableIcon || '',
+          pwaBackgroundColor: data.pwaBackgroundColor || '#0f172a',
+          pwaThemeColor: data.pwaThemeColor || '#6366f1',
         });
       } catch (e) {
         setSettingsData({
@@ -126,6 +140,9 @@ const AdminSiteContent = () => {
           siteNameEn: '', welcomeTitleEn: '',
           welcomeSubtitleEn: '',
           browserTitleEn: '',
+          pwaName: '', pwaShortName: '', pwaDescription: '',
+          pwaIcon192: '', pwaIcon512: '', pwaMaskableIcon: '',
+          pwaBackgroundColor: '#0f172a', pwaThemeColor: '#6366f1',
         });
       }
     } else {
@@ -150,6 +167,10 @@ const AdminSiteContent = () => {
       });
       setMessage(t('adminContent.saveSuccess'));
       fetchContents();
+      // 保存站点设置后刷新前端缓存，使导航栏标题、欢迎语、PWA 等立即生效
+      if (editingKey === 'settings') {
+        refreshSettings();
+      }
     } catch (err) {
       setMessage(err.response?.data?.message || t('adminContent.saveFailed'));
     }
@@ -158,7 +179,11 @@ const AdminSiteContent = () => {
 
   const addUpdate = () => {
     if (newUpdate.trim()) {
-      setAboutData(prev => ({ ...prev, updates: [...prev.updates, newUpdate.trim()] }));
+      // 支持多行文本：按回车自动分割为多条更新内容
+      const items = newUpdate.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      if (items.length > 0) {
+        setAboutData(prev => ({ ...prev, updates: [...prev.updates, ...items] }));
+      }
       setNewUpdate('');
     }
   };
@@ -390,6 +415,78 @@ const AdminSiteContent = () => {
             </div>
           </div>
         </div>
+
+        <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginTop: '20px' }}>
+          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>📱 {t('adminContent.pwaSection')}</h4>
+          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('adminContent.pwaSectionDesc')}</p>
+
+          <div className="form-group" style={{ marginBottom: '12px' }}>
+            <label>📛 {t('adminContent.pwaNameLabel')}</label>
+            <input type="text" value={settingsData.pwaName} onChange={(e) => setSettingsData(prev => ({ ...prev, pwaName: e.target.value }))} placeholder={t('adminContent.pwaNamePlaceholder')} />
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.pwaNameHint')}</p>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '12px' }}>
+            <label>🏷️ {t('adminContent.pwaShortNameLabel')}</label>
+            <input type="text" value={settingsData.pwaShortName} onChange={(e) => setSettingsData(prev => ({ ...prev, pwaShortName: e.target.value }))} placeholder={t('adminContent.pwaShortNamePlaceholder')} maxLength={12} />
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.pwaShortNameHint')}</p>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '12px' }}>
+            <label>📝 {t('adminContent.pwaDescriptionLabel')}</label>
+            <textarea value={settingsData.pwaDescription} onChange={(e) => setSettingsData(prev => ({ ...prev, pwaDescription: e.target.value }))} placeholder={t('adminContent.pwaDescriptionPlaceholder')} rows={2} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', fontSize: '13px', lineHeight: 1.5, resize: 'vertical' }} />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '12px' }}>
+            <label>🎨 {t('adminContent.pwaThemeColorLabel')}</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input type="color" value={settingsData.pwaThemeColor} onChange={(e) => setSettingsData(prev => ({ ...prev, pwaThemeColor: e.target.value }))} style={{ width: '40px', height: '32px', padding: 0, border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--card)', cursor: 'pointer' }} />
+              <input type="text" value={settingsData.pwaThemeColor} onChange={(e) => setSettingsData(prev => ({ ...prev, pwaThemeColor: e.target.value }))} placeholder="#6366f1" style={{ flex: 1 }} />
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.pwaThemeColorHint')}</p>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '12px' }}>
+            <label>🖤 {t('adminContent.pwaBackgroundColorLabel')}</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input type="color" value={settingsData.pwaBackgroundColor} onChange={(e) => setSettingsData(prev => ({ ...prev, pwaBackgroundColor: e.target.value }))} style={{ width: '40px', height: '32px', padding: 0, border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--card)', cursor: 'pointer' }} />
+              <input type="text" value={settingsData.pwaBackgroundColor} onChange={(e) => setSettingsData(prev => ({ ...prev, pwaBackgroundColor: e.target.value }))} placeholder="#0f172a" style={{ flex: 1 }} />
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.pwaBackgroundColorHint')}</p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>🖼️ {t('adminContent.pwaIcon192Label')}</label>
+              <ImageUploader label={t('adminContent.pwaIcon192Label')} value={settingsData.pwaIcon192} onChange={(url) => setSettingsData(prev => ({ ...prev, pwaIcon192: url }))} aspectRatio={1} outputWidth={192} outputHeight={192} />
+              <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.pwaIcon192Hint')}</p>
+            </div>
+            <div style={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>🖥️ {t('adminContent.pwaIcon512Label')}</label>
+              <ImageUploader label={t('adminContent.pwaIcon512Label')} value={settingsData.pwaIcon512} onChange={(url) => setSettingsData(prev => ({ ...prev, pwaIcon512: url }))} aspectRatio={1} outputWidth={512} outputHeight={512} />
+              <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.pwaIcon512Hint')}</p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '12px' }}>
+            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>🎭 {t('adminContent.pwaMaskableIconLabel')}</label>
+            <ImageUploader label={t('adminContent.pwaMaskableIconLabel')} value={settingsData.pwaMaskableIcon} onChange={(url) => setSettingsData(prev => ({ ...prev, pwaMaskableIcon: url }))} aspectRatio={1} outputWidth={512} outputHeight={512} />
+            <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.pwaMaskableIconHint')}</p>
+          </div>
+
+          <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <h5 style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>👁️ {t('adminContent.pwaPreview')}</h5>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {(settingsData.pwaIcon192 || settingsData.pwaIcon512) && (
+                <img src={settingsData.pwaIcon512 || settingsData.pwaIcon192} alt="PWA Icon" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: `2px solid ${settingsData.pwaThemeColor}` }} />
+              )}
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--foreground)' }}>{settingsData.pwaName || t('adminContent.pwaNamePlaceholder')}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{settingsData.pwaShortName || t('adminContent.pwaShortNamePlaceholder')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -477,10 +574,13 @@ const AdminSiteContent = () => {
           }}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--foreground)' }}>{t('adminContent.currentVersionUpdates')}</h4>
             <div style={{ marginBottom: '10px' }}>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <input type="text" value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder={t('adminContent.updateInputPlaceholder')} style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px', minWidth: 0 }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUpdate(); } }} />
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' }}>
+                <textarea value={newUpdate} onChange={(e) => setNewUpdate(e.target.value)} placeholder={t('adminContent.updateInputPlaceholder')} rows={2} style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '13px', minWidth: 0, resize: 'vertical', lineHeight: 1.5 }} onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addUpdate(); }
+                }} />
                 <button type="button" style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary-light)', cursor: 'pointer', fontSize: '14px', width: '26px', height: '26px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1 }} onClick={addUpdate}>+</button>
               </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.updateMultilineHint')}</p>
             </div>
             {aboutData.updates.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
@@ -537,16 +637,34 @@ const AdminSiteContent = () => {
                     <div style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       padding: '8px 12px', borderBottom: '1px solid var(--border)',
-                      background: 'var(--glass-bg)'
+                      background: 'var(--glass-bg)', flexWrap: 'wrap', gap: '6px'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: 'var(--primary-light)', fontSize: '12px', fontWeight: 700, background: 'var(--primary-bg)', borderRadius: '4px', padding: '2px 8px' }}>v{entry.version}</span>
-                        <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{entry.date}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {editingChangelogIdx === idx ? (
+                          <>
+                            <input type="text" value={entry.version} onChange={(e) => setAboutData(prev => ({ ...prev, changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, version: e.target.value } : c) }))} style={{ color: 'var(--primary-light)', fontSize: '12px', fontWeight: 700, background: 'var(--primary-bg)', borderRadius: '4px', padding: '2px 8px', border: '1px solid var(--primary-border)', width: '90px' }} />
+                            <input type="date" value={entry.date} onChange={(e) => setAboutData(prev => ({ ...prev, changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, date: e.target.value } : c) }))} style={{ color: 'var(--text-tertiary)', fontSize: '12px', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--input)' }} />
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ color: 'var(--primary-light)', fontSize: '12px', fontWeight: 700, background: 'var(--primary-bg)', borderRadius: '4px', padding: '2px 8px' }}>v{entry.version}</span>
+                            <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>{entry.date}</span>
+                          </>
+                        )}
                         {idx === 0 && <span style={{ fontSize: '10px', color: 'var(--success-text)', background: 'var(--success-bg)', padding: '1px 6px', borderRadius: '3px' }}>{t('adminContent.latest')}</span>}
                       </div>
-                      <button type="button" onClick={() => {
-                        setAboutData(prev => ({ ...prev, changelog: prev.changelog.filter((_, i) => i !== idx) }));
-                      }} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px', width: '20px', height: '20px', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button type="button" onClick={() => setEditingChangelogIdx(editingChangelogIdx === idx ? null : idx)} style={{
+                          background: editingChangelogIdx === idx ? 'var(--success-bg)' : 'var(--primary-bg)',
+                          border: `1px solid ${editingChangelogIdx === idx ? 'var(--success-border)' : 'var(--primary-border)'}`,
+                          color: editingChangelogIdx === idx ? 'var(--success-text)' : 'var(--primary-light)',
+                          cursor: 'pointer', fontSize: '11px', padding: '2px 8px', borderRadius: '3px', lineHeight: 1.5
+                        }}>{editingChangelogIdx === idx ? t('adminContent.doneEdit') : t('adminContent.edit')}</button>
+                        <button type="button" onClick={() => {
+                          setAboutData(prev => ({ ...prev, changelog: prev.changelog.filter((_, i) => i !== idx) }));
+                          if (editingChangelogIdx === idx) setEditingChangelogIdx(null);
+                        }} style={{ background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)', color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px', width: '20px', height: '20px', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                      </div>
                     </div>
                     <div style={{ padding: '8px 12px' }}>
                       {(entry.items || []).map((item, i) => (
@@ -555,7 +673,11 @@ const AdminSiteContent = () => {
                           padding: '4px 0',
                           borderBottom: i < (entry.items || []).length - 1 ? '1px dashed var(--border)' : 'none'
                         }}>
-                          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1, wordBreak: 'break-all' }}>• {item}</span>
+                          {editingChangelogIdx === idx ? (
+                            <input type="text" value={item} onChange={(e) => setAboutData(prev => ({ ...prev, changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, items: c.items.map((it, ii) => ii === i ? e.target.value : it) } : c) }))} style={{ fontSize: '13px', color: 'var(--foreground)', lineHeight: 1.5, flex: 1, padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--primary-border)', background: 'var(--input)' }} />
+                          ) : (
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1, wordBreak: 'break-all' }}>• {item}</span>
+                          )}
                           <button type="button" onClick={() => {
                             setAboutData(prev => ({
                               ...prev,
@@ -570,14 +692,15 @@ const AdminSiteContent = () => {
                         </div>
                       ))}
                       <div style={{ display: 'flex', gap: '6px', marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed var(--border)' }}>
-                        <input type="text" value={changelogInputs[idx] || ''} onChange={(e) => setChangelogInputs(prev => ({ ...prev, [idx]: e.target.value }))} placeholder={t('adminContent.appendInputPlaceholder')} style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '12px', minWidth: 0 }} onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                        <textarea value={changelogInputs[idx] || ''} onChange={(e) => setChangelogInputs(prev => ({ ...prev, [idx]: e.target.value }))} placeholder={t('adminContent.appendInputPlaceholder')} rows={2} style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--foreground)', fontSize: '12px', minWidth: 0, resize: 'vertical', lineHeight: 1.5 }} onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                             e.preventDefault();
                             const val = (changelogInputs[idx] || '').trim();
                             if (!val) return;
+                            const items = val.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
                             setAboutData(prev => ({
                               ...prev,
-                              changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, items: [...c.items, val] } : c)
+                              changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, items: [...c.items, ...items] } : c)
                             }));
                             setChangelogInputs(prev => ({ ...prev, [idx]: '' }));
                           }
@@ -585,9 +708,10 @@ const AdminSiteContent = () => {
                         <button type="button" onClick={() => {
                           const val = (changelogInputs[idx] || '').trim();
                           if (!val) return;
+                          const items = val.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
                           setAboutData(prev => ({
                             ...prev,
-                            changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, items: [...c.items, val] } : c)
+                            changelog: prev.changelog.map((c, ci) => ci === idx ? { ...c, items: [...c.items, ...items] } : c)
                           }));
                           setChangelogInputs(prev => ({ ...prev, [idx]: '' }));
                         }} style={{
