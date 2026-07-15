@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
 
-const TagCloud = () => {
+const TagCloud = ({ selectedTag, onTagClick }) => {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,42 +58,89 @@ const TagCloud = () => {
         gap: '8px',
         alignItems: 'center'
       }}>
-        {tags.map(tag => (
+        {tags.map(tag => {
+          const isSelected = selectedTag === tag.name;
+          return (
+            <span
+              key={tag.name}
+              role="button"
+              tabIndex={0}
+              onClick={() => onTagClick && onTagClick(tag.name)}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && onTagClick) {
+                  e.preventDefault();
+                  onTagClick(tag.name);
+                }
+              }}
+              style={{
+                display: 'inline-block',
+                padding: '4px 12px',
+                borderRadius: '999px',
+                background: isSelected ? 'var(--primary)' : 'var(--primary-bg)',
+                color: isSelected ? '#fff' : 'var(--primary)',
+                fontSize: `${getFontSize(tag.count)}px`,
+                opacity: isSelected ? '1' : getOpacity(tag.count),
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: '1px solid var(--primary-border)',
+                fontWeight: 500,
+                userSelect: 'none'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--primary)';
+                e.currentTarget.style.color = '#fff';
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px var(--shadow-modal)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = isSelected ? 'var(--primary)' : 'var(--primary-bg)';
+                e.currentTarget.style.color = isSelected ? '#fff' : 'var(--primary)';
+                e.currentTarget.style.opacity = String(isSelected ? '1' : getOpacity(tag.count));
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              {isSelected ? '✓ ' : ''}{tag.name}
+            </span>
+          );
+        })}
+        {selectedTag && (
           <span
-            key={tag.name}
-            onClick={() => navigate(`/?tag=${encodeURIComponent(tag.name)}`)}
+            role="button"
+            tabIndex={0}
+            onClick={() => onTagClick && onTagClick(selectedTag)}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && onTagClick) {
+                e.preventDefault();
+                onTagClick(selectedTag);
+              }
+            }}
             style={{
               display: 'inline-block',
               padding: '4px 12px',
               borderRadius: '999px',
-              background: 'var(--primary-bg)',
-              color: 'var(--primary)',
-              fontSize: `${getFontSize(tag.count)}px`,
-              opacity: getOpacity(tag.count),
+              background: 'var(--hover-bg)',
+              color: 'var(--text-secondary)',
+              fontSize: '13px',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              border: '1px solid var(--primary-border)',
+              border: '1px solid var(--border)',
               fontWeight: 500,
               userSelect: 'none'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--primary)';
-              e.currentTarget.style.color = '#fff';
-              e.currentTarget.style.opacity = '1';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px var(--shadow-modal)';
+              e.currentTarget.style.color = 'var(--destructive)';
+              e.currentTarget.style.borderColor = 'var(--destructive)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--primary-bg)';
-              e.currentTarget.style.color = 'var(--primary)';
-              e.currentTarget.style.opacity = String(getOpacity(tag.count));
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.borderColor = 'var(--border)';
             }}
           >
-            {tag.name}
+            ✕ {t('common.cancel')}
           </span>
-        ))}
+        )}
       </div>
     </div>
   );

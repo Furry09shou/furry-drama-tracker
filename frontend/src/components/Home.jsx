@@ -231,8 +231,10 @@ const Home = () => {
   }, [filters.sort, sortOrder, searchParams, setSearchParams]);
 
   const handleTagClick = useCallback((tag) => {
-    handleFilterChange('tag', tag);
-  }, [handleFilterChange]);
+    // 点一下选中，再点一下取消
+    const next = filters.tag === tag ? '' : tag;
+    handleFilterChange('tag', next);
+  }, [handleFilterChange, filters.tag]);
 
   return (
     <div>
@@ -256,7 +258,7 @@ const Home = () => {
         sortOrder={sortOrder}
         getLocalizedName={getLocalizedName}
       />
-      <TagCloud />
+      <TagCloud selectedTag={filters.tag} onTagClick={handleTagClick} />
       </div>
 
       {user && continueWatching.length > 0 && (
