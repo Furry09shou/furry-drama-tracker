@@ -155,17 +155,17 @@ const allowedOrigins = [
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+const normalizedOrigins = allowedOrigins.map(o => o.replace(/\/+$/, ''));
+
 app.use(cors({
   origin: function(origin, callback) {
-    // 生产环境：要求 Origin 头（AJAX 请求均会携带），拒绝无 Origin 的非浏览器请求
-    // 开发环境：允许无 Origin 请求通过（Vite dev server 代理、服务端请求等）
     if (!origin) {
       if (isProduction) {
         return callback(new Error('Not allowed by CORS'));
       }
       return callback(null, true);
     }
-    if (allowedOrigins.includes(origin)) {
+    if (normalizedOrigins.includes(origin.replace(/\/+$/, ''))) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
