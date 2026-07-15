@@ -88,7 +88,7 @@ const AdminSiteContent = () => {
           logo: data.logo || '',
           description: data.description || '',
           version: data.version || '1.0.0',
-          updates: data.updates || [],
+          updates: (data.updates || []).map(u => typeof u === 'string' ? { content: u, date: '' } : { content: u.content || '', date: u.date || '' }),
           changelog: data.changelog || [],
           icp: data.icp || '',
           policeRecord: data.policeRecord || '',
@@ -179,8 +179,10 @@ const AdminSiteContent = () => {
 
   const addUpdate = () => {
     if (newUpdate.trim()) {
-      // 支持多行文本：按回车自动分割为多条更新内容
-      const items = newUpdate.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      // 支持多行文本：按回车自动分割为多条更新内容，每条附带当前日期
+      const today = new Date().toISOString().split('T')[0];
+      const items = newUpdate.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+        .map(s => ({ content: s, date: today }));
       if (items.length > 0) {
         setAboutData(prev => ({ ...prev, updates: [...prev.updates, ...items] }));
       }
@@ -590,7 +592,9 @@ const AdminSiteContent = () => {
                     background: 'var(--hover-bg)', border: '1px solid var(--border)',
                     borderRadius: '6px', padding: '8px 10px'
                   }}>
-                    <span style={{ fontSize: '13px', color: 'var(--foreground)', lineHeight: 1.5, flex: 1, wordBreak: 'break-all' }}>• {item}</span>
+                    <span style={{ fontSize: '13px', color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: '5px', flexShrink: 0 }}>•</span>
+                    <input type="text" value={item.content} onChange={(e) => setAboutData(prev => ({ ...prev, updates: prev.updates.map((u, i) => i === index ? { ...u, content: e.target.value } : u) }))} style={{ fontSize: '13px', color: 'var(--foreground)', lineHeight: 1.5, flex: 1, padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--input)', minWidth: 0 }} />
+                    <input type="date" value={item.date} onChange={(e) => setAboutData(prev => ({ ...prev, updates: prev.updates.map((u, i) => i === index ? { ...u, date: e.target.value } : u) }))} style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--input)', flexShrink: 0 }} />
                     <button type="button" onClick={() => removeUpdate(index)} style={{
                       background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
                       color: 'var(--destructive-text)', cursor: 'pointer', fontSize: '12px',
@@ -603,15 +607,17 @@ const AdminSiteContent = () => {
             )}
             <button type="button" className="btn" style={{ fontSize: '13px', padding: '8px 16px' }} onClick={() => {
               if (aboutData.updates.length === 0) { setMessage(t('adminContent.addUpdatesFirst')); return; }
+              // 从更新对象中提取内容字符串，保持 changelog items 为字符串数组
+              const updateContents = aboutData.updates.map(u => u.content);
               const newEntry = {
                 version: aboutData.version,
                 date: new Date().toISOString().split('T')[0],
-                items: [...aboutData.updates]
+                items: updateContents
               };
               const existing = aboutData.changelog.find(c => c.version === aboutData.version);
               let newChangelog;
               if (existing) {
-                const mergedItems = [...existing.items, ...aboutData.updates.filter(item => !existing.items.includes(item))];
+                const mergedItems = [...existing.items, ...updateContents.filter(item => !existing.items.includes(item))];
                 const updatedEntry = { ...existing, items: mergedItems };
                 newChangelog = aboutData.changelog.map(c => c.version === aboutData.version ? updatedEntry : c);
               } else {

@@ -111,12 +111,18 @@ const SitePage = ({ pageKey }) => {
                         <span style={{ fontSize: '11px', color: 'var(--warning-text)', background: 'var(--warning-bg)', padding: '1px 8px', borderRadius: '4px', border: '1px solid var(--warning-border)' }}>{t('sitePage.comingSoon')}</span>
                       </div>
                       <div style={{ padding: '10px 14px' }}>
-                        {currentUpdates.map((item, i) => (
+                        {currentUpdates.map((item, i) => {
+                          // 兼容旧格式（字符串）和新格式（{content, date}）
+                          const text = typeof item === 'string' ? item : (item.content || '');
+                          const date = typeof item === 'object' && item.date ? item.date : '';
+                          return (
                           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '6px 0', borderBottom: i < currentUpdates.length - 1 ? '1px dashed var(--border)' : 'none' }}>
                             <span style={{ color: 'var(--primary-light)', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>•</span>
-                            <span style={{ color: 'var(--text-lighter)', fontSize: '13px', lineHeight: 1.5 }}><TranslatableText text={item} /></span>
+                            <span style={{ color: 'var(--text-lighter)', fontSize: '13px', lineHeight: 1.5, flex: 1 }}><TranslatableText text={text} /></span>
+                            {date && <span style={{ color: 'var(--text-tertiary)', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>{date}</span>}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

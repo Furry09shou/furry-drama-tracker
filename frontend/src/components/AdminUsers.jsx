@@ -310,7 +310,11 @@ const AdminUsers = () => {
                             if (newRole === u.role) return;
                             if (!window.confirm(t('adminUsers.roleChangeConfirm', { name: u.username, role: getRoleLabel(newRole) }))) return;
                             try {
-                              if (newRole === 'user') {
+                              if (newRole === 'superadmin' || u.role === 'superadmin') {
+                                // 超级管理员的分配和降级都通过 role 接口
+                                await adminApi.put(`/api/admin/role/${u._id}`, { role: newRole });
+                                setSuccess(t('adminUsers.roleUpdated'));
+                              } else if (newRole === 'user') {
                                 await adminApi.put(`/api/admin/user-admin-access/${u._id}`, { adminAccess: false });
                                 setSuccess(t('adminUsers.accessRevoked'));
                               } else if (u.role === 'user' && newRole === 'admin') {
@@ -334,6 +338,7 @@ const AdminUsers = () => {
                           <option value="user">{t('adminUsers.normalUser')}</option>
                           <option value="admin">{t('adminUsers.admin')}</option>
                           <option value="creator">{t('adminUsers.creator')}</option>
+                          <option value="superadmin">{t('adminUsers.superAdmin')}</option>
                         </select>
                       )}
                     </td>

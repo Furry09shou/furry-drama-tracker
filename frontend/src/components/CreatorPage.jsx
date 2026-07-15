@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '../contexts/I18nContext';
+import { useSiteSettings } from '../contexts/SiteSettingsContext';
 import useTranslation from '../hooks/useTranslation';
 
 const CreatorPage = () => {
@@ -10,7 +11,8 @@ const CreatorPage = () => {
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const { settings: siteSettingsData } = useSiteSettings();
   const { getLocalizedTitle, getLocalizedDescription } = useTranslation();
 
   useEffect(() => {
@@ -26,6 +28,18 @@ const CreatorPage = () => {
     };
     fetchProfile();
   }, [id]);
+
+  // 创作者主页标签页标题显示创作者名字
+  useEffect(() => {
+    if (profile) {
+      const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
+      const siteName = (siteSettingsData && (siteSettingsData[`browserTitle${suffix}`] || siteSettingsData.browserTitle)) || t('site.defaultName');
+      document.title = `${profile.displayName} - ${siteName}`;
+    }
+    return () => {
+      // 离开页面时恢复默认标题（App.jsx 会在路由变化时重新设置）
+    };
+  }, [profile, siteSettingsData, lang, t]);
 
   if (loading) return <div className="container"><h2>{t('common.loading')}</h2></div>;
   if (!profile) return <div className="container"><h2>{t('creator.notFound')}</h2></div>;

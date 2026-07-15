@@ -368,9 +368,6 @@ router.put('/role/:id', superAdminProtect, requireEmailChanged, async (req, res)
     if (req.user._id.toString() === req.params.id) {
       return res.status(400).json({ message: '不能修改自己的角色' });
     }
-    if (role === 'superadmin') {
-      return res.status(400).json({ message: '不能通过此接口设置超级管理员' });
-    }
     const target = await User.findById(req.params.id);
     if (!target) {
       return res.status(404).json({ message: '账户不存在' });
