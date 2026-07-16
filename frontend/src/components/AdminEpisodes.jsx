@@ -24,6 +24,7 @@ const AdminEpisodes = () => {
   const [coverImageMode, setCoverImageMode] = useState('url');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const [creators, setCreators] = useState([]);
   const [newEpisode, setNewEpisode] = useState({
     title: '',
     titleEn: '',
@@ -36,7 +37,8 @@ const AdminEpisodes = () => {
     tags: [],
     updateDay: '',
     premiereDate: '',
-    hideCreator: false
+    hideCreator: false,
+    customAuthors: []
   });
   const [newSingleEpisode, setNewSingleEpisode] = useState({
     episodeNumber: 1,
@@ -53,6 +55,7 @@ const AdminEpisodes = () => {
   useEffect(() => {
     fetchEpisodes();
     fetchCategories();
+    fetchCreators();
   }, []);
 
   // ===== 数据获取 =====
@@ -77,6 +80,15 @@ const AdminEpisodes = () => {
       setCategories(res.data);
     } catch (err) {
       console.error('获取分类失败', err);
+    }
+  };
+
+  const fetchCreators = async () => {
+    try {
+      const res = await adminApi.get('/api/admin/creators');
+      setCreators(res.data);
+    } catch (err) {
+      console.error('获取创作者列表失败', err);
     }
   };
 
@@ -128,7 +140,8 @@ const AdminEpisodes = () => {
         premiereDate: newEpisode.status === 'upcoming' && newEpisode.premiereDate
           ? new Date(newEpisode.premiereDate).toISOString()
           : null,
-        hideCreator: !!newEpisode.hideCreator
+        hideCreator: !!newEpisode.hideCreator,
+        customAuthors: newEpisode.customAuthors || []
       };
 
       const response = await adminApi.post('/api/episodes', episodeData);
@@ -151,7 +164,8 @@ const AdminEpisodes = () => {
           tags: response.data.tags || [],
           updateDay: response.data.updateDay || '',
           premiereDate: '',
-          hideCreator: !!response.data.hideCreator
+          hideCreator: !!response.data.hideCreator,
+          customAuthors: (response.data.customAuthors || []).map(a => a._id || a)
         });
         setShowEditForm(true);
         fetchSingleEpisodes(response.data._id);
@@ -188,7 +202,8 @@ const AdminEpisodes = () => {
       premiereDate: episode.premiereDate
         ? new Date(episode.premiereDate).toISOString().slice(0, 16)
         : '',
-      hideCreator: !!episode.hideCreator
+      hideCreator: !!episode.hideCreator,
+      customAuthors: (episode.customAuthors || []).map(a => a._id || a)
     });
     setShowEditForm(true);
     fetchSingleEpisodes(episode._id);
@@ -216,7 +231,8 @@ const AdminEpisodes = () => {
         premiereDate: newEpisode.status === 'upcoming' && newEpisode.premiereDate
           ? new Date(newEpisode.premiereDate).toISOString()
           : null,
-        hideCreator: !!newEpisode.hideCreator
+        hideCreator: !!newEpisode.hideCreator,
+        customAuthors: newEpisode.customAuthors || []
       };
 
       await adminApi.put(`/api/episodes/${editingEpisode._id}`, episodeData);
@@ -338,7 +354,8 @@ const AdminEpisodes = () => {
       tags: [],
       updateDay: '',
       premiereDate: '',
-      hideCreator: false
+      hideCreator: false,
+      customAuthors: []
     });
   };
 
@@ -538,6 +555,46 @@ const AdminEpisodes = () => {
           <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('adminEpisodes.hideCreatorHint')}</span>
         </label>
       </div>
+      {creators.length > 0 && (
+        <div className="form-group">
+          <label>{t('adminEpisodes.customAuthors')}</label>
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px', marginBottom: '8px' }}>{t('adminEpisodes.customAuthorsHint')}</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '200px', overflowY: 'auto', padding: '8px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--hover-bg)' }}>
+            {creators.map(creator => {
+              const isSelected = newEpisode.customAuthors && newEpisode.customAuthors.includes(creator._id);
+              return (
+                <button
+                  key={creator._id}
+                  type="button"
+                  onClick={() => {
+                    const current = newEpisode.customAuthors || [];
+                    if (isSelected) {
+                      setNewEpisode({...newEpisode, customAuthors: current.filter(id => id !== creator._id)});
+                    } else {
+                      setNewEpisode({...newEpisode, customAuthors: [...current, creator._id]});
+                    }
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px',
+                    background: isSelected ? 'var(--primary-bg)' : 'var(--card)',
+                    border: isSelected ? '1px solid var(--primary-border)' : '1px solid var(--border)',
+                    color: isSelected ? 'var(--primary-light)' : 'var(--text-secondary)',
+                    fontWeight: isSelected ? 600 : 400,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {isSelected ? '\u2713 ' : ''}{creator.username || creator.accountId}
+                </button>
+              );
+            })}
+          </div>
+          {newEpisode.customAuthors && newEpisode.customAuthors.length > 0 && (
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '6px' }}>
+              {t('adminEpisodes.customAuthorsSelected', { count: newEpisode.customAuthors.length })}
+            </p>
+          )}
+        </div>
+      )}
       <div className="form-group">
         <button type="submit">{isEdit ? t('adminEpisodes.updateEpisode') : t('adminEpisodes.addAndManage')}</button>
       </div>

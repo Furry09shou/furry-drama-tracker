@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const UserSession = require('../models/UserSession');
+const CreatorProfile = require('../models/CreatorProfile');
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
@@ -393,6 +394,47 @@ router.get('/creators', adminProtect, async (req, res) => {
   try {
     const creators = await User.find({ role: 'creator' }).select('-password');
     res.json(creators);
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// ===== 超管管理创作者主页 =====
+router.get('/creator-profiles', superAdminProtect, requireEmailChanged, async (req, res) => {
+  try {
+    const profiles = await CreatorProfile.find().populate('adminId', 'accountId username email').sort({ updatedAt: -1 });
+    res.json(profiles);
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+router.get('/creator-profiles/:id', superAdminProtect, requireEmailChanged, async (req, res) => {
+  try {
+    const profile = await CreatorProfile.findById(req.params.id).populate('adminId', 'accountId username email');
+    if (!profile) return res.status(404).json({ message: '创作者主页不存在' });
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+router.put('/creator-profiles/:id', superAdminProtect, requireEmailChanged, async (req, res) => {
+  try {
+    const updateData = {
+      displayName: req.body.displayName,
+      avatar: req.body.avatar,
+      bio: req.body.bio && req.body.bio.length > 500 ? req.body.bio.slice(0, 500) : req.body.bio,
+      socialLinks: req.body.socialLinks || {},
+      updatedAt: Date.now()
+    };
+    const profile = await CreatorProfile.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    if (!profile) return res.status(404).json({ message: '创作者主页不存在' });
+    res.json(profile);
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }

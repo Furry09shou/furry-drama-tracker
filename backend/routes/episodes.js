@@ -145,7 +145,8 @@ router.get('/', async (req, res) => {
     const total = await Episode.countDocuments(query);
     let episodesQuery = Episode.find(query).sort(sortOption)
       .populate('createdBy', 'accountId username')
-      .populate('allowedEditors', 'accountId username');
+      .populate('allowedEditors', 'accountId username')
+      .populate('customAuthors', 'accountId username');
 
     if (usePagination) {
       const totalPages = Math.ceil(total / limitNum);
@@ -295,7 +296,8 @@ router.get('/:id', async (req, res) => {
 
     const episode = await Episode.findById(req.params.id)
       .populate('createdBy', 'accountId username')
-      .populate('allowedEditors', 'accountId username');
+      .populate('allowedEditors', 'accountId username')
+      .populate('customAuthors', 'accountId username');
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
@@ -443,6 +445,7 @@ router.post('/', creatorProtect, async (req, res) => {
       platformLinks: req.body.platformLinks || {},
       createdBy: req.user._id,
       hideCreator: !!req.body.hideCreator,
+      customAuthors: Array.isArray(req.body.customAuthors) ? req.body.customAuthors : [],
       reviewStatus: isCreator ? 'pending' : 'approved'
     };
 
@@ -578,7 +581,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
       await EpisodeVersion.deleteMany({ _id: { $in: oldestVersions.map(v => v._id) } });
     }
 
-    const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks', 'hideCreator'];
+    const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks', 'hideCreator', 'customAuthors'];
     const updateData = { updatedAt: Date.now() };
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {

@@ -86,6 +86,10 @@ const EpisodeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  customAuthors: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   reviewStatus: {
     type: String,
     enum: ['approved', 'pending', 'rejected'],

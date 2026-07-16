@@ -376,29 +376,54 @@ const EpisodeDetail = ({ user }) => {
                 </span>
               </p>
             )}
-            {!episode.hideCreator && (episode.createdBy || (episode.allowedEditors && episode.allowedEditors.length > 0)) && (
-              <p><strong>{t('episode.author')}</strong>
-                {episode.createdBy && (
-                  <Link
-                    to={`/creator/${episode.createdBy._id}`}
-                    style={{color: 'var(--primary)', textDecoration: 'none', marginRight: '8px'}}
-                    onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                    onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                  >{episode.createdBy.username}</Link>
-                )}
-                {episode.allowedEditors && episode.allowedEditors.map((editor, idx) => (
-                  <span key={editor._id}>
-                    {idx > 0 || episode.createdBy ? '、' : ''}
+            {(() => {
+              const showCreatedBy = !episode.hideCreator && episode.createdBy;
+              const editors = (episode.allowedEditors && episode.allowedEditors.length > 0) ? episode.allowedEditors : [];
+              const customAuthors = (episode.customAuthors && episode.customAuthors.length > 0) ? episode.customAuthors : [];
+              const hasAnyAuthor = showCreatedBy || editors.length > 0 || customAuthors.length > 0;
+              if (!hasAnyAuthor) return null;
+              let authorIdx = 0;
+              return (
+                <p><strong>{t('episode.author')}</strong>
+                  {showCreatedBy && (
                     <Link
-                      to={`/creator/${editor._id}`}
-                      style={{color: 'var(--primary)', textDecoration: 'none'}}
+                      to={`/creator/${episode.createdBy._id}`}
+                      style={{color: 'var(--primary)', textDecoration: 'none', marginRight: '8px'}}
                       onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
                       onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                    >{editor.username}</Link>
-                  </span>
-                ))}
-              </p>
-            )}
+                    >{episode.createdBy.username}</Link>
+                  )}
+                  {editors.map((editor) => {
+                    const sep = authorIdx++ > 0 ? '、' : '';
+                    return (
+                      <span key={`editor-${editor._id}`}>
+                        {sep}
+                        <Link
+                          to={`/creator/${editor._id}`}
+                          style={{color: 'var(--primary)', textDecoration: 'none'}}
+                          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                        >{editor.username}</Link>
+                      </span>
+                    );
+                  })}
+                  {customAuthors.map((author) => {
+                    const sep = authorIdx++ > 0 ? '、' : '';
+                    return (
+                      <span key={`author-${author._id}`}>
+                        {sep}
+                        <Link
+                          to={`/creator/${author._id}`}
+                          style={{color: 'var(--primary)', textDecoration: 'none'}}
+                          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                        >{author.username}</Link>
+                      </span>
+                    );
+                  })}
+                </p>
+              );
+            })()}
             {user && isFollowing && (
               <p><strong>{t('episode.watchProgress')}</strong>{t('episode.watchedLabel')} {watchedEpisodes.length}/{episode.totalEpisodes} {t('episode.epSuffix')}</p>
             )}

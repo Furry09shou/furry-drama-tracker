@@ -51,7 +51,8 @@ router.get('/public/:id', async (req, res) => {
     const episodes = await Episode.find({
       $or: [
         { createdBy: profile.adminId },
-        { allowedEditors: profile.adminId }
+        { allowedEditors: profile.adminId },
+        { customAuthors: profile.adminId }
       ],
       reviewStatus: 'approved'
     }).sort({ createdAt: -1 });
@@ -71,7 +72,8 @@ router.get('/by-admin/:adminId', async (req, res) => {
     const episodes = await Episode.find({
       $or: [
         { createdBy: profile.adminId },
-        { allowedEditors: profile.adminId }
+        { allowedEditors: profile.adminId },
+        { customAuthors: profile.adminId }
       ],
       reviewStatus: 'approved'
     }).sort({ createdAt: -1 });
