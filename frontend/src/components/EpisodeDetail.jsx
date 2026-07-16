@@ -348,11 +348,13 @@ const EpisodeDetail = ({ user }) => {
               <p><strong>{t('episode.premiereDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(episode.premiereDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
             )}
             {(episode.status === 'ongoing' || episode.status === 'completed') && episode.episodes && episode.episodes.length > 0 && (() => {
-              const firstEp = [...episode.episodes].sort((a, b) => a.episodeNumber - b.episodeNumber)[0];
-              const premiereDate = firstEp.releaseDate || firstEp.createdAt;
-              if (!premiereDate) return null;
+              const epsWithDates = episode.episodes
+                .map(ep => ep.releaseDate || ep.createdAt)
+                .filter(Boolean);
+              if (epsWithDates.length === 0) return null;
+              const earliest = new Date(Math.min(...epsWithDates.map(d => new Date(d).getTime())));
               return (
-                <p><strong>{t('episode.firstAirDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(premiereDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
+                <p><strong>{t('episode.firstAirDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(earliest).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
               );
             })()}
             <p><strong>{t('episode.episodeCount')}</strong>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
@@ -561,49 +563,87 @@ const EpisodeDetail = ({ user }) => {
             {episodeSortOrder === 'asc' ? t('episode.sortAsc') : t('episode.sortDesc')}
           </button>
         </h3>
-        {displayedEpisodes.map(singleEpisode => (
-          <div key={singleEpisode._id} className="episode-item" style={{
-            opacity: watchedEpisodes.includes(singleEpisode.episodeNumber) ? 0.7 : 1
-          }}>
-            <div>
-              <span className="episode-number">{t('episode.epPrefix')}{singleEpisode.episodeNumber}{t('episode.epSuffix')}</span>
-              <span>{getLocalizedTitle(singleEpisode)}</span>
-              {singleEpisode.duration && <span> ({singleEpisode.duration})</span>}
-              {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
-                <span style={{
-                  fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
-                  background: 'var(--warning-bg)', padding: '2px 8px',
-                  borderRadius: '4px', border: '1px solid var(--warning-border)'
-                }}>{t('episode.preview')} {new Date(singleEpisode.scheduledDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { month: 'long', day: 'numeric' })}</span>
-              )}
-              {!singleEpisode.isScheduled && user && watchedEpisodes.includes(singleEpisode.episodeNumber) ? (
-                <span style={{
-                  fontSize: '12px', color: 'var(--success-text)', marginLeft: '8px',
-                  background: 'var(--success-bg)', padding: '2px 8px',
-                  borderRadius: '4px', border: '1px solid var(--success-border)'
-                }}>{t('episode.watchedLabel')}</span>
-              ) : !singleEpisode.isScheduled && user && isFollowing && followedAtEpisodes !== null && singleEpisode.episodeNumber > followedAtEpisodes ? (
-                <span style={{
-                  fontSize: '12px', color: 'var(--destructive-text)', marginLeft: '8px',
-                  background: 'var(--destructive-bg)', padding: '2px 8px',
-                  borderRadius: '4px', border: '1px solid var(--destructive-border)'
-                }}>{t('episode.newUpdate')}</span>
-              ) : !singleEpisode.isScheduled && user && !watchedEpisodes.includes(singleEpisode.episodeNumber) && (
-                <span style={{
-                  fontSize: '12px', color: 'var(--warning-text)', marginLeft: '8px',
-                  background: 'var(--warning-bg)', padding: '2px 8px',
-                  borderRadius: '4px', border: '1px solid var(--warning-border)'
-                }}>{t('episode.unwatchedLabel')}</span>
-              )}
+        {displayedEpisodes.map(singleEpisode => {
+          const isWatched = watchedEpisodes.includes(singleEpisode.episodeNumber);
+          const releaseDate = singleEpisode.releaseDate || singleEpisode.createdAt;
+          const isNewUpdate = !singleEpisode.isScheduled && user && isFollowing && followedAtEpisodes !== null && singleEpisode.episodeNumber > followedAtEpisodes;
+          const showUnwatched = !singleEpisode.isScheduled && user && !isWatched && !isNewUpdate;
+          return (
+            <div key={singleEpisode._id} className="episode-item" style={{
+              opacity: isWatched ? 0.72 : 1,
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              gap: '10px',
+              padding: '14px 18px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                    <span className="episode-number" style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      minWidth: '32px', height: '24px', padding: '0 8px', borderRadius: '6px',
+                      background: 'var(--primary-bg)', color: 'var(--primary-light)',
+                      border: '1px solid var(--primary-border)', fontSize: '13px', fontWeight: 600, margin: 0
+                    }}>{t('episode.epPrefix')}{singleEpisode.episodeNumber}{t('episode.epSuffix')}</span>
+                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{getLocalizedTitle(singleEpisode)}</span>
+                    {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
+                      <span style={{
+                        fontSize: '12px', color: 'var(--warning-text)', marginLeft: '0',
+                        background: 'var(--warning-bg)', padding: '2px 8px',
+                        borderRadius: '4px', border: '1px solid var(--warning-border)'
+                      }}>{t('episode.preview')} {new Date(singleEpisode.scheduledDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { month: 'long', day: 'numeric' })}</span>
+                    )}
+                    {!singleEpisode.isScheduled && user && isWatched && (
+                      <span style={{
+                        fontSize: '12px', color: 'var(--success-text)',
+                        background: 'var(--success-bg)', padding: '2px 8px',
+                        borderRadius: '4px', border: '1px solid var(--success-border)'
+                      }}>{t('episode.watchedLabel')}</span>
+                    )}
+                    {isNewUpdate && (
+                      <span style={{
+                        fontSize: '12px', color: 'var(--destructive-text)',
+                        background: 'var(--destructive-bg)', padding: '2px 8px',
+                        borderRadius: '4px', border: '1px solid var(--destructive-border)'
+                      }}>{t('episode.newUpdate')}</span>
+                    )}
+                    {showUnwatched && (
+                      <span style={{
+                        fontSize: '12px', color: 'var(--warning-text)',
+                        background: 'var(--warning-bg)', padding: '2px 8px',
+                        borderRadius: '4px', border: '1px solid var(--warning-border)'
+                      }}>{t('episode.unwatchedLabel')}</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-tertiary)', alignItems: 'center' }}>
+                    {singleEpisode.duration && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span aria-hidden="true">⏱</span>{singleEpisode.duration}
+                      </span>
+                    )}
+                    {releaseDate && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span aria-hidden="true">📅</span>{new Date(releaseDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </span>
+                    )}
+                    {singleEpisode.views > 0 && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span aria-hidden="true">👁</span>{singleEpisode.views}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="btn"
+                  onClick={() => handleWatch(singleEpisode)}
+                  style={{ flexShrink: 0, alignSelf: 'center' }}
+                >
+                  {t('episode.watch')}
+                </button>
+              </div>
             </div>
-            <button
-              className="btn"
-              onClick={() => handleWatch(singleEpisode)}
-            >
-              {t('episode.watch')}
-            </button>
-          </div>
-        ))}
+          );
+        })}
         {hasMoreEpisodes && (
           <div style={{ textAlign: 'center', marginTop: '12px' }}>
             <button onClick={() => setEpisodesExpanded(!episodesExpanded)} style={{
