@@ -1016,6 +1016,8 @@ export default {
     premiereHint: 'Will be displayed as premiere preview in the update calendar',
     updateEpisode: 'Update Episode Info',
     addAndManage: 'Add & Manage Episodes',
+    hideCreator: 'Hide Creator',
+    hideCreatorHint: 'Check to hide creator info on episode detail and cards (for proxy creation)',
     addNewEpisode: 'Add New Episode',
     close: 'Close',
     addEpisodeHint: 'After adding, single episode management will open automatically. You can set independent jump links for each episode.',

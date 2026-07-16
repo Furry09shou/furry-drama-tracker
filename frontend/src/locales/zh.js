@@ -1016,6 +1016,8 @@ export default {
     premiereHint: '设置后将在更新日历中显示为首播预告',
     updateEpisode: '更新剧集信息',
     addAndManage: '添加并管理单集',
+    hideCreator: '隐藏创建者',
+    hideCreatorHint: '勾选后剧集详情和卡片不显示创建者信息（适用于代建场景）',
     addNewEpisode: '添加新剧集',
     close: '关闭',
     addEpisodeHint: '添加剧集后将自动打开单集管理，您可以为每一集设置独立的跳转链接',

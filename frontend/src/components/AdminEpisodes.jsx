@@ -35,7 +35,8 @@ const AdminEpisodes = () => {
     categories: [],
     tags: [],
     updateDay: '',
-    premiereDate: ''
+    premiereDate: '',
+    hideCreator: false
   });
   const [newSingleEpisode, setNewSingleEpisode] = useState({
     episodeNumber: 1,
@@ -126,7 +127,8 @@ const AdminEpisodes = () => {
         updateDay: newEpisode.updateDay,
         premiereDate: newEpisode.status === 'upcoming' && newEpisode.premiereDate
           ? new Date(newEpisode.premiereDate).toISOString()
-          : null
+          : null,
+        hideCreator: !!newEpisode.hideCreator
       };
 
       const response = await adminApi.post('/api/episodes', episodeData);
@@ -148,7 +150,8 @@ const AdminEpisodes = () => {
           categories: response.data.category || [],
           tags: response.data.tags || [],
           updateDay: response.data.updateDay || '',
-          premiereDate: ''
+          premiereDate: '',
+          hideCreator: !!response.data.hideCreator
         });
         setShowEditForm(true);
         fetchSingleEpisodes(response.data._id);
@@ -184,7 +187,8 @@ const AdminEpisodes = () => {
       updateDay: episode.updateDay || '',
       premiereDate: episode.premiereDate
         ? new Date(episode.premiereDate).toISOString().slice(0, 16)
-        : ''
+        : '',
+      hideCreator: !!episode.hideCreator
     });
     setShowEditForm(true);
     fetchSingleEpisodes(episode._id);
@@ -211,7 +215,8 @@ const AdminEpisodes = () => {
         updateDay: newEpisode.updateDay,
         premiereDate: newEpisode.status === 'upcoming' && newEpisode.premiereDate
           ? new Date(newEpisode.premiereDate).toISOString()
-          : null
+          : null,
+        hideCreator: !!newEpisode.hideCreator
       };
 
       await adminApi.put(`/api/episodes/${editingEpisode._id}`, episodeData);
@@ -332,7 +337,8 @@ const AdminEpisodes = () => {
       categories: [],
       tags: [],
       updateDay: '',
-      premiereDate: ''
+      premiereDate: '',
+      hideCreator: false
     });
   };
 
@@ -520,6 +526,18 @@ const AdminEpisodes = () => {
         </div>
       )}
       {error && <div className="error-message">{error}</div>}
+      <div className="form-group">
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={!!newEpisode.hideCreator}
+            onChange={(e) => setNewEpisode({...newEpisode, hideCreator: e.target.checked})}
+            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+          />
+          <span>{t('adminEpisodes.hideCreator')}</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('adminEpisodes.hideCreatorHint')}</span>
+        </label>
+      </div>
       <div className="form-group">
         <button type="submit">{isEdit ? t('adminEpisodes.updateEpisode') : t('adminEpisodes.addAndManage')}</button>
       </div>

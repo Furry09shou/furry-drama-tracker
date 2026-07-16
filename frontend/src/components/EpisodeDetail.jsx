@@ -376,7 +376,7 @@ const EpisodeDetail = ({ user }) => {
                 </span>
               </p>
             )}
-            {(episode.createdBy || (episode.allowedEditors && episode.allowedEditors.length > 0)) && (
+            {!episode.hideCreator && (episode.createdBy || (episode.allowedEditors && episode.allowedEditors.length > 0)) && (
               <p><strong>{t('episode.author')}</strong>
                 {episode.createdBy && (
                   <Link

@@ -44,7 +44,7 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
   };
 
   const statusInfo = STATUS_MAP[episode.status] || STATUS_MAP.ongoing;
-  const authorName = episode.createdBy?.username || '';
+  const authorName = episode.hideCreator ? '' : (episode.createdBy?.username || '');
   const avgRating = episode.averageRating != null ? episode.averageRating.toFixed(1) : '-';
   const ratingCount = episode.ratingCount || 0;
 

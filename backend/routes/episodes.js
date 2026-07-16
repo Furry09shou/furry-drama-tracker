@@ -442,6 +442,7 @@ router.post('/', creatorProtect, async (req, res) => {
       premiereDate: req.body.premiereDate || null,
       platformLinks: req.body.platformLinks || {},
       createdBy: req.user._id,
+      hideCreator: !!req.body.hideCreator,
       reviewStatus: isCreator ? 'pending' : 'approved'
     };
 
@@ -577,7 +578,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
       await EpisodeVersion.deleteMany({ _id: { $in: oldestVersions.map(v => v._id) } });
     }
 
-    const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks'];
+    const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks', 'hideCreator'];
     const updateData = { updatedAt: Date.now() };
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {

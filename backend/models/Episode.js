@@ -78,6 +78,10 @@ const EpisodeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
+  hideCreator: {
+    type: Boolean,
+    default: false
+  },
   allowedEditors: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
