@@ -16,6 +16,7 @@ import Register from './components/Register';
 import NotFound from './components/NotFound';
 import OfflineIndicator from './components/OfflineIndicator';
 import InstallPrompt from './components/InstallPrompt';
+import BrowserCompat from './components/BrowserCompat';
 
 const Profile = lazy(() => import('./components/Profile'));
 const Admin = lazy(() => import('./components/Admin'));
@@ -496,7 +497,9 @@ function App() {
           <SiteSettingsProvider>
             <AuthProvider>
             <ErrorBoundary>
-              <AppContent />
+              <BrowserCompat>
+                <AppContent />
+              </BrowserCompat>
             </ErrorBoundary>
             </AuthProvider>
           </SiteSettingsProvider>
