@@ -188,9 +188,9 @@ const IncompatibleOverlay = ({ reason, browser, t, lang }) => {
     borderRadius: '20px',
     fontSize: '13px',
     fontWeight: 500,
-    background: 'rgba(239, 68, 68, 0.15)',
-    color: '#fca5a5',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
+    background: 'rgba(99, 102, 241, 0.15)',
+    color: '#a5b4fc',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
     marginBottom: '20px',
   };
 
@@ -236,22 +236,21 @@ const IncompatibleOverlay = ({ reason, browser, t, lang }) => {
   };
 
   const browsers = [
-    { name: 'Google Chrome', url: 'https://www.google.com/chrome/', emoji: '🌐' },
-    { name: 'Microsoft Edge', url: 'https://www.microsoft.com/edge', emoji: '🔵' },
-    { name: 'Mozilla Firefox', url: 'https://www.mozilla.org/firefox/', emoji: '🦊' },
-    { name: 'Safari', url: 'https://www.apple.com/safari/', emoji: '🧭' },
+    { name: 'Google Chrome', url: 'https://www.google.cn/chrome/', emoji: '🌐' },
+    { name: 'Microsoft Edge（新版，基于 Chromium）', url: 'https://www.microsoft.com/zh-cn/edge', emoji: '🔵' },
+    { name: 'Mozilla Firefox', url: 'https://www.mozilla.org/zh-CN/firefox/', emoji: '🦊' },
   ];
 
   return (
     <div style={overlayStyle}>
       <div style={cardStyle}>
-        <div style={iconStyle}>⚠️</div>
+        <div style={iconStyle}>😅</div>
         <h1 style={titleStyle}>{t('browserCompat.title')}</h1>
         {browser && browser !== 'Unknown' && (
           <div style={browserStyle}>{browser}</div>
         )}
         <div style={reasonStyle}>
-          <strong style={{ color: '#fca5a5' }}>{t('browserCompat.reasonLabel')}</strong>
+          <strong style={{ color: '#a5b4fc' }}>{t('browserCompat.reasonLabel')}</strong>
           <br />
           {getReasonText(reason, t)}
         </div>

@@ -41,27 +41,26 @@
         var html = '';
         if (isIE) {
           html = isZh
-            ? '您正在使用 Internet Explorer，该浏览器已停止维护且不支持现代网页技术。'
-            : 'You are using Internet Explorer, which is no longer maintained and does not support modern web technologies.';
+            ? '当前使用的是 Internet Explorer，这款浏览器已经停止更新，在打开很多网站时都会遇到问题。换一款其他浏览器就可以正常访问了。'
+            : 'You are using Internet Explorer, which is no longer updated and may have trouble opening many websites. Switching to another browser should fix this.';
         } else {
           html = isZh
-            ? '您正在使用旧版 Microsoft Edge (EdgeHTML)，该版本已停止维护。'
-            : 'You are using Microsoft Edge Legacy (EdgeHTML), which is no longer maintained.';
+            ? '当前使用的是旧版 Microsoft Edge，这款浏览器已经不再更新。安装新版 Edge（基于 Chromium）或其他浏览器后即可正常访问。'
+            : 'You are using the legacy version of Microsoft Edge, which is no longer updated. Installing the new Edge (Chromium-based) or another browser should allow you to access the site normally.';
         }
 
-        var title = isZh ? '浏览器不兼容' : 'Browser Incompatible';
-        var reasonLabel = isZh ? '原因' : 'Reason';
-        var solutionTitle = isZh ? '请下载以下现代浏览器之一' : 'Please download one of the following modern browsers';
-        var hint = isZh ? '本网站使用了现代 Web 技术，需要 Chrome 60+、Firefox 55+、Safari 12+ 或新版 Edge 才能正常运行。' : 'This website uses modern web technologies and requires Chrome 60+, Firefox 55+, Safari 12+, or the new Edge.';
+        var title = isZh ? '抱歉，当前浏览器无法正常打开' : 'Sorry, this browser cannot display properly';
+        var reasonLabel = isZh ? '具体情况' : 'Details';
+        var solutionTitle = isZh ? '换一款浏览器试试？' : 'How about trying another browser?';
+        var hint = isZh ? '感谢你的理解，换一款浏览器就能正常访问啦。如果已经是最新版浏览器仍有问题，欢迎反馈给我们。' : 'Thanks for your understanding — switching to another browser should do the trick. If you are already using the latest version and still have issues, feel free to let us know.';
 
         var overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);color:#e2e8f0;font-family:"Segoe UI",sans-serif;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;';
 
         var browsers = [
-          { name: 'Google Chrome', url: 'https://www.google.com/chrome/' },
-          { name: 'Microsoft Edge', url: 'https://www.microsoft.com/edge' },
-          { name: 'Mozilla Firefox', url: 'https://www.mozilla.org/firefox/' },
-          { name: 'Safari', url: 'https://www.apple.com/safari/' }
+          { name: isZh ? 'Google Chrome' : 'Google Chrome', url: 'https://www.google.cn/chrome/' },
+          { name: isZh ? 'Microsoft Edge（新版，基于 Chromium）' : 'Microsoft Edge (Chromium-based)', url: 'https://www.microsoft.com/zh-cn/edge' },
+          { name: 'Mozilla Firefox', url: 'https://www.mozilla.org/zh-CN/firefox/' }
         ];
         var browserLinks = '';
         for (var i = 0; i < browsers.length; i++) {
@@ -70,10 +69,10 @@
 
         overlay.innerHTML =
           '<div style="max-width:560px;width:100%;background:rgba(30,41,59,0.9);border-radius:16px;padding:40px 32px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);border:1px solid rgba(99,102,241,0.3);text-align:center;">' +
-            '<div style="font-size:64px;margin-bottom:16px;">\u26A0\uFE0F</div>' +
+            '<div style="font-size:64px;margin-bottom:16px;">\uD83D\uDE05</div>' +
             '<h1 style="font-size:24px;font-weight:700;margin:0 0 12px 0;color:#f8fafc;">' + title + '</h1>' +
             '<div style="font-size:14px;line-height:1.7;color:#94a3b8;margin-bottom:24px;text-align:left;padding:16px;background:rgba(15,23,42,0.6);border-radius:10px;border:1px solid rgba(99,102,241,0.15);">' +
-              '<strong style="color:#fca5a5;">' + reasonLabel + '</strong><br>' + html +
+              '<strong style="color:#a5b4fc;">' + reasonLabel + '</strong><br>' + html +
             '</div>' +
             '<div style="font-size:15px;font-weight:600;color:#c7d2fe;margin-bottom:12px;">' + solutionTitle + '</div>' +
             browserLinks +
