@@ -107,6 +107,14 @@ const AdminDashboard = () => {
         )}
 
         {admin.role === 'superadmin' && (
+          <Link to="/admin/announcements" className="dashboard-card">
+            <div className="card-icon">📢</div>
+            <h3>{t('adminDashboard.announcementManagement')}</h3>
+            <p>{t('adminDashboard.announcementManagementDesc')}</p>
+          </Link>
+        )}
+
+        {admin.role === 'superadmin' && (
           <Link to="/admin/site-content" className="dashboard-card">
             <div className="card-icon">📝</div>
             <h3>{t('adminDashboard.siteContentManagement')}</h3>

@@ -326,4 +326,5 @@ module.exports = {
   sendFeedbackReplyEmail,
   sendFriendLinkStatusEmail,
   sendFriendLinkApplyEmail,
+  sendNotificationEmail,
 };

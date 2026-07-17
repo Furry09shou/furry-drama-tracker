@@ -85,6 +85,7 @@ const UserSchema = new mongoose.Schema({
     feedbackReply: { type: Boolean, default: true },
     friendLinkStatus: { type: Boolean, default: true },
     friendLinkApply: { type: Boolean, default: true },
+    announcement: { type: Boolean, default: true },
   },
   createdAt: {
     type: Date,

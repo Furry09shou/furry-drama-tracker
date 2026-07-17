@@ -17,6 +17,8 @@ import NotFound from './components/NotFound';
 import OfflineIndicator from './components/OfflineIndicator';
 import InstallPrompt from './components/InstallPrompt';
 import BrowserCompat from './components/BrowserCompat';
+import AnnouncementBanner from './components/AnnouncementBanner';
+import AnnouncementPopup from './components/AnnouncementPopup';
 
 const Profile = lazy(() => import('./components/Profile'));
 const Admin = lazy(() => import('./components/Admin'));
@@ -29,6 +31,7 @@ const AdminBanners = lazy(() => import('./components/AdminBanners'));
 const AdminReview = lazy(() => import('./components/AdminReview'));
 const AdminCreatorProfile = lazy(() => import('./components/AdminCreatorProfile'));
 const AdminCreatorProfiles = lazy(() => import('./components/AdminCreatorProfiles'));
+const AdminAnnouncements = lazy(() => import('./components/AdminAnnouncements'));
 const AdminSiteContent = lazy(() => import('./components/AdminSiteContent'));
 const AdminReports = lazy(() => import('./components/AdminReports'));
 const AdminStats = lazy(() => import('./components/AdminStats'));
@@ -74,6 +77,7 @@ const getRoutePageTitleKey = (pathname) => {
   if (pathname.startsWith('/admin/reports')) return 'pageTitle.adminReports';
   if (pathname.startsWith('/admin/stats')) return 'pageTitle.adminStats';
   if (pathname.startsWith('/admin/creator-profiles')) return 'pageTitle.adminCreatorProfiles';
+  if (pathname.startsWith('/admin/announcements')) return 'pageTitle.adminAnnouncements';
   if (pathname.startsWith('/admin/creator-profile')) return 'pageTitle.adminCreatorProfile';
   if (pathname.startsWith('/admin/site-content')) return 'pageTitle.adminSiteContent';
   if (pathname.startsWith('/admin/email-settings')) return 'pageTitle.adminEmailSettings';
@@ -417,6 +421,7 @@ function AppContent() {
             <Route path="stats" element={<AdminGuard><AdminStats /></AdminGuard>} />
             <Route path="creator-profile" element={<AdminGuard><AdminCreatorProfile /></AdminGuard>} />
             <Route path="creator-profiles" element={<AdminGuard><AdminCreatorProfiles /></AdminGuard>} />
+            <Route path="announcements" element={<AdminGuard><AdminAnnouncements /></AdminGuard>} />
             <Route path="site-content" element={<AdminGuard><AdminSiteContent /></AdminGuard>} />
             <Route path="email-settings" element={<AdminGuard><AdminEmailSettings /></AdminGuard>} />
             <Route path="audit-logs" element={<AdminGuard><AdminAuditLogs /></AdminGuard>} />
@@ -435,6 +440,7 @@ function AppContent() {
   return (
     <>
       <a href="#main-content" className="skip-link">{t('common.skipToMain')}</a>
+      <AnnouncementBanner />
       <NavBarErrorBoundary>
         <NavBar onFeedback={() => setShowFeedback(true)} />
       </NavBarErrorBoundary>
@@ -477,6 +483,7 @@ function AppContent() {
       <ThemeColorPicker />
       <OfflineIndicator />
       <InstallPrompt />
+      <AnnouncementPopup />
       {user?.forceEmailChange && (
         <ForceEmailChange onUpdate={updateUser} onLogout={logout} />
       )}

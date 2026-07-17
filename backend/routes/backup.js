@@ -8,13 +8,13 @@ const { asyncHandler } = require('../utils/errorHandler');
 const ALLOWED_EXPORT_COLLECTIONS = [
   'episodes', 'users', 'categories', 'banners', 'ratings',
   'follows', 'favorites', 'histories', 'notifications', 'reports',
-  'sitecontents', 'singleepisodes', 'creatorprofiles'
+  'sitecontents', 'singleepisodes', 'creatorprofiles', 'announcements'
 ];
 
 const ALLOWED_IMPORT_COLLECTIONS = [
   'episodes', 'users', 'categories', 'banners', 'ratings',
   'follows', 'favorites', 'histories', 'notifications', 'reports',
-  'sitecontents', 'singleepisodes', 'creatorprofiles'
+  'sitecontents', 'singleepisodes', 'creatorprofiles', 'announcements'
 ];
 
 const COLLECTION_FIELDS = {
@@ -30,7 +30,8 @@ const COLLECTION_FIELDS = {
   reports: ['reporterId', 'targetType', 'targetId', 'reason', 'description', 'status', 'resolveNote', 'resolvedBy', 'createdAt', 'updatedAt'],
   sitecontents: ['key', 'title', 'content', 'createdAt', 'updatedAt'],
   singleepisodes: ['episodeId', 'episodeNumber', 'title', 'titleEn', 'titleJa', 'duration', 'platformLinks', 'views', 'scheduledDate', 'isScheduled', 'releaseDate', 'premiereDate', 'isUpcoming', 'createdAt', 'updatedAt'],
-  creatorprofiles: ['adminId', 'displayName', 'displayNameEn', 'bio', 'bioEn', 'avatar', 'socialLinks', 'createdAt', 'updatedAt']
+  creatorprofiles: ['adminId', 'displayName', 'displayNameEn', 'bio', 'bioEn', 'avatar', 'socialLinks', 'createdAt', 'updatedAt'],
+  announcements: ['title', 'titleEn', 'content', 'contentEn', 'type', 'showPopup', 'showBanner', 'sendNotification', 'sendEmail', 'dismissible', 'active', 'pinned', 'publishAt', 'expireAt', 'notificationSent', 'emailSent', 'emailSentAt', 'emailSentCount', 'link', 'createdBy', 'createdAt', 'updatedAt']
 };
 
 function requireSuperAdmin(req, res, next) {

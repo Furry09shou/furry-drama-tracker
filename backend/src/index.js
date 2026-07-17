@@ -40,6 +40,7 @@ const folderRoutes = require('../routes/folders');
 const savedFolderRoutes = require('../routes/savedFolders');
 const activityRoutes = require('../routes/activity');
 const versionRoutes = require('../routes/versions');
+const announcementRoutes = require('../routes/announcements');
 const { sanitizeInput, sanitizeHeaders } = require('../middlewares/security');
 const trackApiUsage = require('../middlewares/apiTracker');
 const { startCronJobs } = require('./cron');
@@ -427,6 +428,7 @@ const routeMounts = [
   ['/api/saved-folders', savedFolderRoutes],
   ['/api/activity', activityRoutes],
   ['/api/versions', versionRoutes],
+  ['/api/announcements', announcementRoutes],
 ];
 
 for (const [mountPath, route] of routeMounts) {
