@@ -407,33 +407,36 @@ function AppContent() {
 
   if (isAdminRoute) {
     return (
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route path="dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
-            <Route path="episodes" element={<AdminGuard><AdminEpisodes /></AdminGuard>} />
-            <Route path="users" element={<AdminGuard><AdminUsers /></AdminGuard>} />
-            <Route path="categories" element={<AdminGuard><AdminCategories /></AdminGuard>} />
-            <Route path="banners" element={<AdminGuard><AdminBanners /></AdminGuard>} />
-            <Route path="review" element={<AdminGuard><AdminReview /></AdminGuard>} />
-            <Route path="reports" element={<AdminGuard><AdminReports /></AdminGuard>} />
-            <Route path="stats" element={<AdminGuard><AdminStats /></AdminGuard>} />
-            <Route path="creator-profile" element={<AdminGuard><AdminCreatorProfile /></AdminGuard>} />
-            <Route path="creator-profiles" element={<AdminGuard><AdminCreatorProfiles /></AdminGuard>} />
-            <Route path="announcements" element={<AdminGuard><AdminAnnouncements /></AdminGuard>} />
-            <Route path="site-content" element={<AdminGuard><AdminSiteContent /></AdminGuard>} />
-            <Route path="email-settings" element={<AdminGuard><AdminEmailSettings /></AdminGuard>} />
-            <Route path="audit-logs" element={<AdminGuard><AdminAuditLogs /></AdminGuard>} />
-            <Route path="backup" element={<AdminGuard><AdminBackup /></AdminGuard>} />
-            <Route path="feedback" element={<AdminGuard><AdminFeedback /></AdminGuard>} />
-            <Route path="api-usage" element={<AdminGuard><AdminApiUsage /></AdminGuard>} />
-            <Route path="friend-links" element={<AdminGuard><AdminFriendLinks /></AdminGuard>} />
-            <Route path="sessions" element={<AdminGuard><AdminSessions /></AdminGuard>} />
-            <Route path="analytics" element={<AdminGuard><AdminAnalytics /></AdminGuard>} />
-          </Route>
-        </Routes>
-      </Suspense>
+      <>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route path="dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+              <Route path="episodes" element={<AdminGuard><AdminEpisodes /></AdminGuard>} />
+              <Route path="users" element={<AdminGuard><AdminUsers /></AdminGuard>} />
+              <Route path="categories" element={<AdminGuard><AdminCategories /></AdminGuard>} />
+              <Route path="banners" element={<AdminGuard><AdminBanners /></AdminGuard>} />
+              <Route path="review" element={<AdminGuard><AdminReview /></AdminGuard>} />
+              <Route path="reports" element={<AdminGuard><AdminReports /></AdminGuard>} />
+              <Route path="stats" element={<AdminGuard><AdminStats /></AdminGuard>} />
+              <Route path="creator-profile" element={<AdminGuard><AdminCreatorProfile /></AdminGuard>} />
+              <Route path="creator-profiles" element={<AdminGuard><AdminCreatorProfiles /></AdminGuard>} />
+              <Route path="announcements" element={<AdminGuard><AdminAnnouncements /></AdminGuard>} />
+              <Route path="site-content" element={<AdminGuard><AdminSiteContent /></AdminGuard>} />
+              <Route path="email-settings" element={<AdminGuard><AdminEmailSettings /></AdminGuard>} />
+              <Route path="audit-logs" element={<AdminGuard><AdminAuditLogs /></AdminGuard>} />
+              <Route path="backup" element={<AdminGuard><AdminBackup /></AdminGuard>} />
+              <Route path="feedback" element={<AdminGuard><AdminFeedback /></AdminGuard>} />
+              <Route path="api-usage" element={<AdminGuard><AdminApiUsage /></AdminGuard>} />
+              <Route path="friend-links" element={<AdminGuard><AdminFriendLinks /></AdminGuard>} />
+              <Route path="sessions" element={<AdminGuard><AdminSessions /></AdminGuard>} />
+              <Route path="analytics" element={<AdminGuard><AdminAnalytics /></AdminGuard>} />
+            </Route>
+          </Routes>
+        </Suspense>
+        <FooterBeian />
+      </>
     );
   }
 
