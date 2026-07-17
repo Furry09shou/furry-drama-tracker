@@ -44,7 +44,18 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
   };
 
   const statusInfo = STATUS_MAP[episode.status] || STATUS_MAP.ongoing;
-  const authorName = episode.hideCreator ? '' : (episode.createdBy?.username || '');
+  // 作者显示逻辑：hideCreator 仅隐藏 createdBy，allowedEditors 和 customAuthors 始终显示
+  const authorNames = [];
+  if (!episode.hideCreator && episode.createdBy?.username) {
+    authorNames.push(episode.createdBy.username);
+  }
+  if (episode.allowedEditors && episode.allowedEditors.length > 0) {
+    episode.allowedEditors.forEach(e => { if (e?.username) authorNames.push(e.username); });
+  }
+  if (episode.customAuthors && episode.customAuthors.length > 0) {
+    episode.customAuthors.forEach(a => { if (a?.username) authorNames.push(a.username); });
+  }
+  const authorName = authorNames.join('、');
   const avgRating = episode.averageRating != null ? episode.averageRating.toFixed(1) : '-';
   const ratingCount = episode.ratingCount || 0;
 
