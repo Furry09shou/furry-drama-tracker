@@ -70,6 +70,12 @@ export default {
     reasonNoArrayFrom: 'Your browser is missing some necessary features. Switching to a newer browser should fix this.',
     reasonNoCssVars: 'Your browser is missing some necessary features. Switching to a newer browser should fix this.',
     reasonUnknown: 'Your browser may have some compatibility issues. Trying a newer browser might help.',
+    langToggle: 'Switch language',
+    downloadCN: 'China',
+    downloadGlobal: 'Global',
+    chrome: 'Google Chrome',
+    edge: 'Microsoft Edge (Chromium-based)',
+    firefox: 'Mozilla Firefox',
   },
   nav: {
     home: 'Home',

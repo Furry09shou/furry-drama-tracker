@@ -7,7 +7,7 @@ import { useI18n } from '../contexts/I18nContext';
  * 显示原因和解决办法
  */
 const BrowserCompat = ({ children }) => {
-  const { t, lang } = useI18n();
+  const { t, lang, switchLang } = useI18n();
   const [compatInfo, setCompatInfo] = useState(null);
 
   useEffect(() => {
@@ -17,7 +17,7 @@ const BrowserCompat = ({ children }) => {
 
   // 不兼容时显示全屏提示
   if (compatInfo && !compatInfo.compatible) {
-    return <IncompatibleOverlay reason={compatInfo.reason} browser={compatInfo.browser} t={t} lang={lang} />;
+    return <IncompatibleOverlay reason={compatInfo.reason} browser={compatInfo.browser} t={t} lang={lang} switchLang={switchLang} />;
   }
 
   return children;
@@ -141,14 +141,14 @@ function getReasonText(reason, t) {
 }
 
 /**
- * 不兼容浏览器全屏提示
+ * 不兼容浏览器全屏提示（亮色主题，支持中英双语切换）
  */
-const IncompatibleOverlay = ({ reason, browser, t, lang }) => {
+const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
   const overlayStyle = {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
-    color: '#e2e8f0',
+    background: 'linear-gradient(135deg, #eef2ff 0%, #fdf4ff 50%, #eef2ff 100%)',
+    color: '#1e293b',
     fontFamily: "'Noto Sans SC', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     zIndex: 2147483647,
     display: 'flex',
@@ -161,25 +161,26 @@ const IncompatibleOverlay = ({ reason, browser, t, lang }) => {
   const cardStyle = {
     maxWidth: '560px',
     width: '100%',
-    background: 'rgba(30, 41, 59, 0.9)',
+    background: '#ffffff',
     borderRadius: '16px',
-    padding: '40px 32px',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-    border: '1px solid rgba(99, 102, 241, 0.3)',
+    padding: '36px 32px',
+    boxShadow: '0 25px 50px -12px rgba(99, 102, 241, 0.18)',
+    border: '1px solid #e2e8f0',
     textAlign: 'center',
+    position: 'relative',
   };
 
   const iconStyle = {
-    fontSize: '64px',
-    marginBottom: '16px',
+    fontSize: '56px',
+    marginBottom: '14px',
     lineHeight: 1,
   };
 
   const titleStyle = {
-    fontSize: '24px',
+    fontSize: '23px',
     fontWeight: 700,
-    marginBottom: '12px',
-    color: '#f8fafc',
+    marginBottom: '16px',
+    color: '#1e293b',
   };
 
   const browserStyle = {
@@ -188,87 +189,101 @@ const IncompatibleOverlay = ({ reason, browser, t, lang }) => {
     borderRadius: '20px',
     fontSize: '13px',
     fontWeight: 500,
-    background: 'rgba(99, 102, 241, 0.15)',
-    color: '#a5b4fc',
-    border: '1px solid rgba(99, 102, 241, 0.3)',
+    background: '#eef2ff',
+    color: '#6366f1',
+    border: '1px solid #c7d2fe',
     marginBottom: '20px',
   };
 
   const reasonStyle = {
     fontSize: '14px',
     lineHeight: 1.7,
-    color: '#94a3b8',
-    marginBottom: '24px',
+    color: '#64748b',
+    marginBottom: '22px',
     textAlign: 'left',
-    padding: '16px',
-    background: 'rgba(15, 23, 42, 0.6)',
+    padding: '14px 16px',
+    background: '#f8fafc',
     borderRadius: '10px',
-    border: '1px solid rgba(99, 102, 241, 0.15)',
+    border: '1px solid #e2e8f0',
   };
 
   const solutionTitleStyle = {
     fontSize: '15px',
     fontWeight: 600,
-    color: '#c7d2fe',
+    color: '#475569',
     marginBottom: '12px',
   };
 
-  const linkListStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    marginTop: '8px',
-  };
-
-  const linkStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '12px 16px',
-    borderRadius: '10px',
-    background: 'rgba(99, 102, 241, 0.1)',
-    border: '1px solid rgba(99, 102, 241, 0.25)',
-    color: '#a5b4fc',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: 500,
-    transition: 'all 0.2s',
+  const langToggleStyle = {
+    position: 'absolute',
+    top: '14px',
+    right: '14px',
+    background: '#fff',
+    border: '1px solid #c7d2fe',
+    color: '#6366f1',
+    padding: '5px 12px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 600,
+    boxShadow: '0 2px 8px rgba(99,102,241,0.12)',
   };
 
   const browsers = [
-    { name: 'Google Chrome', url: 'https://www.google.cn/chrome/', emoji: '🌐' },
-    { name: 'Microsoft Edge（新版，基于 Chromium）', url: 'https://www.microsoft.com/zh-cn/edge', emoji: '🔵' },
-    { name: 'Mozilla Firefox', url: 'https://www.mozilla.org/zh-CN/firefox/', emoji: '🦊' },
+    { name: t('browserCompat.chrome'), cn: 'https://www.google.cn/chrome/', global: 'https://www.google.com/chrome/' },
+    { name: t('browserCompat.edge'), cn: 'https://www.microsoft.com/zh-cn/edge', global: 'https://www.microsoft.com/en-us/edge' },
+    { name: t('browserCompat.firefox'), cn: 'http://www.firefox.com.cn/', global: 'https://www.mozilla.org/en-US/firefox/' },
   ];
 
   return (
     <div style={overlayStyle}>
       <div style={cardStyle}>
-        <div style={iconStyle}>😅</div>
+        <button
+          style={langToggleStyle}
+          onClick={() => switchLang(lang === 'zh' ? 'en' : 'zh')}
+          aria-label={t('browserCompat.langToggle')}
+        >
+          {lang === 'zh' ? 'EN' : '中文'}
+        </button>
+        <div style={iconStyle} aria-hidden="true">😅</div>
         <h1 style={titleStyle}>{t('browserCompat.title')}</h1>
         {browser && browser !== 'Unknown' && (
           <div style={browserStyle}>{browser}</div>
         )}
         <div style={reasonStyle}>
-          <strong style={{ color: '#a5b4fc' }}>{t('browserCompat.reasonLabel')}</strong>
-          <br />
+          <strong style={{ color: '#6366f1', display: 'block', marginBottom: '4px' }}>{t('browserCompat.reasonLabel')}</strong>
           {getReasonText(reason, t)}
         </div>
         <div style={solutionTitleStyle}>{t('browserCompat.solutionTitle')}</div>
-        <div style={linkListStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {browsers.map(b => (
-            <a key={b.name} href={b.url} style={linkStyle}>
-              <span style={{ fontSize: '20px' }}>{b.emoji}</span>
-              <span>{b.name}</span>
-              <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#64748b' }}>→</span>
-            </a>
+            <div key={b.name} style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '14px 16px',
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#334155', marginBottom: '10px' }}>{b.name}</div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <a href={b.cn} style={{
+                  flex: 1, textAlign: 'center', padding: '9px 12px', borderRadius: '8px',
+                  background: '#6366f1', color: '#fff', textDecoration: 'none',
+                  fontSize: '13px', fontWeight: 600,
+                }}>{t('browserCompat.downloadCN')}</a>
+                <a href={b.global} style={{
+                  flex: 1, textAlign: 'center', padding: '9px 12px', borderRadius: '8px',
+                  background: '#fff', border: '1px solid #c7d2fe', color: '#6366f1',
+                  textDecoration: 'none', fontSize: '13px', fontWeight: 600,
+                }}>{t('browserCompat.downloadGlobal')}</a>
+              </div>
+            </div>
           ))}
         </div>
         <p style={{
-          marginTop: '24px',
+          marginTop: '22px',
           fontSize: '12px',
-          color: '#475569',
-          lineHeight: 1.5,
+          color: '#94a3b8',
+          lineHeight: 1.6,
         }}>
           {t('browserCompat.hint')}
         </p>

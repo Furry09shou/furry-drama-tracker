@@ -70,6 +70,12 @@ export default {
     reasonNoArrayFrom: '当前浏览器缺少一些必要的功能支持，换一款较新的浏览器即可正常访问。',
     reasonNoCssVars: '当前浏览器缺少一些必要的功能支持，换一款较新的浏览器即可正常访问。',
     reasonUnknown: '当前浏览器可能存在一些兼容问题，换一款较新的浏览器试试看。',
+    langToggle: '切换语言',
+    downloadCN: '国内下载',
+    downloadGlobal: '国际下载',
+    chrome: 'Google Chrome',
+    edge: 'Microsoft Edge（新版，基于 Chromium）',
+    firefox: 'Mozilla Firefox',
   },
   nav: {
     home: '首页',
