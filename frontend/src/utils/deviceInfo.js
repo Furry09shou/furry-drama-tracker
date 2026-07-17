@@ -11,7 +11,22 @@ export const getDeviceInfo = () => {
   else if (/Safari\/(\d+[\.\d]*)/.test(ua) && !/Chrome/.test(ua)) { browser = 'Apple Safari'; browserVersion = ua.match(/Version\/(\d+[\.\d]*)/)?.[1] || ''; }
 
   if (/Windows NT (\d+[\.\d]*)/.test(ua)) { os = 'Windows'; osVersion = ua.match(/Windows NT (\d+[\.\d]*)/)?.[1] || ''; }
-  else if (/Mac OS X (\d+[._\d]*)/.test(ua)) { os = 'macOS'; osVersion = (ua.match(/Mac OS X (\d+[._\d]*)/)?.[1] || '').replace(/_/g, '.'); }
+  else if (/Mac OS X (\d+[._\d]*)/.test(ua)) {
+    os = 'macOS'; osVersion = (ua.match(/Mac OS X (\d+[._\d]*)/)?.[1] || '').replace(/_/g, '.');
+    // macOS 11+ 起 Safari 冻结 Mac OS X 版本号为 10.15.x，真实版本从 Version/ 推断
+    if (osVersion.startsWith('10.15') && !/Chrome|Firefox|Edg|OPR/i.test(ua)) {
+      const vMatch = ua.match(/Version\/(\d+)(?:\.(\d+))?/);
+      if (vMatch) {
+        const safariMajor = parseInt(vMatch[1], 10);
+        const safariMinor = vMatch[2] || '0';
+        if (safariMajor >= 26) {
+          osVersion = vMatch[1] + (safariMinor !== '0' ? '.' + safariMinor : '');
+        } else if (safariMajor >= 14 && safariMajor <= 18) {
+          osVersion = (safariMajor - 3) + '.' + safariMinor;
+        }
+      }
+    }
+  }
   else if (/Android (\d+[\.\d]*)/.test(ua)) {
     os = 'Android'; osVersion = ua.match(/Android (\d+[\.\d]*)/)?.[1] || '';
     const buildMatch = ua.match(/;\s*([^;)]+)\s*Build\//);

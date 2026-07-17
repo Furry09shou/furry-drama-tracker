@@ -14,7 +14,25 @@ const parseUserAgent = (ua) => {
   else if (/MSIE|Trident/i.test(ua)) { result.browser = 'IE'; }
 
   if (/Windows NT (\d+\.\d+)/i.test(ua)) { result.os = 'Windows'; result.osVersion = ua.match(/Windows NT (\d+\.\d+)/i)[1]; }
-  else if (/Mac OS X (\d+[._]\d+)/i.test(ua)) { result.os = 'macOS'; result.osVersion = ua.match(/Mac OS X (\d+[._]\d+)/i)[1].replace(/_/g, '.'); }
+  else if (/Mac OS X (\d+[._\d]*)/i.test(ua)) {
+    result.os = 'macOS';
+    result.osVersion = ua.match(/Mac OS X (\d+[._\d]*)/i)[1].replace(/_/g, '.');
+    // macOS 11+ 起 Safari 冻结 Mac OS X 版本号为 10.15.x，真实版本从 Version/ 推断
+    if (result.osVersion.startsWith('10.15') && !/Chrome|Firefox|Edg|OPR/i.test(ua)) {
+      const vMatch = ua.match(/Version\/(\d+)(?:\.(\d+))?/i);
+      if (vMatch) {
+        const safariMajor = parseInt(vMatch[1], 10);
+        const safariMinor = vMatch[2] || '0';
+        if (safariMajor >= 26) {
+          // macOS 26+: Safari 版本即 macOS 版本
+          result.osVersion = vMatch[1] + (safariMinor !== '0' ? '.' + safariMinor : '');
+        } else if (safariMajor >= 14 && safariMajor <= 18) {
+          // Safari 14-18 → macOS 11-15
+          result.osVersion = (safariMajor - 3) + '.' + safariMinor;
+        }
+      }
+    }
+  }
   else if (/Android (\d+\.?\d*)/i.test(ua)) { result.os = 'Android'; result.osVersion = ua.match(/Android (\d+\.?\d*)/i)[1]; }
   else if (/iPhone OS (\d+[_\d]*)/i.test(ua)) {
     result.os = 'iOS';
