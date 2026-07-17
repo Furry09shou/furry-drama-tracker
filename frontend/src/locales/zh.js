@@ -427,6 +427,8 @@ export default {
     recommendations: '🎯 相关推荐',
     noEmbedVideo: '该集暂无可嵌入的预览视频',
     watchViaPlatform: '请通过下方平台链接观看',
+    mobileEmbedUnsupported: '手机浏览器暂不支持嵌入式播放',
+    mobileEmbedUnsupportedHint: '请使用下方按钮跳转到对应平台观看',
     selectPlatform: '选择播放平台',
     noPlatform: '暂无可用播放平台',
     statusOngoing: '连载中',

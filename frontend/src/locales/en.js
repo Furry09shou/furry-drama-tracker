@@ -427,6 +427,8 @@ export default {
     recommendations: '🎯 Recommendations',
     noEmbedVideo: 'No embeddable preview video for this episode',
     watchViaPlatform: 'Watch via platform links below',
+    mobileEmbedUnsupported: 'Embedded playback is not supported on mobile',
+    mobileEmbedUnsupportedHint: 'Please use the buttons below to watch on the platform',
     selectPlatform: 'Select platform',
     noPlatform: 'No platform available',
     statusOngoing: 'Ongoing',

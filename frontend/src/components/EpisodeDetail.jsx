@@ -751,7 +751,13 @@ const EpisodeDetail = ({ user }) => {
                       display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                       {embedUrl ? (
-                        iframeReady ? (
+                        (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && embedUrl.includes('player.bilibili.com')) ? (
+                          <div style={{textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 16px'}}>
+                            <div style={{fontSize: '40px', marginBottom: '12px'}} aria-hidden="true">📱</div>
+                            <p style={{fontSize: '15px', fontWeight: 600, color: 'var(--foreground)', marginBottom: '6px'}}>{t('episode.mobileEmbedUnsupported')}</p>
+                            <p style={{fontSize: '13px', margin: 0}}>{t('episode.mobileEmbedUnsupportedHint')}</p>
+                          </div>
+                        ) : iframeReady ? (
                           <iframe
                             src={embedUrl}
                             style={{width: '100%', height: '100%', border: 'none'}}
