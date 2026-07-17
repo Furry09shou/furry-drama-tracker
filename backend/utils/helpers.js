@@ -16,8 +16,28 @@ const parseUserAgent = (ua) => {
   if (/Windows NT (\d+\.\d+)/i.test(ua)) { result.os = 'Windows'; result.osVersion = ua.match(/Windows NT (\d+\.\d+)/i)[1]; }
   else if (/Mac OS X (\d+[._]\d+)/i.test(ua)) { result.os = 'macOS'; result.osVersion = ua.match(/Mac OS X (\d+[._]\d+)/i)[1].replace(/_/g, '.'); }
   else if (/Android (\d+\.?\d*)/i.test(ua)) { result.os = 'Android'; result.osVersion = ua.match(/Android (\d+\.?\d*)/i)[1]; }
-  else if (/iPhone OS (\d+[_\d]*)/i.test(ua)) { result.os = 'iOS'; result.osVersion = ua.match(/iPhone OS (\d+[_\d]*)/i)[1].replace(/_/g, '.'); }
-  else if (/iPad/i.test(ua) && /(?:CPU|iPhone) OS (\d+[_\d]*)/i.test(ua)) { result.os = 'iPadOS'; result.osVersion = ua.match(/(?:CPU|iPhone) OS (\d+[_\d]*)/i)[1].replace(/_/g, '.'); }
+  else if (/iPhone OS (\d+[_\d]*)/i.test(ua)) {
+    result.os = 'iOS';
+    result.osVersion = ua.match(/iPhone OS (\d+[_\d]*)/i)[1].replace(/_/g, '.');
+    // iOS 26+ 起 Safari 冻结 iPhone OS 版本号为 18_x，真实系统版本需从 Version/ 获取
+    if (!/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua)) {
+      const vMatch = ua.match(/Version\/(\d+[\.\d]*)/i);
+      if (vMatch && parseInt(vMatch[1], 10) >= 26) {
+        result.osVersion = vMatch[1];
+      }
+    }
+  }
+  else if (/iPad/i.test(ua) && /(?:CPU|iPhone) OS (\d+[_\d]*)/i.test(ua)) {
+    result.os = 'iPadOS';
+    result.osVersion = ua.match(/(?:CPU|iPhone) OS (\d+[_\d]*)/i)[1].replace(/_/g, '.');
+    // iPadOS 26+ 同样冻结版本号，真实版本从 Version/ 获取
+    if (!/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua)) {
+      const vMatch = ua.match(/Version\/(\d+[\.\d]*)/i);
+      if (vMatch && parseInt(vMatch[1], 10) >= 26) {
+        result.osVersion = vMatch[1];
+      }
+    }
+  }
   else if (/Linux/i.test(ua)) { result.os = 'Linux'; }
 
   const modelMatch = ua.match(/\(([^)]+)\)/);
