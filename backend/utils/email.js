@@ -262,6 +262,7 @@ const sendNewDeviceLoginEmail = async (email, deviceInfo, ip, region, loginTime)
         <p style="margin:4px 0;"><strong>IP地址：</strong>${ip || '未知'}${region ? ' (' + region + ')' : ''}</p>
       </div>
       <p style="color:#ef4444;font-weight:600;">如非本人操作，请立即修改密码并检查账号安全设置。</p>
+      ${(deviceInfo.os === 'iOS' || deviceInfo.os === 'iPadOS' || deviceInfo.os === 'macOS') ? '<p style="color:#94a3b8;font-size:12px;margin-top:8px;">* Apple 设备因隐私策略，浏览器上报的系统版本可能不准确（Safari 冻结了版本号，且旧设备也可能被推送过带新版本号的浏览器安全更新）</p>' : ''}
       <a href="${url}/account-security" style="display:inline-block;padding:12px 24px;background:#ef4444;color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">前往安全设置</a>
       <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
       <p style="color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>

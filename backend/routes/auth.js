@@ -449,8 +449,9 @@ router.post('/login', async (req, res) => {
             <h2 style="color:#333;text-align:center">新设备登录验证</h2>
             <p>检测到您的账号在新设备上尝试登录：</p>
             <div style="background:#f5f5f5;padding:12px;border-radius:8px;margin:12px 0">
-              <p style="margin:4px 0"><strong>浏览器：</strong>${escapeHtml(parsed.browser) || '未知'}</p>
-              <p style="margin:4px 0"><strong>操作系统：</strong>${escapeHtml(parsed.os) || '未知'}</p>
+              <p style="margin:4px 0"><strong>浏览器：</strong>${escapeHtml(parsed.browser) || '未知'} ${escapeHtml(parsed.browserVersion || '')}</p>
+              <p style="margin:4px 0"><strong>操作系统：</strong>${escapeHtml(parsed.os) || '未知'} ${escapeHtml(parsed.osVersion || '')}</p>
+              <p style="margin:4px 0"><strong>设备类型：</strong>${escapeHtml(parsed.deviceType) || '未知'}</p>
               <p style="margin:4px 0"><strong>IP地址：</strong>${escapeHtml(currentIp)}</p>
             </div>
             <p>如非本人操作，请忽略此邮件。如确认是本人，请点击下方按钮确认登录：</p>
@@ -468,7 +469,15 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({
         message: '检测到新设备登录，验证邮件已发送至您的邮箱，请确认后登录',
         needDeviceVerify: true,
-        email: user.email
+        email: user.email,
+        deviceInfo: {
+          browser: parsed.browser || '',
+          browserVersion: parsed.browserVersion || '',
+          os: parsed.os || '',
+          osVersion: parsed.osVersion || '',
+          deviceType: parsed.deviceType || '',
+          ip: currentIp
+        }
       });
     }
 

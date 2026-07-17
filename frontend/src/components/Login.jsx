@@ -29,6 +29,7 @@ const Login = ({ login }) => {
   const [submitting, setSubmitting] = useState(false);
   const [needDeviceVerify, setNeedDeviceVerify] = useState(false);
   const [deviceVerifyEmail, setDeviceVerifyEmail] = useState('');
+  const [deviceVerifyInfo, setDeviceVerifyInfo] = useState(null);
   const [deviceVerifyLoading, setDeviceVerifyLoading] = useState(false);
   const [need2FA, setNeed2FA] = useState(false);
   const [twoFAEmail, setTwoFAEmail] = useState('');
@@ -121,6 +122,7 @@ const Login = ({ login }) => {
       } else if (data?.needDeviceVerify) {
         setNeedDeviceVerify(true);
         setDeviceVerifyEmail(data.email || formData.email);
+        setDeviceVerifyInfo(data.deviceInfo || null);
         setError('');
       } else {
         setError(data?.message || t('auth.loginFailed'));
@@ -194,6 +196,7 @@ const Login = ({ login }) => {
   }
 
   if (needDeviceVerify) {
+    const isAppleDevice = deviceVerifyInfo?.os === 'iOS' || deviceVerifyInfo?.os === 'iPadOS' || deviceVerifyInfo?.os === 'macOS';
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '40px 20px'}}>
         <div aria-hidden="true" style={{fontSize: '48px', marginBottom: '16px'}}>📧</div>
@@ -203,6 +206,31 @@ const Login = ({ login }) => {
           <strong>{deviceVerifyEmail}</strong><br/>
           {t('auth.clickToVerifyDevice')}
         </p>
+        {deviceVerifyInfo && (
+          <div style={{
+            background: 'var(--hover-bg)', border: '1px solid var(--border)',
+            borderRadius: '10px', padding: '14px 18px', margin: '16px 0',
+            textAlign: 'left', fontSize: '13px', lineHeight: 1.8
+          }}>
+            {deviceVerifyInfo.browser && (
+              <div><strong>{t('devices.browser')}:</strong> {deviceVerifyInfo.browser} {deviceVerifyInfo.browserVersion}</div>
+            )}
+            {deviceVerifyInfo.os && (
+              <div><strong>{t('devices.os')}:</strong> {deviceVerifyInfo.os} {deviceVerifyInfo.osVersion}{isAppleDevice ? ' *' : ''}</div>
+            )}
+            {deviceVerifyInfo.deviceType && (
+              <div><strong>{t('devices.deviceType')}:</strong> {deviceVerifyInfo.deviceType}</div>
+            )}
+            {deviceVerifyInfo.ip && (
+              <div><strong>IP:</strong> {deviceVerifyInfo.ip}</div>
+            )}
+          </div>
+        )}
+        {isAppleDevice && (
+          <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+            * {t('devices.appleVersionNote')}
+          </p>
+        )}
         <p style={{color: 'var(--text-secondary)', fontSize: '13px', marginTop: '16px'}}>
           {t('auth.verifyLinkExpiry')}
         </p>
