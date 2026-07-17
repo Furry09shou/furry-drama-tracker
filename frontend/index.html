@@ -41,8 +41,9 @@
           zh: {
             title: '抱歉，当前浏览器无法正常打开',
             reasonLabel: '具体情况',
-            reasonIE: '当前使用的是 Internet Explorer，这款浏览器已经停止更新，在打开很多网站时都会遇到问题。换一款其他浏览器就可以正常访问了。',
-            reasonEdgeLegacy: '当前使用的是旧版 Microsoft Edge，这款浏览器已经不再更新。安装新版 Edge（基于 Chromium）或其他浏览器后即可正常访问。',
+            reasonIE: '当前使用的是 Internet Explorer（Trident 内核），该浏览器已于 2015 年停止更新，不支持现代网页标准。本站需要 Chromium 60+、Gecko 55+ 或 WebKit 12+ 内核的浏览器。',
+            reasonEdgeLegacy: '当前使用的是旧版 Microsoft Edge（EdgeHTML 内核），该版本已于 2021 年停止支持。新版 Edge 已改用 Chromium 内核，安装后即可正常访问。',
+            supportedVersions: '本站支持的浏览器版本：Chrome 60+（Blink 内核）、Firefox 55+（Gecko 内核）、Safari 12+（WebKit 内核）、Edge 79+（Chromium 内核）',
             solutionTitle: '换一款浏览器试试？',
             hint: '感谢你的理解，换一款浏览器就能正常访问啦。如果已经是最新版浏览器仍有问题，欢迎反馈给我们。',
             langToggle: 'EN',
@@ -50,13 +51,15 @@
             downloadGlobal: '国际下载',
             chrome: 'Google Chrome',
             edge: 'Microsoft Edge（新版，基于 Chromium）',
-            firefox: 'Mozilla Firefox'
+            firefox: 'Mozilla Firefox',
+            icpPrefix: ''
           },
           en: {
             title: 'Sorry, this browser cannot display properly',
             reasonLabel: 'Details',
-            reasonIE: 'You are using Internet Explorer, which is no longer updated and may have trouble opening many websites. Switching to another browser should fix this.',
-            reasonEdgeLegacy: 'You are using the legacy version of Microsoft Edge, which is no longer updated. Installing the new Edge (Chromium-based) or another browser should allow you to access the site normally.',
+            reasonIE: 'You are using Internet Explorer (Trident engine), which was discontinued in 2015 and does not support modern web standards. This site requires a browser with Chromium 60+, Gecko 55+, or WebKit 12+ engine.',
+            reasonEdgeLegacy: 'You are using the legacy Microsoft Edge (EdgeHTML engine), which was discontinued in 2021. The new Edge uses the Chromium engine — installing it should fix the issue.',
+            supportedVersions: 'Supported browsers: Chrome 60+ (Blink), Firefox 55+ (Gecko), Safari 12+ (WebKit), Edge 79+ (Chromium)',
             solutionTitle: 'How about trying another browser?',
             hint: 'Thanks for your understanding — switching to another browser should do the trick. If you are already using the latest version and still have issues, feel free to let us know.',
             langToggle: '中文',
@@ -64,7 +67,8 @@
             downloadGlobal: 'Global',
             chrome: 'Google Chrome',
             edge: 'Microsoft Edge (Chromium-based)',
-            firefox: 'Mozilla Firefox'
+            firefox: 'Mozilla Firefox',
+            icpPrefix: ''
           }
         };
 
@@ -100,6 +104,14 @@
               '</div>';
           }
 
+          var icpHtml = '';
+          try {
+            var icpVal = localStorage.getItem('_icp');
+            if (icpVal) {
+              icpHtml = '<a href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:12px;font-size:11px;color:#94a3b8;text-decoration:none;">' + icpVal + '</a>';
+            }
+          } catch (e) {}
+
           return (
             '<div style="position:fixed;top:14px;right:16px;z-index:2147483648;">' +
               '<button onclick="window.__switchCompatLang()" style="background:#fff;border:1px solid #c7d2fe;color:#6366f1;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,0.15);">' + L.langToggle + '</button>' +
@@ -107,12 +119,14 @@
             '<div style="max-width:560px;width:100%;background:#fff;border-radius:16px;padding:36px 32px;box-shadow:0 25px 50px -12px rgba(99,102,241,0.18);border:1px solid #e2e8f0;text-align:center;">' +
               '<div style="font-size:56px;margin-bottom:14px;line-height:1;">\uD83D\uDE05</div>' +
               '<h1 style="font-size:23px;font-weight:700;margin:0 0 16px 0;color:#1e293b;">' + L.title + '</h1>' +
-              '<div style="font-size:14px;line-height:1.7;color:#64748b;margin-bottom:22px;text-align:left;padding:14px 16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">' +
+              '<div style="font-size:14px;line-height:1.7;color:#64748b;margin-bottom:16px;text-align:left;padding:14px 16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">' +
                 '<strong style="color:#6366f1;display:block;margin-bottom:4px;">' + L.reasonLabel + '</strong>' + reasonText +
               '</div>' +
+              '<div style="font-size:12px;line-height:1.6;color:#94a3b8;margin-bottom:22px;text-align:left;padding:10px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">' + L.supportedVersions + '</div>' +
               '<div style="font-size:15px;font-weight:600;color:#475569;margin-bottom:12px;">' + L.solutionTitle + '</div>' +
               '<div style="display:flex;flex-direction:column;gap:10px;">' + browserCards + '</div>' +
               '<p style="margin:22px 0 0 0;font-size:12px;color:#94a3b8;line-height:1.6;">' + L.hint + '</p>' +
+              icpHtml +
             '</div>'
           );
         }

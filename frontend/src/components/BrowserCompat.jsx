@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '../contexts/I18nContext';
+import axios from 'axios';
 
 /**
  * 浏览器兼容性检测组件
@@ -144,6 +145,30 @@ function getReasonText(reason, t) {
  * 不兼容浏览器全屏提示（亮色主题，支持中英双语切换）
  */
 const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
+  const [icp, setIcp] = useState('');
+
+  useEffect(() => {
+    // 从 API 获取 ICP 备案号
+    axios.get('/api/site-content/about')
+      .then(res => {
+        try {
+          const data = JSON.parse(res.data.content);
+          if (data.icp) {
+            setIcp(data.icp);
+            // 缓存到 localStorage，供 index.html 原生 JS 层使用
+            try { localStorage.setItem('_icp', data.icp); } catch (e) {}
+          }
+        } catch (e) {}
+      })
+      .catch(() => {
+        // API 不可用时尝试从 localStorage 缓存读取
+        try {
+          const cached = localStorage.getItem('_icp');
+          if (cached) setIcp(cached);
+        } catch (e) {}
+      });
+  }, []);
+
   const overlayStyle = {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -199,11 +224,23 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
     fontSize: '14px',
     lineHeight: 1.7,
     color: '#64748b',
-    marginBottom: '22px',
+    marginBottom: '16px',
     textAlign: 'left',
     padding: '14px 16px',
     background: '#f8fafc',
     borderRadius: '10px',
+    border: '1px solid #e2e8f0',
+  };
+
+  const supportedStyle = {
+    fontSize: '12px',
+    lineHeight: 1.6,
+    color: '#94a3b8',
+    marginBottom: '22px',
+    textAlign: 'left',
+    padding: '10px 14px',
+    background: '#f8fafc',
+    borderRadius: '8px',
     border: '1px solid #e2e8f0',
   };
 
@@ -254,6 +291,7 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
           <strong style={{ color: '#6366f1', display: 'block', marginBottom: '4px' }}>{t('browserCompat.reasonLabel')}</strong>
           {getReasonText(reason, t)}
         </div>
+        <div style={supportedStyle}>{t('browserCompat.supportedVersions')}</div>
         <div style={solutionTitleStyle}>{t('browserCompat.solutionTitle')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {browsers.map(b => (
@@ -287,6 +325,22 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
         }}>
           {t('browserCompat.hint')}
         </p>
+        {icp && (
+          <a
+            href="https://beian.miit.gov.cn/#/Integrated/index"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              marginTop: '12px',
+              fontSize: '11px',
+              color: '#94a3b8',
+              textDecoration: 'none',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+            onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+          >{icp}</a>
+        )}
       </div>
     </div>
   );
