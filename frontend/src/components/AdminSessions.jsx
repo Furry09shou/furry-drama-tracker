@@ -168,6 +168,9 @@ const AdminSessions = () => {
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
                   <span>{getBrowserIcon(session.deviceInfo?.browser)} {session.deviceInfo?.browser} {session.deviceInfo?.browserVersion}</span>
                   <span>{session.deviceInfo?.os} {session.deviceInfo?.osVersion}</span>
+                  {(session.deviceInfo?.os === 'iOS' || session.deviceInfo?.os === 'iPadOS' || session.deviceInfo?.os === 'macOS') && (
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontStyle: 'italic' }} title={t('adminSessions.appleVersionNote')}>*</span>
+                  )}
                   {session.deviceInfo?.screenWidth > 0 && (
                     <span>{session.deviceInfo.screenWidth}x{session.deviceInfo.screenHeight}</span>
                   )}
@@ -200,6 +203,12 @@ const AdminSessions = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {sessions.some(s => s.deviceInfo?.os === 'iOS' || s.deviceInfo?.os === 'iPadOS' || s.deviceInfo?.os === 'macOS') && (
+        <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '12px', fontStyle: 'italic' }}>
+          * {t('adminSessions.appleVersionNote')}
+        </p>
       )}
     </div>
   );

@@ -464,6 +464,7 @@ export default {
     lastActive: 'Last active: ',
     offlineAt: 'Offline: ',
     logout: 'Logout',
+    appleVersionNote: 'Apple device system versions may be inaccurate due to privacy policies (Safari freezes the OS version in the user agent, and older devices may also receive browser security updates with newer version numbers)',
   },
   feedback: {
     title: '💬 Feedback',
@@ -843,6 +844,7 @@ export default {
     logout: 'Log out',
     logoutAll: 'Log out all',
     loading: 'Loading...',
+    appleVersionNote: 'Apple device system versions may be inaccurate due to privacy policies (Safari freezes the OS version in the user agent, and older devices may also receive browser security updates with newer version numbers)',
   },
   adminContent: {
     filled: 'Filled',

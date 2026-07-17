@@ -120,6 +120,7 @@ const UserDevices = ({ user }) => {
   };
 
   const activeCount = sessions.filter(s => s.isActive).length;
+  const hasAppleDevice = sessions.some(s => s.deviceInfo?.os === 'iOS' || s.deviceInfo?.os === 'iPadOS' || s.deviceInfo?.os === 'macOS');
 
   return (
     <div className="user-profile">
@@ -226,6 +227,9 @@ const UserDevices = ({ user }) => {
                 </div>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
                   <span>{session.deviceInfo?.os} {session.deviceInfo?.osVersion}</span>
+                  {(session.deviceInfo?.os === 'iOS' || session.deviceInfo?.os === 'iPadOS' || session.deviceInfo?.os === 'macOS') && (
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontStyle: 'italic' }} title={t('devices.appleVersionNote')}>*</span>
+                  )}
                   {session.deviceInfo?.screenWidth > 0 && (
                     <span>{session.deviceInfo.screenWidth}x{session.deviceInfo.screenHeight}</span>
                   )}
@@ -250,6 +254,12 @@ const UserDevices = ({ user }) => {
             </div>
           ))}
         </div>
+      )}
+
+      {hasAppleDevice && (
+        <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '12px', fontStyle: 'italic' }}>
+          * {t('devices.appleVersionNote')}
+        </p>
       )}
 
       <ConfirmModal

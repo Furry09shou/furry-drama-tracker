@@ -464,6 +464,7 @@ export default {
     lastActive: '最后活跃: ',
     offlineAt: '离线: ',
     logout: '下线',
+    appleVersionNote: 'Apple 设备因隐私策略，浏览器上报的系统版本可能不准确（Safari 冻结了版本号，且旧设备也可能被推送过带新版本号的浏览器安全更新）',
   },
   feedback: {
     title: '💬 用户反馈',
@@ -843,6 +844,7 @@ export default {
     logout: '下线',
     logoutAll: '全部下线',
     loading: '加载中...',
+    appleVersionNote: 'Apple 设备因隐私策略，浏览器上报的系统版本可能不准确（Safari 冻结了版本号，且旧设备也可能被推送过带新版本号的浏览器安全更新）',
   },
   adminContent: {
     filled: '已填写',
