@@ -13,10 +13,11 @@ const parseUserAgent = (ua) => {
   else if (/Safari\/(\d+)/i.test(ua) && !/Chrome/i.test(ua)) { result.browser = 'Safari'; result.browserVersion = ua.match(/Version\/(\d+)/)?.[1] || ''; }
   else if (/MSIE|Trident/i.test(ua)) { result.browser = 'IE'; }
 
-  if (/Windows NT (\d+\.\d+)/i.test(ua)) { result.os = 'Windows'; result.osVersion = ua.match(/Windows NT (\d+\.\d+)/)[1]; }
-  else if (/Mac OS X (\d+[._]\d+)/i.test(ua)) { result.os = 'macOS'; result.osVersion = ua.match(/Mac OS X (\d+[._]\d+)/)[1].replace(/_/g, '.'); }
-  else if (/Android (\d+\.?\d*)/i.test(ua)) { result.os = 'Android'; result.osVersion = ua.match(/Android (\d+\.?\d*)/)[1]; }
-  else if (/iPhone OS (\d+_\d+)/i.test(ua)) { result.os = 'iOS'; result.osVersion = ua.match(/iPhone OS (\d+_\d+)/)[1].replace(/_/g, '.'); }
+  if (/Windows NT (\d+\.\d+)/i.test(ua)) { result.os = 'Windows'; result.osVersion = ua.match(/Windows NT (\d+\.\d+)/i)[1]; }
+  else if (/Mac OS X (\d+[._]\d+)/i.test(ua)) { result.os = 'macOS'; result.osVersion = ua.match(/Mac OS X (\d+[._]\d+)/i)[1].replace(/_/g, '.'); }
+  else if (/Android (\d+\.?\d*)/i.test(ua)) { result.os = 'Android'; result.osVersion = ua.match(/Android (\d+\.?\d*)/i)[1]; }
+  else if (/iPhone OS (\d+[_\d]*)/i.test(ua)) { result.os = 'iOS'; result.osVersion = ua.match(/iPhone OS (\d+[_\d]*)/i)[1].replace(/_/g, '.'); }
+  else if (/iPad/i.test(ua) && /(?:CPU|iPhone) OS (\d+[_\d]*)/i.test(ua)) { result.os = 'iPadOS'; result.osVersion = ua.match(/(?:CPU|iPhone) OS (\d+[_\d]*)/i)[1].replace(/_/g, '.'); }
   else if (/Linux/i.test(ua)) { result.os = 'Linux'; }
 
   const modelMatch = ua.match(/\(([^)]+)\)/);
