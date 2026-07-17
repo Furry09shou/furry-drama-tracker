@@ -99,9 +99,8 @@ const AnnouncementSchema = new mongoose.Schema({
   }
 });
 
-AnnouncementSchema.pre('save', function(next) {
+AnnouncementSchema.pre('save', async function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 module.exports = mongoose.model('Announcement', AnnouncementSchema);
