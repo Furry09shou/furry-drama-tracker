@@ -11,7 +11,9 @@ router.get('/my-profile', creatorProtect, async (req, res) => {
     if (!profile) {
       profile = await CreatorProfile.create({
         adminId: req.user._id,
-        displayName: req.user.username
+        displayName: req.user.username || '创作者',
+        bio: '这位创作者还没有填写个人简介。',
+        socialLinks: {}
       });
     }
     res.json(profile);

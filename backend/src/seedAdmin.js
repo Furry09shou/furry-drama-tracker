@@ -2,11 +2,32 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const crypto = require('crypto');
 const User = require('../models/User');
+const CreatorProfile = require('../models/CreatorProfile');
 
 dotenv.config();
 
 const generateSecurePassword = () => {
   return crypto.randomBytes(12).toString('base64url').slice(0, 20);
+};
+
+// 为指定用户创建初始状态的创作者主页（若不存在）
+const ensureCreatorProfile = async (user) => {
+  try {
+    const existing = await CreatorProfile.findOne({ adminId: user._id });
+    if (existing) {
+      console.log('创作者主页已存在:', existing.displayName);
+      return;
+    }
+    await CreatorProfile.create({
+      adminId: user._id,
+      displayName: user.username || '管理员',
+      bio: '站点管理员，负责内容审核与平台运营。',
+      socialLinks: {}
+    });
+    console.log('已为超级管理员创建初始状态的创作者主页');
+  } catch (e) {
+    console.warn('创建初始创作者主页失败（不阻断流程）:', e.message);
+  }
 };
 
 const seedAdmin = async () => {
@@ -18,6 +39,7 @@ const seedAdmin = async () => {
     const existingSuper = await User.findOne({ role: 'superadmin' });
     if (existingSuper) {
       console.log('超级管理员已存在:', existingSuper.email);
+      await ensureCreatorProfile(existingSuper);
       process.exit(0);
     }
 
@@ -30,6 +52,7 @@ const seedAdmin = async () => {
       emailExists.role = 'superadmin';
       await emailExists.save();
       console.log('已将现有用户提升为超级管理员:', email);
+      await ensureCreatorProfile(emailExists);
       process.exit(0);
     }
 
@@ -44,6 +67,8 @@ const seedAdmin = async () => {
       role: 'superadmin',
       isEmailVerified: true
     });
+
+    await ensureCreatorProfile(admin);
 
     console.log('超级管理员创建成功!');
     console.log('邮箱:', email);

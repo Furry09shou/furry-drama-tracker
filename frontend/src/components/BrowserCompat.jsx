@@ -172,15 +172,20 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
   const overlayStyle = {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
-    background: 'linear-gradient(135deg, #eef2ff 0%, #fdf4ff 50%, #eef2ff 100%)',
+    background: '#eef2ff',
     color: '#1e293b',
     fontFamily: "'Noto Sans SC', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     zIndex: 2147483647,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    display: 'table',
+    width: '100%',
+    height: '100%',
+  };
+
+  const cellStyle = {
+    display: 'table-cell',
+    verticalAlign: 'middle',
+    textAlign: 'center',
     padding: '20px',
-    overflow: 'auto',
   };
 
   const cardStyle = {
@@ -191,7 +196,8 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
     padding: '36px 32px',
     boxShadow: '0 25px 50px -12px rgba(99, 102, 241, 0.18)',
     border: '1px solid #e2e8f0',
-    textAlign: 'center',
+    textAlign: 'left',
+    display: 'inline-block',
     position: 'relative',
   };
 
@@ -274,74 +280,89 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
 
   return (
     <div style={overlayStyle}>
-      <div style={cardStyle}>
-        <button
-          style={langToggleStyle}
-          onClick={() => switchLang(lang === 'zh' ? 'en' : 'zh')}
-          aria-label={t('browserCompat.langToggle')}
-        >
-          {lang === 'zh' ? 'EN' : '中文'}
-        </button>
-        <div style={iconStyle} aria-hidden="true">😅</div>
-        <h1 style={titleStyle}>{t('browserCompat.title')}</h1>
-        {browser && browser !== 'Unknown' && (
-          <div style={browserStyle}>{browser}</div>
-        )}
-        <div style={reasonStyle}>
-          <strong style={{ color: '#6366f1', display: 'block', marginBottom: '4px' }}>{t('browserCompat.reasonLabel')}</strong>
-          {getReasonText(reason, t)}
-        </div>
-        <div style={supportedStyle}>{t('browserCompat.supportedVersions')}</div>
-        <div style={solutionTitleStyle}>{t('browserCompat.solutionTitle')}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {browsers.map(b => (
-            <div key={b.name} style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '14px 16px',
-            }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#334155', marginBottom: '10px' }}>{b.name}</div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <a href={b.cn} style={{
-                  flex: 1, textAlign: 'center', padding: '9px 12px', borderRadius: '8px',
-                  background: '#6366f1', color: '#fff', textDecoration: 'none',
-                  fontSize: '13px', fontWeight: 600,
-                }}>{t('browserCompat.downloadCN')}</a>
-                <a href={b.global} style={{
-                  flex: 1, textAlign: 'center', padding: '9px 12px', borderRadius: '8px',
-                  background: '#fff', border: '1px solid #c7d2fe', color: '#6366f1',
-                  textDecoration: 'none', fontSize: '13px', fontWeight: 600,
-                }}>{t('browserCompat.downloadGlobal')}</a>
+      <div style={cellStyle}>
+        <div style={cardStyle}>
+          <button
+            style={langToggleStyle}
+            onClick={() => switchLang(lang === 'zh' ? 'en' : 'zh')}
+            aria-label={t('browserCompat.langToggle')}
+          >
+            {lang === 'zh' ? 'EN' : '中文'}
+          </button>
+          <div style={{ ...iconStyle, textAlign: 'center' }} aria-hidden="true">😅</div>
+          <h1 style={{ ...titleStyle, textAlign: 'center' }}>{t('browserCompat.title')}</h1>
+          {browser && browser !== 'Unknown' && (
+            <div style={{ ...browserStyle, textAlign: 'center' }}>{browser}</div>
+          )}
+          <div style={reasonStyle}>
+            <strong style={{ color: '#6366f1', display: 'block', marginBottom: '4px' }}>{t('browserCompat.reasonLabel')}</strong>
+            {getReasonText(reason, t)}
+          </div>
+          <div style={supportedStyle}>{t('browserCompat.supportedVersions')}</div>
+          <div style={{ ...solutionTitleStyle, textAlign: 'center' }}>{t('browserCompat.solutionTitle')}</div>
+          <div>
+            {browsers.map((b, idx) => (
+              <div key={b.name} style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                marginBottom: idx < browsers.length - 1 ? '10px' : 0,
+              }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#334155', marginBottom: '10px' }}>{b.name}</div>
+                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '8px 0', margin: '0 -8px' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ width: '50%' }}>
+                        <a href={b.cn} style={{
+                          display: 'block', textAlign: 'center', padding: '9px 12px', borderRadius: '8px',
+                          background: '#6366f1', color: '#fff', textDecoration: 'none',
+                          fontSize: '13px', fontWeight: 600,
+                        }}>{t('browserCompat.downloadCN')}</a>
+                      </td>
+                      <td style={{ width: '50%' }}>
+                        <a href={b.global} style={{
+                          display: 'block', textAlign: 'center', padding: '9px 12px', borderRadius: '8px',
+                          background: '#fff', border: '1px solid #c7d2fe', color: '#6366f1',
+                          textDecoration: 'none', fontSize: '13px', fontWeight: 600,
+                        }}>{t('browserCompat.downloadGlobal')}</a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <p style={{
+            marginTop: '22px',
+            fontSize: '12px',
+            color: '#94a3b8',
+            lineHeight: 1.6,
+            textAlign: 'center',
+          }}>
+            {t('browserCompat.hint')}
+          </p>
         </div>
-        <p style={{
-          marginTop: '22px',
-          fontSize: '12px',
-          color: '#94a3b8',
-          lineHeight: 1.6,
-        }}>
-          {t('browserCompat.hint')}
-        </p>
-        {icp && (
-          <a
-            href="https://beian.miit.gov.cn/#/Integrated/index"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-block',
-              marginTop: '12px',
-              fontSize: '11px',
-              color: '#94a3b8',
-              textDecoration: 'none',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-            onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-          >{icp}</a>
-        )}
       </div>
+      {icp && (
+        <a
+          href="https://beian.miit.gov.cn/#/Integrated/index"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            position: 'absolute',
+            bottom: '16px',
+            left: 0,
+            right: 0,
+            textAlign: 'center',
+            fontSize: '11px',
+            color: '#94a3b8',
+            textDecoration: 'none',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+        >{icp}</a>
+      )}
     </div>
   );
 };
