@@ -4,9 +4,72 @@
   box-sizing: border-box;
 }
 
+/* ===== 设计系统 Design Tokens =====
+ * 统一间距/圆角/字号/阴影层级，替代散落在组件中的内联 magic number。
+ * 间距步进 4px；圆角三档；字号阶梯；阴影三档。
+ */
+:root {
+  /* 间距 Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* 圆角 Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* 字号 Type scale */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+
+  /* 阴影 Elevation（低/中/高） */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+
+  /* 过渡曲线 Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --transition-fast: 0.15s var(--ease-out);
+  --transition: 0.25s var(--ease-out);
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* 骨架屏 shimmer 动画 */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--hover-bg) 25%, var(--hover-bg-strong) 50%, var(--hover-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s var(--ease-in-out) infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* 全局键盘 focus 样式（无障碍） */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 a {
@@ -21,9 +84,6 @@ body {
   color: var(--foreground);
   min-height: 100vh;
   padding-bottom: 60px;
-  background-image:
-    radial-gradient(circle at 25% 25%, var(--gradient-bg1) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, var(--gradient-bg2) 0%, transparent 50%);
   transition: background-color 0.3s ease, color 0.3s ease;
   overscroll-behavior: none;
 }
@@ -77,10 +137,8 @@ nav {
 nav .logo h1 {
   font-size: 1.5rem;
   font-weight: 700;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
@@ -194,9 +252,9 @@ nav ul li a[style*="primary"] {
   -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
   position: relative;
   cursor: pointer;
   text-decoration: none;
@@ -205,20 +263,20 @@ nav ul li a[style*="primary"] {
 }
 
 .episode-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 25px -5px var(--shadow-color);
-  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-border);
 }
 
 .episode-card img {
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition: transform 0.4s var(--ease-out);
 }
 
 .episode-card:hover img {
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .episode-card .card-content {
@@ -289,37 +347,27 @@ nav ul li a[style*="primary"] {
   align-items: center;
   justify-content: center;
   padding: 10px 20px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  background: var(--primary);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
+  font-size: var(--text-base);
+  font-weight: 600;
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   position: relative;
   overflow: hidden;
 }
 
-.btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.6s ease;
-}
-
-.btn:hover::before {
-  left: 100%;
-}
-
 .btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .btn-secondary {
@@ -1664,16 +1712,16 @@ img {
 
 /* 卡片悬停动画 */
 .card-hover {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform var(--transition), box-shadow var(--transition);
 }
 .card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px var(--shadow-modal);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 /* 按钮点击反馈 */
 .btn-press {
-  transition: transform 0.1s ease;
+  transition: transform 0.1s var(--ease-out);
 }
 .btn-press:active {
   transform: scale(0.96);

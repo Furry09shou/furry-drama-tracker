@@ -33,21 +33,21 @@ export const generateColorShades = (hex) => {
 };
 
 export const PRESET_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
-  '#eab308', '#22c55e', '#06b6d4', '#3b82f6'
+  '#4f46e5', '#7c3aed', '#be185d', '#dc2626', '#ea580c',
+  '#ca8a04', '#15803d', '#0e7490', '#1d4ed8'
 ];
 
 const themes = {
   dark: {
-    '--primary': '#6366f1',
-    '--primary-dark': '#4f46e5',
-    '--primary-light': '#818cf8',
-    '--primary-bg': 'rgba(99, 102, 241, 0.15)',
-    '--primary-bg-subtle': 'rgba(99, 102, 241, 0.08)',
-    '--primary-bg-strong': 'rgba(99, 102, 241, 0.2)',
-    '--primary-border': 'rgba(99, 102, 241, 0.3)',
-    '--primary-border-subtle': 'rgba(99, 102, 241, 0.2)',
-    '--primary-hover': '#4f46e5',
+    '--primary': '#4f46e5',
+    '--primary-dark': '#4338ca',
+    '--primary-light': '#6366f1',
+    '--primary-bg': 'rgba(79, 70, 229, 0.15)',
+    '--primary-bg-subtle': 'rgba(79, 70, 229, 0.08)',
+    '--primary-bg-strong': 'rgba(79, 70, 229, 0.2)',
+    '--primary-border': 'rgba(79, 70, 229, 0.3)',
+    '--primary-border-subtle': 'rgba(79, 70, 229, 0.2)',
+    '--primary-hover': '#4338ca',
     '--secondary': '#10b981',
     '--secondary-dark': '#059669',
     '--accent': '#f59e0b',
@@ -108,18 +108,18 @@ const themes = {
     '--overlay-bg-strong': 'rgba(0, 0, 0, 0.8)',
     '--overlay-bg-light': 'rgba(0, 0, 0, 0.5)',
     '--overlay-bg-subtle': 'rgba(0, 0, 0, 0.6)',
-    '--gradient-bg1': 'rgba(99, 102, 241, 0.1)',
-    '--gradient-bg2': 'rgba(16, 185, 129, 0.1)',
+    '--gradient-bg1': 'rgba(79, 70, 229, 0.05)',
+    '--gradient-bg2': 'rgba(79, 70, 229, 0.03)',
     '--scrollbar-track': 'rgba(255, 255, 255, 0.03)',
     '--scrollbar-thumb': 'rgba(255, 255, 255, 0.15)',
     '--scrollbar-thumb-hover': 'rgba(255, 255, 255, 0.25)',
-    '--selection-bg': 'rgba(99, 102, 241, 0.3)',
+    '--selection-bg': 'rgba(79, 70, 229, 0.3)',
     '--badge-bg': '#ef4444',
     '--badge-text': '#fff',
-    '--btn-gradient': 'linear-gradient(135deg, #6366f1, #10b981)',
-    '--btn-gradient-primary': 'linear-gradient(135deg, #6366f1, #4f46e5)',
-    '--btn-gradient-success': 'linear-gradient(135deg, #10b981, #059669)',
-    '--btn-gradient-purple': 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    '--btn-gradient': '#4f46e5',
+    '--btn-gradient-primary': '#4f46e5',
+    '--btn-gradient-success': '#10b981',
+    '--btn-gradient-purple': '#8b5cf6',
     '--btn-text': '#fff',
     '--indicator-active': '#fff',
     '--indicator-inactive': 'rgba(255, 255, 255, 0.4)',
@@ -134,15 +134,15 @@ const themes = {
     '--hover-bg-subtle': 'rgba(255, 255, 255, 0.03)',
   },
   light: {
-    '--primary': '#6366f1',
-    '--primary-dark': '#4f46e5',
-    '--primary-light': '#4f46e5',
-    '--primary-bg': 'rgba(99, 102, 241, 0.1)',
-    '--primary-bg-subtle': 'rgba(99, 102, 241, 0.05)',
-    '--primary-bg-strong': 'rgba(99, 102, 241, 0.15)',
-    '--primary-border': 'rgba(99, 102, 241, 0.25)',
-    '--primary-border-subtle': 'rgba(99, 102, 241, 0.15)',
-    '--primary-hover': '#4f46e5',
+    '--primary': '#4f46e5',
+    '--primary-dark': '#4338ca',
+    '--primary-light': '#6366f1',
+    '--primary-bg': 'rgba(79, 70, 229, 0.1)',
+    '--primary-bg-subtle': 'rgba(79, 70, 229, 0.05)',
+    '--primary-bg-strong': 'rgba(79, 70, 229, 0.15)',
+    '--primary-border': 'rgba(79, 70, 229, 0.25)',
+    '--primary-border-subtle': 'rgba(79, 70, 229, 0.15)',
+    '--primary-hover': '#4338ca',
     '--secondary': '#10b981',
     '--secondary-dark': '#059669',
     '--accent': '#f59e0b',
@@ -203,20 +203,20 @@ const themes = {
     '--overlay-bg-strong': 'rgba(0, 0, 0, 0.6)',
     '--overlay-bg-light': 'rgba(0, 0, 0, 0.3)',
     '--overlay-bg-subtle': 'rgba(0, 0, 0, 0.4)',
-    '--gradient-bg1': 'rgba(99, 102, 241, 0.06)',
-    '--gradient-bg2': 'rgba(16, 185, 129, 0.06)',
+    '--gradient-bg1': 'rgba(79, 70, 229, 0.04)',
+    '--gradient-bg2': 'rgba(79, 70, 229, 0.02)',
     '--scrollbar-track': 'rgba(0, 0, 0, 0.03)',
     '--scrollbar-thumb': 'rgba(0, 0, 0, 0.15)',
     '--scrollbar-thumb-hover': 'rgba(0, 0, 0, 0.25)',
-    '--selection-bg': 'rgba(99, 102, 241, 0.2)',
+    '--selection-bg': 'rgba(79, 70, 229, 0.2)',
     '--badge-bg': '#ef4444',
     '--badge-text': '#fff',
-    '--btn-gradient': 'linear-gradient(135deg, #6366f1, #10b981)',
-    '--btn-gradient-primary': 'linear-gradient(135deg, #6366f1, #4f46e5)',
-    '--btn-gradient-success': 'linear-gradient(135deg, #10b981, #059669)',
-    '--btn-gradient-purple': 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    '--btn-gradient': '#4f46e5',
+    '--btn-gradient-primary': '#4f46e5',
+    '--btn-gradient-success': '#10b981',
+    '--btn-gradient-purple': '#8b5cf6',
     '--btn-text': '#fff',
-    '--indicator-active': '#6366f1',
+    '--indicator-active': '#4f46e5',
     '--indicator-inactive': 'rgba(0, 0, 0, 0.2)',
     '--banner-overlay': 'rgba(0, 0, 0, 0.5)',
     '--banner-overlay-hover': 'rgba(0, 0, 0, 0.3)',
@@ -256,10 +256,11 @@ const applyAccentColor = (hex, currentTheme) => {
   root.style.setProperty('--primary-border-subtle', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.2 : 0.15})`);
   root.style.setProperty('--ring', hex);
   root.style.setProperty('--selection-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.3 : 0.2})`);
-  root.style.setProperty('--gradient-bg1', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.1 : 0.06})`);
-  root.style.setProperty('--btn-gradient', `linear-gradient(135deg, ${hex}, #10b981)`);
-  root.style.setProperty('--btn-gradient-primary', `linear-gradient(135deg, ${hex}, ${shades.primaryHover})`);
-  root.style.setProperty('--btn-gradient-purple', `linear-gradient(135deg, ${hex}, #8b5cf6)`);
+  root.style.setProperty('--gradient-bg1', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.05 : 0.04})`);
+  root.style.setProperty('--gradient-bg2', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${isDark ? 0.03 : 0.02})`);
+  root.style.setProperty('--btn-gradient', hex);
+  root.style.setProperty('--btn-gradient-primary', hex);
+  root.style.setProperty('--btn-gradient-purple', hex);
 };
 
 export const ThemeProvider = ({ children }) => {

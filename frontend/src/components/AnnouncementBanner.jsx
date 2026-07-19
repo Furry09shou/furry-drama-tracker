@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Megaphone, AlertTriangle, Wrench, Sparkles, X } from 'lucide-react';
 import axios from 'axios';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -22,7 +23,7 @@ const markDismissed = (id) => {
   } catch {}
 };
 
-const typeIcon = { info: '📢', warning: '⚠️', maintenance: '🔧', update: '✨' };
+const typeIcon = { info: Megaphone, warning: AlertTriangle, maintenance: Wrench, update: Sparkles };
 const typeBg = {
   info: 'var(--primary-bg, #eef2ff)',
   warning: 'var(--warning-bg, #fef3c7)',
@@ -30,7 +31,7 @@ const typeBg = {
   update: 'var(--success-bg, #d1fae5)'
 };
 const typeAccent = {
-  info: 'var(--primary, #6366f1)',
+  info: 'var(--primary, #4f46e5)',
   warning: 'var(--warning-text, #f59e0b)',
   maintenance: 'var(--warning-text, #f59e0b)',
   update: 'var(--success-text, #10b981)'
@@ -62,6 +63,7 @@ const AnnouncementBanner = () => {
         const content = lang === 'en' ? (a.contentEn || a.content) : a.content;
         const isExpanded = expandedId === a._id;
         const accent = typeAccent[a.type] || typeAccent.info;
+        const IconComp = typeIcon[a.type] || Megaphone;
         return (
           <div
             key={a._id}
@@ -75,7 +77,7 @@ const AnnouncementBanner = () => {
               maxWidth: '1200px', margin: '0 auto', padding: '8px 16px',
               display: 'flex', alignItems: 'center', gap: '10px'
             }}>
-              <span aria-hidden="true" style={{ fontSize: '15px', flexShrink: 0 }}>{typeIcon[a.type] || '📢'}</span>
+              <span aria-hidden="true" style={{ color: accent, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}><IconComp size={15} strokeWidth={2} /></span>
               <span
                 onClick={() => a.content && setExpandedId(isExpanded ? null : a._id)}
                 style={{
@@ -119,9 +121,9 @@ const AnnouncementBanner = () => {
                 aria-label={t('common.close')}
                 style={{
                   background: 'none', border: 'none', color: 'var(--text-secondary)',
-                  cursor: 'pointer', padding: '0 4px', fontSize: '16px', lineHeight: 1, flexShrink: 0
+                  cursor: 'pointer', padding: '2px', lineHeight: 1, flexShrink: 0, display: 'inline-flex', alignItems: 'center'
                 }}
-              >✕</button>
+              ><X size={15} strokeWidth={2} /></button>
             </div>
             {isExpanded && a.content && (
               <div style={{

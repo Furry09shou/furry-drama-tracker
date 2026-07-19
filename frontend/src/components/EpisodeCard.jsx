@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Flame, Star } from 'lucide-react';
 import TransitionLink from './TransitionLink';
 
 const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle, getLocalizedDescription, onTagClick }) => {
@@ -100,11 +101,11 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
           fontSize: '12px',
           marginTop: '4px',
         }}>
-          <span style={{ color: 'var(--text-secondary)' }}>
-            🔥 {formatViews(episode.views)}
+          <span style={{ color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+            <Flame size={13} strokeWidth={2} style={{ display: 'inline-block', verticalAlign: '-2px' }} aria-hidden="true" /> {formatViews(episode.views)}
           </span>
-          <span style={{ color: 'var(--warning-text, #f59e0b)' }}>
-            ⭐ {avgRating}{ratingCount > 0 ? ` (${ratingCount}${t('common.people')})` : ''}
+          <span style={{ color: 'var(--warning-text, #f59e0b)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+            <Star size={13} strokeWidth={2} style={{ display: 'inline-block', verticalAlign: '-2px' }} aria-hidden="true" fill="currentColor" /> {avgRating}{ratingCount > 0 ? ` (${ratingCount}${t('common.people')})` : ''}
           </span>
         </div>
 
