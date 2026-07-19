@@ -454,6 +454,7 @@ router.post('/login', async (req, res) => {
               <p style="margin:4px 0"><strong>设备类型：</strong>${escapeHtml(parsed.deviceType) || '未知'}</p>
               <p style="margin:4px 0"><strong>IP地址：</strong>${escapeHtml(currentIp)}</p>
             </div>
+            ${(parsed.os === 'iOS' || parsed.os === 'iPadOS' || parsed.os === 'macOS') ? '<p style="color:#94a3b8;font-size:12px;margin:4px 0 12px;">* Apple 设备因隐私策略，浏览器上报的系统版本可能不准确（Safari 冻结了版本号，且旧设备也可能被推送过带新版本号的浏览器安全更新）</p>' : ''}
             <p>如非本人操作，请忽略此邮件。如确认是本人，请点击下方按钮确认登录：</p>
             <div style="text-align:center;margin:20px 0">
               <a href="${process.env.SITE_URL || 'http://localhost:3000'}/verify-device?token=${deviceVerifyToken}" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">确认登录</a>
