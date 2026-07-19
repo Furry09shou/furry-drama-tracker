@@ -119,6 +119,35 @@ connectDB().then(async () => {
       }
       await Setting.findOneAndUpdate({ key: 'role_migration_v1' }, { value: true }, { upsert: true });
     }
+
+    // 迁移：为所有 creator/admin/superadmin 角色但没有 CreatorProfile 的用户补建初始状态创作者主页（一次性，幂等）
+    const CreatorProfile = require('../models/CreatorProfile');
+    const usersNeedingProfile = await User.find({
+      role: { $in: ['creator', 'admin', 'superadmin'] }
+    }).select('_id username role');
+    let createdProfiles = 0;
+    for (const user of usersNeedingProfile) {
+      const existing = await CreatorProfile.findOne({ adminId: user._id });
+      if (existing) continue;
+      const defaultBio = user.role === 'superadmin'
+        ? '站点管理员，负责内容审核与平台运营。'
+        : '这位创作者还没有填写个人简介。';
+      try {
+        await CreatorProfile.create({
+          adminId: user._id,
+          displayName: user.username || '创作者',
+          bio: defaultBio,
+          socialLinks: {}
+        });
+        createdProfiles += 1;
+      } catch (e) {
+        // 已存在则跳过（幂等）
+        if (e.code !== 11000) console.warn('补建创作者主页跳过:', user.username, e.message);
+      }
+    }
+    if (createdProfiles > 0) {
+      console.log(`已为 ${createdProfiles} 个用户补建创作者主页`);
+    }
   } catch (e) {
     console.error('迁移失败:', e.message);
   }
