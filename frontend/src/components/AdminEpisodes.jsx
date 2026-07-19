@@ -37,6 +37,7 @@ const AdminEpisodes = () => {
     tags: [],
     updateDay: '',
     premiereDate: '',
+    noPremiereDate: false,
     hideCreator: false,
     customAuthors: []
   });
@@ -137,7 +138,7 @@ const AdminEpisodes = () => {
         category: newEpisode.categories,
         tags: newEpisode.tags,
         updateDay: newEpisode.updateDay,
-        premiereDate: newEpisode.status === 'upcoming' && newEpisode.premiereDate
+        premiereDate: newEpisode.status === 'upcoming' && !newEpisode.noPremiereDate && newEpisode.premiereDate
           ? new Date(newEpisode.premiereDate).toISOString()
           : null,
         hideCreator: !!newEpisode.hideCreator,
@@ -164,6 +165,7 @@ const AdminEpisodes = () => {
           tags: response.data.tags || [],
           updateDay: response.data.updateDay || '',
           premiereDate: '',
+          noPremiereDate: false,
           hideCreator: !!response.data.hideCreator,
           customAuthors: (response.data.customAuthors || []).map(a => a._id || a)
         });
@@ -202,6 +204,7 @@ const AdminEpisodes = () => {
       premiereDate: episode.premiereDate
         ? new Date(episode.premiereDate).toISOString().slice(0, 16)
         : '',
+      noPremiereDate: episode.status === 'upcoming' && !episode.premiereDate,
       hideCreator: !!episode.hideCreator,
       customAuthors: (episode.customAuthors || []).map(a => a._id || a)
     });
@@ -228,7 +231,7 @@ const AdminEpisodes = () => {
         category: newEpisode.categories,
         tags: newEpisode.tags,
         updateDay: newEpisode.updateDay,
-        premiereDate: newEpisode.status === 'upcoming' && newEpisode.premiereDate
+        premiereDate: newEpisode.status === 'upcoming' && !newEpisode.noPremiereDate && newEpisode.premiereDate
           ? new Date(newEpisode.premiereDate).toISOString()
           : null,
         hideCreator: !!newEpisode.hideCreator,
@@ -354,6 +357,7 @@ const AdminEpisodes = () => {
       tags: [],
       updateDay: '',
       premiereDate: '',
+      noPremiereDate: false,
       hideCreator: false,
       customAuthors: []
     });
@@ -532,14 +536,28 @@ const AdminEpisodes = () => {
           <input
             type="datetime-local"
             value={newEpisode.premiereDate}
-            onChange={(e) => setNewEpisode({...newEpisode, premiereDate: e.target.value})}
+            onChange={(e) => setNewEpisode({...newEpisode, premiereDate: e.target.value, noPremiereDate: false})}
+            disabled={newEpisode.noPremiereDate}
             style={{
               width: '100%', padding: '8px 12px', borderRadius: '6px',
-              border: '1px solid var(--border)', backgroundColor: 'var(--hover-bg-strong)',
-              color: 'var(--text-light)', fontSize: '14px'
+              border: '1px solid var(--border)', backgroundColor: newEpisode.noPremiereDate ? 'var(--bg)' : 'var(--hover-bg-strong)',
+              color: 'var(--text-light)', fontSize: '14px',
+              opacity: newEpisode.noPremiereDate ? 0.5 : 1,
+              cursor: newEpisode.noPremiereDate ? 'not-allowed' : 'text'
             }}
           />
-          <p style={{fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px'}}>{t('adminEpisodes.premiereHint')}</p>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+            <input
+              type="checkbox"
+              checked={newEpisode.noPremiereDate}
+              onChange={(e) => setNewEpisode({...newEpisode, noPremiereDate: e.target.checked, premiereDate: e.target.checked ? '' : newEpisode.premiereDate})}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '14px' }}>{t('adminEpisodes.noPremiereDate')}</span>
+          </label>
+          {!newEpisode.noPremiereDate && (
+            <p style={{fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px'}}>{t('adminEpisodes.premiereHint')}</p>
+          )}
         </div>
       )}
       {error && <div className="error-message">{error}</div>}

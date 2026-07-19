@@ -347,6 +347,9 @@ const EpisodeDetail = ({ user }) => {
             {episode.status === 'upcoming' && episode.premiereDate && (
               <p><strong>{t('episode.premiereDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(episode.premiereDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
             )}
+            {episode.status === 'upcoming' && !episode.premiereDate && (
+              <p><strong>{t('episode.premiereDate')}</strong><span style={{ color: 'var(--text-tertiary)' }}>{t('episode.noPremiereDate')}</span></p>
+            )}
             {(episode.status === 'ongoing' || episode.status === 'completed') && episode.episodes && episode.episodes.length > 0 && (() => {
               const epsWithDates = episode.episodes
                 .map(ep => ep.releaseDate || ep.createdAt)
