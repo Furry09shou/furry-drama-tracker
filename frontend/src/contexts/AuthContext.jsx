@@ -85,11 +85,19 @@ export const AuthProvider = ({ children }) => {
     const handleForceEmailChange = () => {
       setUser(prev => prev ? { ...prev, forceEmailChange: true } : prev);
     };
+    // 双 Token 刷新成功后同步 user 状态（角色/邮箱可能在 refresh 响应中变化）
+    const handleTokenRefreshed = (e) => {
+      if (e.detail?.user) {
+        setUser(prev => prev ? { ...prev, ...e.detail.user } : e.detail.user);
+      }
+    };
     window.addEventListener('auth:session-expired', handleSessionExpired);
     window.addEventListener('auth:force-email-change', handleForceEmailChange);
+    window.addEventListener('auth:token-refreshed', handleTokenRefreshed);
     return () => {
       window.removeEventListener('auth:session-expired', handleSessionExpired);
       window.removeEventListener('auth:force-email-change', handleForceEmailChange);
+      window.removeEventListener('auth:token-refreshed', handleTokenRefreshed);
     };
   }, []);
 

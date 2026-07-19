@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const parseUserAgent = (ua) => {
   const result = { browser: '', browserVersion: '', os: '', osVersion: '', deviceType: 'desktop', deviceModel: '' };
@@ -139,17 +140,74 @@ const buildDeviceInfo = (deviceInfo, parsed, ua, req) => ({
   carrier: deviceInfo?.carrier || ''
 });
 
-const createUserSession = async (userId, token, deviceInfo, parsed, ua, ip) => {
+// 双 Token 机制：Access Token 短期(15min)，Refresh Token 长期(7d, 轮换)
+const ACCESS_TOKEN_TTL = '15m';
+const REFRESH_TOKEN_TTL = '7d';
+const ACCESS_TOKEN_MAX_AGE_MS = 15 * 60 * 1000;
+const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const createAccessToken = (userId) => jwt.sign({ id: String(userId) }, process.env.JWT_SECRET, {
+  expiresIn: ACCESS_TOKEN_TTL
+});
+
+const createRefreshToken = (userId) => {
+  // refresh token 内嵌 jti（用于轮换时的索引），并声明 purpose 防 token 误用
+  const jti = crypto.randomBytes(24).toString('hex');
+  return {
+    token: jwt.sign({ id: String(userId), purpose: 'refresh', jti }, process.env.JWT_SECRET, {
+      expiresIn: REFRESH_TOKEN_TTL
+    }),
+    jti
+  };
+};
+
+const createUserSession = async (userId, refreshToken, deviceInfo, parsed, ua, ip) => {
   const UserSession = require('../models/UserSession');
-  const tokenHash = hashToken(token);
+  const refreshTokenHash = hashToken(refreshToken);
   const sessionDeviceInfo = parseUserAgent(ua);
   if (deviceInfo?.screenWidth) sessionDeviceInfo.screenWidth = deviceInfo.screenWidth;
   if (deviceInfo?.screenHeight) sessionDeviceInfo.screenHeight = deviceInfo.screenHeight;
   if (deviceInfo?.language) sessionDeviceInfo.language = deviceInfo.language;
   sessionDeviceInfo.userAgent = ua;
-  await UserSession.create({ userId, tokenHash, deviceInfo: sessionDeviceInfo, ip });
+  await UserSession.create({ userId, refreshTokenHash, deviceInfo: sessionDeviceInfo, ip });
+  return refreshTokenHash;
 };
 
+// 设置 access + refresh 双 httpOnly cookie。
+// refresh cookie 限定 path=/api/auth，缩小泄露面。
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+    maxAge: ACCESS_TOKEN_MAX_AGE_MS,
+    path: '/',
+  });
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+    maxAge: REFRESH_TOKEN_MAX_AGE_MS,
+    path: '/api/auth',
+  });
+};
+
+const clearAuthCookies = (res) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const baseOpts = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+  };
+  res.clearCookie('accessToken', { ...baseOpts, path: '/' });
+  res.clearCookie('refreshToken', { ...baseOpts, path: '/api/auth' });
+  // 兼容旧 cookie
+  res.clearCookie('token', { ...baseOpts, path: '/' });
+};
+
+// 兼容旧调用：保留 setAuthCookie，内部转发到 setAuthCookies
+// 注意：旧调用仅传单个 token，无法用于双 Token；新代码应直接使用 setAuthCookies。
 const setAuthCookie = (res, token) => {
   const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('token', token, {
@@ -172,4 +230,22 @@ const timingSafeCompare = (a, b) => {
   return crypto.timingSafeEqual(bufA, bufB);
 };
 
-module.exports = { parseUserAgent, hashToken, getClientIp, escapeRegex, verifyTOTP, generateTOTPSecret, generateBackupCodes, buildDeviceInfo, createUserSession, setAuthCookie, timingSafeCompare };
+module.exports = {
+  parseUserAgent,
+  hashToken,
+  getClientIp,
+  escapeRegex,
+  verifyTOTP,
+  generateTOTPSecret,
+  generateBackupCodes,
+  buildDeviceInfo,
+  createUserSession,
+  setAuthCookie,
+  setAuthCookies,
+  clearAuthCookies,
+  createAccessToken,
+  createRefreshToken,
+  ACCESS_TOKEN_MAX_AGE_MS,
+  REFRESH_TOKEN_MAX_AGE_MS,
+  timingSafeCompare
+};

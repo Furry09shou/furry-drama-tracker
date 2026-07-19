@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const { createChallenge, verifySolution, sha } = require('altcha/lib');
 const { superAdminProtect, adminProtect, requireEmailChanged } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
-const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
+const { parseUserAgent, hashToken, getClientIp, setAuthCookies, clearAuthCookies, createAccessToken, createRefreshToken } = require('../utils/helpers');
 const Episode = require('../models/Episode');
 const Report = require('../models/Report');
 const Feedback = require('../models/Feedback');
@@ -90,11 +90,10 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: '请先验证邮箱后再登录管理后台' });
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
-    });
+    const accessToken = createAccessToken(user._id);
+    const { token: refreshToken } = createRefreshToken(user._id);
+    const refreshTokenHash = hashToken(refreshToken);
 
-    const tokenHash = hashToken(token);
     const ua = req.headers['user-agent'] || '';
     const ip = getClientIp(req);
     const deviceInfo = parseUserAgent(ua);
@@ -105,7 +104,7 @@ router.post('/login', async (req, res) => {
 
     const session = new UserSession({
       userId: user._id,
-      tokenHash,
+      refreshTokenHash,
       deviceInfo,
       ip
     });
@@ -116,14 +115,7 @@ router.post('/login', async (req, res) => {
     user.lastLoginIp = ip;
     await user.save();
 
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/',
-    });
+    setAuthCookies(res, accessToken, refreshToken);
 
     res.json({
       _id: user._id,
@@ -160,10 +152,25 @@ router.get('/pending-counts', adminProtect, async (req, res) => {
 
 router.post('/logout', adminProtect, async (req, res) => {
   try {
-    const token = req.authToken;
-    const tokenHash = hashToken(token);
-    await UserSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
-    res.clearCookie('token', { path: '/' });
+    // 双 Token 登出：通过 refresh token cookie 标记 session 失效
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      const refreshTokenHash = hashToken(refreshToken);
+      await UserSession.findOneAndUpdate(
+        { refreshTokenHash, isActive: true },
+        { isActive: false, logoutAt: new Date() }
+      );
+    }
+    // 兼容旧 session：通过 access token 的 hash 也要尝试标记
+    const accessToken = req.authToken;
+    if (accessToken) {
+      const tokenHash = hashToken(accessToken);
+      await UserSession.findOneAndUpdate(
+        { tokenHash, isActive: true },
+        { isActive: false, logoutAt: new Date() }
+      ).catch(() => {});
+    }
+    clearAuthCookies(res);
     res.json({ message: '退出成功' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });

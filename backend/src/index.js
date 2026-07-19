@@ -292,6 +292,8 @@ const authLimiter = rateLimit({
   message: { message: '登录尝试过多，请15分钟后再试' },
   standardHeaders: true,
   legacyHeaders: false,
+  // 测试环境跳过限流以便自动化测试
+  skip: () => process.env.NODE_ENV !== 'production' && process.env.SKIP_RATE_LIMIT === '1',
 });
 const adminAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -352,6 +354,7 @@ app.use('/api/auth/login-2fa', twoFactorLimiter);
 app.use('/api/2fa/verify-enable', twoFactorLimiter);
 app.use('/api/2fa/disable', twoFactorLimiter);
 app.use('/api/2fa/verify', twoFactorLimiter);
+app.use('/api/auth/refresh', twoFactorLimiter);
 
 const emailVerifyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

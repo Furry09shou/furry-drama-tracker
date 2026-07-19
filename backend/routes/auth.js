@@ -15,12 +15,25 @@ const mongoose = require('mongoose');
 const https = require('https');
 const crypto = require('crypto');
 const { createChallenge, verifySolution, sha } = require('altcha/lib');
-const { protect, adminProtect } = require('../middlewares/authFactory');
+const { protect, adminProtect, verifyRefreshToken } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { logManual } = require('../middlewares/auditLog');
 const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser } = require('../utils/email');
 const { sendNotificationEmailToUser } = require('../utils/notifyHelper');
-const { parseUserAgent, hashToken, getClientIp, verifyTOTP, buildDeviceInfo, createUserSession, setAuthCookie, timingSafeCompare } = require('../utils/helpers');
+const {
+  parseUserAgent,
+  hashToken,
+  getClientIp,
+  verifyTOTP,
+  buildDeviceInfo,
+  createUserSession,
+  setAuthCookie,
+  setAuthCookies,
+  clearAuthCookies,
+  createAccessToken,
+  createRefreshToken,
+  timingSafeCompare
+} = require('../utils/helpers');
 const { encryptField, decryptField, encryptArray, decryptArray } = require('../utils/crypto');
 const { asyncHandler } = require('../utils/errorHandler');
 
@@ -501,13 +514,13 @@ router.post('/login', async (req, res) => {
     user.lastLoginRegion = await getCachedIpRegion(getClientIp(req));
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
-    });
+    // 双 Token：Access(15min) + Refresh(7d, 轮换)
+    const accessToken = createAccessToken(user._id);
+    const { token: refreshToken } = createRefreshToken(user._id);
 
-    await createUserSession(user._id, token, deviceInfo, parsed, ua, getClientIp(req));
+    await createUserSession(user._id, refreshToken, deviceInfo, parsed, ua, getClientIp(req));
 
-    setAuthCookie(res, token);
+    setAuthCookies(res, accessToken, refreshToken);
 
     logManual({
       userId: user._id,
@@ -566,11 +579,12 @@ router.post('/verify-device', async (req, res) => {
       });
     }
 
-    const loginToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const accessToken = createAccessToken(user._id);
+    const { token: refreshToken } = createRefreshToken(user._id);
     const ua = decoded.ua || '';
     const parsed = parseUserAgent(ua);
-    await createUserSession(user._id, loginToken, null, parsed, ua, decoded.ip || '');
-    setAuthCookie(res, loginToken);
+    await createUserSession(user._id, refreshToken, null, parsed, ua, decoded.ip || '');
+    setAuthCookies(res, accessToken, refreshToken);
 
     // 新设备登录提醒邮件
     const verifyRegion = await getCachedIpRegion(decoded.ip || '');
@@ -648,8 +662,9 @@ router.post('/login-2fa', async (req, res) => {
     user.lastLoginRegion = await getCachedIpRegion(getClientIp(req));
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    await createUserSession(user._id, token, deviceInfo, parsed, ua, getClientIp(req));
+    const accessToken = createAccessToken(user._id);
+    const { token: refreshToken } = createRefreshToken(user._id);
+    await createUserSession(user._id, refreshToken, deviceInfo, parsed, ua, getClientIp(req));
 
     logManual({
       userId: user._id,
@@ -661,7 +676,7 @@ router.post('/login-2fa', async (req, res) => {
       userAgent: req.headers['user-agent'] || '',
     });
 
-    setAuthCookie(res, token);
+    setAuthCookies(res, accessToken, refreshToken);
 
     // 新设备登录提醒邮件（2FA 登录完成）
     sendNotificationEmailToUser(
@@ -703,12 +718,88 @@ router.post('/login-2fa', async (req, res) => {
  */
 router.post('/logout', protect, async (req, res) => {
   try {
-    const token = req.authToken;
-    const tokenHash = hashToken(token);
-    await UserSession.findOneAndUpdate({ tokenHash, isActive: true }, { isActive: false, logoutAt: new Date() });
-    res.clearCookie('token', { path: '/' });
+    // 双 Token 登出：通过 refresh token cookie 标记对应 session 失效
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      const refreshTokenHash = hashToken(refreshToken);
+      await UserSession.findOneAndUpdate(
+        { refreshTokenHash, isActive: true },
+        { isActive: false, logoutAt: new Date() }
+      );
+    }
+    // 兼容旧 session：通过 access token 的 hash 也要尝试标记
+    const accessToken = req.authToken;
+    if (accessToken) {
+      const tokenHash = hashToken(accessToken);
+      await UserSession.findOneAndUpdate(
+        { tokenHash, isActive: true },
+        { isActive: false, logoutAt: new Date() }
+      ).catch(() => {});
+    }
+    clearAuthCookies(res);
     res.json({ message: '退出成功' });
   } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// 双 Token 刷新端点
+// 流程：
+// 1. verifyRefreshToken 校验 refresh token（含重用检测）
+// 2. 生成新的 access token + 新的 refresh token（轮换）
+// 3. 旧 refresh token 标记 isActive=false（防止重用）
+// 4. 创建新的 UserSession 记录（保留设备信息）
+// 5. 设置新 cookie
+//
+// 安全特性：
+// - 旧 refresh token 一旦被使用即失效，再次使用会触发重用检测，吊销所有 session
+// - 新 refresh token 每次都不同，防止重放
+// - 限流防刷：5次/15分钟（在 server.js 注册路由时挂载）
+router.post('/refresh', async (req, res) => {
+  try {
+    const result = await verifyRefreshToken(req);
+    if (!result.ok) {
+      clearAuthCookies(res);
+      return res.status(result.code).json({
+        message: result.message,
+        messageKey: result.messageKey
+      });
+    }
+
+    const { user, session } = result;
+
+    // 旧 refresh token 立即失效（轮换）
+    session.isActive = false;
+    session.logoutAt = new Date();
+    await session.save();
+
+    // 生成新双 Token
+    const accessToken = createAccessToken(user._id);
+    const { token: newRefreshToken } = createRefreshToken(user._id);
+
+    // 创建新 session（继承设备信息）
+    await UserSession.create({
+      userId: user._id,
+      refreshTokenHash: hashToken(newRefreshToken),
+      deviceInfo: session.deviceInfo,
+      ip: session.ip,
+      loginAt: session.loginAt,
+      lastActiveAt: new Date()
+    });
+
+    setAuthCookies(res, accessToken, newRefreshToken);
+
+    res.json({
+      _id: user._id,
+      accountId: user.accountId,
+      username: user.username,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      role: user.role || 'user',
+      forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
     res.status(500).json({ message: '服务器错误' });
   }
 });
@@ -781,6 +872,8 @@ router.put('/change-password', protect, async (req, res) => {
       ip: req.ip || req.connection?.remoteAddress || '',
       userAgent: req.headers['user-agent'] || '',
     });
+    // 双 Token：密码变更后清除客户端 cookie，强制重新登录
+    clearAuthCookies(res);
     res.json({ message: '密码修改成功' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -832,8 +925,15 @@ router.put('/change-email', protect, async (req, res) => {
       userAgent: req.headers['user-agent'] || '',
     });
 
+    // 安全约束：邮箱变更必须失效该用户所有 session（防止旧邮箱持有者继续访问）
+    await UserSession.updateMany(
+      { userId: user._id, isActive: true },
+      { isActive: false, logoutAt: new Date() }
+    );
+    clearAuthCookies(res);
+
     res.json({
-      message: '邮箱修改成功，请查收验证邮件',
+      message: '邮箱修改成功，请查收验证邮件后重新登录',
       email: user.email,
       isEmailVerified: false,
       forceEmailChange: false,

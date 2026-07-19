@@ -3,8 +3,11 @@ const User = require('../models/User');
 const UserSession = require('../models/UserSession');
 const { hashToken } = require('../utils/helpers');
 
-// 统一鉴权工厂：所有身份均通过 User + UserSession + token cookie 校验
-// 通过 allowedRoles 控制访问权限（基于 User.role）
+// 双 Token 机制下的统一鉴权工厂：
+// - Access Token: 15min, 存于 httpOnly cookie 'accessToken' 或 Authorization: Bearer
+//   短命令牌不查 UserSession，仅校验 JWT + User 状态，性能高
+// - 过期返回 419 + messageKey=auth.accessTokenExpired，触发前端调用 /api/auth/refresh
+// - Refresh Token: 7d, 仅在 /api/auth/refresh 端点使用，独立校验逻辑
 const createAuthMiddleware = ({ allowedRoles = [] }) => {
   return async (req, res, next) => {
     let token;
@@ -14,46 +17,110 @@ const createAuthMiddleware = ({ allowedRoles = [] }) => {
     }
 
     if (!token && req.cookies) {
-      token = req.cookies.token;
+      token = req.cookies.accessToken;
+      // 兼容旧客户端：仍接受 'token' cookie
+      if (!token) token = req.cookies.token;
     }
 
     if (!token) {
-      return res.status(401).json({ message: 'Not authorized, no token' });
+      return res.status(401).json({ message: 'Not authorized, no token', messageKey: 'auth.noToken' });
     }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+      // refresh token 不可用于访问 API（防 token 误用）
+      if (decoded.purpose && decoded.purpose !== 'access') {
+        return res.status(401).json({ message: 'Invalid token type', messageKey: 'auth.invalidToken' });
+      }
+
       const user = await User.findById(decoded.id).select('-password');
 
       if (!user) {
-        return res.status(401).json({ message: 'Not authorized, user not found' });
+        return res.status(401).json({ message: 'Not authorized, user not found', messageKey: 'auth.userNotFound' });
       }
 
       if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-        return res.status(403).json({ message: 'Not authorized' });
-      }
-
-      const tokenHash = hashToken(token);
-      const session = await UserSession.findOne({ tokenHash, isActive: true });
-      if (!session) {
-        return res.status(401).json({ message: 'Session invalid or expired' });
+        return res.status(403).json({ message: 'Not authorized', messageKey: 'auth.forbidden' });
       }
 
       req.user = user;
       req.authToken = token;
+      // 异步更新 lastActiveAt，不阻塞请求
+      UserSession.updateOne(
+        { refreshTokenHash: { $exists: true }, userId: user._id, isActive: true },
+        { lastActiveAt: new Date() }
+      ).catch(() => {});
       next();
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: 'Token expired', messageKey: 'auth.tokenExpired' });
+        // Access token 过期：返回 419 让前端调用 /api/auth/refresh
+        return res.status(419).json({ message: 'Access token expired', messageKey: 'auth.accessTokenExpired' });
       }
-      return res.status(401).json({ message: 'Not authorized, token failed' });
+      return res.status(401).json({ message: 'Not authorized, token failed', messageKey: 'auth.invalidToken' });
     }
   };
 };
 
+// Refresh Token 校验：用于 /api/auth/refresh 端点
+// 校验流程：
+// 1. 从 refreshToken cookie 取 token
+// 2. JWT verify (含 purpose=refresh)
+// 3. 查 UserSession by refreshTokenHash
+// 4. 若 session.isActive=false → refresh token 已被吊销，疑似重用，吊销该用户所有 session
+// 5. 若 session 存在且 active → 校验通过
+const verifyRefreshToken = async (req) => {
+  const token = req.cookies?.refreshToken;
+  if (!token) return { ok: false, code: 401, message: 'No refresh token', messageKey: 'auth.noRefreshToken' };
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (e) {
+    if (e.name === 'TokenExpiredError') {
+      return { ok: false, code: 401, message: 'Refresh token expired', messageKey: 'auth.refreshTokenExpired' };
+    }
+    return { ok: false, code: 401, message: 'Invalid refresh token', messageKey: 'auth.invalidToken' };
+  }
+
+  if (decoded.purpose !== 'refresh') {
+    return { ok: false, code: 401, message: 'Invalid token type', messageKey: 'auth.invalidToken' };
+  }
+
+  const refreshTokenHash = hashToken(token);
+  const session = await UserSession.findOne({ refreshTokenHash });
+
+  if (!session) {
+    // 未知 refresh token：可能是被盗的已轮换 token，安全起见吊销该用户所有 session
+    if (decoded.id) {
+      await UserSession.updateMany(
+        { userId: decoded.id, isActive: true },
+        { isActive: false, logoutAt: new Date() }
+      ).catch(() => {});
+    }
+    return { ok: false, code: 401, message: 'Refresh token reuse detected', messageKey: 'auth.refreshTokenReuse' };
+  }
+
+  if (!session.isActive) {
+    // 已被吊销的 refresh token 被再次使用：重用攻击，全部吊销
+    await UserSession.updateMany(
+      { userId: session.userId, isActive: true },
+      { isActive: false, logoutAt: new Date() }
+    ).catch(() => {});
+    return { ok: false, code: 401, message: 'Refresh token reuse detected', messageKey: 'auth.refreshTokenReuse' };
+  }
+
+  const user = await User.findById(session.userId).select('-password');
+  if (!user) {
+    return { ok: false, code: 401, message: 'User not found', messageKey: 'auth.userNotFound' };
+  }
+
+  return { ok: true, user, session };
+};
+
 module.exports = {
   createAuthMiddleware,
+  verifyRefreshToken,
   // 普通登录用户
   protect: createAuthMiddleware({ allowedRoles: [] }),
   // 管理员（creator / admin / superadmin）

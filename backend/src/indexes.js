@@ -32,6 +32,15 @@ const ensureIndexes = async () => {
       }
     }
 
+    // 双 Token 改造：同步 UserSession 索引，确保 refreshTokenHash 为 sparse unique，
+    // 旧的非 sparse tokenHash_1 索引会被 mongoose syncIndexes 自动重建为 sparse。
+    try {
+      const UserSession = require('../models/UserSession');
+      await UserSession.syncIndexes();
+    } catch (e) {
+      console.warn('UserSession 索引同步失败（不阻断启动）:', e.message);
+    }
+
     console.log('数据库索引检查完成');
   } catch (error) {
     console.error('索引检查失败:', error.message);
