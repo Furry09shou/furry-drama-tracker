@@ -63,7 +63,7 @@ router.get('/', async (req, res) => {
     const { category, sort, status, tag, search, minRating, year, order, page, limit } = req.query;
     const usePagination = page && limit;
     const pageNum = usePagination ? parseInt(page) : 1;
-    const limitNum = usePagination ? parseInt(limit) : 100;
+    const limitNum = usePagination ? Math.min(Math.max(1, parseInt(limit)), 100) : 100;
     const cacheKey = `episodes_${category || 'all'}_${sort || 'latest'}_${order || 'desc'}_${status || ''}_${tag || ''}_${search || ''}_${minRating || ''}_${year || ''}_${pageNum}_${limitNum}`;
 
     const cachedEpisodes = getCache(cacheKey);
@@ -249,7 +249,7 @@ router.get('/search', async (req, res) => {
           ]
         }
       ]
-    }).sort({ views: -1 }).limit(parseInt(limit)).select('title coverImage category rating averageRating');
+    }).sort({ views: -1 }).limit(Math.min(Math.max(1, parseInt(limit)), 50)).select('title coverImage category rating averageRating');
     res.json(episodes);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

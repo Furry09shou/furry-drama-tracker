@@ -274,7 +274,7 @@ router.get('/users', adminProtect, async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;
     const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
+    const limitNum = Math.min(Math.max(1, parseInt(limit)), 200);
     const query = {};
     if (search) {
       const escapedSearch = escapeRegex(search);
