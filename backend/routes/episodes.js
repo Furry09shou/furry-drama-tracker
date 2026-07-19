@@ -18,6 +18,27 @@ const upload = createUploadConfig('cover', 5 * 1024 * 1024);
 const viewTracker = new Map();
 const VIEW_COOLDOWN = 10 * 60 * 1000;
 
+// 邮件通知去重：同一剧集+集数 1小时内只发一次，防止创作者频繁更新刷爆SMTP配额
+const emailNotifyTracker = new Map();
+const EMAIL_NOTIFY_COOLDOWN = 60 * 60 * 1000; // 1小时
+
+const shouldSendEpisodeEmail = (episodeId, episodeNumber) => {
+  const key = `${episodeId}_${episodeNumber}`;
+  const now = Date.now();
+  const lastSent = emailNotifyTracker.get(key);
+  if (lastSent && (now - lastSent) < EMAIL_NOTIFY_COOLDOWN) {
+    return false;
+  }
+  emailNotifyTracker.set(key, now);
+  // 清理过期项，避免内存泄漏
+  if (emailNotifyTracker.size > 2000) {
+    for (const [k, t] of emailNotifyTracker) {
+      if (now - t > EMAIL_NOTIFY_COOLDOWN) emailNotifyTracker.delete(k);
+    }
+  }
+  return true;
+};
+
 setInterval(() => {
   const now = Date.now();
   for (const [key, timestamp] of viewTracker) {
@@ -526,14 +547,16 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
             data: { url: `/episode/${req.params.id}` }
           });
         });
-        // 发送邮件通知
-        sendBatchNotificationEmails(
-          uniqueUserIds.map(uid => ({
-            userId: uid,
-            prefKey: 'episodeUpdate',
-            args: [updatedEpisode.title, req.body.episodeNumber],
-          }))
-        );
+        // 发送邮件通知（去重：同一剧集+集数1小时内不重复发送）
+        if (shouldSendEpisodeEmail(req.params.id, req.body.episodeNumber)) {
+          sendBatchNotificationEmails(
+            uniqueUserIds.map(uid => ({
+              userId: uid,
+              prefKey: 'episodeUpdate',
+              args: [updatedEpisode.title, req.body.episodeNumber],
+            }))
+          );
+        }
       }
     }
 
@@ -629,20 +652,23 @@ router.put('/:id', creatorProtect, async (req, res) => {
               data: { url: `/episode/${req.params.id}` }
             });
           });
-          // 发送邮件通知（每个集数一封）
+          // 发送邮件通知（去重：同一剧集+集数1小时内不重复发送）
           const epNumbers = [];
           for (let epNum = oldCurrentEpisodes + 1; epNum <= req.body.currentEpisodes; epNum++) {
             epNumbers.push(epNum);
           }
-          sendBatchNotificationEmails(
-            uniqueUserIds.flatMap(uid =>
-              epNumbers.map(epNum => ({
+          const emailItems = uniqueUserIds.flatMap(uid =>
+            epNumbers
+              .filter(epNum => shouldSendEpisodeEmail(req.params.id, epNum))
+              .map(epNum => ({
                 userId: uid,
                 prefKey: 'episodeUpdate',
                 args: [updatedEpisode.title, epNum],
               }))
-            )
           );
+          if (emailItems.length > 0) {
+            sendBatchNotificationEmails(emailItems);
+          }
         }
       }
     }
