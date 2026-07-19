@@ -310,8 +310,8 @@ const AdminUsers = () => {
                             if (newRole === u.role) return;
                             if (!window.confirm(t('adminUsers.roleChangeConfirm', { name: u.username, role: getRoleLabel(newRole) }))) return;
                             try {
-                              if (newRole === 'superadmin' || u.role === 'superadmin') {
-                                // 超级管理员的分配和降级都通过 role 接口
+                              if (newRole === 'superadmin' || u.role === 'superadmin' || u.role === 'creator' || newRole === 'creator') {
+                                // 超级管理员和创作者的分配和降级都通过 role 接口
                                 await adminApi.put(`/api/admin/role/${u._id}`, { role: newRole });
                                 setSuccess(t('adminUsers.roleUpdated'));
                               } else if (newRole === 'user') {
