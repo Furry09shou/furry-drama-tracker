@@ -278,20 +278,26 @@ export const LicensePage = () => {
               </a>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ padding: '12px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                <h4 style={{ color: 'var(--foreground)', margin: '0 0 6px 0', fontSize: '14px' }}>{t('sitePage.frontendGPL')}</h4>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>GNU General Public License v3.0 or later</p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-                  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{t('sitePage.viewOriginal')}</a>
+              <div style={{ padding: '12px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ color: 'var(--foreground)', margin: '0 0 6px 0', fontSize: '14px' }}>{t('sitePage.frontendGPL')}</h4>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>GNU General Public License v3.0 or later</p>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                    <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{t('sitePage.viewOriginal')}</a>
+                  </div>
                 </div>
+                <img src="/images/gpl-v3-logo.svg" alt="GPLv3" style={{ height: '48px', flexShrink: 0 }} />
               </div>
-              <div style={{ padding: '12px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                <h4 style={{ color: 'var(--foreground)', margin: '0 0 6px 0', fontSize: '14px' }}>{t('sitePage.backendAGPL')}</h4>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>GNU Affero General Public License v3.0 or later</p>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--warning-text)' }}>{t('sitePage.agplNote')}</p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-                  <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{t('sitePage.viewOriginal')}</a>
+              <div style={{ padding: '12px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ color: 'var(--foreground)', margin: '0 0 6px 0', fontSize: '14px' }}>{t('sitePage.backendAGPL')}</h4>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>GNU Affero General Public License v3.0 or later</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--warning-text)' }}>{t('sitePage.agplNote')}</p>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                    <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--primary)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{t('sitePage.viewOriginal')}</a>
+                  </div>
                 </div>
+                <img src="/images/agpl-v3-logo.svg" alt="AGPLv3" style={{ height: '48px', flexShrink: 0 }} />
               </div>
             </div>
           </div>
