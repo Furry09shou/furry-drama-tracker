@@ -81,6 +81,62 @@ const ThemeColorPicker = () => {
     }
   };
 
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ''; // 允许重复选择同一文件
+    setUploading(true);
+    try {
+      if (user) {
+        // 已登录用户：上传到后端
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await axios.post(API.USERS.BACKGROUND_UPLOAD, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        await updateBg({ image: res.data.url, enabled: true });
+      } else {
+        // 未登录用户：压缩后转 base64 存储 localStorage
+        const dataUrl = await compressImage(file, 1920, 0.85);
+        await updateBg({ image: dataUrl, enabled: true });
+      }
+    } catch (err) {
+      alert(t('settings.backgroundUploadFail') || '图片上传失败');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 压缩图片：缩放到指定最大宽度并转为 base64
+  const compressImage = (file, maxW, quality) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxW) {
+            height = Math.round(height * (maxW / width));
+            width = maxW;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = ev.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   return (
     <div ref={pickerRef} style={{
       position: 'fixed', bottom: '20px', left: '20px', zIndex: 50
@@ -200,15 +256,35 @@ const ThemeColorPicker = () => {
                 </label>
                 <input
                   type="text"
-                  value={bgPrefs.image}
+                  value={bgPrefs.image.startsWith('data:') ? '' : bgPrefs.image}
                   onChange={(e) => updateBg({ image: e.target.value })}
-                  placeholder="https://..."
+                  placeholder={bgPrefs.image.startsWith('data:') ? t('settings.backgroundLocalImage') : 'https://...'}
                   style={{
                     width: '100%', padding: '6px 8px', fontSize: '12px',
                     borderRadius: '6px', border: '1px solid var(--border)',
                     background: 'var(--input)', color: 'var(--foreground)',
                     outline: 'none', boxSizing: 'border-box',
                   }}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  style={{
+                    marginTop: '6px', width: '100%', padding: '6px 10px',
+                    fontSize: '12px', fontWeight: 500, cursor: uploading ? 'wait' : 'pointer',
+                    borderRadius: '6px', border: '1px solid var(--primary-border)',
+                    background: 'var(--primary-bg)', color: 'var(--primary)',
+                    transition: 'all 0.15s', opacity: uploading ? 0.6 : 1,
+                  }}
+                >
+                  {uploading ? `⏳ ${t('settings.backgroundUploading') || '上传中...'}` : `📁 ${t('settings.backgroundUploadLocal') || '选择本地图片'}`}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
                 />
               </div>
 
