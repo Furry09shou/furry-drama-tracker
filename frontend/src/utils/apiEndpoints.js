@@ -28,6 +28,8 @@ const API = {
     AVATAR: '/api/users/avatar',
     EXPORT: '/api/users/export-my-data',
     PROFILE: '/api/users/profile',
+    BACKGROUND_UPLOAD: '/api/users/background-upload',
+    BACKGROUND_PREFS: '/api/users/background-prefs',
   },
   // 收藏/关注/历史
   FAVORITES: '/api/favorites',

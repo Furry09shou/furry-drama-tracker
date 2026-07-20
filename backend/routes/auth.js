@@ -550,6 +550,7 @@ router.post('/login', async (req, res) => {
       isEmailVerified: user.isEmailVerified,
       role: user.role || 'user',
       forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
+      backgroundPrefs: user.backgroundPrefs || {},
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -696,6 +697,7 @@ router.post('/login-2fa', async (req, res) => {
       isEmailVerified: user.isEmailVerified,
       role: user.role || 'user',
       forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
+      backgroundPrefs: user.backgroundPrefs || {},
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -797,6 +799,7 @@ router.post('/refresh', async (req, res) => {
       isEmailVerified: user.isEmailVerified,
       role: user.role || 'user',
       forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
+      backgroundPrefs: user.backgroundPrefs || {},
     });
   } catch (error) {
     console.error('Token refresh error:', error);
@@ -838,7 +841,8 @@ router.get('/me', protect, async (req, res) => {
       isEmailVerified: user.isEmailVerified,
       role: user.role || 'user',
       avatar: user.avatar || '',
-      emailNotificationPrefs: user.emailNotificationPrefs || {}
+      emailNotificationPrefs: user.emailNotificationPrefs || {},
+      backgroundPrefs: user.backgroundPrefs || {}
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });

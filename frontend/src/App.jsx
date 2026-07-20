@@ -348,13 +348,22 @@ function AppContent() {
     }
   }, [siteSettingsData, lang, location.pathname, t]);
 
-  // ===== 自定义网站背景图片：通过 CSS 变量动态应用到 body =====
+  // ===== 自定义网站背景图片：用户个人背景优先于站点默认背景 =====
   useEffect(() => {
     const root = document.documentElement;
-    if (siteSettingsData && siteSettingsData.backgroundEnabled && siteSettingsData.backgroundImage) {
-      root.style.setProperty('--bg-image', `url(${siteSettingsData.backgroundImage})`);
-      root.style.setProperty('--bg-opacity', (siteSettingsData.backgroundOpacity / 100).toString());
-      root.style.setProperty('--bg-blur', `${siteSettingsData.backgroundBlur || 0}px`);
+    // 优先使用用户个人背景，其次使用站点默认背景
+    const userBg = user?.backgroundPrefs;
+    const siteBg = siteSettingsData;
+    const bg = (userBg && userBg.enabled && userBg.image)
+      ? userBg
+      : (siteBg && siteBg.backgroundEnabled && siteBg.backgroundImage)
+        ? { image: siteBg.backgroundImage, opacity: siteBg.backgroundOpacity, blur: siteBg.backgroundBlur }
+        : null;
+
+    if (bg) {
+      root.style.setProperty('--bg-image', `url(${bg.image})`);
+      root.style.setProperty('--bg-opacity', ((bg.opacity !== undefined ? bg.opacity : 30) / 100).toString());
+      root.style.setProperty('--bg-blur', `${bg.blur || 0}px`);
       root.setAttribute('data-custom-bg', 'true');
     } else {
       root.style.removeProperty('--bg-image');
@@ -362,7 +371,7 @@ function AppContent() {
       root.style.removeProperty('--bg-blur');
       root.removeAttribute('data-custom-bg');
     }
-  }, [siteSettingsData]);
+  }, [siteSettingsData, user]);
 
   // ===== PWA 运行时更新：指向后端动态 manifest 端点，并更新图标、主题色等 meta =====
   useEffect(() => {

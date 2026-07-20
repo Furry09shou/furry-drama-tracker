@@ -17,6 +17,7 @@ const exportLimiter = rateLimit({
 });
 
 const upload = createUploadConfig('avatar', 2 * 1024 * 1024);
+const bgUpload = createUploadConfig('bg', 5 * 1024 * 1024);
 
 router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
   try {
@@ -35,6 +36,45 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
     res.json({ url: avatarUrl });
   } catch (error) {
     res.status(500).json({ message: '头像上传失败' });
+  }
+});
+
+// 用户个人背景图片上传
+router.post('/background-upload', protect, bgUpload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: '请选择要上传的图片' });
+    }
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const user = await User.findById(req.user._id);
+    // 删除旧背景图片文件
+    if (user && user.backgroundPrefs && user.backgroundPrefs.image && user.backgroundPrefs.image.startsWith('/uploads/')) {
+      const fs = require('fs');
+      const oldPath = require('path').join(__dirname, '..', user.backgroundPrefs.image);
+      fs.unlink(oldPath, () => {});
+    }
+    await User.findByIdAndUpdate(req.user._id, { 'backgroundPrefs.image': imageUrl });
+    res.json({ url: imageUrl });
+  } catch (error) {
+    res.status(500).json({ message: '背景图片上传失败' });
+  }
+});
+
+// 更新用户个人背景偏好
+router.put('/background-prefs', protect, async (req, res) => {
+  try {
+    const { enabled, opacity, blur, image } = req.body;
+    const updateData = {};
+    if (enabled !== undefined) updateData['backgroundPrefs.enabled'] = !!enabled;
+    if (opacity !== undefined) updateData['backgroundPrefs.opacity'] = Math.max(0, Math.min(100, parseInt(opacity) || 0));
+    if (blur !== undefined) updateData['backgroundPrefs.blur'] = Math.max(0, Math.min(20, parseInt(blur) || 0));
+    if (image !== undefined) updateData['backgroundPrefs.image'] = image;
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: updateData }, { new: true }).select('-password');
+    res.json({
+      backgroundPrefs: user.backgroundPrefs || {}
+    });
+  } catch (error) {
+    res.status(500).json({ message: '更新背景偏好失败' });
   }
 });
 

@@ -87,6 +87,12 @@ const UserSchema = new mongoose.Schema({
     friendLinkApply: { type: Boolean, default: true },
     announcement: { type: Boolean, default: true },
   },
+  backgroundPrefs: {
+    image: { type: String, default: '' },
+    enabled: { type: Boolean, default: false },
+    opacity: { type: Number, default: 30, min: 0, max: 100 },
+    blur: { type: Number, default: 0, min: 0, max: 20 },
+  },
   createdAt: {
     type: Date,
     default: Date.now

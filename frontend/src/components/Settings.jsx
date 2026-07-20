@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import usePushNotifications from '../hooks/usePushNotifications';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
+import ImageUploader from './ImageUploader';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
 
@@ -13,7 +14,7 @@ const Settings = ({ user }) => {
   const { t, lang, switchLang, supportedLanguages } = useI18n();
   const { themeMode, setThemeModeTo } = useTheme();
   const navigate = useNavigate();
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, updateUser } = useAuth();
   const push = usePushNotifications();
 
   const [pwaInstallRemind, setPwaInstallRemind] = useState(
@@ -30,10 +31,21 @@ const Settings = ({ user }) => {
     friendLinkStatus: true,
     friendLinkApply: true,
   });
+  const [bgPrefs, setBgPrefs] = useState({
+    image: '', enabled: false, opacity: 30, blur: 0,
+  });
 
   useEffect(() => {
     if (user?.emailNotificationPrefs) {
       setEmailPrefs(prev => ({ ...prev, ...user.emailNotificationPrefs }));
+    }
+    if (user?.backgroundPrefs) {
+      setBgPrefs({
+        image: user.backgroundPrefs.image || '',
+        enabled: !!user.backgroundPrefs.enabled,
+        opacity: user.backgroundPrefs.opacity !== undefined ? user.backgroundPrefs.opacity : 30,
+        blur: user.backgroundPrefs.blur !== undefined ? user.backgroundPrefs.blur : 0,
+      });
     }
   }, [user]);
 
@@ -79,6 +91,33 @@ const Settings = ({ user }) => {
   const showSaved = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const updateBgPrefs = async (updates) => {
+    const newPrefs = { ...bgPrefs, ...updates };
+    setBgPrefs(newPrefs);
+    updateUser(prev => ({ ...prev, backgroundPrefs: newPrefs }));
+    try {
+      await axios.put(API.USERS.BACKGROUND_PREFS, updates);
+      showSaved();
+    } catch (e) {
+      // 回滚
+      setBgPrefs(bgPrefs);
+      updateUser(prev => ({ ...prev, backgroundPrefs: bgPrefs }));
+    }
+  };
+
+  const handleBgImageChange = async (url) => {
+    const newPrefs = { ...bgPrefs, image: url };
+    setBgPrefs(newPrefs);
+    updateUser(prev => ({ ...prev, backgroundPrefs: newPrefs }));
+    try {
+      await axios.put(API.USERS.BACKGROUND_PREFS, { image: url });
+      showSaved();
+    } catch (e) {
+      setBgPrefs(bgPrefs);
+      updateUser(prev => ({ ...prev, backgroundPrefs: bgPrefs }));
+    }
   };
 
   const themeOptions = [
@@ -295,6 +334,128 @@ const Settings = ({ user }) => {
           </div>
         </div>
       ))}
+
+      {/* ===== 个人背景图片设置 ===== */}
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{
+          fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600,
+          textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px',
+        }}>{t('settings.backgroundImage')}</h3>
+        <p style={{
+          fontSize: '12px', color: 'var(--text-secondary)',
+          margin: '0 0 8px 0', lineHeight: 1.5,
+        }}>{t('settings.backgroundImageDesc')}</p>
+        <div style={{
+          background: 'var(--card)', borderRadius: '12px',
+          border: '1px solid var(--border)', padding: '16px',
+        }}>
+          {/* 启用开关 */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 0', borderBottom: bgPrefs.enabled ? '1px solid var(--border)' : 'none',
+          }}>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--foreground)' }}>
+                {t('settings.backgroundEnable')}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                {t('settings.backgroundEnableDesc')}
+              </div>
+            </div>
+            <button
+              onClick={() => updateBgPrefs({ enabled: !bgPrefs.enabled })}
+              style={{
+                width: '44px', height: '24px', borderRadius: '12px',
+                border: 'none', cursor: 'pointer',
+                background: bgPrefs.enabled ? 'var(--primary)' : 'var(--hover-bg)',
+                position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              }}
+            >
+              <div style={{
+                width: '18px', height: '18px', borderRadius: '50%',
+                background: '#fff', position: 'absolute', top: '3px',
+                left: bgPrefs.enabled ? '23px' : '3px',
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </button>
+          </div>
+
+          {bgPrefs.enabled && (
+            <div style={{ paddingTop: '12px' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>
+                  🖼️ {t('settings.backgroundImageLabel')}
+                </label>
+                <ImageUploader
+                  label={t('settings.backgroundImageLabel')}
+                  value={bgPrefs.image}
+                  onChange={handleBgImageChange}
+                  aspectRatio={16/9}
+                  outputWidth={1920}
+                  outputHeight={1080}
+                  uploadEndpoint={API.USERS.BACKGROUND_UPLOAD}
+                />
+              </div>
+
+              {bgPrefs.image && (
+                <>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      🔆 {t('settings.backgroundOpacityLabel')} ({bgPrefs.opacity}%)
+                    </label>
+                    <input
+                      type="range" min="0" max="100" step="5"
+                      value={bgPrefs.opacity}
+                      onChange={(e) => updateBgPrefs({ opacity: parseInt(e.target.value) })}
+                      style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                    />
+                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                      {t('settings.backgroundOpacityHint')}
+                    </p>
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      🌫️ {t('settings.backgroundBlurLabel')} ({bgPrefs.blur}px)
+                    </label>
+                    <input
+                      type="range" min="0" max="20" step="1"
+                      value={bgPrefs.blur}
+                      onChange={(e) => updateBgPrefs({ blur: parseInt(e.target.value) })}
+                      style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                    />
+                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                      {t('settings.backgroundBlurHint')}
+                    </p>
+                  </div>
+
+                  <div style={{
+                    marginTop: '8px', padding: '12px', borderRadius: '8px',
+                    background: 'var(--background)', border: '1px solid var(--border)',
+                  }}>
+                    <div style={{
+                      position: 'relative', width: '100%', height: '80px',
+                      borderRadius: '6px', overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        backgroundImage: `url(${bgPrefs.image})`,
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                        opacity: bgPrefs.opacity / 100,
+                        filter: bgPrefs.blur ? `blur(${bgPrefs.blur}px)` : 'none',
+                      }} />
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--foreground)' }}>{t('settings.backgroundPreviewText')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       <style>{`
         @keyframes fadeIn {
