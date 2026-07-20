@@ -50,11 +50,12 @@ router.get('/public/:id', async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
+    const adminId = profile.adminId;
     const episodes = await Episode.find({
       $or: [
-        { createdBy: profile.adminId },
-        { allowedEditors: profile.adminId },
-        { customAuthors: profile.adminId }
+        { createdBy: adminId, hideCreator: { $ne: true } },
+        { allowedEditors: adminId },
+        { customAuthors: adminId }
       ],
       reviewStatus: 'approved'
     }).sort({ createdAt: -1 });
@@ -71,11 +72,12 @@ router.get('/by-admin/:adminId', async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
+    const adminId = profile.adminId;
     const episodes = await Episode.find({
       $or: [
-        { createdBy: profile.adminId },
-        { allowedEditors: profile.adminId },
-        { customAuthors: profile.adminId }
+        { createdBy: adminId, hideCreator: { $ne: true } },
+        { allowedEditors: adminId },
+        { customAuthors: adminId }
       ],
       reviewStatus: 'approved'
     }).sort({ createdAt: -1 });

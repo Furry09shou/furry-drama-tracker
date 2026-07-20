@@ -182,7 +182,10 @@ const FooterBeian = () => {
       position: 'fixed', bottom: '12px', right: '16px', zIndex: 50,
       display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px',
       opacity: 0.5, transition: 'opacity 0.3s',
-      fontSize: '12px', lineHeight: 1.6
+      fontSize: '12px', lineHeight: 1.6,
+      padding: '6px 10px', borderRadius: '8px',
+      background: 'rgba(var(--background-rgb), 0.6)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
     }}
     onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
     onMouseLeave={(e) => e.currentTarget.style.opacity = '0.5'}
