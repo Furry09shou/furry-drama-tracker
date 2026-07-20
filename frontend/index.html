@@ -32,6 +32,23 @@
     <script>
       // IE 和不兼容浏览器检测（在 ES Module 加载前运行，使用 ES5 语法保证兼容）
       (function() {
+        // JSON polyfill（兼容 IE6/7）
+        if (typeof JSON === 'undefined') {
+          window.JSON = {
+            parse: function(s) {
+              return (new Function('return (' + s + ')'))();
+            },
+            stringify: function(o) {
+              if (o === null) return 'null';
+              if (typeof o === 'boolean' || typeof o === 'number') return String(o);
+              if (typeof o === 'string') return '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + '"';
+              if (o instanceof Array) { var a = []; for (var i = 0; i < o.length; i++) a.push(JSON.stringify(o[i])); return '[' + a.join(',') + ']'; }
+              if (typeof o === 'object') { var p = []; for (var k in o) { if (o.hasOwnProperty(k)) p.push('"' + k + '":' + JSON.stringify(o[k])); } return '{' + p.join(',') + '}'; }
+              return String(o);
+            }
+          };
+        }
+
         var ua = navigator.userAgent;
         var isIE = /MSIE|Trident/i.test(ua);
         var isOldEdge = /Edge\/\d+/i.test(ua) && !/Edg\/\d+/i.test(ua);
@@ -152,9 +169,17 @@
         paint();
         document.body.insertBefore(overlay, document.body.firstChild);
 
-        // 用 XMLHttpRequest（IE 兼容）从 API 获取 ICP 备案号
+        // 用 XMLHttpRequest（IE6+ 兼容）从 API 获取 ICP 备案号
         try {
-          var xhr = new XMLHttpRequest();
+          var xhr = null;
+          if (typeof XMLHttpRequest !== 'undefined') {
+            xhr = new XMLHttpRequest();
+          } else if (typeof ActiveXObject !== 'undefined') {
+            try { xhr = new ActiveXObject('Msxml2.XMLHTTP'); } catch (e) {
+              try { xhr = new ActiveXObject('Microsoft.XMLHTTP'); } catch (e2) {}
+            }
+          }
+          if (!xhr) return;
           xhr.open('GET', '/api/site-content/about', true);
           xhr.onreadystatechange = function() {
             if (xhr.readyState === 4 && xhr.status === 200) {
