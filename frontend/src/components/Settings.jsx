@@ -7,6 +7,7 @@ import usePushNotifications from '../hooks/usePushNotifications';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
 import ImageUploader from './ImageUploader';
+import WallpaperPicker from './WallpaperPicker';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
 
@@ -383,75 +384,7 @@ const Settings = ({ user }) => {
 
           {bgPrefs.enabled && (
             <div style={{ paddingTop: '12px' }}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>
-                  🖼️ {t('settings.backgroundImageLabel')}
-                </label>
-                <ImageUploader
-                  label={t('settings.backgroundImageLabel')}
-                  value={bgPrefs.image}
-                  onChange={handleBgImageChange}
-                  aspectRatio={16/9}
-                  outputWidth={1920}
-                  outputHeight={1080}
-                  uploadEndpoint={API.USERS.BACKGROUND_UPLOAD}
-                />
-              </div>
-
-              {bgPrefs.image && (
-                <>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                      🔆 {t('settings.backgroundOpacityLabel')} ({bgPrefs.opacity}%)
-                    </label>
-                    <input
-                      type="range" min="0" max="100" step="5"
-                      value={bgPrefs.opacity}
-                      onChange={(e) => updateBgPrefs({ opacity: parseInt(e.target.value) })}
-                      style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
-                    />
-                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                      {t('settings.backgroundOpacityHint')}
-                    </p>
-                  </div>
-
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                      🌫️ {t('settings.backgroundBlurLabel')} ({bgPrefs.blur}px)
-                    </label>
-                    <input
-                      type="range" min="0" max="20" step="1"
-                      value={bgPrefs.blur}
-                      onChange={(e) => updateBgPrefs({ blur: parseInt(e.target.value) })}
-                      style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
-                    />
-                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                      {t('settings.backgroundBlurHint')}
-                    </p>
-                  </div>
-
-                  <div style={{
-                    marginTop: '8px', padding: '12px', borderRadius: '8px',
-                    background: 'var(--background)', border: '1px solid var(--border)',
-                  }}>
-                    <div style={{
-                      position: 'relative', width: '100%', height: '80px',
-                      borderRadius: '6px', overflow: 'hidden',
-                    }}>
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        backgroundImage: `url(${bgPrefs.image})`,
-                        backgroundSize: 'cover', backgroundPosition: 'center',
-                        opacity: bgPrefs.opacity / 100,
-                        filter: bgPrefs.blur ? `blur(${bgPrefs.blur}px)` : 'none',
-                      }} />
-                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                        <span style={{ fontSize: '12px', color: 'var(--foreground)' }}>{t('settings.backgroundPreviewText')}</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+              <WallpaperPicker bgPrefs={bgPrefs} updateBg={updateBgPrefs} />
             </div>
           )}
         </div>
