@@ -185,76 +185,78 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
     display: 'table-cell',
     verticalAlign: 'middle',
     textAlign: 'center',
-    padding: '20px',
+    padding: '12px',
   };
 
   const cardStyle = {
-    maxWidth: '560px',
+    maxWidth: '440px',
     width: '100%',
     background: '#ffffff',
-    borderRadius: '16px',
-    padding: '36px 32px',
+    borderRadius: '12px',
+    padding: '24px 20px',
     boxShadow: '0 25px 50px -12px rgba(99, 102, 241, 0.18)',
     border: '1px solid #e2e8f0',
     textAlign: 'left',
     display: 'inline-block',
     position: 'relative',
+    maxHeight: 'calc(100vh - 80px)',
+    overflowY: 'auto',
   };
 
   const iconStyle = {
-    fontSize: '56px',
-    marginBottom: '14px',
+    fontSize: '40px',
+    marginBottom: '8px',
     lineHeight: 1,
   };
 
   const titleStyle = {
-    fontSize: '23px',
+    fontSize: '18px',
     fontWeight: 700,
-    marginBottom: '16px',
+    marginBottom: '10px',
     color: '#1e293b',
   };
 
   const browserStyle = {
     display: 'inline-block',
-    padding: '4px 12px',
+    padding: '3px 10px',
     borderRadius: '20px',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: 500,
     background: '#eef2ff',
     color: '#6366f1',
     border: '1px solid #c7d2fe',
-    marginBottom: '20px',
+    marginBottom: '12px',
   };
 
   const reasonStyle = {
-    fontSize: '14px',
-    lineHeight: 1.7,
-    color: '#64748b',
-    marginBottom: '16px',
-    textAlign: 'left',
-    padding: '14px 16px',
-    background: '#f8fafc',
-    borderRadius: '10px',
-    border: '1px solid #e2e8f0',
-  };
-
-  const supportedStyle = {
-    fontSize: '12px',
+    fontSize: '13px',
     lineHeight: 1.6,
-    color: '#94a3b8',
-    marginBottom: '22px',
+    color: '#64748b',
+    marginBottom: '10px',
     textAlign: 'left',
-    padding: '10px 14px',
+    padding: '10px 12px',
     background: '#f8fafc',
     borderRadius: '8px',
     border: '1px solid #e2e8f0',
   };
 
+  const supportedStyle = {
+    fontSize: '11px',
+    lineHeight: 1.5,
+    color: '#94a3b8',
+    marginBottom: '14px',
+    textAlign: 'left',
+    padding: '8px 10px',
+    background: '#f8fafc',
+    borderRadius: '6px',
+    border: '1px solid #e2e8f0',
+  };
+
   const solutionTitleStyle = {
-    fontSize: '15px',
+    fontSize: '14px',
     fontWeight: 600,
     color: '#475569',
-    marginBottom: '12px',
+    marginBottom: '8px',
   };
 
   const langToggleStyle = {
@@ -305,39 +307,31 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
               <div key={b.name} style={{
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '14px 16px',
-                marginBottom: idx < browsers.length - 1 ? '10px' : 0,
+                borderRadius: '10px',
+                padding: '10px 12px',
+                marginBottom: idx < browsers.length - 1 ? '8px' : 0,
               }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#334155', marginBottom: '10px' }}>{b.name}</div>
-                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '8px 0', margin: '0 -8px' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: '50%' }}>
-                        <a href={b.cn} style={{
-                          display: 'block', textAlign: 'center', padding: '9px 12px', borderRadius: '8px',
-                          background: '#6366f1', color: '#fff', textDecoration: 'none',
-                          fontSize: '13px', fontWeight: 600,
-                        }}>{t('browserCompat.downloadCN')}</a>
-                      </td>
-                      <td style={{ width: '50%' }}>
-                        <a href={b.global} style={{
-                          display: 'block', textAlign: 'center', padding: '9px 12px', borderRadius: '8px',
-                          background: '#fff', border: '1px solid #c7d2fe', color: '#6366f1',
-                          textDecoration: 'none', fontSize: '13px', fontWeight: 600,
-                        }}>{t('browserCompat.downloadGlobal')}</a>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>{b.name}</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <a href={b.cn} style={{
+                    flex: 1, textAlign: 'center', padding: '7px 10px', borderRadius: '6px',
+                    background: '#6366f1', color: '#fff', textDecoration: 'none',
+                    fontSize: '12px', fontWeight: 600,
+                  }}>{t('browserCompat.downloadCN')}</a>
+                  <a href={b.global} style={{
+                    flex: 1, textAlign: 'center', padding: '7px 10px', borderRadius: '6px',
+                    background: '#fff', border: '1px solid #c7d2fe', color: '#6366f1',
+                    textDecoration: 'none', fontSize: '12px', fontWeight: 600,
+                  }}>{t('browserCompat.downloadGlobal')}</a>
+                </div>
               </div>
             ))}
           </div>
           <p style={{
-            marginTop: '22px',
-            fontSize: '12px',
+            marginTop: '14px',
+            fontSize: '11px',
             color: '#94a3b8',
-            lineHeight: 1.6,
+            lineHeight: 1.5,
             textAlign: 'center',
           }}>
             {t('browserCompat.hint')}
