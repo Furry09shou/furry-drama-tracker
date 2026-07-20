@@ -158,7 +158,7 @@ router.get('/captcha', async (req, res) => {
       algorithm: 'SHA-256',
       hmacSignatureSecret: ALTCHA_HMAC_KEY,
       deriveKey: sha.deriveKey,
-      cost: 50000,
+      cost: 10000,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
     res.json(challenge);
