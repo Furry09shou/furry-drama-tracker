@@ -1588,6 +1588,7 @@ export default {
     themeSystem: 'System',
     themeLight: 'Light',
     themeDark: 'Dark',
+    backgroundGuestHint: 'Log in to upload local images and sync across devices',
     backgroundImage: 'Personal Background Image',
     backgroundImageDesc: 'Upload a custom image as your site background, visible only to you',
     backgroundEnable: 'Enable background image',

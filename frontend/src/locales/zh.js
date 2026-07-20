@@ -1588,6 +1588,7 @@ export default {
     themeSystem: '跟随系统',
     themeLight: '浅色',
     themeDark: '深色',
+    backgroundGuestHint: '登录后可上传本地图片并跨设备同步',
     backgroundImage: '个人背景图片',
     backgroundImageDesc: '上传自定义图片作为你的网站背景，仅对你自己可见',
     backgroundEnable: '启用背景图片',
