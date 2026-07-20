@@ -93,6 +93,11 @@ const UserSchema = new mongoose.Schema({
     opacity: { type: Number, default: 30, min: 0, max: 100 },
     blur: { type: Number, default: 0, min: 0, max: 20 },
   },
+  personalWallpapers: [{
+    url: { type: String, required: true },
+    name: { type: String, default: '' },
+    addedAt: { type: Date, default: Date.now },
+  }],
   createdAt: {
     type: Date,
     default: Date.now

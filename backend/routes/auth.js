@@ -551,6 +551,7 @@ router.post('/login', async (req, res) => {
       role: user.role || 'user',
       forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
       backgroundPrefs: user.backgroundPrefs || {},
+      personalWallpapers: user.personalWallpapers || [],
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -698,6 +699,7 @@ router.post('/login-2fa', async (req, res) => {
       role: user.role || 'user',
       forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
       backgroundPrefs: user.backgroundPrefs || {},
+      personalWallpapers: user.personalWallpapers || [],
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -800,6 +802,7 @@ router.post('/refresh', async (req, res) => {
       role: user.role || 'user',
       forceEmailChange: user.role === 'superadmin' && user.email === 'admin@furry09.com',
       backgroundPrefs: user.backgroundPrefs || {},
+      personalWallpapers: user.personalWallpapers || [],
     });
   } catch (error) {
     console.error('Token refresh error:', error);

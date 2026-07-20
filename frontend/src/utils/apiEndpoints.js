@@ -31,6 +31,11 @@ const API = {
     BACKGROUND_UPLOAD: '/api/users/background-upload',
     BACKGROUND_PREFS: '/api/users/background-prefs',
   },
+  WALLPAPERS: {
+    SYSTEM: '/api/wallpapers/system',
+    SYSTEM_ALL: '/api/wallpapers/system/all',
+    PERSONAL: '/api/wallpapers/personal',
+  },
   // 收藏/关注/历史
   FAVORITES: '/api/favorites',
   FOLLOWS: '/api/follows',

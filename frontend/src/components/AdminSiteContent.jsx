@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import adminApi from '../utils/adminApi';
 import ImageUploader from './ImageUploader';
+import SystemWallpaperManager from './SystemWallpaperManager';
 import { useI18n } from '../contexts/I18nContext';
 import { useSiteSettings } from '../contexts/SiteSettingsContext';
 
@@ -567,6 +568,9 @@ const AdminSiteContent = () => {
             </>
           )}
         </div>
+
+        {/* ===== 系统壁纸库管理 ===== */}
+        <SystemWallpaperManager />
       </div>
     );
   };

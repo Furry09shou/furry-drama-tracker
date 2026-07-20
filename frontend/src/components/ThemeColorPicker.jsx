@@ -30,7 +30,11 @@ const ThemeColorPicker = () => {
   const [bgPrefs, setBgPrefs] = useState({
     image: '', enabled: false, opacity: 30, blur: 0,
   });
+  const [systemWallpapers, setSystemWallpapers] = useState([]);
+  const [personalWallpapers, setPersonalWallpapers] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const pickerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // 初始化背景偏好：已登录用户从 user 对象读取，未登录用户从 localStorage 读取
   useEffect(() => {
@@ -54,6 +58,14 @@ const ThemeColorPicker = () => {
     }
   }, [user]);
 
+  // 加载系统壁纸和个人壁纸列表
+  useEffect(() => {
+    axios.get(API.WALLPAPERS.SYSTEM).then(res => setSystemWallpapers(res.data || [])).catch(() => {});
+    if (user?.personalWallpapers) {
+      setPersonalWallpapers(user.personalWallpapers);
+    }
+  }, [user]);
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target)) {
@@ -68,46 +80,66 @@ const ThemeColorPicker = () => {
     const newPrefs = { ...bgPrefs, ...updates };
     setBgPrefs(newPrefs);
     if (user) {
-      // 已登录用户：同步到后端 + 更新 AuthContext
       updateUser(prev => ({ ...prev, backgroundPrefs: newPrefs }));
       try {
         await axios.put(API.USERS.BACKGROUND_PREFS, updates);
       } catch {}
     } else {
-      // 未登录用户：存储到 localStorage
       saveGuestBgPrefs(newPrefs);
-      // 触发自定义事件通知 App.jsx 更新背景
       window.dispatchEvent(new CustomEvent('guest-bg-updated'));
     }
   };
 
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  // 选择壁纸（点击缩略图设为当前背景）
+  const selectWallpaper = (url) => {
+    updateBg({ image: url, enabled: true });
+  };
 
+  // 上传个人壁纸（已登录）或 base64 本地（未登录）
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = ''; // 允许重复选择同一文件
+    e.target.value = '';
     setUploading(true);
     try {
       if (user) {
-        // 已登录用户：上传到后端
+        // 已登录：上传到后端作为个人壁纸
         const formData = new FormData();
         formData.append('image', file);
-        const res = await axios.post(API.USERS.BACKGROUND_UPLOAD, formData, {
+        formData.append('name', file.name.replace(/\.[^.]+$/, ''));
+        const res = await axios.post(API.WALLPAPERS.PERSONAL, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        const newWp = { url: res.data.url, name: res.data.name, addedAt: res.data.addedAt };
+        setPersonalWallpapers(prev => [...prev, newWp]);
+        updateUser(prev => ({ ...prev, personalWallpapers: [...(prev.personalWallpapers || []), newWp] }));
+        // 自动选中新上传的壁纸
         await updateBg({ image: res.data.url, enabled: true });
       } else {
-        // 未登录用户：压缩后转 base64 存储 localStorage
+        // 未登录：压缩后转 base64 存 localStorage 并直接设为背景
         const dataUrl = await compressImage(file, 1920, 0.85);
         await updateBg({ image: dataUrl, enabled: true });
       }
-    } catch (err) {
+    } catch {
       alert(t('settings.backgroundUploadFail') || '图片上传失败');
     } finally {
       setUploading(false);
     }
+  };
+
+  // 删除个人壁纸
+  const deletePersonalWallpaper = async (url, e) => {
+    e.stopPropagation();
+    if (!user) return;
+    try {
+      await axios.delete(API.WALLPAPERS.PERSONAL, { data: { url } });
+      setPersonalWallpapers(prev => prev.filter(w => w.url !== url));
+      updateUser(prev => ({ ...prev, personalWallpapers: (prev.personalWallpapers || []).filter(w => w.url !== url) }));
+      // 如果当前使用的背景被删除，则关闭背景
+      if (bgPrefs.image === url) {
+        updateBg({ image: '', enabled: false });
+      }
+    } catch {}
   };
 
   // 压缩图片：缩放到指定最大宽度并转为 base64
@@ -249,43 +281,133 @@ const ThemeColorPicker = () => {
                 </button>
               </div>
 
-              {/* 图片 URL 输入 */}
-              <div>
-                <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                  {t('settings.backgroundImageLabel')}
-                </label>
-                <input
-                  type="text"
-                  value={bgPrefs.image.startsWith('data:') ? '' : bgPrefs.image}
-                  onChange={(e) => updateBg({ image: e.target.value })}
-                  placeholder={bgPrefs.image.startsWith('data:') ? t('settings.backgroundLocalImage') : 'https://...'}
-                  style={{
-                    width: '100%', padding: '6px 8px', fontSize: '12px',
-                    borderRadius: '6px', border: '1px solid var(--border)',
-                    background: 'var(--input)', color: 'var(--foreground)',
-                    outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  style={{
-                    marginTop: '6px', width: '100%', padding: '6px 10px',
-                    fontSize: '12px', fontWeight: 500, cursor: uploading ? 'wait' : 'pointer',
-                    borderRadius: '6px', border: '1px solid var(--primary-border)',
-                    background: 'var(--primary-bg)', color: 'var(--primary)',
-                    transition: 'all 0.15s', opacity: uploading ? 0.6 : 1,
-                  }}
-                >
-                  {uploading ? `⏳ ${t('settings.backgroundUploading') || '上传中...'}` : `📁 ${t('settings.backgroundUploadLocal') || '选择本地图片'}`}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                />
+              {/* 壁纸库区域，最大高度可滚动 */}
+              <div style={{ maxHeight: '320px', overflowY: 'auto', margin: '0 -4px', padding: '0 4px' }}>
+                {/* 系统壁纸 */}
+                {systemWallpapers.length > 0 && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                      🖼️ {t('settings.wallpaperSystem')}
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                      {systemWallpapers.map(wp => (
+                        <button
+                          key={wp._id || wp.url}
+                          onClick={() => selectWallpaper(wp.url)}
+                          style={{
+                            position: 'relative', paddingTop: '56.25%', padding: 0, cursor: 'pointer',
+                            borderRadius: '6px', overflow: 'hidden', border: 'none',
+                            outline: bgPrefs.image === wp.url ? '2px solid var(--primary)' : '2px solid transparent',
+                            outlineOffset: '-2px',
+                          }}
+                        >
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            backgroundImage: `url(${wp.url})`, backgroundSize: 'cover', backgroundPosition: 'center',
+                          }} />
+                          {bgPrefs.image === wp.url && (
+                            <div style={{
+                              position: 'absolute', top: '2px', right: '2px',
+                              width: '16px', height: '16px', borderRadius: '50%',
+                              background: 'var(--primary)', color: '#fff', fontSize: '10px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>✓</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 个人壁纸 */}
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span>👤 {t('settings.wallpaperPersonal')}</span>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      style={{
+                        padding: '2px 8px', fontSize: '11px', fontWeight: 500, cursor: uploading ? 'wait' : 'pointer',
+                        borderRadius: '4px', border: '1px solid var(--primary-border)',
+                        background: 'var(--primary-bg)', color: 'var(--primary)',
+                        opacity: uploading ? 0.6 : 1,
+                      }}
+                    >
+                      {uploading ? '⏳' : `+ ${t('settings.wallpaperUpload')}`}
+                    </button>
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                  {personalWallpapers.length === 0 ? (
+                    <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '12px 0' }}>
+                      {user ? t('settings.wallpaperPersonalEmpty') : t('settings.backgroundGuestHint')}
+                    </p>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                      {personalWallpapers.map((wp, i) => (
+                        <button
+                          key={wp.url || i}
+                          onClick={() => selectWallpaper(wp.url)}
+                          style={{
+                            position: 'relative', paddingTop: '56.25%', padding: 0, cursor: 'pointer',
+                            borderRadius: '6px', overflow: 'hidden', border: 'none',
+                            outline: bgPrefs.image === wp.url ? '2px solid var(--primary)' : '2px solid transparent',
+                            outlineOffset: '-2px',
+                          }}
+                        >
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            backgroundImage: `url(${wp.url})`, backgroundSize: 'cover', backgroundPosition: 'center',
+                          }} />
+                          {bgPrefs.image === wp.url && (
+                            <div style={{
+                              position: 'absolute', top: '2px', right: '2px',
+                              width: '16px', height: '16px', borderRadius: '50%',
+                              background: 'var(--primary)', color: '#fff', fontSize: '10px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>✓</div>
+                          )}
+                          {user && (
+                            <div
+                              onClick={(e) => deletePersonalWallpaper(wp.url, e)}
+                              style={{
+                                position: 'absolute', top: '2px', left: '2px',
+                                width: '16px', height: '16px', borderRadius: '50%',
+                                background: 'rgba(239,68,68,0.9)', color: '#fff', fontSize: '9px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer',
+                              }}
+                            >✕</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 自定义 URL 输入 */}
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                    🔗 {t('settings.wallpaperCustomUrl')}
+                  </label>
+                  <input
+                    type="text"
+                    value={bgPrefs.image.startsWith('data:') ? '' : (bgPrefs.image.startsWith('/uploads/') || bgPrefs.image.startsWith('http') ? bgPrefs.image : '')}
+                    onChange={(e) => updateBg({ image: e.target.value })}
+                    placeholder={bgPrefs.image.startsWith('data:') ? t('settings.backgroundLocalImage') : 'https://...'}
+                    style={{
+                      width: '100%', padding: '6px 8px', fontSize: '12px',
+                      borderRadius: '6px', border: '1px solid var(--border)',
+                      background: 'var(--input)', color: 'var(--foreground)',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
               </div>
 
               {bgPrefs.image && (
@@ -317,28 +439,7 @@ const ThemeColorPicker = () => {
                       style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
                     />
                   </div>
-
-                  {/* 预览 */}
-                  <div style={{
-                    position: 'relative', width: '100%', height: '50px',
-                    borderRadius: '6px', overflow: 'hidden',
-                    border: '1px solid var(--border)',
-                  }}>
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      backgroundImage: `url(${bgPrefs.image})`,
-                      backgroundSize: 'cover', backgroundPosition: 'center',
-                      opacity: bgPrefs.opacity / 100,
-                      filter: bgPrefs.blur ? `blur(${bgPrefs.blur}px)` : 'none',
-                    }} />
-                  </div>
                 </>
-              )}
-
-              {!user && (
-                <p style={{ fontSize: '10px', color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.4 }}>
-                  💡 {t('settings.backgroundGuestHint') || '登录后可上传本地图片并跨设备同步'}
-                </p>
               )}
             </>
           )}

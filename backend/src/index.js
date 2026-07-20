@@ -24,6 +24,7 @@ const ratingRoutes = require('../routes/ratings');
 const favoriteRoutes = require('../routes/favorites');
 const reportRoutes = require('../routes/reports');
 const userRoutes = require('../routes/users');
+const wallpaperRoutes = require('../routes/wallpapers');
 const statsRoutes = require('../routes/stats');
 const auditLogRoutes = require('../routes/auditLogs');
 
@@ -445,6 +446,7 @@ const routeMounts = [
   ['/api/favorites', favoriteRoutes],
   ['/api/reports', reportRoutes],
   ['/api/users', userRoutes],
+  ['/api/wallpapers', wallpaperRoutes],
   ['/api/stats', statsRoutes],
   ['/api/audit-logs', auditLogRoutes],
   ['/api/feedback', feedbackRoutes],
