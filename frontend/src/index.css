@@ -88,6 +88,27 @@ body {
   overscroll-behavior: none;
 }
 
+/* 自定义网站背景图片层：通过 fixed 定位的伪元素实现，避免影响内容层透明度 */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: var(--bg-opacity, 0);
+  filter: blur(var(--bg-blur, 0px));
+}
+
+/* 未启用自定义背景时不渲染伪元素，避免空层影响性能 */
+html:not([data-custom-bg]) body::before {
+  display: none;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;

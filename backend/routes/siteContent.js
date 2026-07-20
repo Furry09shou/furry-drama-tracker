@@ -54,7 +54,7 @@ const DEFAULT_CONTENT = {
   settings: {
     key: 'settings',
     title: '站点设置',
-    content: '{"siteName":"兽剧聚合平台","navLogo":"","welcomeTitle":"欢迎来到兽剧聚合平台","welcomeSubtitle":"发现和追踪你喜爱的兽剧内容","favicon":"","browserTitle":"兽剧聚合平台","pwaName":"兽剧聚合平台","pwaShortName":"兽剧","pwaDescription":"兽剧内容聚合平台 - 发现和追踪你喜爱的兽剧内容","pwaIcon192":"","pwaIcon512":"","pwaMaskableIcon":"","pwaBackgroundColor":"#0f172a","pwaThemeColor":"#6366f1"}'
+    content: '{"siteName":"兽剧聚合平台","navLogo":"","welcomeTitle":"欢迎来到兽剧聚合平台","welcomeSubtitle":"发现和追踪你喜爱的兽剧内容","favicon":"","browserTitle":"兽剧聚合平台","pwaName":"兽剧聚合平台","pwaShortName":"兽剧","pwaDescription":"兽剧内容聚合平台 - 发现和追踪你喜爱的兽剧内容","pwaIcon192":"","pwaIcon512":"","pwaMaskableIcon":"","pwaBackgroundColor":"#0f172a","pwaThemeColor":"#6366f1","backgroundImage":"","backgroundEnabled":false,"backgroundOpacity":30,"backgroundBlur":0}'
   },
   email: {
     key: 'email',

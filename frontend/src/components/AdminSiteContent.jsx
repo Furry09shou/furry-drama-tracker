@@ -50,6 +50,8 @@ const AdminSiteContent = () => {
     pwaName: '', pwaShortName: '', pwaDescription: '',
     pwaIcon192: '', pwaIcon512: '', pwaMaskableIcon: '',
     pwaBackgroundColor: '#0f172a', pwaThemeColor: '#6366f1',
+    backgroundImage: '', backgroundEnabled: false,
+    backgroundOpacity: 30, backgroundBlur: 0,
   });
   const [newUpdate, setNewUpdate] = useState('');
   const [changelogInputs, setChangelogInputs] = useState({});
@@ -130,6 +132,10 @@ const AdminSiteContent = () => {
           pwaMaskableIcon: data.pwaMaskableIcon || '',
           pwaBackgroundColor: data.pwaBackgroundColor || '#0f172a',
           pwaThemeColor: data.pwaThemeColor || '#6366f1',
+          backgroundImage: data.backgroundImage || '',
+          backgroundEnabled: !!data.backgroundEnabled,
+          backgroundOpacity: data.backgroundOpacity !== undefined ? data.backgroundOpacity : 30,
+          backgroundBlur: data.backgroundBlur !== undefined ? data.backgroundBlur : 0,
         });
       } catch (e) {
         setSettingsData({
@@ -143,6 +149,8 @@ const AdminSiteContent = () => {
           pwaName: '', pwaShortName: '', pwaDescription: '',
           pwaIcon192: '', pwaIcon512: '', pwaMaskableIcon: '',
           pwaBackgroundColor: '#0f172a', pwaThemeColor: '#6366f1',
+          backgroundImage: '', backgroundEnabled: false,
+          backgroundOpacity: 30, backgroundBlur: 0,
         });
       }
     } else {
@@ -488,6 +496,76 @@ const AdminSiteContent = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ===== 网站背景图片设置 ===== */}
+        <div style={{ background: 'var(--primary-bg-subtle)', border: '1px solid var(--primary-border-subtle)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+          <h4 style={{ margin: '0 0 8px 0', color: 'var(--foreground)', fontSize: '14px' }}>🖼️ {t('adminContent.backgroundImageTitle')}</h4>
+          <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{t('adminContent.backgroundImageDesc')}</p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', padding: '10px 12px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <input
+              type="checkbox"
+              checked={settingsData.backgroundEnabled}
+              onChange={(e) => setSettingsData(prev => ({ ...prev, backgroundEnabled: e.target.checked }))}
+              style={{ accentColor: 'var(--primary)', cursor: 'pointer', width: '16px', height: '16px' }}
+            />
+            <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>{t('adminContent.backgroundEnable')}</label>
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>🖼️ {t('adminContent.backgroundImageLabel')}</label>
+            <ImageUploader label={t('adminContent.backgroundImageLabel')} value={settingsData.backgroundImage} onChange={(url) => setSettingsData(prev => ({ ...prev, backgroundImage: url }))} aspectRatio={16/9} outputWidth={1920} outputHeight={1080} />
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '6px' }}>{t('adminContent.backgroundImageHint')}</p>
+          </div>
+
+          {settingsData.backgroundImage && (
+            <>
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label>🔆 {t('adminContent.backgroundOpacityLabel')} ({settingsData.backgroundOpacity}%)</label>
+                <input
+                  type="range" min="0" max="100" step="5"
+                  value={settingsData.backgroundOpacity}
+                  onChange={(e) => setSettingsData(prev => ({ ...prev, backgroundOpacity: parseInt(e.target.value) }))}
+                  style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.backgroundOpacityHint')}</p>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label>🌫️ {t('adminContent.backgroundBlurLabel')} ({settingsData.backgroundBlur}px)</label>
+                <input
+                  type="range" min="0" max="20" step="1"
+                  value={settingsData.backgroundBlur}
+                  onChange={(e) => setSettingsData(prev => ({ ...prev, backgroundBlur: parseInt(e.target.value) }))}
+                  style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminContent.backgroundBlurHint')}</p>
+              </div>
+
+              <div style={{ marginTop: '12px', padding: '12px', borderRadius: '8px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+                <h5 style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>👁️ {t('adminContent.backgroundPreview')}</h5>
+                <div style={{
+                  position: 'relative',
+                  width: '100%', height: '120px',
+                  borderRadius: '6px', overflow: 'hidden',
+                  background: 'var(--background)',
+                  border: '1px solid var(--border)'
+                }}>
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundImage: `url(${settingsData.backgroundImage})`,
+                    backgroundSize: 'cover', backgroundPosition: 'center',
+                    opacity: settingsData.backgroundOpacity / 100,
+                    filter: settingsData.backgroundBlur ? `blur(${settingsData.backgroundBlur}px)` : 'none'
+                  }} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--foreground)' }}>{t('adminContent.backgroundPreviewText')}</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );

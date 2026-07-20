@@ -348,6 +348,22 @@ function AppContent() {
     }
   }, [siteSettingsData, lang, location.pathname, t]);
 
+  // ===== 自定义网站背景图片：通过 CSS 变量动态应用到 body =====
+  useEffect(() => {
+    const root = document.documentElement;
+    if (siteSettingsData && siteSettingsData.backgroundEnabled && siteSettingsData.backgroundImage) {
+      root.style.setProperty('--bg-image', `url(${siteSettingsData.backgroundImage})`);
+      root.style.setProperty('--bg-opacity', (siteSettingsData.backgroundOpacity / 100).toString());
+      root.style.setProperty('--bg-blur', `${siteSettingsData.backgroundBlur || 0}px`);
+      root.setAttribute('data-custom-bg', 'true');
+    } else {
+      root.style.removeProperty('--bg-image');
+      root.style.removeProperty('--bg-opacity');
+      root.style.removeProperty('--bg-blur');
+      root.removeAttribute('data-custom-bg');
+    }
+  }, [siteSettingsData]);
+
   // ===== PWA 运行时更新：指向后端动态 manifest 端点，并更新图标、主题色等 meta =====
   useEffect(() => {
     if (!siteSettingsData) return;
