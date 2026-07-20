@@ -48,6 +48,7 @@ const AdminEpisodes = () => {
     platformLinksList: [],
     scheduledDate: '',
     isScheduled: false,
+    noScheduledDate: false,
     releaseDate: ''
   });
   const [error, setError] = useState('');
@@ -273,13 +274,13 @@ const AdminEpisodes = () => {
       const submitData = {
         ...newSingleEpisode,
         platformLinks: linksListToObj(newSingleEpisode.platformLinksList),
-        scheduledDate: newSingleEpisode.isScheduled && newSingleEpisode.scheduledDate
+        scheduledDate: newSingleEpisode.isScheduled && !newSingleEpisode.noScheduledDate && newSingleEpisode.scheduledDate
           ? new Date(newSingleEpisode.scheduledDate).toISOString()
           : null,
         isScheduled: newSingleEpisode.isScheduled,
-        releaseDate: newSingleEpisode.releaseDate
-          ? new Date(newSingleEpisode.releaseDate).toISOString()
-          : null
+        releaseDate: newSingleEpisode.isScheduled
+          ? null
+          : (newSingleEpisode.releaseDate ? new Date(newSingleEpisode.releaseDate).toISOString() : null)
       };
       delete submitData.platformLinksList;
 
@@ -298,6 +299,7 @@ const AdminEpisodes = () => {
         platformLinksList: [],
         scheduledDate: '',
         isScheduled: false,
+        noScheduledDate: false,
         releaseDate: ''
       });
       fetchSingleEpisodes(episodeId);
@@ -318,6 +320,7 @@ const AdminEpisodes = () => {
         ? new Date(singleEpisode.scheduledDate).toISOString().slice(0, 16)
         : '',
       isScheduled: singleEpisode.isScheduled || false,
+      noScheduledDate: singleEpisode.isScheduled && !singleEpisode.scheduledDate,
       releaseDate: singleEpisode.releaseDate
         ? new Date(singleEpisode.releaseDate).toISOString().slice(0, 16)
         : ''
@@ -658,6 +661,7 @@ const AdminEpisodes = () => {
                   platformLinksList: [],
                   scheduledDate: '',
                   isScheduled: false,
+                  noScheduledDate: false,
                   releaseDate: ''
                 });
               }
@@ -697,7 +701,7 @@ const AdminEpisodes = () => {
                     placeholder={t('adminEpisodes.durationPlaceholder')}
                   />
                 </div>
-                {editingEpisode && (editingEpisode.status === 'ongoing' || editingEpisode.status === 'completed') && (
+                {editingEpisode && (editingEpisode.status === 'ongoing' || editingEpisode.status === 'completed') && !newSingleEpisode.isScheduled && (
                   <div className="form-group">
                     <label>{t('adminEpisodes.publishDate')} <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('adminEpisodes.publishDateHint')}</span></label>
                     <input
@@ -718,7 +722,7 @@ const AdminEpisodes = () => {
                     <input
                       type="checkbox"
                       checked={newSingleEpisode.isScheduled}
-                      onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isScheduled: e.target.checked, scheduledDate: e.target.checked ? newSingleEpisode.scheduledDate || '' : ''})}
+                      onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isScheduled: e.target.checked, scheduledDate: e.target.checked ? newSingleEpisode.scheduledDate || '' : '', noScheduledDate: false})}
                       style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                     />
                     <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>{t('adminEpisodes.scheduledPreview')}</label>
@@ -729,14 +733,29 @@ const AdminEpisodes = () => {
                       <input
                         type="datetime-local"
                         value={newSingleEpisode.scheduledDate}
-                        onChange={(e) => setNewSingleEpisode({...newSingleEpisode, scheduledDate: e.target.value})}
+                        onChange={(e) => setNewSingleEpisode({...newSingleEpisode, scheduledDate: e.target.value, noScheduledDate: false})}
+                        disabled={newSingleEpisode.noScheduledDate}
                         style={{
                           width: '100%', padding: '8px 12px', borderRadius: '6px',
-                          border: '1px solid var(--border)', backgroundColor: 'var(--hover-bg)',
-                          color: 'var(--text-light)', fontSize: '14px'
+                          border: '1px solid var(--border)',
+                          backgroundColor: newSingleEpisode.noScheduledDate ? 'var(--bg)' : 'var(--hover-bg)',
+                          color: 'var(--text-light)', fontSize: '14px',
+                          opacity: newSingleEpisode.noScheduledDate ? 0.5 : 1,
+                          cursor: newSingleEpisode.noScheduledDate ? 'not-allowed' : 'text'
                         }}
                       />
-                      <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminEpisodes.scheduledHint')}</p>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+                        <input
+                          type="checkbox"
+                          checked={newSingleEpisode.noScheduledDate}
+                          onChange={(e) => setNewSingleEpisode({...newSingleEpisode, noScheduledDate: e.target.checked, scheduledDate: e.target.checked ? '' : newSingleEpisode.scheduledDate})}
+                          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '14px' }}>{t('adminEpisodes.noScheduledDate')}</span>
+                      </label>
+                      {!newSingleEpisode.noScheduledDate && (
+                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminEpisodes.scheduledHint')}</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -818,7 +837,8 @@ const AdminEpisodes = () => {
                         duration: '',
                         platformLinksList: [],
                         scheduledDate: '',
-                        isScheduled: false
+                        isScheduled: false,
+                        noScheduledDate: false
                       });
                     }}>{t('adminEpisodes.cancelEdit')}</button>
                   )}
@@ -852,6 +872,11 @@ const AdminEpisodes = () => {
                       {se.isScheduled && se.scheduledDate && (
                         <div style={{ fontSize: '12px', color: 'var(--warning-text)', marginTop: '2px' }}>
                           {t('adminEpisodes.previewLabel')} {new Date(se.scheduledDate).toLocaleString(locale)}
+                        </div>
+                      )}
+                      {se.isScheduled && !se.scheduledDate && (
+                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                          {t('adminEpisodes.previewLabel')} {t('adminEpisodes.noScheduledDate')}
                         </div>
                       )}
                     </td>

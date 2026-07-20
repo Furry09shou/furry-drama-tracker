@@ -596,6 +596,13 @@ const EpisodeDetail = ({ user }) => {
                         borderRadius: '4px', border: '1px solid var(--warning-border)'
                       }}>{t('episode.preview')} {new Date(singleEpisode.scheduledDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { month: 'long', day: 'numeric' })}</span>
                     )}
+                    {singleEpisode.isScheduled && !singleEpisode.scheduledDate && (
+                      <span style={{
+                        fontSize: '12px', color: 'var(--text-tertiary)', marginLeft: '0',
+                        background: 'var(--hover-bg)', padding: '2px 8px',
+                        borderRadius: '4px', border: '1px solid var(--border)'
+                      }}>{t('episode.preview')} {t('episode.noPreviewDate')}</span>
+                    )}
                     {!singleEpisode.isScheduled && user && isWatched && (
                       <span style={{
                         fontSize: '12px', color: 'var(--success-text)',

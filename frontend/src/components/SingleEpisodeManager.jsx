@@ -21,6 +21,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
     platformLinksList: [],
     scheduledDate: '',
     isScheduled: false,
+    noScheduledDate: false,
     releaseDate: ''
   });
   const [error, setError] = useState('');
@@ -42,13 +43,13 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       const submitData = {
         ...newSingleEpisode,
         platformLinks: linksListToObj(newSingleEpisode.platformLinksList),
-        scheduledDate: newSingleEpisode.isScheduled && newSingleEpisode.scheduledDate
+        scheduledDate: newSingleEpisode.isScheduled && !newSingleEpisode.noScheduledDate && newSingleEpisode.scheduledDate
           ? new Date(newSingleEpisode.scheduledDate).toISOString()
           : null,
         isScheduled: newSingleEpisode.isScheduled,
-        releaseDate: newSingleEpisode.releaseDate
-          ? new Date(newSingleEpisode.releaseDate).toISOString()
-          : null
+        releaseDate: newSingleEpisode.isScheduled
+          ? null
+          : (newSingleEpisode.releaseDate ? new Date(newSingleEpisode.releaseDate).toISOString() : null)
       };
       
       if (editingSingleEpisode) {
@@ -78,6 +79,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
         ? new Date(singleEpisode.scheduledDate).toISOString().slice(0, 16)
         : '',
       isScheduled: singleEpisode.isScheduled || false,
+      noScheduledDate: singleEpisode.isScheduled && !singleEpisode.scheduledDate,
       releaseDate: singleEpisode.releaseDate
         ? new Date(singleEpisode.releaseDate).toISOString().slice(0, 16)
         : ''
@@ -105,6 +107,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
       platformLinksList: [],
       scheduledDate: '',
       isScheduled: false,
+      noScheduledDate: false,
       releaseDate: ''
     });
   };
@@ -249,7 +252,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 }}
               />
             </div>
-            {(episode.status === 'ongoing' || episode.status === 'completed') && (
+            {(episode.status === 'ongoing' || episode.status === 'completed') && !newSingleEpisode.isScheduled && (
               <div style={{ marginBottom: '12px' }}>
                 <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('singleEpisode.publishDate')} <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('singleEpisode.publishDateNote')}</span></label>
                 <input
@@ -276,7 +279,7 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 <input
                   type="checkbox"
                   checked={newSingleEpisode.isScheduled}
-                  onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isScheduled: e.target.checked, scheduledDate: e.target.checked ? newSingleEpisode.scheduledDate || '' : ''})}
+                  onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isScheduled: e.target.checked, scheduledDate: e.target.checked ? newSingleEpisode.scheduledDate || '' : '', noScheduledDate: false})}
                   style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
                 <label style={{ fontSize: '14px', cursor: 'pointer', color: 'var(--foreground)' }}>{t('singleEpisode.setPreview')}</label>
@@ -287,20 +290,34 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                   <input
                     type="datetime-local"
                     value={newSingleEpisode.scheduledDate}
-                    onChange={(e) => setNewSingleEpisode({...newSingleEpisode, scheduledDate: e.target.value})}
+                    onChange={(e) => setNewSingleEpisode({...newSingleEpisode, scheduledDate: e.target.value, noScheduledDate: false})}
+                    disabled={newSingleEpisode.noScheduledDate}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
                       borderRadius: '6px',
                       border: '1px solid var(--border)',
-                      backgroundColor: 'var(--hover-bg)',
+                      backgroundColor: newSingleEpisode.noScheduledDate ? 'var(--bg)' : 'var(--hover-bg)',
                       color: 'var(--text-light)',
-                      fontSize: '14px'
+                      fontSize: '14px',
+                      opacity: newSingleEpisode.noScheduledDate ? 0.5 : 1,
+                      cursor: newSingleEpisode.noScheduledDate ? 'not-allowed' : 'text'
                     }}
                   />
-                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                    {t('singleEpisode.previewNote')}
-                  </p>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={newSingleEpisode.noScheduledDate}
+                      onChange={(e) => setNewSingleEpisode({...newSingleEpisode, noScheduledDate: e.target.checked, scheduledDate: e.target.checked ? '' : newSingleEpisode.scheduledDate})}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '14px' }}>{t('singleEpisode.noPreviewDate')}</span>
+                  </label>
+                  {!newSingleEpisode.noScheduledDate && (
+                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                      {t('singleEpisode.previewNote')}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -490,6 +507,11 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 {singleEpisode.isScheduled && singleEpisode.scheduledDate && (
                   <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     🔔 {t('singleEpisode.previewLabel')} {new Date(singleEpisode.scheduledDate).toLocaleString(locale)}
+                  </p>
+                )}
+                {singleEpisode.isScheduled && !singleEpisode.scheduledDate && (
+                  <p style={{ margin: '8px 0', fontSize: '13px', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    🔔 {t('singleEpisode.previewLabel')} {t('singleEpisode.noPreviewDate')}
                   </p>
                 )}
                 {singleEpisode.duration && (
