@@ -177,7 +177,7 @@ const SharedFolder = () => {
                     {getLocalizedTitle(ep)}
                   </h4>
                   <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    {t('episode.updatedTo')}{ep.currentEpisodes}{t('episode.epTotal')}{ep.totalEpisodes}{t('episode.epSuffix')}
+                    {t('episode.updatedTo')}{ep.currentEpisodes}{ep.totalEpisodes === null ? t('episode.unknownTotal') : `${t('episode.epTotal')}${ep.totalEpisodes}`}{t('episode.epSuffix')}
                   </p>
                   {ep.averageRating > 0 && (
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--warning-text)' }}>

@@ -32,6 +32,7 @@ const AdminEpisodes = () => {
     descriptionEn: '',
     coverImage: '',
     totalEpisodes: 0,
+    unknownTotalEpisodes: false,
     status: 'ongoing',
     categories: [],
     tags: [],
@@ -122,7 +123,7 @@ const AdminEpisodes = () => {
       setError(t('adminEpisodes.descriptionRequired'));
       return;
     }
-    if (newEpisode.totalEpisodes <= 0) {
+    if (!newEpisode.unknownTotalEpisodes && newEpisode.totalEpisodes <= 0) {
       setError(t('adminEpisodes.totalEpisodesRequired'));
       return;
     }
@@ -133,7 +134,7 @@ const AdminEpisodes = () => {
         description: newEpisode.description,
         descriptionEn: newEpisode.descriptionEn || '',
         coverImage: newEpisode.coverImage,
-        totalEpisodes: newEpisode.totalEpisodes,
+        totalEpisodes: newEpisode.unknownTotalEpisodes ? null : newEpisode.totalEpisodes,
         currentEpisodes: 0,
         status: newEpisode.status,
         category: newEpisode.categories,
@@ -160,7 +161,8 @@ const AdminEpisodes = () => {
           description: response.data.description,
           descriptionEn: response.data.descriptionEn || '',
           coverImage: response.data.coverImage,
-          totalEpisodes: response.data.totalEpisodes,
+          totalEpisodes: response.data.totalEpisodes || 0,
+          unknownTotalEpisodes: response.data.totalEpisodes === null,
           status: response.data.status,
           categories: response.data.category || [],
           tags: response.data.tags || [],
@@ -197,7 +199,8 @@ const AdminEpisodes = () => {
       description: episode.description,
       descriptionEn: episode.descriptionEn || '',
       coverImage: episode.coverImage,
-      totalEpisodes: episode.totalEpisodes,
+      totalEpisodes: episode.totalEpisodes || 0,
+      unknownTotalEpisodes: episode.totalEpisodes === null,
       status: episode.status,
       categories: episode.category || [],
       tags: episode.tags || [],
@@ -227,7 +230,7 @@ const AdminEpisodes = () => {
         description: newEpisode.description,
         descriptionEn: newEpisode.descriptionEn || '',
         coverImage: newEpisode.coverImage,
-        totalEpisodes: newEpisode.totalEpisodes,
+        totalEpisodes: newEpisode.unknownTotalEpisodes ? null : newEpisode.totalEpisodes,
         status: newEpisode.status,
         category: newEpisode.categories,
         tags: newEpisode.tags,
@@ -355,6 +358,7 @@ const AdminEpisodes = () => {
       descriptionEn: '',
       coverImage: '',
       totalEpisodes: 0,
+      unknownTotalEpisodes: false,
       status: 'ongoing',
       categories: [],
       tags: [],
@@ -487,13 +491,27 @@ const AdminEpisodes = () => {
         />
       </div>
       <div className="form-group">
-        <label>{t('adminEpisodes.totalEpisodesLabel')} <span style={{color: 'var(--destructive-text)'}}>*</span></label>
-        <input
-          type="number"
-          value={newEpisode.totalEpisodes}
-          onChange={(e) => setNewEpisode({...newEpisode, totalEpisodes: parseInt(e.target.value) || 0})}
-          required
-        />
+        <label>{t('adminEpisodes.totalEpisodesLabel')} {!newEpisode.unknownTotalEpisodes && <span style={{color: 'var(--destructive-text)'}}>*</span>}</label>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input
+            type="number"
+            value={newEpisode.unknownTotalEpisodes ? '' : newEpisode.totalEpisodes}
+            onChange={(e) => setNewEpisode({...newEpisode, totalEpisodes: parseInt(e.target.value) || 0, unknownTotalEpisodes: false})}
+            disabled={newEpisode.unknownTotalEpisodes}
+            style={{ flex: 1 }}
+          />
+          <button
+            type="button"
+            onClick={() => setNewEpisode({...newEpisode, unknownTotalEpisodes: !newEpisode.unknownTotalEpisodes})}
+            style={{
+              padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+              border: newEpisode.unknownTotalEpisodes ? '1px solid var(--primary)' : '1px solid var(--border)',
+              background: newEpisode.unknownTotalEpisodes ? 'var(--primary-bg)' : 'transparent',
+              color: newEpisode.unknownTotalEpisodes ? 'var(--primary)' : 'var(--text-secondary)',
+              whiteSpace: 'nowrap', fontWeight: 500,
+            }}
+          >{t('adminEpisodes.unknownTotalEpisodes')}</button>
+        </div>
       </div>
       <div className="form-group">
         <label>{t('adminEpisodes.categories')}</label>
@@ -938,7 +956,7 @@ const AdminEpisodes = () => {
           displayRender={(item) => (
             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
               <span style={{fontWeight: '500'}}>{item.title}</span>
-              <span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>{t('adminEpisodes.episodeProgress', { current: item.currentEpisodes, total: item.totalEpisodes })}</span>
+              <span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>{item.totalEpisodes === null ? t('adminEpisodes.unknownTotalEpisodes') : t('adminEpisodes.episodeProgress', { current: item.currentEpisodes, total: item.totalEpisodes })}</span>
             </div>
           )}
         />
@@ -969,7 +987,7 @@ const AdminEpisodes = () => {
                     {episode.status === 'ongoing' ? t('adminEpisodes.ongoing') : episode.status === 'completed' ? t('adminEpisodes.completed') : t('adminEpisodes.upcoming')}
                   </span>
                 </td>
-                <td>{episode.currentEpisodes}/{episode.totalEpisodes}</td>
+                <td>{episode.totalEpisodes === null ? t('adminEpisodes.unknownTotalEpisodes') : `${episode.currentEpisodes}/${episode.totalEpisodes}`}</td>
                 <td>{episode.views}</td>
                 {admin && admin.role !== 'creator' && (
                   <td style={{fontSize: '13px'}}>{episode.createdBy ? episode.createdBy.username : t('adminEpisodes.system')}</td>

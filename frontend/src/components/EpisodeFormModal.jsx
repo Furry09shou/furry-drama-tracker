@@ -16,10 +16,13 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit({
+      const submitData = {
         ...formData,
-        category: formData.categories
-      });
+        category: formData.categories,
+        totalEpisodes: formData.unknownTotalEpisodes ? null : formData.totalEpisodes,
+      };
+      delete submitData.unknownTotalEpisodes;
+      onSubmit(submitData);
     }
   };
 
@@ -142,21 +145,35 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('episodeForm.totalEpisodes')}</label>
-            <input
-              type="number"
-              value={formData.totalEpisodes}
-              onChange={e => updateField('totalEpisodes', parseInt(e.target.value) || 0)}
-              className={errors.totalEpisodes ? 'error' : ''}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: errors.totalEpisodes ? '1px solid rgb(239, 68, 68)' : '1px solid var(--border)',
-                backgroundColor: 'var(--hover-bg-strong)',
-                color: 'var(--text-light)',
-                fontSize: '14px'
-              }}
-            />
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="number"
+                value={formData.unknownTotalEpisodes ? '' : formData.totalEpisodes}
+                onChange={e => { updateField('totalEpisodes', parseInt(e.target.value) || 0); updateField('unknownTotalEpisodes', false); }}
+                disabled={formData.unknownTotalEpisodes}
+                className={errors.totalEpisodes ? 'error' : ''}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: errors.totalEpisodes ? '1px solid rgb(239, 68, 68)' : '1px solid var(--border)',
+                  backgroundColor: 'var(--hover-bg-strong)',
+                  color: 'var(--text-light)',
+                  fontSize: '14px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => updateField('unknownTotalEpisodes', !formData.unknownTotalEpisodes)}
+                style={{
+                  padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                  border: formData.unknownTotalEpisodes ? '1px solid var(--primary)' : '1px solid var(--border)',
+                  background: formData.unknownTotalEpisodes ? 'var(--primary-bg)' : 'transparent',
+                  color: formData.unknownTotalEpisodes ? 'var(--primary)' : 'var(--text-secondary)',
+                  whiteSpace: 'nowrap', fontWeight: 500,
+                }}
+              >{t('adminEpisodes.unknownTotalEpisodes')}</button>
+            </div>
             {errors.totalEpisodes && <span style={{ color: 'var(--destructive-text)', fontSize: '13px', marginTop: '4px', display: 'block' }}>{errors.totalEpisodes}</span>}
           </div>
 

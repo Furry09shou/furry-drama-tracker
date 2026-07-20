@@ -162,7 +162,7 @@ const AdminReview = () => {
                       >{ep.title}</span>
                     </td>
                     <td>{ep.createdBy ? ep.createdBy.username : '-'}</td>
-                    <td>{ep.currentEpisodes}/{ep.totalEpisodes}</td>
+                    <td>{ep.totalEpisodes === null ? t('adminEpisodes.unknownTotalEpisodes') : `${ep.currentEpisodes}/${ep.totalEpisodes}`}</td>
                     <td>
                       <ReviewStatusBadge status="pending" />
                     </td>
@@ -320,7 +320,7 @@ const AdminReview = () => {
               )}
               <p style={{color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px'}}>{detailEpisode.description || t('adminReview.noDescription')}</p>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px'}}>
-                <p><strong>{t('adminReview.episodes')}</strong>{detailEpisode.currentEpisodes}/{detailEpisode.totalEpisodes}</p>
+                <p><strong>{t('adminReview.episodes')}</strong>{detailEpisode.totalEpisodes === null ? t('adminEpisodes.unknownTotalEpisodes') : `${detailEpisode.currentEpisodes}/${detailEpisode.totalEpisodes}`}</p>
                 <p><strong>{t('adminReview.status')}</strong>{detailEpisode.status === 'ongoing' ? t('home.statusOngoing') : detailEpisode.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}</p>
                 <p><strong>{t('adminReview.categories')}</strong>{detailEpisode.category ? detailEpisode.category.join('、') : t('adminReview.none')}</p>
                 <p><strong>{t('adminReview.views')}</strong>{detailEpisode.views}</p>

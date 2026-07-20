@@ -38,7 +38,7 @@ const EpisodeList = ({ episodes, onEdit, onDelete }) => {
               {getLocalizedDescription(episode)}
             </p>
             <div className="episode-meta" style={{ display: 'flex', gap: '15px', margin: '10px 0' }}>
-              <span>{t('episodeList.totalEpisodes')}: {episode.totalEpisodes}</span>
+              <span>{t('episodeList.totalEpisodes')}: {episode.totalEpisodes === null ? t('episodeList.unknownTotal') : episode.totalEpisodes}</span>
               <span>{t('episodeList.currentEpisodes')}: {episode.currentEpisodes}</span>
               <span style={{ 
                 padding: '2px 8px', 

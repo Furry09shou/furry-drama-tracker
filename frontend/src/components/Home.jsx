@@ -349,6 +349,11 @@ const Home = () => {
                         transition: 'width 0.3s',
                       }} />
                     </div>
+                    <span style={{fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap'}}>
+                      {ep.totalEpisodes === null
+                        ? t('home.watchedCountUnknown', { n: item.watchedEpisodes.length })
+                        : t('home.watchedCount', { n: item.watchedEpisodes.length, total: ep.totalEpisodes })}
+                    </span>
                   </div>
                   <div style={{ padding: '8px 10px' }}>
                     <div style={{

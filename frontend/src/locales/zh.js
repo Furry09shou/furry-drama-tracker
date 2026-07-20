@@ -151,6 +151,7 @@ export default {
     searchResult: '搜索结果 "{query}"，共 {count} 条',
     searchPlaceholder: '搜索剧集...',
     episodeProgress: '第{current}/{total}集',
+    episodeProgressUnknown: '更新至第{current}集',
     hot: '🔥',
     star: '⭐',
     author: '作者',
@@ -166,6 +167,7 @@ export default {
     continueWatching: '继续观看',
     continueFromEp: '继续看第{n}集',
     watchedCount: '已看{n}/{total}集',
+    watchedCountUnknown: '已看{n}集',
   },
   auth: {
     loginTitle: '登录',
@@ -406,6 +408,7 @@ export default {
     updatedTo: '更新至第',
     epUnit: '集',
     epTotal: '集，共',
+    unknownTotal: '集，总集数未知',
     category: '分类：',
     tags: '标签：',
     views: '热度：',
@@ -648,6 +651,7 @@ export default {
     works: '作品列表',
     noWorks: '暂无作品',
     episodeProgress: '更新至第{current}集，共{total}集',
+    episodeProgressUnknown: '更新至第{current}集',
   },
   episodeForm: {
     editTitle: '编辑剧集',
@@ -701,6 +705,7 @@ export default {
     noEpisodes: '暂无剧集，点击上方按钮添加新剧集',
     totalEpisodes: '总集数',
     currentEpisodes: '当前',
+    unknownTotal: '未知',
   },
   imageUploader: {
     cropFailed: '裁剪失败',
@@ -1018,6 +1023,7 @@ export default {
     titleRequired: '请输入标题',
     descriptionRequired: '请输入描述',
     totalEpisodesRequired: '总集数必须大于0',
+    unknownTotalEpisodes: '未知集数',
     addEpisodeFailed: '添加剧集失败',
     editEpisodeFailed: '编辑剧集失败',
     fetchEpisodesFailed: '获取剧集列表失败',

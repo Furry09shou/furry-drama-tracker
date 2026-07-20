@@ -151,6 +151,7 @@ export default {
     searchResult: 'Search results for "{query}", {count} found',
     searchPlaceholder: 'Search dramas...',
     episodeProgress: 'Ep {current} of {total}',
+    episodeProgressUnknown: 'Updated to Ep {current}',
     hot: '🔥',
     star: '⭐',
     author: 'Author',
@@ -166,6 +167,7 @@ export default {
     continueWatching: 'Continue Watching',
     continueFromEp: 'Continue from Ep {n}',
     watchedCount: '{n}/{total} eps watched',
+    watchedCountUnknown: '{n} eps watched',
   },
   auth: {
     loginTitle: 'Login',
@@ -406,6 +408,7 @@ export default {
     updatedTo: 'Updated to ep.',
     epUnit: 'ep',
     epTotal: ', total ',
+    unknownTotal: ', total unknown',
     category: 'Category: ',
     tags: 'Tags: ',
     views: 'Views: ',
@@ -648,6 +651,7 @@ export default {
     works: 'Works',
     noWorks: 'No works yet',
     episodeProgress: 'Updated to Ep {current}, Total {total} eps',
+    episodeProgressUnknown: 'Updated to Ep {current}',
   },
   episodeForm: {
     editTitle: 'Edit Drama',
@@ -701,6 +705,7 @@ export default {
     noEpisodes: 'No episodes yet, click the button above to add',
     totalEpisodes: 'Total',
     currentEpisodes: 'Current',
+    unknownTotal: 'Unknown',
   },
   imageUploader: {
     cropFailed: 'Crop failed',
@@ -1018,6 +1023,7 @@ export default {
     titleRequired: 'Please enter a title',
     descriptionRequired: 'Please enter a description',
     totalEpisodesRequired: 'Total episodes must be greater than 0',
+    unknownTotalEpisodes: 'Unknown',
     addEpisodeFailed: 'Failed to add episode',
     editEpisodeFailed: 'Failed to edit episode',
     fetchEpisodesFailed: 'Failed to fetch episodes list',

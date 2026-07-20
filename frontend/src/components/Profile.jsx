@@ -286,6 +286,7 @@ const Profile = ({ user, setUser, logout }) => {
     const historyRecord = historyEpisodes.find(h => h.episodeId && String(h.episodeId._id) === eid);
     const watchedEps = historyRecord ? historyRecord.watchedEpisodes : [];
     const progress = episode.totalEpisodes > 0 ? (watchedEps.length / episode.totalEpisodes) * 100 : 0;
+    const isUnknownTotal = episode.totalEpisodes === null;
     const followedAtEps = follow.followedAtEpisodes || 0;
     const allEpNumbers = Array.from({ length: episode.currentEpisodes || 0 }, (_, i) => i + 1);
     const unwatchedNewEps = allEpNumbers.filter(epNum => epNum > followedAtEps && !watchedEps.includes(epNum));
@@ -315,7 +316,7 @@ const Profile = ({ user, setUser, logout }) => {
               }}>{unwatchedAllEps.length}{t('profile.episodesUnwatched')}</span>
             )}
           </h4>
-          <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
+          <p>{t('episode.updatedTo')}{episode.currentEpisodes}{isUnknownTotal ? t('episode.unknownTotal') : `${t('episode.epTotal')}${episode.totalEpisodes}`}{t('episode.epSuffix')}</p>
           {watchedEps.length > 0 && (
             <>
               <div className="progress-bar">
@@ -352,6 +353,7 @@ const Profile = ({ user, setUser, logout }) => {
     const episode = history.episodeId;
     if (!episode) return null;
     const progress = episode.totalEpisodes > 0 ? (history.watchedEpisodes.length / episode.totalEpisodes) * 100 : 0;
+    const isUnknownTotal = episode.totalEpisodes === null;
     return (
       <div key={episode._id} className="followed-episode-card">
         <Link to={`/episode/${episode._id}`}>
@@ -359,7 +361,7 @@ const Profile = ({ user, setUser, logout }) => {
         </Link>
         <div className="followed-episode-info">
           <h4>{getLocalizedTitle(episode)}</h4>
-          <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
+          <p>{t('episode.updatedTo')}{episode.currentEpisodes}{isUnknownTotal ? t('episode.unknownTotal') : `${t('episode.epTotal')}${episode.totalEpisodes}`}{t('episode.epSuffix')}</p>
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${progress}%` }}></div>
           </div>
@@ -956,6 +958,7 @@ const Profile = ({ user, setUser, logout }) => {
               favoriteEpisodes.map(fav => {
                 const episode = fav.episodeId;
                 if (!episode) return null;
+                const isUnknownTotal = episode.totalEpisodes === null;
                 return (
                   <div key={fav._id} className="followed-episode-card" style={{position: 'relative'}}>
                     <Link to={`/episode/${episode._id}`}>
@@ -963,7 +966,7 @@ const Profile = ({ user, setUser, logout }) => {
                     </Link>
                     <div className="followed-episode-info">
                       <h4>{getLocalizedTitle(episode)}</h4>
-                      <p>{t('episode.updatedTo')}{episode.currentEpisodes}{t('episode.epTotal')}{episode.totalEpisodes}{t('episode.epSuffix')}</p>
+                      <p>{t('episode.updatedTo')}{episode.currentEpisodes}{isUnknownTotal ? t('episode.unknownTotal') : `${t('episode.epTotal')}${episode.totalEpisodes}`}{t('episode.epSuffix')}</p>
                       {episode.averageRating > 0 && (
                         <p style={{fontSize: '13px', color: 'var(--warning-text)'}}>⭐ {episode.averageRating} ({episode.ratingCount}{t('episode.ratingCountLabel')})</p>
                       )}

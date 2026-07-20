@@ -153,7 +153,9 @@ const CreatorPage = () => {
                 <div style={{padding: '12px'}}>
                   <h4 style={{margin: '0 0 6px 0', fontSize: '15px'}}>{getLocalizedTitle(ep)}</h4>
                   <p style={{margin: 0, fontSize: '13px', color: 'var(--text-secondary)'}}>
-                    {t('creator.episodeProgress', { current: ep.currentEpisodes, total: ep.totalEpisodes })}
+                    {ep.totalEpisodes === null
+                      ? t('creator.episodeProgressUnknown', { current: ep.currentEpisodes })
+                      : t('creator.episodeProgress', { current: ep.currentEpisodes, total: ep.totalEpisodes })}
                     <span style={{marginLeft: '8px'}}>
                       {ep.status === 'ongoing' ? t('home.statusOngoing') : ep.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}
                     </span>

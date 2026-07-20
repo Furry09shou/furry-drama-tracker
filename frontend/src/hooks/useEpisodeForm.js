@@ -6,6 +6,7 @@ const initialEpisodeState = {
   description: '',
   coverImage: '',
   totalEpisodes: 0,
+  unknownTotalEpisodes: false,
   status: 'ongoing',
   categories: []
 };
@@ -45,7 +46,7 @@ export const useEpisodeForm = (initialEpisode = null) => {
     if (!formData.title.trim()) newErrors.title = t('adminEpisodes.titleRequired');
     if (!formData.description.trim()) newErrors.description = t('adminEpisodes.descriptionRequired');
     if (!formData.coverImage.trim()) newErrors.coverImage = t('adminEpisodes.coverRequired');
-    if (formData.totalEpisodes <= 0) newErrors.totalEpisodes = t('adminEpisodes.totalEpisodesRequired');
+    if (!formData.unknownTotalEpisodes && formData.totalEpisodes <= 0) newErrors.totalEpisodes = t('adminEpisodes.totalEpisodesRequired');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

@@ -31,7 +31,8 @@ const EpisodeSchema = new mongoose.Schema({
   },
   totalEpisodes: {
     type: Number,
-    required: true
+    default: null,
+    set: v => v === null || v === undefined || v === '' ? null : Number(v)
   },
   currentEpisodes: {
     type: Number,

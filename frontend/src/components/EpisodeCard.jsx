@@ -74,7 +74,7 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
         }}>
           {statusInfo.text}
         </span>
-        {(episode.currentEpisodes != null && episode.totalEpisodes != null) && (
+        {episode.currentEpisodes != null && (
           <span style={{
             position: 'absolute',
             bottom: '8px',
@@ -86,7 +86,9 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
             fontSize: '11px',
             fontWeight: 500,
           }}>
-            {t('home.episodeProgress', { current: episode.currentEpisodes, total: episode.totalEpisodes })}
+            {episode.totalEpisodes === null
+              ? t('home.episodeProgressUnknown', { current: episode.currentEpisodes })
+              : t('home.episodeProgress', { current: episode.currentEpisodes, total: episode.totalEpisodes })}
           </span>
         )}
       </div>
