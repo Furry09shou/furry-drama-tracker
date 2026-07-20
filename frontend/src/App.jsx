@@ -181,12 +181,11 @@ const FooterBeian = () => {
     <div style={{
       position: 'fixed', bottom: '12px', right: '16px', zIndex: 50,
       display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px',
-      opacity: 0.7, transition: 'opacity 0.3s',
-      fontSize: '12px', lineHeight: 1.6,
-      textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+      opacity: 0.5, transition: 'opacity 0.3s',
+      fontSize: '12px', lineHeight: 1.6
     }}
-    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.5'}
     >
       <button
         onClick={() => window.location.reload()}
