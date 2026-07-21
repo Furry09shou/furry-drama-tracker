@@ -97,7 +97,7 @@ export default function InstallPrompt() {
           z-index: 9998;
           animation: slideUp 0.3s ease;
           width: calc(100vw - 16px);
-          max-width: 440px;
+          max-width: 380px;
         }
 
         /* === card === */
@@ -161,29 +161,42 @@ export default function InstallPrompt() {
           width: 12px; height: 12px;
         }
 
-        /* === ≤480px：紧凑横排 === */
-        @media (max-width: 480px) {
-          .pwa-prompt-wrapper { bottom: 8px; width: calc(100vw - 12px); }
-          .pwa-prompt-card { padding: 8px 10px; gap: 8px; border-radius: 10px; }
-          .pwa-prompt-icon { font-size: 20px; }
+        /* === ≤768px：平板及大屏手机，适度缩小 === */
+        @media (max-width: 768px) {
+          .pwa-prompt-wrapper { bottom: 10px; width: calc(100vw - 12px); max-width: 340px; }
+          .pwa-prompt-card { padding: 9px 12px; gap: 8px; border-radius: 10px; }
+          .pwa-prompt-icon { font-size: 22px; }
           .pwa-prompt-title { font-size: 12px; }
           .pwa-prompt-desc { font-size: 10px; }
           .pwa-prompt-btn-install,
-          .pwa-prompt-btn-close { padding: 4px 10px; font-size: 10px; }
+          .pwa-prompt-btn-close { padding: 5px 10px; font-size: 10px; }
           .pwa-prompt-never { font-size: 9px; }
+        }
+
+        /* === ≤480px：手机，紧凑横排 === */
+        @media (max-width: 480px) {
+          .pwa-prompt-wrapper { bottom: 8px; width: calc(100vw - 10px); max-width: 320px; }
+          .pwa-prompt-card { padding: 8px 10px; gap: 7px; border-radius: 9px; }
+          .pwa-prompt-icon { font-size: 20px; }
+          .pwa-prompt-title { font-size: 11px; }
+          .pwa-prompt-desc { font-size: 10px; line-height: 1.3; }
+          .pwa-prompt-btn-install,
+          .pwa-prompt-btn-close { padding: 4px 9px; font-size: 10px; }
+          .pwa-prompt-never { font-size: 9px; }
+          .pwa-prompt-never input { width: 11px; height: 11px; }
         }
 
         /* === ≤360px：极小屏，去掉描述，单行更紧凑 === */
         @media (max-width: 360px) {
-          .pwa-prompt-wrapper { bottom: 6px; width: calc(100vw - 8px); }
+          .pwa-prompt-wrapper { bottom: 6px; width: calc(100vw - 8px); max-width: 300px; }
           .pwa-prompt-card { padding: 7px 8px; gap: 6px; border-radius: 8px; }
           .pwa-prompt-icon { font-size: 18px; }
           .pwa-prompt-desc { display: none; }
           .pwa-prompt-title { font-size: 11px; }
           .pwa-prompt-btn-install,
-          .pwa-prompt-btn-close { padding: 4px 8px; font-size: 10px; border-radius: 5px; }
+          .pwa-prompt-btn-close { padding: 4px 8px; font-size: 9px; border-radius: 5px; }
           .pwa-prompt-actions { gap: 3px; }
-          .pwa-prompt-never { font-size: 9px; }
+          .pwa-prompt-never { font-size: 8px; }
         }
       `}</style>
     </div>
