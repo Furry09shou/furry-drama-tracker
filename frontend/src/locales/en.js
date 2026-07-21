@@ -647,6 +647,8 @@ export default {
     weekdayNames: 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
     clickToSelectYear: 'Click to select year',
     yearView: 'Switch to year view',
+    switchToYearView: 'Click to switch to year view',
+    switchToMonthView: 'Click to switch to month view',
   },
   creator: {
     notFound: 'Creator page not found',

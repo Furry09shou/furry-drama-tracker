@@ -647,6 +647,8 @@ export default {
     weekdayNames: '周日,周一,周二,周三,周四,周五,周六',
     clickToSelectYear: '点击选择年份',
     yearView: '切换到年视图',
+    switchToYearView: '点击切换到年视图',
+    switchToMonthView: '点击切换到月视图',
   },
   creator: {
     notFound: '创作者主页不存在',
