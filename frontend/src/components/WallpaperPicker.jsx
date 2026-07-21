@@ -112,12 +112,12 @@ const WallpaperPicker = ({ bgPrefs, updateBg, compact = false }) => {
     });
   };
 
-  // 缩略图样式
+  // 缩略图样式（使用 aspectRatio 避免 padding 简写覆盖问题）
   const thumbStyle = (url) => ({
-    position: 'relative', paddingTop: '56.25%', padding: 0, cursor: 'pointer',
+    position: 'relative', aspectRatio: '16 / 9', padding: 0, cursor: 'pointer',
     borderRadius: compact ? '4px' : '6px', overflow: 'hidden', border: 'none',
     outline: bgPrefs.image === url ? `2px solid var(--primary)` : '2px solid transparent',
-    outlineOffset: '-2px',
+    outlineOffset: '-2px', width: '100%', display: 'block',
   });
 
   const checkBadge = (
