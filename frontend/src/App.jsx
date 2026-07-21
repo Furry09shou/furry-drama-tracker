@@ -158,6 +158,7 @@ const FooterBeian = () => {
   const { getLocalizedContent } = useTranslation();
   const [aboutData, setAboutData] = useState(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
+  const [hasCustomBg, setHasCustomBg] = useState(false);
 
   useEffect(() => {
     axios.get('/api/site-content/about')
@@ -168,6 +169,17 @@ const FooterBeian = () => {
         } catch (e) {}
       })
       .catch(() => {});
+  }, []);
+
+  // 监听自定义背景启用状态：只在自定义背景启用且显示时才显示毛玻璃
+  useEffect(() => {
+    const checkBg = () => {
+      setHasCustomBg(document.documentElement.getAttribute('data-custom-bg') === 'true');
+    };
+    checkBg();
+    const observer = new MutationObserver(checkBg);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-custom-bg'] });
+    return () => observer.disconnect();
   }, []);
 
   if (!aboutData) return null;
@@ -184,8 +196,10 @@ const FooterBeian = () => {
       opacity: 0.5, transition: 'opacity 0.3s',
       fontSize: '12px', lineHeight: 1.6,
       padding: '6px 10px', borderRadius: '8px',
-      background: 'rgba(var(--background-rgb), 0.6)',
-      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      // 仅在自定义背景启用且显示时才使用毛玻璃背景，确保右下角信息可读
+      background: hasCustomBg ? 'rgba(var(--background-rgb), 0.6)' : 'transparent',
+      backdropFilter: hasCustomBg ? 'blur(8px)' : 'none',
+      WebkitBackdropFilter: hasCustomBg ? 'blur(8px)' : 'none',
     }}
     onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
     onMouseLeave={(e) => e.currentTarget.style.opacity = '0.5'}
