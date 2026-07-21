@@ -13,6 +13,7 @@ const UpdateCalendar = () => {
   const [viewMode, setViewMode] = useState('month');
   const [followingIds, setFollowingIds] = useState([]);
   const [subscribing, setSubscribing] = useState(null);
+  const [showYearPicker, setShowYearPicker] = useState(false);
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
@@ -65,6 +66,16 @@ const UpdateCalendar = () => {
   const prevWeek = () => { const d = new Date(currentWeekStart); d.setDate(d.getDate() - 7); setCurrentWeekStart(d); };
   const nextWeek = () => { const d = new Date(currentWeekStart); d.setDate(d.getDate() + 7); setCurrentWeekStart(d); };
   const goToday = () => { setCurrentYear(now.getFullYear()); setCurrentMonth(now.getMonth() + 1); setCurrentWeekStart(new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())); };
+
+  // 年份切换：显示当前年份前后 6 年（共 13 年），可点击直接跳转
+  const prevYear = () => setCurrentYear(prev => prev - 1);
+  const nextYear = () => setCurrentYear(prev => prev + 1);
+  const selectYear = (year) => { setCurrentYear(year); setShowYearPicker(false); };
+  const getYearList = () => {
+    const list = [];
+    for (let y = currentYear - 6; y <= currentYear + 6; y++) list.push(y);
+    return list;
+  };
 
   const getDaysInMonth = (year, month) => new Date(year, month, 0).getDate();
   const getFirstDayOfMonth = (year, month) => new Date(year, month - 1, 1).getDay();
@@ -177,12 +188,60 @@ const UpdateCalendar = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>📅 {t('calendar.title')}</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
           <button onClick={prevMonth} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>‹</button>
-          <span style={{ fontSize: '16px', fontWeight: 600, minWidth: '120px', textAlign: 'center' }}>{currentYear}{t('calendar.year')}{monthNames[currentMonth - 1]}</span>
+          <span
+            onClick={() => setShowYearPicker(prev => !prev)}
+            style={{ fontSize: '16px', fontWeight: 600, minWidth: '120px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', padding: '4px 8px', borderRadius: '6px', border: '1px solid transparent', transition: 'all 0.2s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-border)'; e.currentTarget.style.background = 'var(--primary-bg)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
+            title={t('calendar.clickToSelectYear')}
+          >
+            {currentYear}{t('calendar.year')}{monthNames[currentMonth - 1]}
+          </span>
           <button onClick={nextMonth} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>›</button>
           {!isCurrentMonth && (
             <button onClick={goToday} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>{t('calendar.today')}</button>
+          )}
+          {showYearPicker && (
+            <>
+              <div onClick={() => setShowYearPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+              <div style={{
+                position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '8px',
+                background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px',
+                padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 100,
+                minWidth: '280px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+                  <button onClick={prevYear} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '14px' }}>‹</button>
+                  <span style={{ fontSize: '14px', fontWeight: 600 }}>{currentYear - 6} — {currentYear + 6}</span>
+                  <button onClick={nextYear} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '14px' }}>›</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                  {getYearList().map(year => {
+                    const isCurrent = year === currentYear;
+                    const isTodayYear = year === now.getFullYear();
+                    return (
+                      <button
+                        key={year}
+                        onClick={() => selectYear(year)}
+                        style={{
+                          padding: '8px 4px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: isCurrent ? 700 : 500,
+                          border: isCurrent ? '1px solid var(--primary)' : '1px solid var(--border)',
+                          background: isCurrent ? 'var(--primary-bg)' : 'transparent',
+                          color: isCurrent ? 'var(--primary)' : isTodayYear ? 'var(--primary)' : 'var(--foreground)',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => { if (!isCurrent) { e.currentTarget.style.background = 'var(--hover-bg)'; e.currentTarget.style.borderColor = 'var(--primary-border)'; } }}
+                        onMouseLeave={(e) => { if (!isCurrent) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; } }}
+                      >
+                        {year}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

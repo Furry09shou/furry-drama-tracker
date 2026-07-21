@@ -645,6 +645,7 @@ export default {
     months: 'January,February,March,April,May,June,July,August,September,October,November,December',
     weekdays: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat',
     weekdayNames: 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
+    clickToSelectYear: 'Click to select year',
   },
   creator: {
     notFound: 'Creator page not found',
