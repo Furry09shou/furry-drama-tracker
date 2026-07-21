@@ -47,13 +47,17 @@ const UpdateCalendar = () => {
 
   useEffect(() => {
     setLoading(true);
-    axios.get(`/api/stats/calendar?year=${currentYear}&month=${currentMonth}`)
+    // 年视图模式：不传 month，获取整个年份的数据
+    const url = viewMode === 'year'
+      ? `/api/stats/calendar?year=${currentYear}`
+      : `/api/stats/calendar?year=${currentYear}&month=${currentMonth}`;
+    axios.get(url)
       .then(res => {
         setCalendarData(res.data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [currentYear, currentMonth]);
+  }, [currentYear, currentMonth, viewMode]);
 
   const prevMonth = () => {
     if (currentMonth === 1) { setCurrentMonth(12); setCurrentYear(prev => prev - 1); }
@@ -105,6 +109,187 @@ const UpdateCalendar = () => {
     if (dayData.scheduled) dayData.scheduled.forEach(ep => items.push({ ...ep, type: 'scheduled' }));
     if (dayData.premieres) dayData.premieres.forEach(ep => items.push({ ...ep, type: 'premiere' }));
     return items;
+  };
+
+  // 统计某个月的剧集数量
+  const getMonthStats = (month) => {
+    const prefix = `${currentYear}-${String(month).padStart(2, '0')}`;
+    let released = 0, scheduled = 0, premieres = 0;
+    Object.entries(calendarData.calendar || {}).forEach(([dateKey, dayData]) => {
+      if (dateKey.startsWith(prefix)) {
+        released += dayData.released?.length || 0;
+        scheduled += dayData.scheduled?.length || 0;
+        premieres += dayData.premieres?.length || 0;
+      }
+    });
+    return { released, scheduled, premieres, total: released + scheduled + premieres };
+  };
+
+  // 获取某个月的前几条剧集（用于年视图预览）
+  const getMonthPreview = (month, limit = 3) => {
+    const prefix = `${currentYear}-${String(month).padStart(2, '0')}`;
+    const items = [];
+    Object.entries(calendarData.calendar || {})
+      .sort(([a], [b]) => a.localeCompare(b))
+      .forEach(([dateKey, dayData]) => {
+        if (!dateKey.startsWith(prefix)) return;
+        if (dayData.released) dayData.released.forEach(ep => items.push({ ...ep, type: 'released', dateKey }));
+        if (dayData.scheduled) dayData.scheduled.forEach(ep => items.push({ ...ep, type: 'scheduled', dateKey }));
+        if (dayData.premieres) dayData.premieres.forEach(ep => items.push({ ...ep, type: 'premiere', dateKey }));
+      });
+    return items.slice(0, limit);
+  };
+
+  const renderYearView = () => {
+    return (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>📅 {t('calendar.title')}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+            <button onClick={prevYear} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>‹</button>
+            <span
+              onClick={() => setShowYearPicker(prev => !prev)}
+              style={{ fontSize: '16px', fontWeight: 600, minWidth: '100px', textAlign: 'center', cursor: 'pointer', userSelect: 'none', padding: '4px 8px', borderRadius: '6px', border: '1px solid transparent', transition: 'all 0.2s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-border)'; e.currentTarget.style.background = 'var(--primary-bg)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
+              title={t('calendar.clickToSelectYear')}
+            >
+              {currentYear}{t('calendar.year')}
+            </span>
+            <button onClick={nextYear} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>›</button>
+            {currentYear !== now.getFullYear() && (
+              <button onClick={goToday} style={{ background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', color: 'var(--primary)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>{t('calendar.today')}</button>
+            )}
+            {showYearPicker && (
+              <>
+                <div onClick={() => setShowYearPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+                <div style={{
+                  position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '8px',
+                  background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px',
+                  padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 100, minWidth: '280px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+                    <button onClick={prevYear} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '14px' }}>‹</button>
+                    <span style={{ fontSize: '14px', fontWeight: 600 }}>{currentYear - 6} — {currentYear + 6}</span>
+                    <button onClick={nextYear} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '14px' }}>›</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                    {getYearList().map(year => {
+                      const isCurrent = year === currentYear;
+                      const isTodayYear = year === now.getFullYear();
+                      return (
+                        <button key={year} onClick={() => selectYear(year)}
+                          style={{
+                            padding: '8px 4px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: isCurrent ? 700 : 500,
+                            border: isCurrent ? '1px solid var(--primary)' : '1px solid var(--border)',
+                            background: isCurrent ? 'var(--primary-bg)' : 'transparent',
+                            color: isCurrent ? 'var(--primary)' : isTodayYear ? 'var(--primary)' : 'var(--foreground)',
+                            transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={(e) => { if (!isCurrent) { e.currentTarget.style.background = 'var(--hover-bg)'; e.currentTarget.style.borderColor = 'var(--primary-border)'; } }}
+                          onMouseLeave={(e) => { if (!isCurrent) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; } }}
+                        >{year}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* 图例 */}
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '13px', flexWrap: 'wrap' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--success)' }}></span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('calendar.updated')}</span>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--warning)' }}></span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('calendar.preview')}</span>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary)' }}></span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('calendar.premiere')}</span>
+          </span>
+        </div>
+
+        {/* 12 个月网格 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+          {monthNames.map((monthName, idx) => {
+            const month = idx + 1;
+            const stats = getMonthStats(month);
+            const preview = getMonthPreview(month, 3);
+            const isCurrentMonth = currentYear === now.getFullYear() && month === now.getMonth() + 1;
+            const bgMap = { released: 'var(--success-bg-subtle)', scheduled: 'var(--warning-bg-subtle)', premiere: 'var(--primary-bg-subtle)' };
+            const colorMap = { released: 'var(--success-text)', scheduled: 'var(--warning-text)', premiere: 'var(--primary)' };
+            return (
+              <div key={month} style={{
+                background: 'var(--card)', borderRadius: '12px', border: `1px solid ${isCurrentMonth ? 'var(--primary-border)' : 'var(--border)'}`,
+                overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s',
+              }}
+              onClick={() => { setCurrentMonth(month); setViewMode('month'); }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                {/* 月份头部 */}
+                <div style={{
+                  padding: '12px 16px', background: isCurrentMonth ? 'var(--primary-bg)' : 'var(--hover-bg)',
+                  borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                  <span style={{ fontWeight: 700, fontSize: '16px', color: isCurrentMonth ? 'var(--primary)' : 'var(--foreground)' }}>
+                    {monthName}
+                    {isCurrentMonth && <span style={{ fontSize: '11px', marginLeft: '6px', padding: '1px 6px', borderRadius: '10px', background: 'var(--primary)', color: '#fff' }}>{t('calendar.today')}</span>}
+                  </span>
+                  {stats.total > 0 && (
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{stats.total}{t('calendar.more').replace('更多', '项')}</span>
+                  )}
+                </div>
+                {/* 月份统计 */}
+                {stats.total === 0 ? (
+                  <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
+                    {t('calendar.noUpdates')}
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 16px' }}>
+                    {/* 统计标签 */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                      {stats.released > 0 && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--success-bg)', color: 'var(--success-text)', border: '1px solid var(--success-border)' }}>{t('calendar.updated')} {stats.released}</span>}
+                      {stats.scheduled > 0 && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--warning-bg)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)' }}>{t('calendar.preview')} {stats.scheduled}</span>}
+                      {stats.premieres > 0 && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-bg)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }}>{t('calendar.premiere')} {stats.premieres}</span>}
+                    </div>
+                    {/* 剧集预览 */}
+                    {preview.map((item, i) => (
+                      <Link key={i} to={`/episode/${item._id}`} onClick={(e) => e.stopPropagation()}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none',
+                          padding: '4px 0', fontSize: '12px', lineHeight: 1.4,
+                          color: 'var(--foreground)',
+                        }}>
+                        <span style={{ flexShrink: 0, width: '6px', height: '6px', borderRadius: '50%', background: item.type === 'released' ? 'var(--success)' : item.type === 'premiere' ? 'var(--primary)' : 'var(--warning)' }}></span>
+                        <span style={{ flexShrink: 0, fontSize: '11px', color: 'var(--text-tertiary)', minWidth: '32px' }}>{item.dateKey.slice(5)}</span>
+                        <span style={{
+                          flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          padding: '1px 6px', borderRadius: '3px', background: bgMap[item.type], color: colorMap[item.type],
+                        }}>
+                          {item.type === 'scheduled' && '🔔 '}{item.type === 'premiere' && '🎬 '}
+                          {getLocalizedTitle(item)}{item.episodeNumber ? ` ${t('calendar.episodeNum', { num: item.episodeNumber })}` : ''}
+                        </span>
+                      </Link>
+                    ))}
+                    {stats.total > 3 && (
+                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '6px', textAlign: 'center' }}>
+                        +{stats.total - 3} {t('calendar.more')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </>
+    );
   };
 
   const renderWeekView = () => {
@@ -184,11 +369,18 @@ const UpdateCalendar = () => {
 
   if (loading) return <div style={{textAlign: 'center', padding: '60px', color: 'var(--text-secondary)'}}>{t('common.loading')}</div>;
 
+  // 年视图模式
+  if (viewMode === 'year') return <div>{renderYearView()}</div>;
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>📅 {t('calendar.title')}</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+          {/* 年视图切换按钮 */}
+          <button onClick={() => setViewMode('year')} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap' }} title={t('calendar.yearView')}>
+            📆 {currentYear}{t('calendar.year')}
+          </button>
           <button onClick={prevMonth} style={{ background: 'var(--hover-bg-strong)', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '14px' }}>‹</button>
           <span
             onClick={() => setShowYearPicker(prev => !prev)}

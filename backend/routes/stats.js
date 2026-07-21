@@ -200,10 +200,12 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
     const { month, year } = req.query;
     const now = new Date();
     const targetYear = year ? parseInt(year) : now.getFullYear();
-    const targetMonth = month ? parseInt(month) : now.getMonth() + 1;
+    // month=0 或未传时表示查询整个年份
+    const targetMonth = month !== undefined && month !== '' ? parseInt(month) : 0;
+    const isFullYear = targetMonth === 0;
 
-    const startDate = new Date(targetYear, targetMonth - 1, 1);
-    const endDate = new Date(targetYear, targetMonth, 1);
+    const startDate = isFullYear ? new Date(targetYear, 0, 1) : new Date(targetYear, targetMonth - 1, 1);
+    const endDate = isFullYear ? new Date(targetYear + 1, 0, 1) : new Date(targetYear, targetMonth, 1);
 
     const released = await SingleEpisode.find({
       releaseDate: { $gte: startDate, $lt: endDate }
@@ -302,7 +304,7 @@ router.get('/calendar', cacheMiddleware(300), async (req, res) => {
 
     res.json({
       year: targetYear,
-      month: targetMonth,
+      month: isFullYear ? 0 : targetMonth,
       calendar
     });
   } catch (error) {
