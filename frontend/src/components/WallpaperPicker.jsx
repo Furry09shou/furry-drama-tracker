@@ -14,11 +14,28 @@ const WallpaperPicker = ({ bgPrefs, updateBg, compact = false }) => {
 
   // 加载系统壁纸和个人壁纸列表
   useEffect(() => {
-    axios.get(API.WALLPAPERS.SYSTEM).then(res => setSystemWallpapers(res.data || [])).catch(() => {});
-    if (user?.personalWallpapers) {
-      setPersonalWallpapers(user.personalWallpapers);
+    const controller = new AbortController();
+    axios.get(API.WALLPAPERS.SYSTEM, { signal: controller.signal })
+      .then(res => setSystemWallpapers(res.data || []))
+      .catch(() => {});
+    // 已登录用户：优先用 user.personalWallpapers，并从 API 拉取最新列表
+    if (user) {
+      if (user.personalWallpapers && user.personalWallpapers.length > 0) {
+        setPersonalWallpapers(user.personalWallpapers);
+      }
+      axios.get(API.WALLPAPERS.PERSONAL, { signal: controller.signal })
+        .then(res => {
+          const list = res.data || [];
+          setPersonalWallpapers(list);
+          // 同步回 user 状态，避免下次渲染又丢失
+          if (list.length > 0 && (!user.personalWallpapers || list.length !== user.personalWallpapers.length)) {
+            updateUser(prev => prev ? { ...prev, personalWallpapers: list } : prev);
+          }
+        })
+        .catch(() => {});
     }
-  }, [user]);
+    return () => controller.abort();
+  }, [user, updateUser]);
 
   // 选择壁纸
   const selectWallpaper = (url) => {

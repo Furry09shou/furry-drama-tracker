@@ -845,7 +845,8 @@ router.get('/me', protect, async (req, res) => {
       role: user.role || 'user',
       avatar: user.avatar || '',
       emailNotificationPrefs: user.emailNotificationPrefs || {},
-      backgroundPrefs: user.backgroundPrefs || {}
+      backgroundPrefs: user.backgroundPrefs || {},
+      personalWallpapers: user.personalWallpapers || []
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });

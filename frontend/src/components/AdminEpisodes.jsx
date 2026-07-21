@@ -492,13 +492,13 @@ const AdminEpisodes = () => {
       </div>
       <div className="form-group">
         <label>{t('adminEpisodes.totalEpisodesLabel')} {!newEpisode.unknownTotalEpisodes && <span style={{color: 'var(--destructive-text)'}}>*</span>}</label>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="number"
             value={newEpisode.unknownTotalEpisodes ? '' : newEpisode.totalEpisodes}
             onChange={(e) => setNewEpisode({...newEpisode, totalEpisodes: parseInt(e.target.value) || 0, unknownTotalEpisodes: false})}
             disabled={newEpisode.unknownTotalEpisodes}
-            style={{ flex: 1 }}
+            style={{ flex: '1 1 200px', minWidth: '120px' }}
           />
           <button
             type="button"
@@ -508,7 +508,7 @@ const AdminEpisodes = () => {
               border: newEpisode.unknownTotalEpisodes ? '1px solid var(--primary)' : '1px solid var(--border)',
               background: newEpisode.unknownTotalEpisodes ? 'var(--primary-bg)' : 'transparent',
               color: newEpisode.unknownTotalEpisodes ? 'var(--primary)' : 'var(--text-secondary)',
-              whiteSpace: 'nowrap', fontWeight: 500,
+              whiteSpace: 'nowrap', fontWeight: 500, flexShrink: 0,
             }}
           >{t('adminEpisodes.unknownTotalEpisodes')}</button>
         </div>

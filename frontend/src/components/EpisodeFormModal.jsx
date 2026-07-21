@@ -145,7 +145,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
 
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('episodeForm.totalEpisodes')}</label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 type="number"
                 value={formData.unknownTotalEpisodes ? '' : formData.totalEpisodes}
@@ -153,7 +153,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                 disabled={formData.unknownTotalEpisodes}
                 className={errors.totalEpisodes ? 'error' : ''}
                 style={{
-                  flex: 1,
+                  flex: '1 1 200px', minWidth: '120px',
                   padding: '8px 12px',
                   borderRadius: '6px',
                   border: errors.totalEpisodes ? '1px solid rgb(239, 68, 68)' : '1px solid var(--border)',
@@ -170,7 +170,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
                   border: formData.unknownTotalEpisodes ? '1px solid var(--primary)' : '1px solid var(--border)',
                   background: formData.unknownTotalEpisodes ? 'var(--primary-bg)' : 'transparent',
                   color: formData.unknownTotalEpisodes ? 'var(--primary)' : 'var(--text-secondary)',
-                  whiteSpace: 'nowrap', fontWeight: 500,
+                  whiteSpace: 'nowrap', fontWeight: 500, flexShrink: 0,
                 }}
               >{t('adminEpisodes.unknownTotalEpisodes')}</button>
             </div>

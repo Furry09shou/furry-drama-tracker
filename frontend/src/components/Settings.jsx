@@ -6,7 +6,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import usePushNotifications from '../hooks/usePushNotifications';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
-import ImageUploader from './ImageUploader';
 import WallpaperPicker from './WallpaperPicker';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
@@ -103,19 +102,6 @@ const Settings = ({ user }) => {
       showSaved();
     } catch (e) {
       // 回滚
-      setBgPrefs(bgPrefs);
-      updateUser(prev => ({ ...prev, backgroundPrefs: bgPrefs }));
-    }
-  };
-
-  const handleBgImageChange = async (url) => {
-    const newPrefs = { ...bgPrefs, image: url };
-    setBgPrefs(newPrefs);
-    updateUser(prev => ({ ...prev, backgroundPrefs: newPrefs }));
-    try {
-      await axios.put(API.USERS.BACKGROUND_PREFS, { image: url });
-      showSaved();
-    } catch (e) {
       setBgPrefs(bgPrefs);
       updateUser(prev => ({ ...prev, backgroundPrefs: bgPrefs }));
     }
@@ -382,11 +368,9 @@ const Settings = ({ user }) => {
             </button>
           </div>
 
-          {bgPrefs.enabled && (
-            <div style={{ paddingTop: '12px' }}>
-              <WallpaperPicker bgPrefs={bgPrefs} updateBg={updateBgPrefs} />
-            </div>
-          )}
+          <div style={{ paddingTop: '12px', borderTop: bgPrefs.enabled ? 'none' : '1px solid var(--border)', marginTop: bgPrefs.enabled ? '0' : '8px' }}>
+            <WallpaperPicker bgPrefs={bgPrefs} updateBg={updateBgPrefs} />
+          </div>
         </div>
       </div>
 

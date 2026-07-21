@@ -360,7 +360,7 @@ const EpisodeDetail = ({ user }) => {
                 <p><strong>{t('episode.firstAirDate')}</strong><span style={{ color: 'var(--text-secondary)' }}>{new Date(earliest).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
               );
             })()}
-            <p><strong>{t('episode.episodeCount')}</strong>{t('episode.updatedTo')}{episode.currentEpisodes}{episode.totalEpisodes === null ? t('episode.unknownTotal') : `${t('episode.epTotal')}${episode.totalEpisodes}`}{t('episode.epSuffix')}</p>
+            <p><strong>{t('episode.episodeCount')}</strong>{t('episode.updatedTo')}{episode.currentEpisodes}{episode.totalEpisodes === null ? '' : `${t('episode.epTotal')}${episode.totalEpisodes}`}{t('episode.epSuffix')}</p>
             <p><strong>{t('episode.category')}</strong>{episode.category?.join(', ') || t('common.none')}</p>
             {episode.tags && episode.tags.length > 0 && (
               <p><strong>{t('episode.tags')}</strong>{episode.tags.map((tag, i) => (
@@ -693,7 +693,7 @@ const EpisodeDetail = ({ user }) => {
                 <div style={{padding: '10px 12px'}}>
                   <div style={{fontSize: '14px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{getLocalizedTitle(rec)}</div>
                   <div style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px'}}>
-                    {t('episode.epPrefix')}{rec.currentEpisodes}/{rec.totalEpisodes === null ? '?' : rec.totalEpisodes}{t('episode.epSuffix')}
+                    {t('episode.epPrefix')}{rec.currentEpisodes}{rec.totalEpisodes === null ? '' : `/${rec.totalEpisodes}`}{t('episode.epSuffix')}
                     {rec.averageRating > 0 && <span style={{color: 'var(--warning-text)', marginLeft: '6px'}}>⭐{rec.averageRating}</span>}
                   </div>
                 </div>
