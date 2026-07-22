@@ -627,8 +627,8 @@ const Profile = ({ user, setUser, logout }) => {
       </div>
 
       <div style={{ display: activeTab === 'favorites' ? 'block' : 'none' }}>
-        <div style={{display: 'flex', gap: '20px', alignItems: 'flex-start'}}>
-          <div style={{
+        <div className="favorites-layout" style={{display: 'flex', gap: '20px', alignItems: 'flex-start'}}>
+          <div className="favorites-sidebar" style={{
             minWidth: '0', maxWidth: '220px', flex: '0 1 180px',
             background: 'var(--card)', borderRadius: '12px',
             border: '1px solid var(--border)', padding: '12px',

@@ -134,7 +134,7 @@ export default function InstallPrompt() {
         .pwa-prompt-buttons { display: flex; gap: 6px; }
 
         .pwa-prompt-btn-install {
-          padding: 5px 12px; border-radius: 6px; border: none;
+          padding: 3px 12px; border-radius: 6px; border: none;
           background: var(--primary); color: #fff;
           font-size: 11px; font-weight: 600;
           cursor: pointer; transition: all 0.2s; white-space: nowrap;
@@ -142,7 +142,7 @@ export default function InstallPrompt() {
         .pwa-prompt-btn-install:hover { opacity: 0.9; }
 
         .pwa-prompt-btn-close {
-          padding: 5px 12px; border-radius: 6px;
+          padding: 3px 12px; border-radius: 6px;
           border: 1px solid var(--border); background: transparent;
           color: var(--text-secondary); font-size: 11px;
           cursor: pointer; transition: all 0.2s; white-space: nowrap;
@@ -165,24 +165,24 @@ export default function InstallPrompt() {
         @media (max-width: 768px) {
           .pwa-prompt-wrapper { bottom: 10px; width: calc(100vw - 12px); max-width: 340px; }
           .pwa-prompt-card { padding: 6px 12px; gap: 7px; border-radius: 10px; }
-          .pwa-prompt-icon { font-size: 18px; }
+          .pwa-prompt-icon { font-size: 20px; }
           .pwa-prompt-title { font-size: 12px; line-height: 1.2; }
           .pwa-prompt-desc { font-size: 10px; line-height: 1.25; margin-top: 0; }
           .pwa-prompt-btn-install,
-          .pwa-prompt-btn-close { padding: 3px 10px; font-size: 10px; }
+          .pwa-prompt-btn-close { padding: 2px 10px; font-size: 10px; }
           .pwa-prompt-actions { gap: 2px; }
           .pwa-prompt-never { font-size: 9px; }
         }
 
-        /* === ≤480px：手机，隐藏描述，单行紧凑 === */
+        /* === ≤480px：手机，紧凑显示 === */
         @media (max-width: 480px) {
           .pwa-prompt-wrapper { bottom: 8px; width: calc(100vw - 10px); max-width: 320px; }
           .pwa-prompt-card { padding: 5px 10px; gap: 6px; border-radius: 9px; }
-          .pwa-prompt-icon { font-size: 16px; }
-          .pwa-prompt-desc { display: none; }
+          .pwa-prompt-icon { font-size: 18px; }
           .pwa-prompt-title { font-size: 11px; line-height: 1.15; }
+          .pwa-prompt-desc { font-size: 10px; line-height: 1.2; margin-top: 0; }
           .pwa-prompt-btn-install,
-          .pwa-prompt-btn-close { padding: 3px 9px; font-size: 10px; }
+          .pwa-prompt-btn-close { padding: 2px 9px; font-size: 10px; }
           .pwa-prompt-actions { gap: 2px; }
           .pwa-prompt-never { font-size: 9px; }
           .pwa-prompt-never input { width: 10px; height: 10px; }
@@ -192,11 +192,12 @@ export default function InstallPrompt() {
         @media (max-width: 360px) {
           .pwa-prompt-wrapper { bottom: 6px; width: calc(100vw - 8px); max-width: 300px; }
           .pwa-prompt-card { padding: 4px 8px; gap: 5px; border-radius: 8px; }
-          .pwa-prompt-icon { font-size: 14px; }
+          .pwa-prompt-icon { font-size: 16px; }
           .pwa-prompt-title { font-size: 11px; line-height: 1.15; }
+          .pwa-prompt-desc { font-size: 9px; line-height: 1.2; }
           .pwa-prompt-btn-install,
-          .pwa-prompt-btn-close { padding: 2px 8px; font-size: 9px; border-radius: 5px; }
-          .pwa-prompt-actions { gap: 2px; }
+          .pwa-prompt-btn-close { padding: 1px 8px; font-size: 9px; border-radius: 5px; }
+          .pwa-prompt-actions { gap: 1px; }
           .pwa-prompt-never { font-size: 8px; }
         }
       `}</style>
