@@ -1593,7 +1593,7 @@ export default {
     offline: 'You are currently offline. Some features may be unavailable.',
     backOnline: 'Back online!',
     install: 'Install App',
-    installDesc: 'Add Furry Drama Hub to your home screen for a better experience',
+    installDesc: 'Add to home screen for better experience',
     installBtn: 'Install PWA App',
     dismiss: 'Dismiss',
     close: 'Close',

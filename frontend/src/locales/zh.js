@@ -1593,7 +1593,7 @@ export default {
     offline: '当前处于离线状态，部分功能可能不可用',
     backOnline: '已恢复网络连接',
     install: '安装应用',
-    installDesc: '将兽剧聚合平台添加到主屏幕，获得更好的体验',
+    installDesc: '添加到主屏幕，获得更好体验',
     installBtn: '安装PWA应用',
     dismiss: '忽略',
     close: '关闭',

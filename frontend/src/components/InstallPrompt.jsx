@@ -110,10 +110,11 @@ export default function InstallPrompt() {
           background: var(--card);
           border: 1px solid var(--border);
           box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+          line-height: 1;
         }
 
         /* === icon === */
-        .pwa-prompt-icon { font-size: 24px; flex-shrink: 0; }
+        .pwa-prompt-icon { font-size: 24px; flex-shrink: 0; line-height: 1; }
 
         /* === text === */
         .pwa-prompt-text { flex: 1; min-width: 0; }
@@ -170,12 +171,12 @@ export default function InstallPrompt() {
           .pwa-prompt-wrapper { bottom: 10px; width: calc(100vw - 12px); max-width: 340px; }
           .pwa-prompt-card { padding: 6px 12px; gap: 7px; border-radius: 10px; }
           .pwa-prompt-icon { font-size: 20px; }
-          .pwa-prompt-title { font-size: 12px; line-height: 1.2; }
-          .pwa-prompt-desc { font-size: 10px; line-height: 1.25; margin-top: 0; }
+          .pwa-prompt-title { font-size: 12px; line-height: 1; }
+          .pwa-prompt-desc { font-size: 10px; line-height: 1; margin-top: 0; }
           .pwa-prompt-btn-install,
           .pwa-prompt-btn-close { padding: 1px 10px; font-size: 10px; line-height: 1; }
           .pwa-prompt-actions { gap: 2px; }
-          .pwa-prompt-never { font-size: 9px; }
+          .pwa-prompt-never { font-size: 9px; line-height: 1; }
         }
 
         /* === ≤480px：手机，紧凑显示 === */
@@ -183,12 +184,12 @@ export default function InstallPrompt() {
           .pwa-prompt-wrapper { bottom: 8px; width: calc(100vw - 10px); max-width: 320px; }
           .pwa-prompt-card { padding: 5px 10px; gap: 6px; border-radius: 9px; }
           .pwa-prompt-icon { font-size: 18px; }
-          .pwa-prompt-title { font-size: 11px; line-height: 1.15; }
-          .pwa-prompt-desc { font-size: 10px; line-height: 1.2; margin-top: 0; }
+          .pwa-prompt-title { font-size: 11px; line-height: 1; }
+          .pwa-prompt-desc { font-size: 10px; line-height: 1; margin-top: 0; }
           .pwa-prompt-btn-install,
           .pwa-prompt-btn-close { padding: 1px 9px; font-size: 10px; line-height: 1; }
           .pwa-prompt-actions { gap: 2px; }
-          .pwa-prompt-never { font-size: 9px; }
+          .pwa-prompt-never { font-size: 9px; line-height: 1; }
           .pwa-prompt-never input { width: 10px; height: 10px; }
         }
 
@@ -197,12 +198,12 @@ export default function InstallPrompt() {
           .pwa-prompt-wrapper { bottom: 6px; width: calc(100vw - 8px); max-width: 300px; }
           .pwa-prompt-card { padding: 4px 8px; gap: 5px; border-radius: 8px; }
           .pwa-prompt-icon { font-size: 16px; }
-          .pwa-prompt-title { font-size: 11px; line-height: 1.15; }
-          .pwa-prompt-desc { font-size: 9px; line-height: 1.2; }
+          .pwa-prompt-title { font-size: 11px; line-height: 1; }
+          .pwa-prompt-desc { font-size: 9px; line-height: 1; }
           .pwa-prompt-btn-install,
           .pwa-prompt-btn-close { padding: 0 8px; font-size: 9px; line-height: 1; border-radius: 5px; }
           .pwa-prompt-actions { gap: 1px; }
-          .pwa-prompt-never { font-size: 8px; }
+          .pwa-prompt-never { font-size: 8px; line-height: 1; }
         }
       `}</style>
     </div>
