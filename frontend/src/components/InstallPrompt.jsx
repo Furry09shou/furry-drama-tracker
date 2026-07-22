@@ -138,6 +138,8 @@ export default function InstallPrompt() {
           background: var(--primary); color: #fff;
           font-size: 11px; font-weight: 600; line-height: 1.2;
           cursor: pointer; transition: all 0.2s; white-space: nowrap;
+          -webkit-appearance: none; appearance: none;
+          box-sizing: border-box; min-height: 0;
         }
         .pwa-prompt-btn-install:hover { opacity: 0.9; }
 
@@ -146,6 +148,8 @@ export default function InstallPrompt() {
           border: 1px solid var(--border); background: transparent;
           color: var(--text-secondary); font-size: 11px; line-height: 1.2;
           cursor: pointer; transition: all 0.2s; white-space: nowrap;
+          -webkit-appearance: none; appearance: none;
+          box-sizing: border-box; min-height: 0;
         }
         .pwa-prompt-btn-close:hover {
           border-color: var(--primary); color: var(--primary);
