@@ -468,7 +468,7 @@ router.post('/login', async (req, res) => {
               <p style="margin:4px 0"><strong>IP地址：</strong>${escapeHtml(currentIp)}</p>
             </div>
             ${(parsed.os === 'iOS' || parsed.os === 'iPadOS' || parsed.os === 'macOS') ? '<p style="color:#94a3b8;font-size:12px;margin:4px 0 12px;">* Apple 设备因隐私策略，浏览器上报的系统版本可能不准确（Safari 冻结了版本号，且旧设备也可能被推送过带新版本号的浏览器安全更新）</p>' : ''}
-            <p>如非本人操作，请忽略此邮件。如确认是本人，请点击下方按钮确认登录：</p>
+            <p>如非本人操作，请忽略此邮件。如确认是本人，请点击下方按钮获取验证码，并在原浏览器中输入验证码完成登录：</p>
             <div style="text-align:center;margin:20px 0">
               <a href="${process.env.SITE_URL || 'http://localhost:3000'}/verify-device?token=${deviceVerifyToken}" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">确认登录</a>
             </div>
@@ -559,6 +559,17 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// 设备验证一次性登录码（内存存储，10分钟过期）
+const deviceLoginCodes = new Map(); // code -> { userId, expiresAt, need2FA }
+
+// 定期清理过期登录码
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, entry] of deviceLoginCodes) {
+    if (entry.expiresAt < now) deviceLoginCodes.delete(code);
+  }
+}, 60 * 1000);
+
 router.post('/verify-device', async (req, res) => {
   try {
     const { token } = req.body;
@@ -569,33 +580,81 @@ router.post('/verify-device', async (req, res) => {
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== 'device-verify') return res.status(400).json({ message: '无效的验证令牌' });
-    const user = await User.findById(decoded.id).select('+loginAttempts +lockUntil');
+    const user = await User.findById(decoded.id).select('+loginAttempts +lockUntil +twoFactorEnabled');
     if (!user) return res.status(400).json({ message: '用户不存在' });
     await markTokenUsed(tokenHash, 'device-verify', 30 * 60 * 1000);
 
-    if (user.twoFactorEnabled) {
+    // 生成 6 位一次性登录码，不设置 cookie，不创建会话
+    // 用户需回到原浏览器输入此码完成登录（解决邮箱App内置浏览器cookie不共享问题）
+    const loginCode = String(Math.floor(100000 + Math.random() * 900000));
+    deviceLoginCodes.set(loginCode, {
+      userId: user._id.toString(),
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      need2FA: !!user.twoFactorEnabled
+    });
+
+    res.json({ verified: true, loginCode });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') return res.status(400).json({ message: '验证链接已过期，请重新登录' });
+    res.status(400).json({ message: '验证失败' });
+  }
+});
+
+// 确认设备登录：用户在原浏览器输入验证码完成登录
+router.post('/confirm-device-login', async (req, res) => {
+  try {
+    const { loginCode } = req.body;
+    if (!loginCode) return res.status(400).json({ message: '请输入验证码' });
+
+    const entry = deviceLoginCodes.get(String(loginCode));
+    if (!entry || entry.expiresAt < Date.now()) {
+      if (entry) deviceLoginCodes.delete(String(loginCode));
+      return res.status(400).json({ message: '验证码无效或已过期，请重新验证' });
+    }
+
+    const user = await User.findById(entry.userId).select('+loginAttempts +lockUntil');
+    if (!user) {
+      deviceLoginCodes.delete(String(loginCode));
+      return res.status(400).json({ message: '用户不存在' });
+    }
+
+    // 如果开启了 2FA，生成挑战令牌（携带 loginCode），让用户继续 2FA 流程
+    if (entry.need2FA) {
+      const twoFactorChallenge = jwt.sign(
+        { id: user._id, purpose: '2fa-challenge', deviceLoginCode: String(loginCode) },
+        process.env.JWT_SECRET,
+        { expiresIn: '5m' }
+      );
       return res.json({
         need2FA: true,
         email: user.email,
-        deviceVerified: true
+        twoFactorChallenge
       });
     }
 
+    // 未开启 2FA，直接完成登录
+    deviceLoginCodes.delete(String(loginCode));
+
+    const ua = req.headers['user-agent'] || '';
+    const parsed = parseUserAgent(ua);
     const accessToken = createAccessToken(user._id);
     const { token: refreshToken } = createRefreshToken(user._id);
-    const ua = decoded.ua || '';
-    const parsed = parseUserAgent(ua);
-    await createUserSession(user._id, refreshToken, null, parsed, ua, decoded.ip || '');
+    await createUserSession(user._id, refreshToken, null, parsed, ua, getClientIp(req));
     setAuthCookies(res, accessToken, refreshToken);
 
+    user.deviceInfo = buildDeviceInfo({}, parsed, ua, req);
+    user.lastLoginAt = new Date();
+    user.lastLoginIp = getClientIp(req);
+    user.lastLoginRegion = await getCachedIpRegion(getClientIp(req));
+    await user.save();
+
     // 新设备登录提醒邮件
-    const verifyRegion = await getCachedIpRegion(decoded.ip || '');
     sendNotificationEmailToUser(
       user._id,
       'newDeviceLogin',
       { browser: parsed.browser, browserVersion: parsed.browserVersion, os: parsed.os, osVersion: parsed.osVersion, deviceType: parsed.deviceType },
-      decoded.ip || '',
-      verifyRegion,
+      getClientIp(req),
+      user.lastLoginRegion,
       new Date()
     );
 
@@ -604,8 +663,8 @@ router.post('/verify-device', async (req, res) => {
       isEmailVerified: user.isEmailVerified, role: user.role || 'user',
     });
   } catch (error) {
-    if (error.name === 'TokenExpiredError') return res.status(400).json({ message: '验证链接已过期，请重新登录' });
-    res.status(400).json({ message: '验证失败' });
+    console.error('Confirm device login error:', error);
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
@@ -679,6 +738,11 @@ router.post('/login-2fa', async (req, res) => {
     });
 
     setAuthCookies(res, accessToken, refreshToken);
+
+    // 如果来自设备验证流程，删除一次性登录码
+    if (challengePayload.deviceLoginCode) {
+      deviceLoginCodes.delete(challengePayload.deviceLoginCode);
+    }
 
     // 新设备登录提醒邮件（2FA 登录完成）
     sendNotificationEmailToUser(

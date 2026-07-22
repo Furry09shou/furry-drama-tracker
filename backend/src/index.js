@@ -368,6 +368,7 @@ app.use('/api/auth/verify-email', emailVerifyLimiter);
 app.use('/api/auth/resend-verification', emailVerifyLimiter);
 app.use('/api/auth/resend-verification-by-email', emailVerifyLimiter);
 app.use('/api/auth/verify-device', twoFactorLimiter);
+app.use('/api/auth/confirm-device-login', twoFactorLimiter);
 
 const requestEmailChangeLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

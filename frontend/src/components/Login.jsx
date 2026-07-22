@@ -31,6 +31,11 @@ const Login = ({ login }) => {
   const [deviceVerifyEmail, setDeviceVerifyEmail] = useState('');
   const [deviceVerifyInfo, setDeviceVerifyInfo] = useState(null);
   const [deviceVerifyLoading, setDeviceVerifyLoading] = useState(false);
+  const [deviceLoginCode, setDeviceLoginCode] = useState('');      // 邮箱验证页面返回的登录码
+  const [deviceCodeInput, setDeviceCodeInput] = useState('');       // 用户在原浏览器输入的登录码
+  const [deviceCodeSubmitting, setDeviceCodeSubmitting] = useState(false);
+  const [deviceCodeError, setDeviceCodeError] = useState('');
+  const [fromDeviceVerify, setFromDeviceVerify] = useState(false);  // 2FA是否来自设备验证流程
   const [need2FA, setNeed2FA] = useState(false);
   const [twoFAEmail, setTwoFAEmail] = useState('');
   const [twoFAToken, setTwoFAToken] = useState('');
@@ -61,14 +66,16 @@ const Login = ({ login }) => {
     setDeviceVerifyLoading(true);
     axios.post('/api/auth/verify-device', { token })
       .then(res => {
-        login(res.data);
-        navigate('/');
+        // 邮箱App内置浏览器中打开：只显示验证码，不执行登录（cookie无法跨浏览器共享）
+        if (res.data.verified && res.data.loginCode) {
+          setDeviceLoginCode(res.data.loginCode);
+        }
       })
       .catch(err => {
         setError(err.response?.data?.message || t('auth.deviceVerifyFailed'));
       })
       .finally(() => setDeviceVerifyLoading(false));
-  }, [searchParams, navigate, login, t]);
+  }, [searchParams, t]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -131,6 +138,32 @@ const Login = ({ login }) => {
     setSubmitting(false);
   };
 
+  // 用户在原浏览器输入验证码完成设备登录
+  const handleConfirmDeviceLogin = async (e) => {
+    e.preventDefault();
+    setDeviceCodeError('');
+    setDeviceCodeSubmitting(true);
+    try {
+      const res = await axios.post('/api/auth/confirm-device-login', {
+        loginCode: deviceCodeInput.trim()
+      });
+      if (res.data.need2FA) {
+        // 开启了 2FA，切换到 2FA 输入界面
+        setFromDeviceVerify(true);
+        setTwoFAEmail(res.data.email);
+        setTwoFactorChallenge(res.data.twoFactorChallenge);
+        setNeedDeviceVerify(false);
+        setNeed2FA(true);
+      } else {
+        login(res.data);
+        navigate('/');
+      }
+    } catch (err) {
+      setDeviceCodeError(err.response?.data?.message || t('auth.deviceVerifyFailed'));
+    }
+    setDeviceCodeSubmitting(false);
+  };
+
   const handle2FAVerify = async (e) => {
     e.preventDefault();
     setError('');
@@ -185,6 +218,34 @@ const Login = ({ login }) => {
     }
   };
 
+  // 邮箱App内置浏览器中打开验证链接：显示验证码，引导用户回到原浏览器
+  if (deviceLoginCode) {
+    return (
+      <div className="auth-form" style={{textAlign: 'center', padding: '40px 20px'}}>
+        <div aria-hidden="true" style={{fontSize: '48px', marginBottom: '16px'}}>✅</div>
+        <h2>{t('auth.deviceVerifiedTitle')}</h2>
+        <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: '12px'}}>
+          {t('auth.deviceVerifiedDesc')}
+        </p>
+        <div style={{
+          background: 'var(--primary-bg)', border: '2px dashed var(--primary-border)',
+          borderRadius: '12px', padding: '20px', margin: '20px 0',
+        }}>
+          <p style={{color: 'var(--text-tertiary)', fontSize: '12px', margin: '0 0 8px'}}>
+            {t('auth.yourLoginCode')}
+          </p>
+          <div style={{
+            fontSize: '36px', fontWeight: '700', letterSpacing: '8px',
+            color: 'var(--primary)', fontFamily: 'monospace',
+          }}>{deviceLoginCode}</div>
+        </div>
+        <p style={{color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.7}}>
+          {t('auth.deviceCodeExpiry')}
+        </p>
+      </div>
+    );
+  }
+
   if (deviceVerifyLoading) {
     return (
       <div className="auth-form" style={{textAlign: 'center', padding: '60px 20px'}}>
@@ -231,11 +292,54 @@ const Login = ({ login }) => {
             * {t('devices.appleVersionNote')}
           </p>
         )}
+
+        {/* 验证码输入区 */}
+        <div style={{
+          background: 'var(--primary-bg)', border: '1px solid var(--primary-border)',
+          borderRadius: '10px', padding: '16px', margin: '20px 0 0',
+        }}>
+          <p style={{color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 12px', lineHeight: 1.6}}>
+            {t('auth.enterDeviceCode')}
+          </p>
+          <form onSubmit={handleConfirmDeviceLogin} style={{display: 'flex', gap: '8px', flexDirection: 'column'}}>
+            <input
+              type="text"
+              value={deviceCodeInput}
+              onChange={(e) => setDeviceCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder={t('auth.deviceCodePlaceholder')}
+              inputMode="numeric"
+              maxLength="6"
+              style={{
+                width: '100%', padding: '10px 12px', fontSize: '20px',
+                textAlign: 'center', letterSpacing: '6px', fontFamily: 'monospace',
+                borderRadius: '8px', border: '1px solid var(--border)',
+                background: 'var(--input)', color: 'var(--foreground)',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+            {deviceCodeError && (
+              <div className="error-message" style={{margin: 0, fontSize: '13px'}}>{deviceCodeError}</div>
+            )}
+            <button
+              type="submit"
+              disabled={deviceCodeInput.length !== 6 || deviceCodeSubmitting}
+              style={{
+                padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
+                background: 'var(--btn-gradient)', color: 'var(--btn-text)',
+                border: 'none', cursor: deviceCodeSubmitting ? 'wait' : 'pointer',
+                opacity: (deviceCodeInput.length !== 6 || deviceCodeSubmitting) ? 0.6 : 1,
+              }}
+            >
+              {deviceCodeSubmitting ? t('common.pleaseWait') : t('auth.confirmLogin')}
+            </button>
+          </form>
+        </div>
+
         <p style={{color: 'var(--text-secondary)', fontSize: '13px', marginTop: '16px'}}>
           {t('auth.verifyLinkExpiry')}
         </p>
         <button onClick={() => setNeedDeviceVerify(false)} style={{
-          marginTop: '24px', padding: '10px 24px', borderRadius: '8px',
+          marginTop: '16px', padding: '10px 24px', borderRadius: '8px',
           background: 'var(--hover-bg)', border: '1px solid var(--border)',
           color: 'var(--foreground)', cursor: 'pointer', fontSize: '14px'
         }}>{t('auth.backToLogin')}</button>
