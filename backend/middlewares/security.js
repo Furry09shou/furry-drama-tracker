@@ -42,8 +42,11 @@ const sanitizeInput = (req, res, next) => {
 };
 
 const sanitizeHeaders = (req, res, next) => {
-  // Only sanitize specific headers that might be used in responses
-  const riskyHeaders = ['x-forwarded-for', 'x-real-ip', 'referer'];
+  // 仅清理可能回显到响应中的 header。
+  // 注意：不清理 x-forwarded-for / x-real-ip —— 它们被 req.ip 与限流 keyGenerator 使用，
+  // XSS 过滤会改变其原始内容并干扰限流。XFF 的可信度由 app.set('trust proxy') 与反代配置负责：
+  // 生产环境反向代理必须覆盖（而非追加）客户端发送的 X-Forwarded-For，以防伪造绕过 IP 限流。
+  const riskyHeaders = ['referer'];
   riskyHeaders.forEach(header => {
     if (req.headers[header] && typeof req.headers[header] === 'string') {
       req.headers[header] = xss(req.headers[header]);

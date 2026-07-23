@@ -6,6 +6,7 @@ const { protect } = require('../middlewares/authFactory');
 const jwt = require('jsonwebtoken');
 const webpush = require('web-push');
 const { asyncHandler } = require('../utils/errorHandler');
+const { verifyJwt } = require('../utils/helpers');
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
@@ -27,7 +28,7 @@ router.get('/stream', async (req, res) => {
   let userId;
   try {
     if (ticket) {
-      const decoded = jwt.verify(ticket, process.env.JWT_SECRET);
+      const decoded = verifyJwt(ticket);
       if (decoded.purpose !== 'sse-ticket') {
         return res.status(401).json({ message: '无效的ticket' });
       }

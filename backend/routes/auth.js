@@ -15,7 +15,7 @@ const mongoose = require('mongoose');
 const https = require('https');
 const crypto = require('crypto');
 const { createChallenge, verifySolution, sha } = require('altcha/lib');
-const { protect, adminProtect, verifyRefreshToken } = require('../middlewares/authFactory');
+const { protect, adminProtect, superAdminProtect, verifyRefreshToken } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { logManual } = require('../middlewares/auditLog');
 const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser } = require('../utils/email');
@@ -32,6 +32,7 @@ const {
   clearAuthCookies,
   createAccessToken,
   createRefreshToken,
+  verifyJwt,
   timingSafeCompare
 } = require('../utils/helpers');
 const { encryptField, decryptField, encryptArray, decryptArray } = require('../utils/crypto');
@@ -578,7 +579,7 @@ router.post('/verify-device', async (req, res) => {
     if (await isTokenUsed(tokenHash)) {
       return res.status(400).json({ message: '该验证链接已被使用' });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyJwt(token);
     if (decoded.purpose !== 'device-verify') return res.status(400).json({ message: '无效的验证令牌' });
     const user = await User.findById(decoded.id).select('+loginAttempts +lockUntil +twoFactorEnabled');
     if (!user) return res.status(400).json({ message: '用户不存在' });
@@ -586,11 +587,13 @@ router.post('/verify-device', async (req, res) => {
 
     // 生成 6 位一次性登录码，不设置 cookie，不创建会话
     // 用户需回到原浏览器输入此码完成登录（解决邮箱App内置浏览器cookie不共享问题）
-    const loginCode = String(Math.floor(100000 + Math.random() * 900000));
+    // 使用 crypto.randomInt 而非 Math.random，避免可预测性
+    const loginCode = String(crypto.randomInt(100000, 1000000));
     deviceLoginCodes.set(loginCode, {
       userId: user._id.toString(),
       expiresAt: Date.now() + 10 * 60 * 1000,
-      need2FA: !!user.twoFactorEnabled
+      need2FA: !!user.twoFactorEnabled,
+      attempts: 0
     });
 
     res.json({ verified: true, loginCode });
@@ -610,6 +613,16 @@ router.post('/confirm-device-login', async (req, res) => {
     if (!entry || entry.expiresAt < Date.now()) {
       if (entry) deviceLoginCodes.delete(String(loginCode));
       return res.status(400).json({ message: '验证码无效或已过期，请重新验证' });
+    }
+
+    // 单码尝试上限：防止分布式 IP 暴力 6 位码。达到 5 次立即作废
+    entry.attempts = (entry.attempts || 0) + 1;
+    // 注意：此处只是计数，真正"无效"的判定在下方（用户存在性/2FA 流程）。
+    // 若本次调用进入 2FA 分支或成功登录，会删除条目；否则保留以累计尝试。
+    // 为避免误删，仅在明确失败前检查上限
+    if (entry.attempts > 5) {
+      deviceLoginCodes.delete(String(loginCode));
+      return res.status(400).json({ message: '尝试次数过多，验证码已作废，请重新验证' });
     }
 
     const user = await User.findById(entry.userId).select('+loginAttempts +lockUntil');
@@ -679,7 +692,7 @@ router.post('/login-2fa', async (req, res) => {
     }
     let challengePayload;
     try {
-      challengePayload = jwt.verify(twoFactorChallenge, process.env.JWT_SECRET);
+      challengePayload = verifyJwt(twoFactorChallenge);
     } catch (e) {
       return res.status(400).json({ message: '2FA挑战令牌已过期或无效，请重新登录' });
     }
@@ -709,8 +722,16 @@ router.post('/login-2fa', async (req, res) => {
     const backupCodes = decryptArray(user.twoFactorBackupCodes);
 
     if (!verifyTOTP(secret, twoFactorToken) && !backupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {
+      // 2FA 失败同样计入账号锁定尝试，防止在 5 分钟挑战窗口内无限试码
+      await user.incLoginAttempts();
+      if (user.isLocked || (user.loginAttempts !== undefined && user.loginAttempts + 1 >= 5)) {
+        return res.status(423).json({ message: '账号已被锁定，请30分钟后再试' });
+      }
       return res.status(400).json({ message: '验证码无效' });
     }
+
+    // 2FA 通过：重置尝试计数
+    await user.resetLoginAttempts();
 
     if (backupCodes.some(c => timingSafeCompare(c, twoFactorToken))) {
       const remaining = backupCodes.filter(c => !timingSafeCompare(c, twoFactorToken));
@@ -953,7 +974,8 @@ router.put('/change-password', protect, async (req, res) => {
 });
 
 // 超管强制修改邮箱（从默认 admin@furry09.com 改为自己的邮箱）
-router.put('/change-email', protect, async (req, res) => {
+// 仅超管可用：普通用户改邮箱走 /request-email-change + /verify-email-change（含 altcha PoW + 新邮箱验证）
+router.put('/change-email', superAdminProtect, async (req, res) => {
   const { newEmail, password } = req.body;
   try {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1071,7 +1093,7 @@ router.post('/reset-password', async (req, res) => {
     if (passwordError) {
       return res.status(400).json({ message: passwordError });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyJwt(token);
     if (decoded.purpose !== 'reset-password') {
       return res.status(400).json({ message: '无效的重置令牌' });
     }
@@ -1110,7 +1132,7 @@ router.post('/reset-password', async (req, res) => {
 router.post('/verify-email', async (req, res) => {
   const { token } = req.body;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyJwt(token);
     if (decoded.purpose !== 'verify-email') {
       return res.status(400).json({ message: '无效的验证令牌' });
     }
@@ -1375,7 +1397,7 @@ router.post('/verify-email-change', async (req, res) => {
     if (!token) {
       return res.status(400).json({ message: '缺少验证令牌' });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyJwt(token);
     if (decoded.type !== 'email-change') {
       return res.status(400).json({ message: '无效的验证令牌' });
     }

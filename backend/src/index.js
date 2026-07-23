@@ -70,6 +70,11 @@ app.use(compression());
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection:', reason);
+  // 生产环境下未捕获的 Promise 拒绝意味着进程可能已进入不一致状态，
+  // 触发优雅关停并退出，由 PM2/进程管理器重启，避免泄漏的连接继续服务
+  if (process.env.NODE_ENV === 'production') {
+    gracefulShutdown('unhandledRejection');
+  }
 });
 
 process.on('uncaughtException', (error) => {
@@ -228,8 +233,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// 备份导入需要承载大体积 JSON（最多 50MB，仅超管可用），单独放宽限制
+app.use(['/api/backup/import', '/api/v1/backup/import'], express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(sanitizeInput);
 app.use(sanitizeHeaders);
 
@@ -393,6 +400,10 @@ app.use('/uploads', (req, res, next) => {
   setHeaders: (res, filePath) => {
     // 防止搜索引擎索引上传文件
     res.set('X-Robots-Tag', 'noindex, nofollow');
+    // 禁止 MIME 嗅探：防止多义文件被浏览器当作脚本执行
+    res.set('X-Content-Type-Options', 'nosniff');
+    // 仅图片类型允许内联展示，避免任何 HTML/SVG 被当页面渲染
+    res.set('Content-Disposition', 'inline');
   }
 }));
 
@@ -533,20 +544,34 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-const gracefulShutdown = (signal) => {
+// 慢速 Loris / 头部 DoS 防护：限制请求头与整体请求时长
+// headersTimeout 须大于 keepAliveTimeout，否则 Node 会丢弃合法 keep-alive 请求
+server.headersTimeout = 65 * 1000;   // 65s 内必须收完请求头
+server.requestTimeout = 30 * 1000;   // 30s 内必须完成整个请求
+server.timeout = 30 * 1000;          // socket 空闲超时
+server.keepAliveTimeout = 5 * 1000;  // keep-alive 空闲 5s 后关闭
+
+let shuttingDown = false;
+const gracefulShutdown = async (signal) => {
+  if (shuttingDown) return; // 防止 SIGTERM/SIGINT/逻辑信号重复触发
+  shuttingDown = true;
   console.log(`Received ${signal}, shutting down gracefully...`);
-  server.close(() => {
-    console.log('HTTP server closed');
-    const mongoose = require('mongoose');
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
-      process.exit(0);
-    });
-  });
-  setTimeout(() => {
+  // 强制退出兜底：若 10s 内未完成优雅关停则强制退出
+  const forceTimer = setTimeout(() => {
     console.error('Forced shutdown after timeout');
     process.exit(1);
-  }, 10000);
+  }, 10000).unref();
+  try {
+    // 停止接收新连接，等待已有连接（in-flight 请求）完成
+    await new Promise((resolve) => server.close(resolve));
+    console.log('HTTP server closed');
+    await mongoose.connection.close(false);
+    console.log('MongoDB connection closed');
+  } catch (e) {
+    console.error('Shutdown error:', e.message);
+  }
+  clearTimeout(forceTimer);
+  process.exit(0);
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

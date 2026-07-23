@@ -146,9 +146,13 @@ const REFRESH_TOKEN_TTL = '7d';
 const ACCESS_TOKEN_MAX_AGE_MS = 15 * 60 * 1000;
 const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-const createAccessToken = (userId) => jwt.sign({ id: String(userId) }, process.env.JWT_SECRET, {
+const createAccessToken = (userId) => jwt.sign({ id: String(userId), purpose: 'access' }, process.env.JWT_SECRET, {
   expiresIn: ACCESS_TOKEN_TTL
 });
+
+// 统一 JWT 校验：固定算法为 HS256，防止算法混淆/降级攻击
+// （jsonwebtoken 历史出现过 none/RS256 误用风险，显式指定 algorithms 是官方推荐做法）
+const verifyJwt = (token) => jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
 const createRefreshToken = (userId) => {
   // refresh token 内嵌 jti（用于轮换时的索引），并声明 purpose 防 token 误用
@@ -245,6 +249,7 @@ module.exports = {
   clearAuthCookies,
   createAccessToken,
   createRefreshToken,
+  verifyJwt,
   ACCESS_TOKEN_MAX_AGE_MS,
   REFRESH_TOKEN_MAX_AGE_MS,
   timingSafeCompare

@@ -1,7 +1,6 @@
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const UserSession = require('../models/UserSession');
-const { hashToken } = require('../utils/helpers');
+const { hashToken, verifyJwt } = require('../utils/helpers');
 
 // 双 Token 机制下的统一鉴权工厂：
 // - Access Token: 15min, 存于 httpOnly cookie 'accessToken' 或 Authorization: Bearer
@@ -27,9 +26,10 @@ const createAuthMiddleware = ({ allowedRoles = [] }) => {
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = verifyJwt(token);
 
-      // refresh token 不可用于访问 API（防 token 误用）
+      // refresh/verify/2fa 等其它 purpose 令牌不可用于访问 API（防 token 误用）
+      // 向后兼容：接受新签发的 purpose='access' 与历史无 purpose 令牌
       if (decoded.purpose && decoded.purpose !== 'access') {
         return res.status(401).json({ message: 'Invalid token type', messageKey: 'auth.invalidToken' });
       }
@@ -75,7 +75,7 @@ const verifyRefreshToken = async (req) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
+    decoded = verifyJwt(token);
   } catch (e) {
     if (e.name === 'TokenExpiredError') {
       return { ok: false, code: 401, message: 'Refresh token expired', messageKey: 'auth.refreshTokenExpired' };

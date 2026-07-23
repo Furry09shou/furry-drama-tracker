@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { verifySolution, sha } = require('altcha/lib');
 const { sendBatchNotificationEmails, sendNotificationEmailToUser } = require('../utils/notifyHelper');
+const { verifyJwt } = require('../utils/helpers');
 
 const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || (process.env.JWT_SECRET ? crypto.createHash('sha256').update('altcha-' + process.env.JWT_SECRET).digest('hex') : crypto.randomBytes(32).toString('hex'));
 
@@ -43,7 +44,7 @@ const optionalProtect = async (req, res, next) => {
       token = req.cookies.token;
     }
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = verifyJwt(token);
       const User = require('../models/User');
       const UserSession = require('../models/UserSession');
       const { hashToken } = require('../utils/helpers');
