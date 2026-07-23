@@ -12,7 +12,6 @@ const Rating = require('../../models/Rating');
 const Report = require('../../models/Report');
 const Feedback = require('../../models/Feedback');
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { createChallenge, sha } = require('altcha/lib');
 const { protect, adminProtect, superAdminProtect, verifyRefreshToken } = require('../../middlewares/authFactory');
@@ -254,13 +253,14 @@ router.post('/request-email-change', protect, async (req, res) => {
     }
     await user.resetLoginAttempts();
 
-    // 检查新邮箱是否已被使用
-    const existingUser = await User.findOne({ email: newEmail.toLowerCase() });
-    if (existingUser) {
-      return res.status(400).json({ message: '该邮箱已被其他账号使用' });
-    }
+    // 先检查新邮箱是否与当前邮箱相同（必须先于 findOne，否则会命中自身导致"已被使用"误报）
     if (user.email.toLowerCase() === newEmail.toLowerCase()) {
       return res.status(400).json({ message: '新邮箱与当前邮箱相同' });
+    }
+    // 检查新邮箱是否已被其他账号使用（排除自身，防御纵深）
+    const existingUser = await User.findOne({ email: newEmail.toLowerCase(), _id: { $ne: user._id } });
+    if (existingUser) {
+      return res.status(400).json({ message: '该邮箱已被其他账号使用' });
     }
 
     // 生成邮箱变更验证 token（1小时有效）

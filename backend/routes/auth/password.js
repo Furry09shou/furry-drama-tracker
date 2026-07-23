@@ -12,7 +12,6 @@ const Rating = require('../../models/Rating');
 const Report = require('../../models/Report');
 const Feedback = require('../../models/Feedback');
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { createChallenge, sha } = require('altcha/lib');
 const { protect, adminProtect, superAdminProtect, verifyRefreshToken } = require('../../middlewares/authFactory');

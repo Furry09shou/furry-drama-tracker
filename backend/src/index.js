@@ -4,7 +4,6 @@ const path = require('path');
 const connectDB = require('../config/db');
 const cors = require('cors');
 const helmet = require('helmet');
-const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const compression = require('compression');

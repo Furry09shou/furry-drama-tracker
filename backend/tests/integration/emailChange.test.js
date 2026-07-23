@@ -71,15 +71,13 @@ describe('auth email change flow', () => {
       expect(res.body.message).toContain('密码不正确');
     });
 
-    it('新邮箱与当前邮箱相同 → 400（findOne 先命中自身，返回"已被使用"）', async () => {
+    it('新邮箱与当前邮箱相同 → 400 新邮箱与当前邮箱相同', async () => {
       const cookie = await loginAndGetCookie(app, USER.email, USER.password);
       const res = await request(app).post('/api/auth/request-email-change')
         .set('Cookie', cookie).set(DEV)
         .send({ password: USER.password, newEmail: USER.email, altcha: 'x' });
       expect(res.status).toBe(400);
-      // 路由先查 findOne({ email: newEmail }) 会命中当前用户自身，
-      // 故返回"已被使用"而非"相同"——这是既有行为，重构不改
-      expect(res.body.message).toContain('已被');
+      expect(res.body.message).toContain('相同');
     });
   });
 
