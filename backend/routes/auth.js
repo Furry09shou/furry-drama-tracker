@@ -39,14 +39,7 @@ const {
 } = require('../utils/helpers');
 const { encryptField, decryptField, encryptArray, decryptArray } = require('../utils/crypto');
 const { asyncHandler } = require('../utils/errorHandler');
-
-const DEMO_EMAILS = (process.env.DEMO_EMAILS || 'demo@furry09.com').split(',').map(e => e.trim().toLowerCase());
-
-const skipVerification = (user) => {
-  // DEMO_EMAILS 仅在非生产环境生效，允许已存在的账号跳过验证
-  if (process.env.NODE_ENV !== 'production' && DEMO_EMAILS.includes(user.email.toLowerCase())) return true;
-  return false;
-};
+const { DEMO_EMAILS, skipVerification } = require('../utils/authHelpers');
 
 const getIpRegion = (ip) => {
   return new Promise((resolve) => {
