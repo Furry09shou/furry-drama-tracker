@@ -3,6 +3,7 @@ const router = express.Router();
 const xss = require('xss');
 const User = require('../models/User');
 const UserSession = require('../models/UserSession');
+const { markTokenUsed, isTokenUsed } = require('../models/UsedToken');
 const Follow = require('../models/Follow');
 const History = require('../models/History');
 const Notification = require('../models/Notification');
@@ -44,27 +45,6 @@ const skipVerification = (user) => {
   // DEMO_EMAILS 仅在非生产环境生效，允许已存在的账号跳过验证
   if (process.env.NODE_ENV !== 'production' && DEMO_EMAILS.includes(user.email.toLowerCase())) return true;
   return false;
-};
-
-const usedTokenSchema = new mongoose.Schema({
-  tokenHash: { type: String, required: true, unique: true },
-  purpose: { type: String, required: true },
-  expiresAt: { type: Date, required: true }
-});
-usedTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-const UsedToken = mongoose.models.UsedToken || mongoose.model('UsedToken', usedTokenSchema);
-
-const markTokenUsed = async (tokenHash, purpose, ttlMs) => {
-  try {
-    await UsedToken.create({ tokenHash, purpose, expiresAt: new Date(Date.now() + ttlMs) });
-  } catch (e) {
-    // 重复键忽略
-  }
-};
-
-const isTokenUsed = async (tokenHash) => {
-  const doc = await UsedToken.findOne({ tokenHash });
-  return !!doc;
 };
 
 const escapeHtml = (str) => {
