@@ -10,7 +10,7 @@ const UpdateCalendar = () => {
   const [calendarData, setCalendarData] = useState({ year: 0, month: 0, calendar: {} });
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [viewMode, setViewMode] = useState('month');
+  const [viewMode, setViewMode] = useState('year');
   const [followingIds, setFollowingIds] = useState([]);
   const [subscribing, setSubscribing] = useState(null);
   const [showYearPicker, setShowYearPicker] = useState(false);
