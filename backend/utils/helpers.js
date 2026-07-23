@@ -234,11 +234,17 @@ const timingSafeCompare = (a, b) => {
   return crypto.timingSafeEqual(bufA, bufB);
 };
 
+
+const escapeHtml = (str) => {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+};
 module.exports = {
   parseUserAgent,
   hashToken,
   getClientIp,
   escapeRegex,
+  escapeHtml,
   verifyTOTP,
   generateTOTPSecret,
   generateBackupCodes,

@@ -34,7 +34,8 @@ const {
   createAccessToken,
   createRefreshToken,
   verifyJwt,
-  timingSafeCompare
+  timingSafeCompare,
+  escapeHtml
 } = require('../utils/helpers');
 const { encryptField, decryptField, encryptArray, decryptArray } = require('../utils/crypto');
 const { asyncHandler } = require('../utils/errorHandler');
@@ -45,11 +46,6 @@ const skipVerification = (user) => {
   // DEMO_EMAILS 仅在非生产环境生效，允许已存在的账号跳过验证
   if (process.env.NODE_ENV !== 'production' && DEMO_EMAILS.includes(user.email.toLowerCase())) return true;
   return false;
-};
-
-const escapeHtml = (str) => {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 };
 
 const getIpRegion = (ip) => {
