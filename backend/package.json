@@ -9,7 +9,8 @@
     "dev": "nodemon src/index.js",
     "seed": "node src/seed.js",
     "seed-admin": "node src/seedAdmin.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "altcha": "^3.1.0",
@@ -35,8 +36,11 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
+    "mongodb-memory-server": "^9.1.6",
     "nodemon": "^3.1.14",
-    "smtp-server": "^3.19.2"
+    "smtp-server": "^3.19.2",
+    "supertest": "^7.0.0"
   },
   "keywords": [
     "furry",
