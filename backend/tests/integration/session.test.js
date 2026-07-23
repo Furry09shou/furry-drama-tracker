@@ -21,6 +21,11 @@ jest.mock('../../middlewares/auditLog', () => ({ logManual: jest.fn() }));
 const DEV = { 'x-dev-token': 'test-dev-token' };
 const USER = { accountId: 'testuser1', username: 'tester', email: 'test1@example.com', password: 'Password1', altcha: 'x' };
 
+// Phase B smoke test: 确认 Node 解析到 routes/auth/index.js（而非旧 auth.js 文件）
+it('split auth router 标记存在', () => {
+  expect(require('../../routes/auth').__isSplitAuthRouter).toBe(true);
+});
+
 describe('auth session flow: register/login/me/logout', () => {
   let app;
   beforeAll(async () => { await connectDB(); app = createApp(); });
