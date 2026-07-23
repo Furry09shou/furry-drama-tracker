@@ -1,5 +1,6 @@
 const QUEUE_KEY = 'offline_queue';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24小时过期
+const MAX_RETRIES = 3; // 单个离线动作最多重试 3 次，超过则丢弃（避免 4xx 永久失败任务堆积）
 
 const hashAction = (action) => {
   return `${action.method}:${action.url}:${JSON.stringify(action.data || {})}`;
@@ -13,7 +14,7 @@ export const addToOfflineQueue = (action) => {
   // 去重：相同请求不重复入队
   const newKey = hashAction(action);
   if (fresh.some(item => hashAction(item) === newKey)) return;
-  fresh.push({ ...action, timestamp: now });
+  fresh.push({ ...action, timestamp: now, retries: 0 });
   localStorage.setItem(QUEUE_KEY, JSON.stringify(fresh));
 };
 
@@ -39,7 +40,11 @@ export const processOfflineQueue = async (axios) => {
       results.push({ success: true, action, response: res.data });
     } catch (err) {
       results.push({ success: false, action, error: err.message });
-      failedActions.push(action);
+      const retries = (action.retries || 0) + 1;
+      // 仅当未达重试上限时才回写队列，超过则丢弃防止永久失败任务堆积
+      if (retries <= MAX_RETRIES) {
+        failedActions.push({ ...action, retries });
+      }
     }
   }
 

@@ -28,11 +28,15 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
+    // AbortController：StrictMode 双挂载或组件卸载时取消未完成请求，避免竞态与卸载后 setState
+    const controller = new AbortController();
 
     const initAuth = async (storedUser) => {
       await fetchCsrfToken();
+      if (controller.signal.aborted) return;
       try {
-        const res = await axios.get(API.AUTH.ME, { skipRedirect: true, params: { _t: Date.now() } });
+        const res = await axios.get(API.AUTH.ME, { skipRedirect: true, signal: controller.signal, params: { _t: Date.now() } });
+        if (controller.signal.aborted) return;
         const freshUser = res.data;
         setUser(freshUser);
         storeUserToLocalStorage(freshUser);
@@ -41,25 +45,29 @@ export const AuthProvider = ({ children }) => {
             screenWidth: window.screen.width,
             screenHeight: window.screen.height,
             language: navigator.language
-          }, { skipRedirect: true });
+          }, { skipRedirect: true, signal: controller.signal });
         } catch (sessionErr) {
+          if (controller.signal.aborted) return;
           console.error('Session creation failed, retrying...', sessionErr?.response?.data || sessionErr?.message);
           try {
             await new Promise(r => setTimeout(r, 1000));
+            if (controller.signal.aborted) return;
             await axios.post(API.USER_SESSIONS.CREATE, {
               screenWidth: window.screen.width,
               screenHeight: window.screen.height,
               language: navigator.language
-            }, { skipRedirect: true });
+            }, { skipRedirect: true, signal: controller.signal });
           } catch (retryErr) {
+            if (controller.signal.aborted) return;
             console.error('Session creation retry failed:', retryErr?.response?.data || retryErr?.message);
           }
         }
       } catch {
+        if (controller.signal.aborted) return;
         localStorage.removeItem('user');
         setUser(null);
       } finally {
-        setInitializing(false);
+        if (!controller.signal.aborted) setInitializing(false);
       }
     };
 
@@ -74,6 +82,8 @@ export const AuthProvider = ({ children }) => {
     } else {
       initAuth(null);
     }
+
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -103,22 +113,25 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (!user) return;
+    // AbortController：组件卸载或 user 变化时取消未完成请求，避免竞态与卸载后 setState
+    const controller = new AbortController();
     const heartbeat = () => {
       if (document.visibilityState === 'hidden') return;
-      axios.post(API.USER_SESSIONS.HEARTBEAT, {}, { skipRedirect: true }).catch(() => {});
+      axios.post(API.USER_SESSIONS.HEARTBEAT, {}, { skipRedirect: true, signal: controller.signal }).catch(() => {});
     };
     const interval = setInterval(heartbeat, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    return () => { controller.abort(); clearInterval(interval); };
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
+    const controller = new AbortController();
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
-      axios.get(API.AUTH.ME, { skipRedirect: true, params: { _t: Date.now() } }).catch(() => {});
+      axios.get(API.AUTH.ME, { skipRedirect: true, signal: controller.signal, params: { _t: Date.now() } }).catch(() => {});
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => { controller.abort(); document.removeEventListener('visibilitychange', handleVisibilityChange); };
   }, [user]);
 
   useEffect(() => {

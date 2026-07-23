@@ -902,7 +902,7 @@ const AdminEpisodes = () => {
                       {se.platformLinks && Object.keys(toPlainObject(se.platformLinks)).length > 0 ? (
                         <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px'}}>
                           {Object.entries(toPlainObject(se.platformLinks)).map(([platform, url]) => (
-                            <a key={platform} href={url} target="_blank" rel="noreferrer" style={{
+                            <a key={platform} href={url} target="_blank" rel="noopener noreferrer" style={{
                               color: 'var(--primary)', fontSize: '12px',
                               background: 'var(--primary-bg-subtle)', padding: '2px 8px',
                               borderRadius: '4px', textDecoration: 'none'

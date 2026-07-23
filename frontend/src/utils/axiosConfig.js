@@ -56,14 +56,15 @@ axios.interceptors.response.use(
           willRedirect = true;
         }
       }
+      // 置位标志：1s 内并发的 401 不再重复 dispatch 事件 / 跳转
       isHandling401 = true;
       localStorage.removeItem('user');
       window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: { type: 'user' } }));
       if (willRedirect) {
         window.location.href = '/login';
-      } else {
-        isHandling401 = false;
       }
+      // 无论是否跳转，1s 后复位标志；跳转分支会整页重载，此定时器无副作用
+      setTimeout(() => { isHandling401 = false; }, 1000);
     } else if (error.response?.status === 403 && error.response.data?.forceEmailChange) {
       // 超管未改邮箱，后端拦截写操作
       const stored = localStorage.getItem('user');
