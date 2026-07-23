@@ -453,16 +453,7 @@ router.post('/login', async (req, res) => {
 });
 
 // 设备验证一次性登录码（内存存储，10分钟过期）
-const deviceLoginCodes = new Map(); // code -> { userId, expiresAt, need2FA }
-
-// 定期清理过期登录码
-setInterval(() => {
-  const now = Date.now();
-  for (const [code, entry] of deviceLoginCodes) {
-    if (entry.expiresAt < now) deviceLoginCodes.delete(code);
-  }
-}, 60 * 1000);
-
+const deviceLoginCodes = require('../utils/deviceLoginCodes');
 router.post('/verify-device', async (req, res) => {
   try {
     const { token } = req.body;
