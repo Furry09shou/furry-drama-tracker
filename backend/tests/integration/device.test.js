@@ -1,20 +1,32 @@
-// 特征测试：新设备登录验证码流程 verify-device → confirm-device-login
+// 特征测试：新设备登录验证码流程（邮件直发码 / 旧链接取码）→ confirm-device-login
+
+// 捕获 sendMail 调用以从邮件 HTML 提取验证码。
+// 必须在所有 require 之前声明：jest.mock 工厂会被 hoist 到顶部，但变量声明不会；
+// 而 require('../helpers/createApp') 会触发 email 模块加载 → 工厂执行 → 引用 mockSendMail。
+// 变量名以 mock 开头是 jest 允许在工厂中引用外部变量的前置条件。
+const mockSendMail = jest.fn().mockResolvedValue(true);
+jest.mock('../../utils/email', () => ({
+  sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+  sendVerificationEmail: jest.fn().mockResolvedValue(true),
+  createTransporter: jest.fn().mockResolvedValue({ sendMail: mockSendMail }),
+  getFromName: jest.fn().mockReturnValue('Test'),
+  getFromUser: jest.fn().mockReturnValue('test@test.com'),
+}));
+jest.mock('../../utils/notifyHelper', () => ({ sendNotificationEmailToUser: jest.fn() }));
+jest.mock('../../middlewares/auditLog', () => ({ logManual: jest.fn() }));
+// mock altcha 通过，使无 dev token 的 login 请求能进入新设备验证分支
+jest.mock('../../utils/altcha', () => ({
+  ALTCHA_HMAC_KEY: 'test-altcha-hmac-key',
+  DEV_API_TOKEN: 'test-dev-token',
+  verifyAltcha: jest.fn().mockResolvedValue(true),
+}));
+
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../../models/User');
 const { createApp } = require('../helpers/createApp');
 const { connectDB, clearDB } = require('../helpers/db');
-
-jest.mock('../../utils/email', () => ({
-  sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
-  sendVerificationEmail: jest.fn().mockResolvedValue(true),
-  createTransporter: jest.fn().mockResolvedValue(null),
-  getFromName: jest.fn().mockReturnValue('Test'),
-  getFromUser: jest.fn().mockReturnValue('test@test.com'),
-}));
-jest.mock('../../utils/notifyHelper', () => ({ sendNotificationEmailToUser: jest.fn() }));
-jest.mock('../../middlewares/auditLog', () => ({ logManual: jest.fn() }));
 
 const DEV = { 'x-dev-token': 'test-dev-token' };
 const USER = { accountId: 'dev1', username: 'd', email: 'dev1@example.com', password: 'Password1', altcha: 'x' };
@@ -40,10 +52,40 @@ describe('auth device verification flow', () => {
     expect(res.body).toMatchObject({ accountId: 'dev1', email: USER.email, isEmailVerified: true });
   });
 
-  // 注：login 路由 L395 先校验 altcha（无 dev token → 400），而 dev token 同时绕过
-  // altcha(L177) 与新设备验证(L451)。因此 needDeviceVerify 403 路径在测试环境不可达
-  // （要过 altcha 必带 dev token，带 dev token 就绕过设备验证）。该路径由生产环境真实
-  // altcha 触发；设备流程的 verify-device + confirm-device-login 机制由下个用例直接覆盖。
+  // 注：现在 altcha 已被 mock 为恒通过，无 dev token 的 login 也能进入新设备验证分支，
+  // 由下方"login 新设备检测"用例覆盖（邮件直发验证码 → confirm-device-login）。
+  // 旧 verify-device 链接路径（向后兼容）由再下一个用例直接覆盖。
+
+  it('login 新设备检测 → 邮件含验证码 → confirm-device-login 完成登录', async () => {
+    await makeVerifiedUser(app);
+    // 设备 A 登录建立首个 session（带 dev token 绕过 altcha 与设备验证）
+    await request(app).post('/api/auth/login').set(DEV).set('User-Agent', UA_A).send({ email: USER.email, password: USER.password });
+
+    // 设备 B 登录：不带 dev token，altcha mock 通过 → 触发新设备验证 → 邮件直发验证码
+    mockSendMail.mockClear();
+    const loginRes = await request(app).post('/api/auth/login')
+      .set('User-Agent', UA_B)
+      .send({ email: USER.email, password: USER.password, altcha: 'x' });
+    expect(loginRes.status).toBe(403);
+    expect(loginRes.body.needDeviceVerify).toBe(true);
+    expect(loginRes.body.email).toBe(USER.email);
+
+    // 从邮件 HTML 提取 6 位验证码（渐变框内 >\d{6}<）
+    expect(mockSendMail).toHaveBeenCalledTimes(1);
+    const emailHtml = mockSendMail.mock.calls[0][0].html;
+    const match = emailHtml.match(/>(\d{6})</);
+    expect(match).not.toBeNull();
+    const code = match[1];
+
+    // 用验证码在原浏览器完成登录
+    const confirmRes = await request(app).post('/api/auth/confirm-device-login')
+      .set('User-Agent', UA_B)
+      .send({ loginCode: code });
+    expect(confirmRes.status).toBe(200);
+    expect(confirmRes.body).toMatchObject({ email: USER.email, accountId: 'dev1' });
+    const cookies = confirmRes.headers['set-cookie'] || [];
+    expect(cookies.some((c) => c.startsWith('accessToken='))).toBe(true);
+  });
 
   it('verify-device + confirm-device-login 完成新设备登录', async () => {
     await makeVerifiedUser(app);

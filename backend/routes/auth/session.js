@@ -40,6 +40,7 @@ const { asyncHandler } = require('../../utils/errorHandler');
 const { DEMO_EMAILS, skipVerification } = require('../../utils/authHelpers');
 const { getCachedIpRegion } = require('../../utils/ipRegion');
 const { ALTCHA_HMAC_KEY, DEV_API_TOKEN, verifyAltcha } = require('../../utils/altcha');
+const deviceLoginCodes = require('../../utils/deviceLoginCodes');
 
 
 /**
@@ -344,16 +345,20 @@ router.post('/login', async (req, res) => {
     const isKnownDevice = knownSessions.some(s => s.deviceInfo?.userAgent === currentUa);
 
     if (!isKnownDevice && knownSessions.length > 0 && !skipVerification(user) && !(DEV_API_TOKEN && req.headers['x-dev-token'] === DEV_API_TOKEN)) {
-      const deviceVerifyToken = jwt.sign(
-        { id: user._id, purpose: 'device-verify', ip: currentIp, ua: currentUa },
-        process.env.JWT_SECRET,
-        { expiresIn: '30m' }
-      );
+      // 生成 6 位一次性登录码并直接放入邮件，省掉"点链接取码"中间步骤
+      // 使用 crypto.randomInt 而非 Math.random，避免可预测性
+      const loginCode = String(crypto.randomInt(100000, 1000000));
+      deviceLoginCodes.set(loginCode, {
+        userId: user._id.toString(),
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        need2FA: !!user.twoFactorEnabled,
+        attempts: 0
+      });
       try {
         const mailOptions = {
           from: process.env.EMAIL_USER,
           to: user.email,
-          subject: '新设备登录验证',
+          subject: '新设备登录验证码',
           html: `<div style="max-width:480px;margin:0 auto;font-family:Arial,sans-serif;padding:20px">
             <h2 style="color:#333;text-align:center">新设备登录验证</h2>
             <p>检测到您的账号在新设备上尝试登录：</p>
@@ -364,11 +369,11 @@ router.post('/login', async (req, res) => {
               <p style="margin:4px 0"><strong>IP地址：</strong>${escapeHtml(currentIp)}</p>
             </div>
             ${(parsed.os === 'iOS' || parsed.os === 'iPadOS' || parsed.os === 'macOS') ? '<p style="color:#94a3b8;font-size:12px;margin:4px 0 12px;">* Apple 设备因隐私策略，浏览器上报的系统版本可能不准确（Safari 冻结了版本号，且旧设备也可能被推送过带新版本号的浏览器安全更新）</p>' : ''}
-            <p>如非本人操作，请忽略此邮件。如确认是本人，请点击下方按钮获取验证码，并在原浏览器中输入验证码完成登录：</p>
+            <p>如非本人操作，请忽略此邮件。如确认是本人，请使用下方验证码在登录页面完成验证：</p>
             <div style="text-align:center;margin:20px 0">
-              <a href="${process.env.SITE_URL || 'http://localhost:3000'}/verify-device?token=${deviceVerifyToken}" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">确认登录</a>
+              <div style="display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:16px 40px;border-radius:8px;font-size:32px;font-weight:700;letter-spacing:8px;font-family:monospace">${loginCode}</div>
             </div>
-            <p style="color:#999;font-size:12px">此链接30分钟内有效</p>
+            <p style="color:#999;font-size:12px">此验证码10分钟内有效</p>
           </div>`
         };
         const transporter = await createTransporter();
@@ -377,7 +382,7 @@ router.post('/login', async (req, res) => {
         }
       } catch (e) {}
       return res.status(403).json({
-        message: '检测到新设备登录，验证邮件已发送至您的邮箱，请确认后登录',
+        message: '检测到新设备登录，验证码已发送至您的邮箱',
         needDeviceVerify: true,
         email: user.email,
         deviceInfo: {
