@@ -7,6 +7,7 @@
 /* ===== 设计系统 Design Tokens =====
  * 统一间距/圆角/字号/阴影层级，替代散落在组件中的内联 magic number。
  * 间距步进 4px；圆角三档；字号阶梯；阴影三档。
+ * 2026 升级：扩展阴影层级、缓动曲线、动画时长、z-index 规范。
  */
 :root {
   /* 间距 Spacing */
@@ -19,11 +20,16 @@
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
 
   /* 圆角 Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
   --radius-full: 9999px;
 
   /* 字号 Type scale */
@@ -35,17 +41,41 @@
   --text-xl: 20px;
   --text-2xl: 24px;
   --text-3xl: 30px;
+  --text-4xl: 36px;
+  --text-5xl: 44px;
 
-  /* 阴影 Elevation（低/中/高） */
+  /* 阴影 Elevation（低/中/高/顶级） */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  --shadow-2xl: 0 32px 64px -16px rgba(0, 0, 0, 0.25), 0 16px 24px -12px rgba(0, 0, 0, 0.12);
 
-  /* 过渡曲线 Motion */
+  /* 过渡曲线 Motion（更丰富的缓动） */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-back: cubic-bezier(0.68, -0.6, 0.32, 1.6);
   --transition-fast: 0.15s var(--ease-out);
   --transition: 0.25s var(--ease-out);
+  --transition-slow: 0.4s var(--ease-out);
+  --transition-spring: 0.5s var(--ease-spring);
+
+  /* 动画时长 */
+  --duration-fast: 0.15s;
+  --duration: 0.25s;
+  --duration-slow: 0.4s;
+  --duration-slower: 0.6s;
+
+  /* z-index 层级规范 */
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-dropdown: 500;
+  --z-modal: 1000;
+  --z-popover: 1100;
+  --z-toast: 1300;
+  --z-overlay: 2000;
 }
 
 @keyframes spin {
@@ -70,11 +100,24 @@
 *:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+  border-radius: var(--radius-xs);
 }
 
 a {
   text-decoration: none;
   color: inherit;
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--foreground);
+  text-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -84,17 +127,66 @@ body {
   color: var(--foreground);
   min-height: 100vh;
   padding-bottom: 60px;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.4s var(--ease-smooth), color 0.3s ease;
   overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  letter-spacing: -0.011em;
+  line-height: 1.6;
 }
 
-/* 自定义网站背景图片层：通过 fixed 定位的伪元素实现，避免影响内容层透明度 */
+/* 现代化背景层：mesh 渐变光晕 + 噪点纹理
+ * body::before 承载 mesh 渐变（默认）或自定义背景图（data-custom-bg 时）；
+ * body::after 承载噪点纹理叠加。两者均为 body 伪元素，z-index:-1，
+ * 绘制在 body 背景色之上、body 内容之下，层级可靠。
+ */
 body::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -20%;
+  right: -20%;
+  bottom: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 10%, var(--mesh-color-1) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 85% 20%, var(--mesh-color-2) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 80% 85%, var(--mesh-color-3) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 40% at 10% 90%, var(--mesh-color-4) 0%, transparent 55%);
+  opacity: 0.9;
+  animation: mesh-drift 24s var(--ease-smooth) infinite alternate;
+  will-change: transform;
+}
+
+@keyframes mesh-drift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(2%, -2%, 0) rotate(2deg); }
+  100% { transform: translate3d(-2%, 2%, 0) rotate(-2deg); }
+}
+
+/* 噪点纹理层：消除纯色背景的"AI 感"，增加质感 */
+body::after {
   content: '';
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   z-index: -1;
   pointer-events: none;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px;
+  mix-blend-mode: overlay;
+}
+
+/* 启用自定义背景时：body::before 切换为背景图，并停用 mesh 动画 */
+html[data-custom-bg] body::before {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-image: var(--bg-image, none);
   background-size: cover;
   background-position: center;
@@ -102,11 +194,38 @@ body::before {
   background-attachment: fixed;
   opacity: var(--bg-opacity, 0);
   filter: blur(var(--bg-blur, 0px));
+  animation: none;
 }
 
-/* 未启用自定义背景时不渲染伪元素，避免空层影响性能 */
-html:not([data-custom-bg]) body::before {
+/* 启用自定义背景时：隐藏噪点层，保持背景图纯净 */
+html[data-custom-bg] body::after {
   display: none;
+}
+
+/* 美化滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .container {
@@ -2778,4 +2897,731 @@ nav ul li a:focus-visible {
 
 .skip-link:focus {
   top: 0;
+}
+
+/* ============================================================
+   2026 现代化增强层 — Modern Enhancement Layer
+   在原设计系统基础上叠加：更精致的玻璃态、渐变光晕、微交互、
+   流畅动画。所有增强均通过覆盖/追加方式实现，不破坏原有功能。
+   ============================================================ */
+
+/* ---- 玻璃态增强：内发光 + 渐变边框 + 更强模糊 ---- */
+.glass-nav,
+.glass-card,
+.glass-modal,
+.glass-overlay {
+  box-shadow: var(--card-shadow), var(--inner-highlight) !important;
+}
+
+/* 渐变边框光：用 mask 技巧实现 1px 渐变边框，比纯 border 更高级 */
+.glass-card,
+.episode-card,
+.episode-detail,
+.user-profile,
+.dashboard-card {
+  position: relative;
+}
+.glass-card::before,
+.episode-card::before,
+.episode-detail::before,
+.user-profile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--border-gradient);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity 0.3s var(--ease-out);
+  z-index: 0;
+}
+
+/* ---- 导航栏增强：滚动渐变 + 链接下划线动画 ---- */
+header {
+  background: var(--glass-bg) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset, 0 8px 32px -16px var(--shadow-color);
+  transition: background 0.4s var(--ease-smooth), border-color 0.4s var(--ease-smooth),
+    box-shadow 0.4s var(--ease-smooth);
+}
+
+/* 导航链接：底部下划线滑入动画 */
+nav ul li a {
+  position: relative;
+  overflow: hidden;
+}
+nav ul li a::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: width 0.3s var(--ease-spring);
+  box-shadow: 0 0 8px var(--primary);
+}
+nav ul li a:hover::after,
+nav ul li a.active::after,
+nav ul li a[aria-current="page"]::after {
+  width: 60%;
+}
+
+/* logo 文字渐变 */
+nav .logo h1 {
+  background: var(--text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.03em;
+}
+
+/* ---- 按钮系统增强：渐变背景 + 光晕 + 微光扫过 ---- */
+.btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 4px 14px -4px rgba(99, 102, 241, 0.4), var(--inner-highlight);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 80%;
+  height: 100%;
+  background: var(--btn-sheen);
+  transform: skewX(-20deg);
+  z-index: 1;
+  pointer-events: none;
+}
+.btn:hover {
+  background: var(--btn-gradient-hover);
+  box-shadow: 0 8px 24px -6px rgba(99, 102, 241, 0.55), var(--glow-primary), var(--inner-highlight);
+  transform: translateY(-2px);
+}
+.btn:hover::after {
+  animation: sheen-sweep 0.9s var(--ease-out);
+}
+.btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px -2px rgba(99, 102, 241, 0.4);
+}
+
+@keyframes sheen-sweep {
+  0% { left: -120%; }
+  60%, 100% { left: 120%; }
+}
+
+.btn-secondary {
+  background: var(--surface-elevated);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--inner-highlight);
+}
+.btn-secondary:hover {
+  background: var(--hover-bg-stronger);
+  box-shadow: var(--shadow-md), var(--inner-highlight);
+  border-color: var(--primary-border);
+}
+
+/* 表单内主按钮：增强渐变 + 光晕 */
+.form-group button {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 4px 14px -4px rgba(99, 102, 241, 0.4);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.form-group button:hover {
+  background: var(--btn-gradient-hover);
+  box-shadow: 0 12px 28px -8px rgba(99, 102, 241, 0.55), var(--glow-primary);
+  transform: translateY(-2px);
+}
+.form-group button::before {
+  z-index: 1;
+  background: var(--btn-sheen);
+  transform: skewX(-20deg);
+}
+
+/* ---- 卡片系统增强：3D 悬停 + 图片缩放 + 光晕边框 ---- */
+.episode-card {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--card-shadow);
+  transform: translateZ(0);
+  transition: transform 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out),
+    border-color 0.4s var(--ease-out);
+}
+.episode-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--primary-border);
+}
+.episode-card:hover::before {
+  opacity: 1;
+  background: var(--border-gradient-primary);
+}
+
+/* 卡片图片：更强缩放 + 渐变叠加层 */
+.episode-card img {
+  transition: transform 0.6s var(--ease-out);
+}
+.episode-card:hover img {
+  transform: scale(1.08);
+}
+/* 图片底部渐变遮罩，让状态/集数标签更易读，增加电影感 */
+.episode-card > div:first-child::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 0.4s var(--ease-out);
+}
+.episode-card:hover > div:first-child::after {
+  opacity: 1;
+}
+
+/* 状态徽章：玻璃态 + 微光 */
+.episode-card .status,
+.status.ongoing,
+.status.completed,
+.status.upcoming {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background-blend-mode: overlay;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* ---- 表单增强：聚焦光晕 + 输入框玻璃态 ---- */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out),
+    background 0.25s var(--ease-out);
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-bg-subtle), var(--glow-primary);
+  background: var(--hover-bg-subtle);
+}
+
+/* ---- 模态框增强：更优雅的进入动画 + 背景模糊 ---- */
+.modal-overlay {
+  background: var(--overlay-bg) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  backdrop-filter: blur(8px) saturate(140%);
+  animation: overlay-fade-in 0.3s var(--ease-out);
+}
+.modal-content {
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-2xl), var(--inner-highlight) !important;
+  animation: modal-rise 0.4s var(--ease-spring);
+  border: 1px solid var(--glass-border);
+}
+
+@keyframes modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---- 章节标题：渐变文字 + 微光 ---- */
+.hero h2,
+.episode-details h2,
+.user-profile h2,
+.dashboard-card h3,
+.modal-header h3 {
+  background: var(--text-gradient) !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+/* 区块标题统一渐变（h2/h3 级别，用于主要容器） */
+.episode-detail h2,
+.user-profile h2 {
+  background-size: 200% auto;
+  animation: gradient-shift 6s var(--ease-smooth) infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ---- 滚动揭示动画升级：更丰富的缓动 + 视差感 ---- */
+.reveal.reveal-hidden {
+  opacity: 0;
+  transform: translateY(28px) scale(0.98);
+  filter: blur(4px);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out),
+    filter 0.7s var(--ease-out);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out),
+    filter 0.7s var(--ease-out);
+}
+
+.stagger-item.stagger-hidden {
+  opacity: 0;
+  transform: translateY(20px) scale(0.96);
+  filter: blur(3px);
+  transition: opacity 0.55s var(--ease-out), transform 0.55s var(--ease-out),
+    filter 0.55s var(--ease-out);
+}
+.stagger-item.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  transition: opacity 0.55s var(--ease-out), transform 0.55s var(--ease-out),
+    filter 0.55s var(--ease-out);
+}
+
+/* ---- 卡片悬停统一升级（.card-hover 通用类） ---- */
+.card-hover {
+  transition: transform 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out);
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* ---- 骨架屏升级：更细腻的 shimmer + 渐变 ---- */
+.skeleton,
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--hover-bg) 0%,
+    var(--hover-bg-strong) 20%,
+    var(--primary-bg-subtle) 40%,
+    var(--hover-bg-strong) 60%,
+    var(--hover-bg) 100%
+  );
+  background-size: 300% 100%;
+  animation: shimmer-premium 1.8s var(--ease-smooth) infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer-premium {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ---- 页面进入动画增强 ---- */
+.page-enter {
+  animation: page-enter-premium 0.55s var(--ease-out);
+}
+
+@keyframes page-enter-premium {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ---- View Transitions 增强：更优雅的页面切换 ---- */
+::view-transition-old(root) {
+  animation: vt-out 0.25s var(--ease-in-out) both;
+}
+::view-transition-new(root) {
+  animation: vt-in 0.35s var(--ease-out) both;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+    filter: blur(4px);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(1.01);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* ---- placeholder 美化 ---- */
+::placeholder {
+  color: var(--text-tertiary);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+*:focus::placeholder {
+  opacity: 0.4;
+}
+
+/* ---- 工具类：渐变文字、光晕文字、渐变边框 ---- */
+.gradient-text {
+  background: var(--text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: gradient-shift 6s var(--ease-smooth) infinite;
+}
+
+.glow-text {
+  text-shadow: 0 0 20px var(--primary-bg-strong), 0 0 40px var(--primary-bg-subtle);
+}
+
+.gradient-border {
+  position: relative;
+  background: var(--glass-bg);
+  border-radius: var(--radius-lg);
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--border-gradient-primary);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ---- 光晕脉冲动画（用于强调元素/在线指示器） ---- */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--primary-bg-strong);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+/* ---- 缓慢漂浮（用于装饰元素） ---- */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* ---- 链接悬停微动效（导航外的内容链接） ---- */
+a:hover {
+  transition: color 0.2s var(--ease-out);
+}
+
+/* ---- 容器内容最大宽度优化 ---- */
+.container {
+  padding: 24px 20px;
+  position: relative;
+  z-index: var(--z-base);
+}
+
+/* ---- 滚动条 hover 时主色高亮（已在 :root 定义变量） ---- */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ---- 标题层级美化（全局 h1-h4） ---- */
+h1, h2, h3, h4 {
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+h1 { font-weight: 800; }
+h2 { font-weight: 700; }
+h3 { font-weight: 600; }
+
+/* ---- 段落文本优化 ---- */
+p {
+  text-wrap: pretty;
+}
+
+/* ---- 焦点环增强：主色光晕 ---- */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--primary-bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+/* ---- prefers-reduced-motion：尊重用户偏好，禁用所有装饰动画 ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  body::before {
+    animation: none !important;
+  }
+  .reveal.reveal-hidden,
+  .stagger-item.stagger-hidden {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .page-enter,
+  .modal-content,
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* ---- 移动端触控优化：禁用部分悬停动画避免卡顿 ---- */
+@media (hover: none) and (pointer: coarse) {
+  .episode-card:hover {
+    transform: none;
+  }
+  .episode-card:hover img {
+    transform: none;
+  }
+  .btn:hover {
+    transform: none;
+  }
+}
+
+/* ---- 高对比度/打印适配 ---- */
+@media print {
+  body::before,
+  body::after {
+    display: none !important;
+  }
+  .glass-nav,
+  .glass-card,
+  .episode-card {
+    box-shadow: none !important;
+  }
+}
+
+/* ============================================================
+   关键页面针对性增强 — Page-specific Enhancements
+   ============================================================ */
+
+/* ---- 登录/注册表单：更精致的玻璃态 + 光晕 ---- */
+.auth-form {
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--card-shadow), var(--inner-highlight);
+  padding: 44px !important;
+  margin: 80px auto !important;
+  position: relative;
+}
+.auth-form::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--border-gradient-primary);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+}
+.auth-form h2 {
+  background: var(--text-gradient) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 6s var(--ease-smooth) infinite;
+  letter-spacing: -0.02em;
+}
+
+/* ---- 错误/成功/警告提示：玻璃态 + 左侧色条 ---- */
+.error-message,
+.success-message,
+.validation-msg {
+  border-radius: var(--radius-md) !important;
+  padding: 12px 16px !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+  animation: shake-in 0.4s var(--ease-out);
+}
+.error-message {
+  background: var(--destructive-bg-subtle) !important;
+  border: 1px solid var(--destructive-border-subtle) !important;
+  border-left: 3px solid var(--destructive) !important;
+  color: var(--destructive-text) !important;
+}
+.success-message {
+  background: var(--success-bg-subtle) !important;
+  border: 1px solid var(--success-border) !important;
+  border-left: 3px solid var(--success) !important;
+  color: var(--success-text) !important;
+}
+
+@keyframes shake-in {
+  0% { opacity: 0; transform: translateX(-8px); }
+  30% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* ---- 剧集网格：间距与响应式优化 ---- */
+.episode-grid {
+  gap: 24px;
+  margin-top: 32px;
+}
+
+/* ---- Hero/欢迎区：渐变文字 + 浮动光晕升级 ---- */
+.hero {
+  border-radius: var(--radius-2xl) !important;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  background:
+    radial-gradient(circle at 30% 40%, var(--mesh-color-1) 0%, transparent 60%),
+    radial-gradient(circle at 70% 60%, var(--mesh-color-2) 0%, transparent 60%);
+  animation: float 8s var(--ease-smooth) infinite;
+}
+.hero h2 {
+  background: var(--text-gradient) !important;
+  background-size: 200% auto !important;
+  animation: gradient-shift 6s var(--ease-smooth) infinite;
+  letter-spacing: -0.03em;
+  font-weight: 800 !important;
+}
+.hero p {
+  color: var(--text-secondary) !important;
+}
+
+/* ---- 轮播图：圆角 + 阴影 + 过渡 ---- */
+.bannerCarousel,
+.banner-carousel {
+  border-radius: var(--radius-2xl) !important;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+
+/* ---- 详情页：信息卡片间距 + 头图光晕 ---- */
+.episode-detail {
+  border-radius: var(--radius-xl) !important;
+  padding: 36px !important;
+}
+.episode-info img {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-xl), 0 0 0 1px var(--glass-border);
+}
+.episode-details .meta-info {
+  border-radius: var(--radius-md) !important;
+  background: var(--hover-bg-subtle) !important;
+  border: 1px solid var(--glass-border) !important;
+}
+
+/* ---- 后台统计卡片：渐变数字 + 悬停 ---- */
+.dashboard-card,
+.stat-card {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.dashboard-card:hover,
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+.dashboard-card::before,
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border-gradient-primary);
+  opacity: 0.8;
+}
+
+/* ---- 后台侧边栏：活动项高亮 ---- */
+.admin-sidebar .sidebar-item.active,
+.admin-sidebar .nav-link.active {
+  background: var(--primary-bg) !important;
+  color: var(--primary) !important;
+  border-left: 3px solid var(--primary);
+}
+
+/* ---- 评分星星：金色光晕 ---- */
+.episode-card svg[fill="currentColor"] {
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+}
+
+/* ---- 标签云：悬停上浮 ---- */
+.tag-cloud-item,
+.tag-cloud a {
+  transition: transform 0.25s var(--ease-out), background 0.25s var(--ease-out),
+    color 0.25s var(--ease-out);
+}
+.tag-cloud-item:hover,
+.tag-cloud a:hover {
+  transform: translateY(-2px);
+}
+
+/* ---- 表格行：悬停高亮 ---- */
+tr:hover,
+.dashboard-card table tbody tr:hover {
+  background: var(--hover-bg-subtle);
+  transition: background 0.2s var(--ease-out);
+}
+
+/* ---- 头像：渐变边框光环 ---- */
+.avatar-container img,
+.profile-header img,
+.user-profile img[alt*="头像"] {
+  border-radius: var(--radius-full) !important;
+  box-shadow: 0 0 0 2px var(--glass-border), 0 0 0 4px var(--primary-bg),
+    var(--shadow-md);
+}
+
+/* ---- 加载动画：旋转 loader 升级 ---- */
+.loader,
+.loading-spinner,
+.spinner {
+  border-radius: var(--radius-full);
+  animation: spin 0.9s var(--ease-smooth) infinite;
 }
