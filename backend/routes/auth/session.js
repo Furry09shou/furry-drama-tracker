@@ -368,7 +368,7 @@ router.post('/login', async (req, res) => {
               <p style="margin:4px 0"><strong>设备类型：</strong>${escapeHtml(parsed.deviceType) || '未知'}</p>
               <p style="margin:4px 0"><strong>IP地址：</strong>${escapeHtml(currentIp)}</p>
             </div>
-            ${(parsed.os === 'iOS' || parsed.os === 'iPadOS' || parsed.os === 'macOS') ? '<p style="color:#94a3b8;font-size:12px;margin:4px 0 12px;">* Apple 设备因隐私策略，浏览器上报的系统版本可能不准确（Safari 冻结了版本号，且旧设备也可能被推送过带新版本号的浏览器安全更新）</p>' : ''}
+            ${(parsed.os === 'iOS' || parsed.os === 'iPadOS' || parsed.os === 'macOS') ? '<p style="color:#94a3b8;font-size:12px;margin:4px 0 12px;">* 因为Apple隐私策略，版本号可能不准确</p>' : ''}
             <p>如非本人操作，请忽略此邮件。如确认是本人，请使用下方验证码在登录页面完成验证：</p>
             <div style="text-align:center;margin:20px 0">
               <div style="display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:16px 40px;border-radius:8px;font-size:32px;font-weight:700;letter-spacing:8px;font-family:monospace">${loginCode}</div>
