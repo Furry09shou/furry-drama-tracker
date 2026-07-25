@@ -336,7 +336,7 @@ const AdminSiteContent = () => {
             <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                 {settingsData.navLogo && <img src={settingsData.navLogo} alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'cover' }} />}
-                <span style={{ fontWeight: 700, fontSize: '16px', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--foreground)' }}>
                   {getLocVal(settingsData, 'siteName', editLang) || settingsData.siteName || t('adminContent.siteName')}
                 </span>
               </div>
@@ -418,7 +418,7 @@ const AdminSiteContent = () => {
           <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
               {settingsData.navLogo && <img src={settingsData.navLogo} alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'cover' }} />}
-              <span style={{ fontWeight: 700, fontSize: '16px', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{settingsData.siteName || t('adminContent.siteName')}</span>
+              <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--foreground)' }}>{settingsData.siteName || t('adminContent.siteName')}</span>
             </div>
             <div style={{ textAlign: 'center', padding: '24px 16px' }}>
               <h3 style={{ margin: '0 0 6px 0', color: 'var(--foreground)', fontSize: '16px' }}>{settingsData.welcomeTitle || t('adminContent.welcomeTitle')}</h3>

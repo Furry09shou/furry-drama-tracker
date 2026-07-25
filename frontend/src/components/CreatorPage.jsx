@@ -71,7 +71,7 @@ const CreatorPage = () => {
         ) : (
           <div style={{
             width: '100px', height: '100px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary), #8b5cf6)',
+            background: 'var(--primary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '40px', color: 'var(--btn-text)', fontWeight: 'bold',
             border: '3px solid var(--border)'

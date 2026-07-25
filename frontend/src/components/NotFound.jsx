@@ -12,8 +12,7 @@ const NotFound = () => {
       <div style={{ fontSize: '120px', lineHeight: 1, marginBottom: '20px' }}>🔍</div>
       <h1 style={{
         fontSize: '48px', fontWeight: 700, margin: '0 0 12px 0',
-        background: 'var(--btn-gradient)',
-        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+        color: 'var(--foreground)'
       }}>404</h1>
       <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '32px' }}>
         {t('notFound.description')}
