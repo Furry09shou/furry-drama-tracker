@@ -3625,3 +3625,713 @@ tr:hover,
   border-radius: var(--radius-full);
   animation: spin 0.9s var(--ease-smooth) infinite;
 }
+
+/* ============================================================
+   EpisodeCard 重构样式 — 现代化卡片
+   ============================================================ */
+/* 禁用早期增强层的 ::after 遮罩，改用 .ec-media-shade 显式控制 */
+.episode-card > div:first-child::after {
+  content: none !important;
+}
+
+.episode-card.ec {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* 图片媒体区 */
+.ec-media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  background: var(--hover-bg);
+}
+.ec-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.6s var(--ease-out), opacity 0.5s var(--ease-out);
+}
+.episode-card:hover .ec-img,
+.episode-card:focus-within .ec-img {
+  transform: scale(1.08);
+}
+
+/* 渐变遮罩：底部加深，让徽章/集数更易读，增加电影感 */
+.ec-media-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-out);
+  z-index: 1;
+}
+.episode-card:hover .ec-media-shade {
+  background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 30%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+/* 状态徽章：玻璃态 + 微光 */
+.ec-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), var(--inner-highlight);
+}
+.ec-status.ongoing {
+  background: rgba(34, 197, 94, 0.85);
+  color: #fff;
+}
+.ec-status.completed {
+  background: rgba(99, 102, 241, 0.85);
+  color: #fff;
+}
+.ec-status.upcoming {
+  background: rgba(245, 158, 11, 0.85);
+  color: #fff;
+}
+
+/* 集数徽章 */
+.ec-eps {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* 内容区 */
+.ec-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.ec-title {
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--foreground);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  letter-spacing: -0.01em;
+  transition: color 0.25s var(--ease-out);
+}
+.episode-card:hover .ec-title {
+  color: var(--primary);
+}
+.ec-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 元信息行 */
+.ec-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.ec-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ec-views {
+  color: var(--text-secondary);
+}
+.ec-views svg {
+  color: var(--destructive-text);
+}
+.ec-rating {
+  color: var(--warning-text, #f59e0b);
+}
+.ec-rating svg {
+  color: var(--warning);
+  filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.5));
+}
+
+/* 分类标签 */
+.ec-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.ec-cat {
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: var(--primary-bg);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* 标签 */
+.ec-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ec-tag {
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: var(--hover-bg-stronger, var(--hover-bg));
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.2s var(--ease-out), background 0.2s var(--ease-out);
+}
+.ec-tag:hover {
+  color: var(--primary);
+  background: var(--primary-bg-subtle);
+}
+
+/* 作者 */
+.ec-author {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+/* @container 响应式：窄卡片时简化 */
+@container episode-card (max-width: 220px) {
+  .ec-body {
+    padding: 10px 12px 12px;
+  }
+  .ec-title {
+    font-size: var(--text-sm);
+  }
+}
+
+/* ============================================================
+   BannerCarousel 重构样式 — 现代化轮播
+   ============================================================ */
+.bc-wrap {
+  position: relative;
+  margin: 0 auto 28px;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  aspect-ratio: 3 / 1;
+  max-height: 340px;
+  max-width: 100%;
+  box-shadow: var(--card-shadow);
+}
+
+/* 空状态：渐变 hero + 光晕 */
+.bc-wrap--hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  text-align: center;
+  padding: 0 24px;
+}
+.bc-hero-glow {
+  position: absolute;
+  width: 60%;
+  height: 120%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.25), transparent 60%);
+  filter: blur(40px);
+  animation: float-slow 6s var(--ease-smooth) infinite;
+  pointer-events: none;
+}
+
+/* 欢迎层 */
+.bc-welcome {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  text-align: center;
+  padding: 0 24px;
+  transition: opacity 0.8s var(--ease-smooth);
+  overflow: hidden;
+}
+.bc-welcome-glow {
+  position: absolute;
+  width: 70%;
+  height: 140%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.3), transparent 60%);
+  filter: blur(50px);
+  animation: float-slow 7s var(--ease-smooth) infinite;
+  pointer-events: none;
+}
+.bc-welcome-title {
+  position: relative;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 800;
+  margin: 0;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+  letter-spacing: -0.02em;
+  animation: fade-in-up 0.8s var(--ease-out) both;
+}
+.bc-welcome-sub {
+  position: relative;
+  font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+  margin-top: 10px;
+  opacity: 0.92;
+  animation: fade-in-up 0.8s var(--ease-out) 0.15s both;
+}
+
+/* 轮播项 */
+.bc-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s var(--ease-smooth);
+  cursor: default;
+}
+.bc-slide[role="link"] {
+  cursor: pointer;
+}
+.bc-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.02);
+}
+.bc-slide--active .bc-img {
+  animation: ken-burns 8s var(--ease-smooth) forwards;
+}
+@keyframes ken-burns {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.12); }
+}
+
+/* 底部信息层 */
+.bc-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 28px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  color: #fff;
+  z-index: 5;
+}
+.bc-info-title {
+  margin: 0;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+.bc-info-sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  opacity: 0.92;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* 导航按钮：玻璃态 */
+.bc-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.25s var(--ease-out), transform 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.bc-nav:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+.bc-nav:active {
+  transform: translateY(-50%) scale(0.96);
+}
+.bc-nav-prev {
+  left: 14px;
+}
+.bc-nav-next {
+  right: 14px;
+}
+
+/* 指示器：进度条样式 */
+.bc-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.bc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 0;
+  transition: width 0.4s var(--ease-spring), background 0.3s var(--ease-out);
+}
+.bc-dot--active {
+  width: 28px;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   EpisodeFilters 重构样式 — 现代化胶囊筛选
+   ============================================================ */
+.ef {
+  padding: 20px 22px;
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow), var(--inner-highlight);
+  margin-bottom: 28px;
+  position: relative;
+}
+.ef-search {
+  margin-bottom: 16px;
+}
+.ef-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.ef-row:last-child {
+  margin-bottom: 0;
+}
+.ef-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  min-width: 48px;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+}
+
+/* 胶囊按钮：玻璃态默认 + 渐变激活 */
+.ef-pill {
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--input);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  outline: none;
+  transition: transform 0.2s var(--ease-out), background 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out), color 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.ef-pill:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-border);
+  background: var(--hover-bg);
+  box-shadow: var(--shadow-sm);
+}
+.ef-pill:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* 激活态：渐变背景 + 光晕 */
+.ef-pill--active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 14px -4px rgba(99, 102, 241, 0.5), var(--glow-primary);
+}
+.ef-pill--active:hover {
+  background: var(--btn-gradient-hover);
+  border-color: transparent;
+  box-shadow: 0 6px 20px -4px rgba(99, 102, 241, 0.6), var(--glow-primary-strong);
+}
+
+/* 排序按钮：图标对齐 */
+.ef-pill--sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ef-sort-arrow {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  gap: 0;
+  margin-left: 2px;
+}
+.ef-sort-arrow span {
+  font-size: 9px;
+  transition: opacity 0.2s var(--ease-out);
+}
+
+/* 响应式：小屏紧凑 */
+@media (max-width: 640px) {
+  .ef {
+    padding: 16px;
+  }
+  .ef-label {
+    min-width: 40px;
+    font-size: 12px;
+  }
+  .ef-pill {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+}
+
+/* ============================================================
+   通用增强 — 区块标题、网格、容器、表单细节
+   ============================================================ */
+
+/* 区块标题：左侧渐变装饰条 + 渐变文字 */
+.episode-detail h2,
+.user-profile h2,
+.dashboard-card h2,
+.dashboard-card h3,
+.container h2,
+.auth-form h2,
+.modal-header h2,
+.modal-header h3,
+.settings-container h2,
+.profile-header h2 {
+  position: relative;
+  padding-left: 14px;
+}
+.episode-detail h2::before,
+.user-profile h2::before,
+.dashboard-card h2::before,
+.dashboard-card h3::before,
+.container h2::before,
+.settings-container h2::before,
+.profile-header h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 70%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--primary), var(--primary-light));
+  box-shadow: 0 0 8px var(--primary-bg-strong);
+}
+
+/* 剧集网格：间距与响应式 */
+.episode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 22px;
+  margin-top: 28px;
+}
+@media (max-width: 640px) {
+  .episode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+  }
+}
+
+/* 容器最大宽度与居中 */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 20px 40px;
+  position: relative;
+  z-index: var(--z-base);
+}
+@media (max-width: 768px) {
+  .container {
+    padding: 20px 14px 32px;
+  }
+}
+
+/* 表单 label 增强 */
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-light);
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* checkbox/radio 美化 */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--primary);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out);
+}
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+  transform: scale(1.15);
+}
+
+/* 表格美化 */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--hover-bg-subtle);
+}
+tbody tr {
+  transition: background 0.2s var(--ease-out);
+}
+tbody tr:hover {
+  background: var(--hover-bg-subtle);
+}
+
+/* 空状态/加载态美化 */
+.empty-state,
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+.empty-state::before,
+.no-data::before {
+  content: '📭';
+  display: block;
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+  animation: float-slow 4s var(--ease-smooth) infinite;
+}
+
+/* 分页按钮增强 */
+.pagination button,
+.page-btn {
+  border-radius: var(--radius-md) !important;
+  transition: all 0.2s var(--ease-out);
+}
+.pagination button:hover,
+.page-btn:hover {
+  background: var(--primary-bg);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+.pagination button.active,
+.page-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(99, 102, 241, 0.5);
+}
+
+/* 链接组/面包屑 */
+.breadcrumb,
+.breadcrumbs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+.breadcrumb a,
+.breadcrumbs a {
+  color: var(--text-secondary);
+  transition: color 0.2s var(--ease-out);
+}
+.breadcrumb a:hover,
+.breadcrumbs a:hover {
+  color: var(--primary);
+}
+
+/* 滚动到顶部按钮等浮动按钮 */
+.scroll-to-top,
+.fab {
+  border-radius: var(--radius-full) !important;
+  box-shadow: var(--shadow-lg), var(--glow-primary) !important;
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-out);
+}
+.scroll-to-top:hover,
+.fab:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: var(--shadow-xl), var(--glow-primary-strong) !important;
+}

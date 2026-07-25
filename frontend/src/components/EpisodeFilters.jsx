@@ -19,36 +19,6 @@ const YEAR_OPTIONS = (() => {
   return options;
 })();
 
-const capsuleBtnStyle = (active) => ({
-  padding: '6px 16px',
-  borderRadius: '20px',
-  border: active ? '1px solid var(--primary)' : '1px solid var(--border)',
-  background: active ? 'var(--primary)' : 'var(--input)',
-  color: active ? '#fff' : 'var(--foreground)',
-  fontSize: '13px',
-  cursor: 'pointer',
-  transition: 'all 0.2s',
-  whiteSpace: 'nowrap',
-  fontWeight: active ? 600 : 400,
-  outline: 'none',
-});
-
-const filterRowStyle = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '8px',
-  alignItems: 'center',
-  marginBottom: '12px',
-};
-
-const filterLabelStyle = {
-  fontSize: '13px',
-  color: 'var(--text-secondary)',
-  fontWeight: 500,
-  minWidth: '48px',
-  flexShrink: 0,
-};
-
 const EpisodeFilters = React.memo(({ filters, onFilterChange, categories, t, onSortClick, sortOrder, getLocalizedName }) => {
   const STATUS_OPTIONS = [
     { value: '', label: t('common.all') },
@@ -65,15 +35,15 @@ const EpisodeFilters = React.memo(({ filters, onFilterChange, categories, t, onS
   ];
 
   return (
-    <div className="filter-section">
-      <div style={{ marginBottom: '16px' }}>
+    <div className="filter-section ef">
+      <div className="ef-search">
         <SearchInput />
       </div>
 
-      <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>{t('home.category')}</span>
+      <div className="ef-row">
+        <span className="ef-label">{t('home.category')}</span>
         <button
-          style={capsuleBtnStyle(filters.category === '')}
+          className={`ef-pill ${filters.category === '' ? 'ef-pill--active' : ''}`}
           onClick={() => onFilterChange('category', '')}
         >
           {t('common.all')}
@@ -83,7 +53,7 @@ const EpisodeFilters = React.memo(({ filters, onFilterChange, categories, t, onS
           return (
             <button
               key={c._id || name}
-              style={capsuleBtnStyle(filters.category === name)}
+              className={`ef-pill ${filters.category === name ? 'ef-pill--active' : ''}`}
               onClick={() => onFilterChange('category', name)}
             >
               {getLocalizedName(c) || name}
@@ -92,12 +62,12 @@ const EpisodeFilters = React.memo(({ filters, onFilterChange, categories, t, onS
         })}
       </div>
 
-      <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>{t('home.status')}</span>
+      <div className="ef-row">
+        <span className="ef-label">{t('home.status')}</span>
         {STATUS_OPTIONS.map(opt => (
           <button
             key={opt.value}
-            style={capsuleBtnStyle(filters.status === opt.value)}
+            className={`ef-pill ${filters.status === opt.value ? 'ef-pill--active' : ''}`}
             onClick={() => onFilterChange('status', opt.value)}
           >
             {opt.label}
@@ -105,12 +75,12 @@ const EpisodeFilters = React.memo(({ filters, onFilterChange, categories, t, onS
         ))}
       </div>
 
-      <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>{t('home.rating')}</span>
+      <div className="ef-row">
+        <span className="ef-label">{t('home.rating')}</span>
         {RATING_OPTIONS.map(opt => (
           <button
             key={opt.value}
-            style={capsuleBtnStyle(filters.rating === opt.value)}
+            className={`ef-pill ${filters.rating === opt.value ? 'ef-pill--active' : ''}`}
             onClick={() => onFilterChange('rating', opt.value)}
           >
             {opt.labelKey ? t(opt.labelKey) : opt.label}
@@ -118,12 +88,12 @@ const EpisodeFilters = React.memo(({ filters, onFilterChange, categories, t, onS
         ))}
       </div>
 
-      <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>{t('home.year')}</span>
+      <div className="ef-row">
+        <span className="ef-label">{t('home.year')}</span>
         {YEAR_OPTIONS.map(opt => (
           <button
             key={opt.value}
-            style={capsuleBtnStyle(filters.year === opt.value)}
+            className={`ef-pill ${filters.year === opt.value ? 'ef-pill--active' : ''}`}
             onClick={() => onFilterChange('year', opt.value)}
           >
             {opt.labelKey ? t(opt.labelKey) : opt.label}
@@ -131,33 +101,21 @@ const EpisodeFilters = React.memo(({ filters, onFilterChange, categories, t, onS
         ))}
       </div>
 
-      <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>{t('home.sort')}</span>
+      <div className="ef-row">
+        <span className="ef-label">{t('home.sort')}</span>
         {SORT_OPTIONS.map(opt => {
           const isActive = filters.sort === opt.value;
           return (
             <button
               key={opt.value}
-              style={{
-                ...capsuleBtnStyle(isActive),
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
+              className={`ef-pill ef-pill--sort ${isActive ? 'ef-pill--active' : ''}`}
               onClick={() => onSortClick(opt.value)}
             >
               {opt.label}
               {isActive && (
-                <span style={{
-                  display: 'inline-flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  lineHeight: 1,
-                  gap: '0px',
-                  marginLeft: '2px',
-                }}>
-                  <span style={{ fontSize: '10px', opacity: sortOrder === 'asc' ? 1 : 0.3, transition: 'opacity 0.2s' }}>▲</span>
-                  <span style={{ fontSize: '10px', opacity: sortOrder === 'desc' ? 1 : 0.3, transition: 'opacity 0.2s', marginTop: '-2px' }}>▼</span>
+                <span className="ef-sort-arrow">
+                  <span style={{ opacity: sortOrder === 'asc' ? 1 : 0.3 }}>▲</span>
+                  <span style={{ opacity: sortOrder === 'desc' ? 1 : 0.3 }}>▼</span>
                 </span>
               )}
             </button>

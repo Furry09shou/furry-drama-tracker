@@ -61,107 +61,54 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
   const ratingCount = episode.ratingCount || 0;
 
   return (
-    <TransitionLink to={`/episode/${episode._id}`} className="episode-card card-hover" tabIndex={0} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 200px', containerType: 'inline-size', containerName: 'episode-card' }}>
-      <div ref={imgRef} style={{ position: 'relative', overflow: 'hidden' }}>
-        <img src={imgVisible ? episode.coverImage : ''} alt={episode.title} loading="lazy" decoding="async" style={{
+    <TransitionLink to={`/episode/${episode._id}`} className="episode-card card-hover ec" tabIndex={0} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 200px', containerType: 'inline-size', containerName: 'episode-card' }}>
+      <div ref={imgRef} className="ec-media">
+        <img src={imgVisible ? episode.coverImage : ''} alt={episode.title} loading="lazy" decoding="async" className="ec-img" style={{
           opacity: imgVisible ? 1 : 0,
-          transition: 'opacity 0.3s ease',
+          transition: 'opacity 0.5s var(--ease-out), transform 0.6s var(--ease-out)',
         }} />
-        <span className={`status ${statusInfo.cls}`} style={{
-          position: 'absolute',
-          top: '8px',
-          right: '8px',
-        }}>
-          {statusInfo.text}
-        </span>
+        <span className="ec-media-shade" aria-hidden="true" />
+        <span className={`status ec-status ${statusInfo.cls}`}>{statusInfo.text}</span>
         {episode.currentEpisodes != null && (
-          <span style={{
-            position: 'absolute',
-            bottom: '8px',
-            left: '8px',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            background: 'rgba(0,0,0,0.6)',
-            color: '#fff',
-            fontSize: '11px',
-            fontWeight: 500,
-          }}>
+          <span className="ec-eps">
             {episode.totalEpisodes === null
               ? t('home.episodeProgressUnknown', { current: episode.currentEpisodes })
               : t('home.episodeProgress', { current: episode.currentEpisodes, total: episode.totalEpisodes })}
           </span>
         )}
       </div>
-      <div className="card-content episode-card-inner">
-        <h3>{highlightText(getLocalizedTitle(episode), highlightQuery)}</h3>
-        <p>{truncateDesc(getLocalizedDescription(episode))}</p>
+      <div className="card-content ec-body episode-card-inner">
+        <h3 className="ec-title">{highlightText(getLocalizedTitle(episode), highlightQuery)}</h3>
+        <p className="ec-desc">{truncateDesc(getLocalizedDescription(episode))}</p>
 
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: '12px',
-          marginTop: '4px',
-        }}>
-          <span style={{ color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-            <Flame size={13} strokeWidth={2} style={{ display: 'inline-block', verticalAlign: '-2px' }} aria-hidden="true" /> {formatViews(episode.views)}
+        <div className="ec-meta">
+          <span className="ec-meta-item ec-views">
+            <Flame size={13} strokeWidth={2} aria-hidden="true" /> {formatViews(episode.views)}
           </span>
-          <span style={{ color: 'var(--warning-text, #f59e0b)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-            <Star size={13} strokeWidth={2} style={{ display: 'inline-block', verticalAlign: '-2px' }} aria-hidden="true" fill="currentColor" /> {avgRating}{ratingCount > 0 ? ` (${ratingCount}${t('common.people')})` : ''}
+          <span className="ec-meta-item ec-rating">
+            <Star size={13} strokeWidth={2} aria-hidden="true" fill="currentColor" /> {avgRating}{ratingCount > 0 ? ` (${ratingCount}${t('common.people')})` : ''}
           </span>
         </div>
 
         {episode.category && episode.category.length > 0 && (
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '4px',
-            marginTop: '6px',
-          }}>
+          <div className="ec-cats">
             {episode.category.slice(0, 2).map((cat, i) => (
-              <span
-                key={i}
-                style={{
-                  padding: '1px 8px',
-                  borderRadius: '10px',
-                  background: 'rgba(99, 102, 241, 0.15)',
-                  color: 'var(--primary)',
-                  fontSize: '11px',
-                  fontWeight: 500,
-                }}
-              >
-                {cat}
-              </span>
+              <span key={i} className="ec-cat">{cat}</span>
             ))}
           </div>
         )}
 
         {episode.tags && episode.tags.length > 0 && (
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '4px',
-            marginTop: '4px',
-          }}>
+          <div className="ec-tags">
             {episode.tags.slice(0, 3).map((tag, i) => (
               <span
                 key={i}
+                className="ec-tag"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onTagClick(tag);
                 }}
-                style={{
-                  padding: '1px 8px',
-                  borderRadius: '10px',
-                  background: 'var(--hover-bg-stronger, var(--hover-bg))',
-                  color: 'var(--text-secondary)',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  transition: 'color 0.2s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
               >
                 #{tag}
               </span>
@@ -170,13 +117,7 @@ const EpisodeCard = React.memo(({ episode, highlightQuery, t, getLocalizedTitle,
         )}
 
         {authorName && (
-          <div style={{
-            fontSize: '11px',
-            color: 'var(--text-secondary)',
-            marginTop: '4px',
-          }}>
-            {t('home.author')}: {authorName}
-          </div>
+          <div className="ec-author">{t('home.author')}: {authorName}</div>
         )}
       </div>
     </TransitionLink>
