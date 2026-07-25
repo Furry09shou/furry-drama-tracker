@@ -42,6 +42,25 @@ export const I18nProvider = ({ children }) => {
       document.head.appendChild(ogLocale);
     }
     ogLocale.setAttribute('content', fullLocale);
+    // 同步 content-language 与 language meta，确保浏览器翻译可靠识别语言，
+    // 避免 SPA 初始内容为空时浏览器回退到"检测到的语言"。
+    const metaTags = [
+      { selector: 'meta[http-equiv="content-language"]', attr: 'content', value: fullLocale },
+      { selector: 'meta[name="language"]', attr: 'content', value: fullLocale },
+    ];
+    metaTags.forEach(({ selector, attr, value }) => {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement('meta');
+        if (selector.includes('http-equiv')) {
+          el.setAttribute('http-equiv', 'content-language');
+        } else {
+          el.setAttribute('name', 'language');
+        }
+        document.head.appendChild(el);
+      }
+      el.setAttribute(attr, value);
+    });
   }, [lang]);
 
   const t = useCallback((key, params) => {

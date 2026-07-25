@@ -20,15 +20,41 @@
     <meta name="twitter:title" content="兽剧聚合平台" />
     <meta name="twitter:description" content="发现和追踪你喜爱的兽剧内容" />
     <meta name="theme-color" content="#6366f1" />
+    <!-- 三重语言声明：让浏览器翻译、拼写检查、无障碍服务可靠识别页面语言 -->
+    <meta http-equiv="content-language" content="zh-CN" />
+    <meta name="language" content="zh-CN" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="兽剧" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="msapplication-TileColor" content="#6366f1" />
     <link rel="alternate" type="application/rss+xml" title="兽剧聚合平台 - 更新订阅" href="/api/rss" />
+    <script>
+      // 早期语言检测：在 React 挂载前就根据用户偏好设置 <html lang>，
+      // 让浏览器翻译功能在初始加载时就能正确识别页面语言，而非回退到"检测到的语言"。
+      (function() {
+        try {
+          var saved = localStorage.getItem('lang');
+          var lang = 'zh';
+          if (saved === 'en' || saved === 'zh') {
+            lang = saved;
+          } else if (navigator.language && navigator.language.toLowerCase().indexOf('en') === 0) {
+            lang = 'en';
+          }
+          var fullLocale = lang === 'en' ? 'en-US' : 'zh-CN';
+          document.documentElement.lang = fullLocale;
+          var m1 = document.querySelector('meta[http-equiv="content-language"]');
+          if (m1) m1.setAttribute('content', fullLocale);
+          var m2 = document.querySelector('meta[name="language"]');
+          if (m2) m2.setAttribute('content', fullLocale);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- noscript 中英双语：避免浏览器通过纯中文内容误判页面语言 -->
+    <noscript>兽剧聚合平台 / Furry Drama Hub — 请启用 JavaScript / Please enable JavaScript to view this site.</noscript>
     <script>
       // IE 和不兼容浏览器检测（在 ES Module 加载前运行，使用 ES5 语法保证兼容）
       (function() {
