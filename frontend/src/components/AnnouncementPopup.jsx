@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Megaphone, AlertTriangle, Wrench, Sparkles, X } from 'lucide-react';
 import axios from 'axios';
 import { useI18n } from '../contexts/I18nContext';
+import Modal from './Modal';
 
 const STORAGE_KEY = 'fdt_dismissed_announcements';
 
@@ -76,91 +77,83 @@ const AnnouncementPopup = () => {
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={() => { if (current.dismissible) handleDismiss(false); }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9998,
-        background: 'rgba(0,0,0,0.55)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', padding: '16px',
-        animation: 'fadeIn 0.2s ease'
+    <Modal
+      isOpen={open}
+      onClose={() => { if (current.dismissible) handleDismiss(false); }}
+      closeOnOverlay={current.dismissible}
+      closeOnEsc={current.dismissible}
+      maxWidth="520px"
+      contentStyle={{
+        border: `1px solid ${accent}`,
+        maxHeight: '85vh',
+        overflow: 'auto',
+        padding: 0,
       }}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'var(--card)', borderRadius: '16px',
-          maxWidth: '520px', width: '100%', maxHeight: '85vh', overflow: 'auto',
-          border: `1px solid ${accent}`, boxShadow: '0 25px 60px rgba(0,0,0,0.4)'
-        }}
-      >
+      <div style={{
+        padding: '20px 24px 16px', borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: '12px'
+      }}>
+        <span style={{ color: accent }} aria-hidden="true"><IconComp size={24} strokeWidth={2} /></span>
+        <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: 'var(--foreground)', flex: 1 }}>{title}</h3>
+        {current.dismissible && (
+          <button
+            onClick={() => handleDismiss(false)}
+            aria-label={t('common.close')}
+            style={{
+              background: 'none', border: 'none', color: 'var(--text-secondary)',
+              cursor: 'pointer', padding: '4px', lineHeight: 1, display: 'inline-flex', alignItems: 'center'
+            }}
+          ><X size={20} strokeWidth={2} /></button>
+        )}
+      </div>
+      <div style={{ padding: '18px 24px' }}>
         <div style={{
-          padding: '20px 24px 16px', borderBottom: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', gap: '12px'
-        }}>
-          <span style={{ color: accent }} aria-hidden="true"><IconComp size={24} strokeWidth={2} /></span>
-          <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: 'var(--foreground)', flex: 1 }}>{title}</h3>
+          whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '14px',
+          color: 'var(--foreground)', maxHeight: '50vh', overflowY: 'auto'
+        }}>{content}</div>
+        {current.link && (
+          <a
+            href={current.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block', marginTop: '16px', padding: '8px 18px',
+              background: accent, color: '#fff', textDecoration: 'none',
+              borderRadius: '8px', fontSize: '13px', fontWeight: 600
+            }}
+          >{t('announcement.viewDetails')}</a>
+        )}
+      </div>
+      <div style={{
+        padding: '12px 24px 16px', borderTop: '1px solid var(--border)',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap'
+      }}>
+        {announcements.length > 1 && (
+          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+            {t('announcement.remainingCount', { current: currentIdx + 1, total: announcements.length })}
+          </span>
+        )}
+        <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
           {current.dismissible && (
             <button
-              onClick={() => handleDismiss(false)}
-              aria-label={t('common.close')}
+              onClick={() => handleDismiss(true)}
               style={{
-                background: 'none', border: 'none', color: 'var(--text-secondary)',
-                cursor: 'pointer', padding: '4px', lineHeight: 1, display: 'inline-flex', alignItems: 'center'
+                background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)',
+                padding: '7px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px'
               }}
-            ><X size={20} strokeWidth={2} /></button>
+            >{t('announcement.dontShowAgain')}</button>
           )}
-        </div>
-        <div style={{ padding: '18px 24px' }}>
-          <div style={{
-            whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '14px',
-            color: 'var(--foreground)', maxHeight: '50vh', overflowY: 'auto'
-          }}>{content}</div>
-          {current.link && (
-            <a
-              href={current.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-block', marginTop: '16px', padding: '8px 18px',
-                background: accent, color: '#fff', textDecoration: 'none',
-                borderRadius: '8px', fontSize: '13px', fontWeight: 600
-              }}
-            >{t('announcement.viewDetails')}</a>
-          )}
-        </div>
-        <div style={{
-          padding: '12px 24px 16px', borderTop: '1px solid var(--border)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap'
-        }}>
-          {announcements.length > 1 && (
-            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-              {t('announcement.remainingCount', { current: currentIdx + 1, total: announcements.length })}
-            </span>
-          )}
-          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
-            {current.dismissible && (
-              <button
-                onClick={() => handleDismiss(true)}
-                style={{
-                  background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)',
-                  padding: '7px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px'
-                }}
-              >{t('announcement.dontShowAgain')}</button>
-            )}
-            <button
-              onClick={() => handleDismiss(false)}
-              style={{
-                background: 'var(--primary)', border: 'none', color: '#fff',
-                padding: '7px 18px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600
-              }}
-            >{t('announcement.gotIt')}</button>
-          </div>
+          <button
+            onClick={() => handleDismiss(false)}
+            style={{
+              background: 'var(--primary)', border: 'none', color: '#fff',
+              padding: '7px 18px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600
+            }}
+          >{t('announcement.gotIt')}</button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -4,7 +4,7 @@ const Announcement = require('../models/Announcement');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { superAdminProtect, requireEmailChanged } = require('../middlewares/authFactory');
-const { sendNotificationEmail } = require('../utils/email');
+const { sendNotificationEmail, emailButton, emailInfoBox } = require('../utils/email');
 
 // 公开：获取生效中的公告（用于弹窗/横幅/通知展示）
 // 查询参数 ?channel=popup|banner 可按渠道过滤
@@ -265,18 +265,17 @@ function buildAnnouncementHtml(announcement) {
   };
   const label = typeLabels[announcement.type] || '📢 站点公告';
   const url = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const variantMap = { info: 'info', warning: 'warning', maintenance: 'warning', update: 'success' };
+  const variant = variantMap[announcement.type] || 'info';
   return `
-    <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
-      <h2 style="color:#6366f1;">${label}</h2>
-      <div style="background:#f0f4ff;padding:16px;border-radius:8px;margin:12px 0;">
-        <p style="margin:4px 0;font-size:16px;font-weight:600;">${announcement.title}</p>
-      </div>
-      <div style="white-space:pre-wrap;line-height:1.7;color:#334155;">${announcement.content}</div>
-      ${announcement.link ? `<a href="${announcement.link}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">查看详情</a>` : ''}
-      <a href="${url}" style="display:inline-block;padding:10px 20px;background:#64748b;color:#fff;text-decoration:none;border-radius:8px;margin-left:8px;">访问站点</a>
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
-      <p style="font-size:12px;color:#94a3b8;">这是一封来自站点的公告通知邮件，如不希望接收此类邮件可在账户设置中关闭公告邮件偏好。</p>
-    </div>
+    <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">${label}</h2>
+    ${emailInfoBox('<p style="margin:0;font-size:16px;font-weight:600;">' + announcement.title + '</p>', variant)}
+    <div style="margin:16px 0;color:#334155;font-size:14px;line-height:1.7;white-space:pre-wrap;">${announcement.content}</div>
+    <p style="margin:20px 0;">
+      ${announcement.link ? emailButton('查看详情', announcement.link, 'primary') + ' ' : ''}
+      ${emailButton('访问站点', url, 'secondary')}
+    </p>
+    <p style="margin:0;color:#94a3b8;font-size:12px;">这是一封来自站点的公告通知邮件，如不希望接收此类邮件可在账户设置中关闭公告邮件偏好。</p>
   `;
 }
 

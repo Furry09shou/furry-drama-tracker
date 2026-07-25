@@ -1,5 +1,5 @@
 import React from 'react';
-import I18nContext from '../contexts/I18nContext';
+import { I18nContext } from '../contexts/I18nContext';
 
 class AdminErrorBoundary extends React.Component {
   constructor(props) {

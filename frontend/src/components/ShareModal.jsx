@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { useI18n } from '../contexts/I18nContext';
+import Modal from './Modal';
 
 const ShareModal = ({ show, onClose, title, episodeId }) => {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const { t } = useI18n();
-  const dialogRef = useRef(null);
 
   const shareUrl = `${window.location.origin}/episode/${episodeId}`;
   const shareText = t('share.title', { title });
@@ -20,19 +20,16 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
     }
   }, [showQR, shareUrl]);
 
+  // 打开时重置状态；关闭时不重置，保留内容供退出动画展示。
   useEffect(() => {
-    if (!show) {
+    if (show) {
       setShowQR(false);
       setQrDataUrl('');
       setCopied(false);
-      dialogRef.current?.close();
-    } else {
-      dialogRef.current?.showModal();
     }
   }, [show]);
 
   const handleClose = () => {
-    dialogRef.current?.close();
     onClose();
   };
 
@@ -91,18 +88,7 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
   ];
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      onClick={(e) => { if (e.target === dialogRef.current) handleClose(); }}
-      style={{
-        border: 'none', borderRadius: '16px', padding: 0,
-        maxWidth: '400px', width: '90%',
-        background: 'var(--card)', color: 'var(--foreground)',
-        boxShadow: '0 25px 50px var(--shadow-strong)',
-        margin: 'auto',
-      }}
-    >
+    <Modal isOpen={show} onClose={handleClose} maxWidth="400px">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
         <h3 style={{ margin: 0 }}>🔗 {t('share.share')}</h3>
         <button onClick={handleClose} style={{ background: 'none', border: 'none', color: 'var(--foreground)', fontSize: '20px', cursor: 'pointer' }}>✕</button>
@@ -144,7 +130,7 @@ const ShareModal = ({ show, onClose, title, episodeId }) => {
           <button className="btn" style={{ width: '100%', fontSize: '13px' }} onClick={handleNativeShare}>📱 {t('share.systemShare')}</button>
         )}
       </div>
-    </dialog>
+    </Modal>
   );
 };
 

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
+import Modal from './Modal';
 
 const FriendLinks = () => {
   const { user, getAuthHeaders } = useAuth();
@@ -244,17 +245,12 @@ const FriendLinks = () => {
         )}
       </div>
 
-      {showApplyModal && (
-        <div onClick={() => { setShowApplyModal(false); setApplyMsg(''); setApplyMsgType(''); }} style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
-            background: 'var(--card)', border: '1px solid var(--border)',
-            borderRadius: '16px', padding: '24px', width: 'min(440px, calc(100vw - 40px))',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-          }}>
+      <Modal
+        isOpen={showApplyModal}
+        onClose={() => { setShowApplyModal(false); setApplyMsg(''); setApplyMsgType(''); }}
+        maxWidth="440px"
+        contentStyle={{ width: 'min(440px, calc(100vw - 40px))' }}
+      >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--foreground)' }}>{t('friendLink.applyTitle')}</h3>
               <button onClick={() => { setShowApplyModal(false); setApplyMsg(''); setApplyMsgType(''); }} style={{
@@ -339,9 +335,7 @@ const FriendLinks = () => {
                 {applyLoading ? t('friendLink.submitting') : t('friendLink.submitApply')}
               </button>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

@@ -4,7 +4,7 @@ const SiteContent = require('../models/SiteContent');
 const { adminProtect, superAdminProtect } = require('../middlewares/authFactory');
 const { asyncHandler } = require('../utils/errorHandler');
 const nodemailer = require('nodemailer');
-const { clearEmailCache } = require('../utils/email');
+const { clearEmailCache, getFromName, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../utils/email');
 const { createUploadConfig } = require('../utils/upload');
 const { encryptField, decryptField } = require('../utils/crypto');
 
@@ -197,15 +197,12 @@ router.post('/test-email', superAdminProtect, async (req, res) => {
       from: `"${fromName || '兽剧聚合平台'}" <${user}>`,
       to,
       subject: '邮件服务测试 - 兽剧聚合平台',
-      html: `
-        <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
-          <h2 style="color:#6366f1;">邮件服务测试</h2>
-          <p>这是一封测试邮件，用于验证邮件服务配置是否正确。</p>
-          <p>如果您收到了此邮件，说明邮件服务配置成功！</p>
-          <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
-          <p style="color:#94a3b8;font-size:12px;">此邮件由管理后台发送，请勿回复。</p>
-        </div>
-      `
+      html: await buildEmailHTML(fromName || '兽剧聚合平台', getSiteUrl(), `
+  <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">邮件服务测试</h2>
+  <p style="margin:0 0 16px;color:#475569;font-size:14px;">这是一封测试邮件，用于验证邮件服务配置是否正确。</p>
+  ${emailInfoBox('如果您收到了此邮件，说明邮件服务配置成功！', 'success')}
+  <p style="margin:20px 0;">${emailButton('访问站点', getSiteUrl(), 'secondary')}</p>
+`, { preheader: '邮件服务测试' })
     });
     res.json({ message: '测试邮件发送成功，请检查收件箱' });
   } catch (error) {

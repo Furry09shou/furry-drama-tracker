@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import adminApi from '../utils/adminApi';
+import Modal from './Modal';
 import { useI18n } from '../contexts/I18nContext';
 
 const EpisodeVersionHistory = ({ episodeId, onClose }) => {
@@ -13,6 +13,14 @@ const EpisodeVersionHistory = ({ episodeId, onClose }) => {
   const [compareV2, setCompareV2] = useState(null);
   const [diff, setDiff] = useState(null);
   const [diffLoading, setDiffLoading] = useState(false);
+  const [show, setShow] = useState(true);
+
+  // 先触发 Modal 退出动画，动画播完后再通知父组件卸载本组件，
+  // 否则父组件直接卸载会导致退出动画无法播放。
+  const handleClose = () => {
+    setShow(false);
+    setTimeout(() => onClose(), 300);
+  };
 
   useEffect(() => {
     fetchVersions();
@@ -87,9 +95,8 @@ const EpisodeVersionHistory = ({ episodeId, onClose }) => {
     return String(val);
   };
 
-  const modal = (
-    <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') onClose(); }}>
-      <div className="modal-content" style={{ maxWidth: '800px' }}>
+  return (
+    <Modal isOpen={show} onClose={handleClose} maxWidth="800px">
         <div className="modal-header">
           <h3>{t('version.title')}</h3>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -100,7 +107,7 @@ const EpisodeVersionHistory = ({ episodeId, onClose }) => {
             >
               {compareMode ? t('common.cancel') : t('version.compare')}
             </button>
-            <button className="btn btn-secondary" onClick={onClose}>{t('common.close')}</button>
+            <button className="btn btn-secondary" onClick={handleClose}>{t('common.close')}</button>
           </div>
         </div>
 
@@ -241,11 +248,8 @@ const EpisodeVersionHistory = ({ episodeId, onClose }) => {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   );
-
-  return createPortal(modal, document.body);
 };
 
 export default EpisodeVersionHistory;

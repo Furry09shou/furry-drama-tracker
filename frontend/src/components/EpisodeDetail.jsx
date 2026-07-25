@@ -4,6 +4,7 @@ import { useNavigate, Link, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import ReportModal from './ReportModal';
 import ShareModal from './ShareModal';
+import Modal from './Modal';
 import { useI18n } from '../contexts/I18nContext';
 import useTranslation from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +23,7 @@ const EpisodeDetail = ({ user }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [watchedEpisodes, setWatchedEpisodes] = useState([]);
   const [watchModal, setWatchModal] = useState(null);
+  const [watchModalOpen, setWatchModalOpen] = useState(false);
   const [iframeReady, setIframeReady] = useState(false);
   const iframeTimerRef = useRef(null);
   const [followedAtEpisodes, setFollowedAtEpisodes] = useState(null);
@@ -117,14 +119,20 @@ const EpisodeDetail = ({ user }) => {
     recordWatchProgress(singleEpisode.episodeNumber);
     setIframeReady(false);
     setWatchModal(singleEpisode);
+    setWatchModalOpen(true);
     if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current);
     iframeTimerRef.current = setTimeout(() => setIframeReady(true), 300);
   };
 
+  // 先触发 Modal 退出动画，动画播完后再清空数据，
+  // 否则立即清空会导致退出动画期间内容消失。
   const closeWatchModal = useCallback(() => {
-    setIframeReady(false);
+    setWatchModalOpen(false);
     if (iframeTimerRef.current) clearTimeout(iframeTimerRef.current);
-    setWatchModal(null);
+    setTimeout(() => {
+      setIframeReady(false);
+      setWatchModal(null);
+    }, 300);
   }, []);
 
   const getPlatformIcon = (platform) => {
@@ -718,19 +726,9 @@ const EpisodeDetail = ({ user }) => {
         episodeId={episodeId}
       />
 
-      {watchModal && createPortal(
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'var(--overlay-bg)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '0'
-        }} onClick={() => closeWatchModal()}>
-          <div style={{
-            background: 'var(--card)', borderRadius: '16px',
-            maxWidth: '800px', width: 'min(100%, calc(100vw - 32px))', maxHeight: '90vh',
-            overflow: 'auto', border: '1px solid var(--border)',
-            boxShadow: '0 25px 50px var(--shadow-strong)'
-          }} onClick={(e) => e.stopPropagation()}>
+      <Modal isOpen={watchModalOpen} onClose={closeWatchModal} maxWidth="800px">
+        {watchModal && (
+          <>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '16px', borderBottom: '1px solid var(--border)'
@@ -844,10 +842,9 @@ const EpisodeDetail = ({ user }) => {
                 );
               })()}
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 };

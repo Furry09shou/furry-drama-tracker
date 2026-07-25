@@ -4,7 +4,13 @@ import en from '../locales/en';
 
 const translations = { zh, en };
 
-const I18nContext = createContext();
+// HMR 安全：热更新时复用同一个 context 对象，避免 Provider（旧 context）
+// 与 Consumer（新 context）不匹配导致 this.context 为 undefined 的崩溃。
+const I18nContext = import.meta.hot?.data?.I18nContext || createContext();
+if (import.meta.hot) {
+  import.meta.hot.dispose((data) => { data.I18nContext = I18nContext; });
+}
+export { I18nContext };
 
 const SUPPORTED_LANGUAGES = [
   { code: 'zh', label: '中文', flag: '🇨🇳' },
@@ -23,8 +29,19 @@ export const I18nProvider = ({ children }) => {
   });
 
   useEffect(() => {
+    const fullLocale = LOCALE_MAP[lang] || lang;
     localStorage.setItem('lang', lang);
-    document.documentElement.lang = lang;
+    // 使用完整 locale（zh-CN / en-US）告知浏览器当前页面语言，
+    // 以便浏览器翻译、拼写检查、无障碍等服务正确适配用户。
+    document.documentElement.lang = fullLocale;
+    // 同步更新 og:locale 元数据，让社交平台抓取到正确的语言信息。
+    let ogLocale = document.querySelector('meta[property="og:locale"]');
+    if (!ogLocale) {
+      ogLocale = document.createElement('meta');
+      ogLocale.setAttribute('property', 'og:locale');
+      document.head.appendChild(ogLocale);
+    }
+    ogLocale.setAttribute('content', fullLocale);
   }, [lang]);
 
   const t = useCallback((key, params) => {
@@ -74,4 +91,5 @@ export const useI18n = () => {
   return context;
 };
 
-export default I18nContext;
+// 注：不使用 default export，以兼容 Vite React Fast Refresh（HMR）。
+// I18nContext 通过具名导出 import { I18nContext } 使用。

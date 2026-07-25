@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import adminApi from '../utils/adminApi';
 import { useOutletContext } from 'react-router-dom';
+import Modal from './Modal';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminCategories = () => {
@@ -97,9 +97,8 @@ const AdminCategories = () => {
 
   if (!admin) return null;
 
-  const addFormModal = showAddForm ? (
-    <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setShowAddForm(false); }}>
-      <div className="modal-content" style={{maxWidth: '520px'}}>
+  const addFormModal = (
+    <Modal isOpen={showAddForm} onClose={() => setShowAddForm(false)} maxWidth="520px">
         <div className="modal-header">
           <h3>{t('adminCategories.addCategory')}</h3>
           <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('adminCategories.close')}</button>
@@ -138,13 +137,11 @@ const AdminCategories = () => {
             <button type="submit">{t('adminCategories.add')}</button>
           </div>
         </form>
-      </div>
-    </div>
-  ) : null;
+    </Modal>
+  );
 
-  const editFormModal = editingCategory ? (
-    <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setEditingCategory(null); }}>
-      <div className="modal-content" style={{maxWidth: '520px'}}>
+  const editFormModal = (
+    <Modal isOpen={!!editingCategory} onClose={() => setEditingCategory(null)} maxWidth="520px">
         <div className="modal-header">
           <h3>{t('adminCategories.editCategory')}</h3>
           <button className="btn btn-secondary" onClick={() => setEditingCategory(null)}>{t('adminCategories.close')}</button>
@@ -183,9 +180,8 @@ const AdminCategories = () => {
             <button type="submit">{t('adminCategories.save')}</button>
           </div>
         </form>
-      </div>
-    </div>
-  ) : null;
+    </Modal>
+  );
 
   return (
     <div className="admin-panel">
@@ -267,8 +263,8 @@ const AdminCategories = () => {
         )}
       </div>
 
-      {createPortal(addFormModal, document.body)}
-      {createPortal(editFormModal, document.body)}
+      {addFormModal}
+      {editFormModal}
     </div>
   );
 };

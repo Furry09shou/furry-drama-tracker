@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 import ReviewStatusBadge from './ReviewStatusBadge';
+import Modal from './Modal';
 
 const AdminReview = () => {
   const { admin } = useOutletContext();
@@ -292,53 +293,45 @@ const AdminReview = () => {
         </div>
       )}
 
-      {detailEpisode && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'var(--overlay-bg-subtle)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }} onClick={() => setDetailEpisode(null)}>
-          <div style={{
-            background: 'var(--card)', borderRadius: '16px',
-            maxWidth: '600px', width: '100%', maxHeight: '80vh',
-            overflow: 'auto', border: '1px solid var(--border)',
-            boxShadow: '0 25px 50px var(--shadow-strong)'
-          }} onClick={(e) => e.stopPropagation()}>
+      <Modal
+        isOpen={!!detailEpisode}
+        onClose={() => setDetailEpisode(null)}
+        maxWidth="600px"
+        contentStyle={{ maxHeight: '80vh', overflow: 'auto', padding: 0 }}
+      >
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '20px 24px', borderBottom: '1px solid var(--border)'
             }}>
-              <h3 style={{margin: 0, color: 'var(--foreground)'}}>{detailEpisode.title}</h3>
+              <h3 style={{margin: 0, color: 'var(--foreground)'}}>{detailEpisode?.title}</h3>
               <button onClick={() => setDetailEpisode(null)} style={{
                 background: 'none', border: 'none', color: 'var(--foreground)',
                 fontSize: '24px', cursor: 'pointer', padding: '0 4px', lineHeight: 1
               }}>✕</button>
             </div>
             <div style={{padding: '20px 24px'}}>
-              {detailEpisode.coverImage && (
+              {detailEpisode?.coverImage && (
                 <img src={detailEpisode.coverImage} alt={detailEpisode.title} style={{width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px'}} />
               )}
-              <p style={{color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px'}}>{detailEpisode.description || t('adminReview.noDescription')}</p>
+              <p style={{color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px'}}>{detailEpisode?.description || t('adminReview.noDescription')}</p>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px'}}>
-                <p><strong>{t('adminReview.episodes')}</strong>{detailEpisode.totalEpisodes === null ? t('adminEpisodes.unknownTotalEpisodes') : `${detailEpisode.currentEpisodes}/${detailEpisode.totalEpisodes}`}</p>
-                <p><strong>{t('adminReview.status')}</strong>{detailEpisode.status === 'ongoing' ? t('home.statusOngoing') : detailEpisode.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}</p>
-                <p><strong>{t('adminReview.categories')}</strong>{detailEpisode.category ? detailEpisode.category.join('、') : t('adminReview.none')}</p>
-                <p><strong>{t('adminReview.views')}</strong>{detailEpisode.views}</p>
-                <p><strong>{t('adminReview.creator')}</strong>{detailEpisode.createdBy ? detailEpisode.createdBy.username : t('adminReview.system')}</p>
+                <p><strong>{t('adminReview.episodes')}</strong>{detailEpisode?.totalEpisodes === null ? t('adminEpisodes.unknownTotalEpisodes') : `${detailEpisode?.currentEpisodes}/${detailEpisode?.totalEpisodes}`}</p>
+                <p><strong>{t('adminReview.status')}</strong>{detailEpisode?.status === 'ongoing' ? t('home.statusOngoing') : detailEpisode?.status === 'completed' ? t('home.statusCompleted') : t('home.statusUpcoming')}</p>
+                <p><strong>{t('adminReview.categories')}</strong>{detailEpisode?.category ? detailEpisode.category.join('、') : t('adminReview.none')}</p>
+                <p><strong>{t('adminReview.views')}</strong>{detailEpisode?.views}</p>
+                <p><strong>{t('adminReview.creator')}</strong>{detailEpisode?.createdBy ? detailEpisode.createdBy.username : t('adminReview.system')}</p>
                 <p><strong>{t('adminReview.reviewStatus')}</strong>
-                  <ReviewStatusBadge status={detailEpisode.reviewStatus} />
+                  <ReviewStatusBadge status={detailEpisode?.reviewStatus} />
                 </p>
               </div>
-              {detailEpisode.reviewNote && (
+              {detailEpisode?.reviewNote && (
                 <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '12px'}}><strong>{t('adminReview.reviewNoteLabel')}</strong>{detailEpisode.reviewNote}</p>
               )}
-              {detailEpisode.allowedEditors && detailEpisode.allowedEditors.length > 0 && (
+              {detailEpisode?.allowedEditors && detailEpisode.allowedEditors.length > 0 && (
                 <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px'}}><strong>{t('adminReview.authorizedEditLabel')}</strong>{detailEpisode.allowedEditors.map(e => e.username).join('、')}</p>
               )}
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

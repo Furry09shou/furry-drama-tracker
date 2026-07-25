@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import adminApi from '../utils/adminApi';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import Modal from './Modal';
 import CustomSelect from './CustomSelect';
 import SearchInput from './SearchInput';
 import ImageUploader from './ImageUploader';
@@ -344,7 +344,6 @@ const AdminEpisodes = () => {
 
   const handleCloseEditForm = () => {
     setShowEditForm(false);
-    setEditingEpisode(null);
     setShowSingleEpisodeForm(false);
     setEditingSingleEpisode(null);
     resetEpisodeForm();
@@ -640,22 +639,19 @@ const AdminEpisodes = () => {
     </form>
   );
 
-  const addFormModal = showAddForm ? (
-    <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setShowAddForm(false); }}>
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3>{t('adminEpisodes.addNewEpisode')}</h3>
-          <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('adminEpisodes.close')}</button>
-        </div>
-        <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>{t('adminEpisodes.addEpisodeHint')}</p>
-        {renderEpisodeForm(false)}
+  const addFormModal = (
+    <Modal isOpen={showAddForm} onClose={() => setShowAddForm(false)}>
+      <div className="modal-header">
+        <h3>{t('adminEpisodes.addNewEpisode')}</h3>
+        <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('adminEpisodes.close')}</button>
       </div>
-    </div>
-  ) : null;
+      <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px'}}>{t('adminEpisodes.addEpisodeHint')}</p>
+      {renderEpisodeForm(false)}
+    </Modal>
+  );
 
-  const editFormModal = showEditForm && editingEpisode ? (
-    <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') handleCloseEditForm(); }}>
-      <div className="modal-content">
+  const editFormModal = editingEpisode ? (
+    <Modal isOpen={showEditForm} onClose={handleCloseEditForm}>
         <div className="modal-header">
           <h3>{t('adminEpisodes.editEpisode')} - {editingEpisode.title}</h3>
           <button className="btn btn-secondary" onClick={handleCloseEditForm}>{t('adminEpisodes.close')}</button>
@@ -929,8 +925,7 @@ const AdminEpisodes = () => {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   ) : null;
 
   // ===== 剧集列表渲染 =====
@@ -1023,8 +1018,8 @@ const AdminEpisodes = () => {
       </table>
       </div>
 
-      {createPortal(addFormModal, document.body)}
-      {createPortal(editFormModal, document.body)}
+      {addFormModal}
+      {editFormModal}
 
       {historyEpisodeId && (
         <EpisodeVersionHistory

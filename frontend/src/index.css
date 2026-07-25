@@ -821,10 +821,8 @@ textarea[data-errmsg]::after {
   margin-bottom: 30px;
   font-size: 1.8rem;
   font-weight: 700;
-  background: linear-gradient(90deg, var(--foreground), var(--primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
 }
 
 .user-info {
@@ -1089,35 +1087,72 @@ textarea[data-errmsg]::after {
   font-size: 14px;
 }
 
+/* ===== Modal 动画系统 =====
+ * 遮罩：淡入 + 模糊渐强；内容：上浮 + 微缩放 + 弹性回弹。
+ * .is-closing 由通用 Modal 组件在卸载前添加，触发退场动画后再移除 DOM。
+ */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
+  background: var(--overlay-bg);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  backdrop-filter: blur(8px) saturate(140%);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
   z-index: 1000;
+  animation: modal-overlay-in 0.32s var(--ease-out);
+}
+
+.modal-overlay.is-closing {
+  animation: modal-overlay-out 0.26s var(--ease-in-out) forwards;
+  pointer-events: none;
 }
 
 .modal-content {
-  background: var(--popover);
+  background: var(--popover, var(--card));
   -webkit-backdrop-filter: var(--glass-backdrop);
   backdrop-filter: var(--glass-backdrop);
   border: 1px solid var(--glass-border);
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   padding: 30px;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 40px -10px var(--shadow-strong);
-  color: var(--popover-foreground);
+  box-shadow: var(--shadow-2xl), var(--inner-highlight);
+  color: var(--popover-foreground, var(--foreground));
+  animation: modal-content-in 0.42s var(--ease-spring);
   transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.modal-content.is-closing {
+  animation: modal-content-out 0.26s var(--ease-in-out) forwards;
+}
+
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modal-content-in {
+  0% { opacity: 0; transform: translateY(24px) scale(0.94); }
+  55% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes modal-content-out {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(14px) scale(0.96); }
 }
 
 .modal-header {
@@ -1693,30 +1728,27 @@ input::-webkit-caps-lock-indicator {
   margin-right: 32px;
 }
 
-/* Dialog 元素样式 */
+/* Dialog 元素样式（原生 <dialog>，用于 ShareModal / FolderShareModal） */
 dialog::backdrop {
   background: var(--overlay-bg);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  backdrop-filter: blur(8px) saturate(140%);
+  animation: dialog-backdrop-in 0.32s var(--ease-out);
 }
 
 dialog[open] {
-  animation: dialog-fade-in 0.2s ease-out;
+  animation: dialog-in 0.42s var(--ease-spring);
 }
 
-@keyframes dialog-fade-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes overlay-fade-in {
+@keyframes dialog-backdrop-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes modal-scale-in {
-  from { opacity: 0; transform: scale(0.9) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+@keyframes dialog-in {
+  0% { opacity: 0; transform: translateY(20px) scale(0.94); }
+  55% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Popover 元素样式 */
@@ -2974,12 +3006,9 @@ nav ul li a[aria-current="page"]::after {
   width: 60%;
 }
 
-/* logo 文字渐变 */
+/* logo 文字：纯色清晰 */
 nav .logo h1 {
-  background: var(--text-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--foreground);
   letter-spacing: -0.03em;
 }
 
@@ -3123,30 +3152,7 @@ nav .logo h1 {
   background: var(--hover-bg-subtle);
 }
 
-/* ---- 模态框增强：更优雅的进入动画 + 背景模糊 ---- */
-.modal-overlay {
-  background: var(--overlay-bg) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(140%);
-  backdrop-filter: blur(8px) saturate(140%);
-  animation: overlay-fade-in 0.3s var(--ease-out);
-}
-.modal-content {
-  border-radius: var(--radius-xl) !important;
-  box-shadow: var(--shadow-2xl), var(--inner-highlight) !important;
-  animation: modal-rise 0.4s var(--ease-spring);
-  border: 1px solid var(--glass-border);
-}
-
-@keyframes modal-rise {
-  from {
-    opacity: 0;
-    transform: translateY(24px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
+/* 模态框动画已统一到基础 .modal-overlay / .modal-content 系统（见上方），此处旧增强版已移除 */
 
 /* ---- 章节标题：渐变文字 + 微光 ---- */
 .hero h2,
@@ -3154,19 +3160,12 @@ nav .logo h1 {
 .user-profile h2,
 .dashboard-card h3,
 .modal-header h3 {
-  background: var(--text-gradient) !important;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--foreground);
+  -webkit-text-fill-color: currentColor;
   letter-spacing: -0.02em;
 }
 
-/* 区块标题统一渐变（h2/h3 级别，用于主要容器） */
-.episode-detail h2,
-.user-profile h2 {
-  background-size: 200% auto;
-  animation: gradient-shift 6s var(--ease-smooth) infinite;
-}
+/* 区块标题统一为纯色，不再使用渐变动画 */
 
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% 50%; }
@@ -3459,12 +3458,8 @@ p {
   opacity: 0.6;
 }
 .auth-form h2 {
-  background: var(--text-gradient) !important;
-  background-size: 200% auto !important;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradient-shift 6s var(--ease-smooth) infinite;
+  color: var(--foreground) !important;
+  -webkit-text-fill-color: currentColor !important;
   letter-spacing: -0.02em;
 }
 

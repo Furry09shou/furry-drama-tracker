@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import adminApi from '../utils/adminApi';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import Modal from './Modal';
 import CustomSelect from './CustomSelect';
 import PasswordToggle from './PasswordToggle';
 import SearchInput from './SearchInput';
@@ -146,9 +146,8 @@ const AdminUsers = () => {
   const adminCount = users.filter(u => ['superadmin', 'creator', 'admin'].includes(u.role)).length;
   const normalCount = users.length - adminCount;
 
-  const addFormModal = showAddForm ? (
-    <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setShowAddForm(false); }}>
-      <div className="modal-content">
+  const addFormModal = (
+    <Modal isOpen={showAddForm} onClose={() => setShowAddForm(false)}>
         <div className="modal-header">
           <h3>{t('adminUsers.addAdminAccount')}</h3>
           <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('adminUsers.close')}</button>
@@ -202,9 +201,8 @@ const AdminUsers = () => {
             <button type="submit">{t('adminUsers.add')}</button>
           </div>
         </form>
-      </div>
-    </div>
-  ) : null;
+    </Modal>
+  );
 
   return (
     <div className="admin-panel">
@@ -373,10 +371,10 @@ const AdminUsers = () => {
         )}
       </div>
 
-      {createPortal(addFormModal, document.body)}
-      {detailUser && createPortal(
-        <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setDetailUser(null); }}>
-          <div className="modal-content" style={{maxWidth: '520px'}}>
+      {addFormModal}
+      <Modal isOpen={!!detailUser} onClose={() => setDetailUser(null)} maxWidth="520px">
+        {detailUser && (
+          <>
             <div className="modal-header">
               <h3>{t('adminUsers.userDetails', { username: detailUser.username })}</h3>
               <button className="btn btn-secondary" onClick={() => setDetailUser(null)}>{t('adminUsers.close')}</button>
@@ -403,10 +401,9 @@ const AdminUsers = () => {
               <InfoRow label={t('adminUsers.language')} value={detailUser.deviceInfo?.language || t('adminUsers.unknown')} />
               <InfoRow label={t('adminUsers.userAgent')} value={detailUser.deviceInfo?.userAgent || t('adminUsers.unknown')} isLong />
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -17,7 +17,7 @@ const { createChallenge, sha } = require('altcha/lib');
 const { protect, adminProtect, superAdminProtect, verifyRefreshToken } = require('../../middlewares/authFactory');
 const { validatePassword } = require('../../middlewares/security');
 const { logManual } = require('../../middlewares/auditLog');
-const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser } = require('../../utils/email');
+const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../../utils/email');
 const { sendNotificationEmailToUser } = require('../../utils/notifyHelper');
 const {
   parseUserAgent,
@@ -356,25 +356,26 @@ router.post('/login', async (req, res) => {
       });
       try {
         const mailOptions = {
-          from: process.env.EMAIL_USER,
+          from: `"${await getFromName()}" <${await getFromUser()}>`,
           to: user.email,
           subject: '新设备登录验证码',
-          html: `<div style="max-width:480px;margin:0 auto;font-family:Arial,sans-serif;padding:20px">
-            <h2 style="color:#333;text-align:center">新设备登录验证</h2>
-            <p>检测到您的账号在新设备上尝试登录：</p>
-            <div style="background:#f5f5f5;padding:12px;border-radius:8px;margin:12px 0">
-              <p style="margin:4px 0"><strong>浏览器：</strong>${escapeHtml(parsed.browser) || '未知'} ${escapeHtml(parsed.browserVersion || '')}</p>
-              <p style="margin:4px 0"><strong>操作系统：</strong>${escapeHtml(parsed.os) || '未知'} ${escapeHtml(parsed.osVersion || '')}</p>
-              <p style="margin:4px 0"><strong>设备类型：</strong>${escapeHtml(parsed.deviceType) || '未知'}</p>
-              <p style="margin:4px 0"><strong>IP地址：</strong>${escapeHtml(currentIp)}</p>
-            </div>
-            ${(parsed.os === 'iOS' || parsed.os === 'iPadOS' || parsed.os === 'macOS') ? '<p style="color:#94a3b8;font-size:12px;margin:4px 0 12px;">* 因为Apple隐私策略，版本号可能不准确</p>' : ''}
-            <p>如非本人操作，请忽略此邮件。如确认是本人，请使用下方验证码在登录页面完成验证：</p>
-            <div style="text-align:center;margin:20px 0">
-              <div style="display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:16px 40px;border-radius:8px;font-size:32px;font-weight:700;letter-spacing:8px;font-family:monospace">${loginCode}</div>
-            </div>
-            <p style="color:#999;font-size:12px">此验证码10分钟内有效</p>
-          </div>`
+          html: await buildEmailHTML(await getFromName(), getSiteUrl(), `
+  <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">新设备登录验证</h2>
+  <p style="margin:0 0 16px;color:#475569;font-size:14px;">检测到您的账号在新设备上尝试登录：</p>
+  ${emailInfoBox(
+    '<p style="margin:4px 0;"><strong>浏览器：</strong>' + (escapeHtml(parsed.browser) || '未知') + ' ' + (escapeHtml(parsed.browserVersion || '')) + '</p>' +
+    '<p style="margin:4px 0;"><strong>操作系统：</strong>' + (escapeHtml(parsed.os) || '未知') + ' ' + (escapeHtml(parsed.osVersion || '')) + '</p>' +
+    '<p style="margin:4px 0;"><strong>设备类型：</strong>' + (escapeHtml(parsed.deviceType) || '未知') + '</p>' +
+    '<p style="margin:4px 0;"><strong>IP地址：</strong>' + escapeHtml(currentIp) + '</p>' +
+    ((parsed.os === 'iOS' || parsed.os === 'iPadOS' || parsed.os === 'macOS') ? '<p style="margin:8px 0 0;color:#94a3b8;font-size:12px;">* 因为Apple隐私策略，版本号可能不准确</p>' : ''),
+    'warning'
+  )}
+  <p style="margin:16px 0;color:#475569;font-size:14px;">如非本人操作，请忽略此邮件。如确认是本人，请使用下方验证码在登录页面完成验证：</p>
+  <div style="text-align:center;margin:24px 0;">
+    <div style="display:inline-block;background-color:#6366f1;color:#ffffff;padding:16px 40px;border-radius:12px;font-size:32px;font-weight:700;letter-spacing:8px;font-family:'Courier New',monospace;">${loginCode}</div>
+  </div>
+  <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;">此验证码 10 分钟内有效</p>
+`, { preheader: '您的验证码：' + loginCode })
         };
         const transporter = await createTransporter();
         if (transporter) {

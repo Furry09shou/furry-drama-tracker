@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import QRCode from 'qrcode';
 import { useI18n } from '../contexts/I18nContext';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/apiEndpoints';
+import Modal from './Modal';
 
 const FolderShareModal = ({ show, onClose, folder }) => {
   const [shareToken, setShareToken] = useState(null);
@@ -13,21 +14,18 @@ const FolderShareModal = ({ show, onClose, folder }) => {
   const [loading, setLoading] = useState(false);
   const { t } = useI18n();
   const { getAuthHeaders } = useAuth();
-  const dialogRef = useRef(null);
 
   const shareUrl = shareToken ? `${window.location.origin}/shared-folder/${shareToken}` : '';
   const shareText = shareToken ? t('share.folderShareText', { name: folder?.name }) : '';
 
+  // 打开时重置状态并生成新链接；关闭时不重置，保留内容供退出动画展示。
   useEffect(() => {
-    if (!show) {
+    if (show) {
       setShareToken(null);
       setShowQR(false);
       setQrDataUrl('');
       setCopied(false);
       setLoading(false);
-      dialogRef.current?.close();
-    } else {
-      dialogRef.current?.showModal();
       generateShareLink();
     }
   }, [show]);
@@ -57,7 +55,6 @@ const FolderShareModal = ({ show, onClose, folder }) => {
   };
 
   const handleClose = () => {
-    dialogRef.current?.close();
     onClose();
   };
 
@@ -112,18 +109,7 @@ const FolderShareModal = ({ show, onClose, folder }) => {
   ];
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      onClick={(e) => { if (e.target === dialogRef.current) handleClose(); }}
-      style={{
-        border: 'none', borderRadius: '16px', padding: 0,
-        maxWidth: '400px', width: '90%',
-        background: 'var(--card)', color: 'var(--foreground)',
-        boxShadow: '0 25px 50px var(--shadow-strong)',
-        margin: 'auto',
-      }}
-    >
+    <Modal isOpen={show} onClose={handleClose} maxWidth="400px">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
         <h3 style={{ margin: 0 }}>🔗 {t('share.shareFolder')}</h3>
         <button onClick={handleClose} style={{ background: 'none', border: 'none', color: 'var(--foreground)', fontSize: '20px', cursor: 'pointer' }}>✕</button>
@@ -173,7 +159,7 @@ const FolderShareModal = ({ show, onClose, folder }) => {
           <p style={{ color: 'var(--destructive-text)', fontSize: '13px', textAlign: 'center' }}>{t('share.shareFailed')}</p>
         )}
       </div>
-    </dialog>
+    </Modal>
   );
 };
 

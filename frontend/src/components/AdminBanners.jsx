@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import adminApi from '../utils/adminApi';
 import { useOutletContext } from 'react-router-dom';
 import ImageUploader from './ImageUploader';
+import Modal from './Modal';
 import { useI18n } from '../contexts/I18nContext';
 
 const AdminBanners = () => {
@@ -152,29 +152,25 @@ const AdminBanners = () => {
     </form>
   );
 
-  const addModal = showAddForm ? (
-    <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setShowAddForm(false); }}>
-      <div className="modal-content" style={{maxWidth: '520px'}}>
+  const addModal = (
+    <Modal isOpen={showAddForm} onClose={() => setShowAddForm(false)} maxWidth="520px">
         <div className="modal-header">
           <h3>{t('adminBanners.addBanner')}</h3>
           <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>{t('adminBanners.close')}</button>
         </div>
         {renderForm(handleAdd, t('adminBanners.add'))}
-      </div>
-    </div>
-  ) : null;
+    </Modal>
+  );
 
-  const editModal = editingBanner ? (
-    <div className="modal-overlay" onClick={(e) => { if (e.target.className === 'modal-overlay') setEditingBanner(null); }}>
-      <div className="modal-content" style={{maxWidth: '520px'}}>
+  const editModal = (
+    <Modal isOpen={!!editingBanner} onClose={() => setEditingBanner(null)} maxWidth="520px">
         <div className="modal-header">
           <h3>{t('adminBanners.editBanner')}</h3>
           <button className="btn btn-secondary" onClick={() => setEditingBanner(null)}>{t('adminBanners.close')}</button>
         </div>
         {renderForm(handleEdit, t('adminBanners.save'))}
-      </div>
-    </div>
-  ) : null;
+    </Modal>
+  );
 
   return (
     <div className="admin-panel">
@@ -219,8 +215,8 @@ const AdminBanners = () => {
         </div>
       )}
 
-      {createPortal(addModal, document.body)}
-      {createPortal(editModal, document.body)}
+      {addModal}
+      {editModal}
     </div>
   );
 };

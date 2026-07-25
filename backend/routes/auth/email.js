@@ -17,7 +17,7 @@ const { createChallenge, sha } = require('altcha/lib');
 const { protect, adminProtect, superAdminProtect, verifyRefreshToken } = require('../../middlewares/authFactory');
 const { validatePassword } = require('../../middlewares/security');
 const { logManual } = require('../../middlewares/auditLog');
-const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser } = require('../../utils/email');
+const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../../utils/email');
 const { sendNotificationEmailToUser } = require('../../utils/notifyHelper');
 const {
   parseUserAgent,
@@ -284,17 +284,13 @@ router.post('/request-email-change', protect, async (req, res) => {
       from: `"${fromName}" <${fromUser}>`,
       to: newEmail,
       subject: '确认修改邮箱 - 兽剧聚合平台',
-      html: `
-        <div style="max-width:600px;margin:0 auto;font-family:sans-serif;padding:20px;">
-          <h2 style="color:#6366f1;">确认修改邮箱</h2>
-          <p>您正在将账号 <strong>${escapeHtml(user.username || user.accountId)}</strong> 的绑定邮箱修改为 <strong>${escapeHtml(newEmail)}</strong>。</p>
-          <p>请点击以下链接确认修改（1小时内有效）：</p>
-          <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#10b981);color:#fff;text-decoration:none;border-radius:8px;margin:16px 0;">确认修改邮箱</a>
-          <p style="color:#94a3b8;font-size:13px;">如果您没有请求修改邮箱，请忽略此邮件，您的邮箱不会被更改。</p>
-          <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
-          <p style="color:#94a3b8;font-size:12px;">此链接1小时后失效。如无法点击，请复制以下地址到浏览器：${verifyUrl}</p>
-        </div>
-      `
+      html: await buildEmailHTML(fromName, getSiteUrl(), `
+  <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">确认修改邮箱</h2>
+  <p style="margin:0 0 16px;color:#475569;font-size:14px;">您正在将账号 <strong>${escapeHtml(user.username || user.accountId)}</strong> 的绑定邮箱修改为 <strong>${escapeHtml(newEmail)}</strong>。</p>
+  <p style="margin:0 0 16px;color:#475569;font-size:14px;">请点击下方按钮确认修改（1小时内有效）：</p>
+  <p style="margin:20px 0;">${emailButton('确认修改邮箱', verifyUrl, 'primary')}</p>
+  ${emailInfoBox('如果您没有请求修改邮箱，请忽略此邮件，您的邮箱不会被更改。<br><br>此链接 1 小时后失效。如无法点击按钮，请复制以下地址到浏览器：<br><span style="color:#6366f1;word-break:break-all;">' + verifyUrl + '</span>', 'info')}
+`, { preheader: '请确认邮箱修改' })
     });
 
     res.json({ message: '验证邮件已发送到新邮箱，请查收确认' });
