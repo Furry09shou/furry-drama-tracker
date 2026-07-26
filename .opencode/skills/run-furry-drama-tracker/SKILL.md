@@ -6,7 +6,7 @@ description: Run, start, build, screenshot, or smoke-test the Furry Drama Tracke
 兽剧聚合平台 (Furry Drama Tracker) — React 19 + Express 5 + MongoDB 全栈应用。
 前后端分离：前端 Vite dev server (:3000) 代理 API 到后端 (:5000)。
 
-驱动方式：Playwright 脚本 `.claude/skills/run-furry-drama-tracker/driver.mjs`
+驱动方式：Playwright 脚本 `.opencode/skills/run-furry-drama-tracker/driver.mjs`
 — API 登录用 curl + dev token 绕过 altcha，浏览器截图用 Playwright headless。
 
 本文所有路径相对于仓库根目录。
@@ -59,11 +59,11 @@ cd frontend && npm run dev &
 
 ## 运行 (agent 路径)
 
-驱动脚本 **`.claude/skills/run-furry-drama-tracker/driver.mjs`**。
+驱动脚本 **`.opencode/skills/run-furry-drama-tracker/driver.mjs`**。
 
 ```bash
 # 从仓库根目录运行:
-node .claude/skills/run-furry-drama-tracker/driver.mjs [command]
+node .opencode/skills/run-furry-drama-tracker/driver.mjs [command]
 ```
 
 **命令：**

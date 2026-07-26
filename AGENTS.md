@@ -26,6 +26,7 @@ The frontend dev server proxies `/api` and `/uploads` to `http://localhost:5000`
 
 - **MongoDB** must be running and reachable via `MONGO_URI` env var
 - **Node.js >= 18**
+- **Caddy** as reverse proxy (frontend `dist/` served by Caddy, not nginx)
 
 ## Required Env Vars (Backend)
 
