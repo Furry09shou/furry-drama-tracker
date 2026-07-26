@@ -237,7 +237,7 @@ const Home = () => {
   }, [handleFilterChange, filters.tag]);
 
   return (
-    <div className="container">
+    <div>
       <div ref={bannerRef} className={`reveal ${bannerVisible ? 'visible' : ''}`}>
       <BannerCarousel
         bannerImages={banners}

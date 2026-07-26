@@ -51,7 +51,7 @@ const CreatorPage = () => {
     : {};
 
   return (
-    <div className="container" style={{paddingTop: '30px', paddingBottom: '60px'}}>
+    <div style={{paddingTop: '30px', paddingBottom: '60px'}}>
       <button className="btn btn-secondary" onClick={() => navigate(-1)} style={{marginBottom: '20px'}}>
         {t('common.goBack')}
       </button>

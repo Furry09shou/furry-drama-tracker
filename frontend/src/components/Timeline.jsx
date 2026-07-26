@@ -101,7 +101,7 @@ const Timeline = () => {
   ].filter(tab => !tab.requiresAuth || user);
 
   return (
-    <div className="container">
+    <div>
       <h2 style={{
         fontSize: '24px',
         fontWeight: 700,
