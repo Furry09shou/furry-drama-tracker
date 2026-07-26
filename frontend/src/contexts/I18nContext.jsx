@@ -92,10 +92,15 @@ export const I18nProvider = ({ children }) => {
   }, [lang]);
 
   const switchLang = useCallback((newLang) => {
-    if (translations[newLang]) {
-      setLang(newLang);
+    if (translations[newLang] && newLang !== lang) {
+      // 先写入 localStorage，再刷新页面。
+      // 刷新让 index.html 中的早期内联脚本读取新语言并设置 <html lang>，
+      // 这样浏览器翻译功能才能在页面初始加载时就正确识别语言，
+      // 而非依赖 React 挂载后的动态修改（可能错过浏览器的初始语言检测）。
+      localStorage.setItem('lang', newLang);
+      window.location.reload();
     }
-  }, []);
+  }, [lang]);
 
   return (
     <I18nContext.Provider value={{ lang, t, switchLang, supportedLanguages: SUPPORTED_LANGUAGES, locale: LOCALE_MAP[lang] || 'zh-CN' }}>

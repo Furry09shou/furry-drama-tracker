@@ -81,6 +81,8 @@ const clearEmailCache = () => {
   cacheTime = 0;
   cachedAbout = null;
   aboutCacheTime = 0;
+  cachedSettings = null;
+  settingsCacheTime = 0;
 };
 
 const isLocalhost = (host) => host === '127.0.0.1' || host === 'localhost' || host === '::1';
@@ -143,6 +145,10 @@ let cachedAbout = null;
 let aboutCacheTime = 0;
 const ABOUT_CACHE_TTL = 5 * 60 * 1000;
 
+// 获取站点导航栏设置（站名、logo），带缓存，让邮件品牌栏跟随导航栏数据
+let cachedSettings = null;
+let settingsCacheTime = 0;
+
 const getSiteAboutInfo = async () => {
   if (cachedAbout && (Date.now() - aboutCacheTime) < ABOUT_CACHE_TTL) {
     return cachedAbout;
@@ -166,6 +172,29 @@ const getSiteAboutInfo = async () => {
     }
   } catch (e) {}
   return { icp: '', policeRecord: '', version: '', copyright: '', aiDisclaimer: '' };
+};
+
+// 获取站点导航栏设置（站名、logo），让邮件品牌栏与导航栏保持一致
+const getSiteSettingsInfo = async () => {
+  if (cachedSettings && (Date.now() - settingsCacheTime) < ABOUT_CACHE_TTL) {
+    return cachedSettings;
+  }
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const SiteContent = mongoose.model('SiteContent');
+      const doc = await SiteContent.findOne({ key: 'settings' });
+      if (doc) {
+        const data = JSON.parse(doc.content);
+        cachedSettings = {
+          siteName: data.siteName || '',
+          navLogo: data.navLogo || '',
+        };
+        settingsCacheTime = Date.now();
+        return cachedSettings;
+      }
+    }
+  } catch (e) {}
+  return { siteName: '', navLogo: '' };
 };
 
 // ===== 统一邮件模板 =====
@@ -195,7 +224,10 @@ const emailInfoBox = (content, variant = 'info') => {
 
 const buildEmailHTML = async (siteName, siteUrl, bodyContent, options = {}) => {
   const { preheader = '' } = options;
-  const logoUrl = `${siteUrl}/icon-192x192.png`;
+  // 优先使用导航栏设置的站名和 logo，回退到传入参数 / 默认 icon
+  const settings = await getSiteSettingsInfo();
+  const displayName = settings.siteName || siteName;
+  const logoUrl = settings.navLogo || `${siteUrl}/icon-192x192.png`;
   const year = new Date().getFullYear();
   const about = await getSiteAboutInfo();
 
@@ -217,7 +249,7 @@ const buildEmailHTML = async (siteName, siteUrl, bodyContent, options = {}) => {
   // 开源项目提示 + 版本号
   const versionPart = about.version ? ` · v${about.version}` : '';
   footerExtraRows.push(
-    `<p style="margin:2px 0;color:#94a3b8;font-size:11px;text-align:center;"><a href="https://github.com/Furry09shou/furry-drama-tracker" target="_blank" rel="noopener noreferrer" style="color:#94a3b8;text-decoration:none;">📦 开源项目 / Open Source</a>${versionPart}</p>`
+    `<p style="margin:2px 0;color:#94a3b8;font-size:11px;text-align:center;"><a href="https://github.com/Furry09shou/furry-drama-tracker" target="_blank" rel="noopener noreferrer" style="color:#94a3b8;text-decoration:none;">GitHub 开源项目 / GPL v3.0 / AGPL v3.0 许可协议</a>${versionPart}</p>`
   );
 
   const footerExtra = footerExtraRows.join('');
@@ -230,7 +262,7 @@ const buildEmailHTML = async (siteName, siteUrl, bodyContent, options = {}) => {
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="color-scheme" content="light only">
   <meta name="supported-color-schemes" content="light only">
-  <title>${siteName}</title>
+  <title>${displayName}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f1f5f9;font-family:'Segoe UI','Microsoft YaHei','PingFang SC','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6;">
   ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${preheader}</div>` : ''}
@@ -243,8 +275,8 @@ const buildEmailHTML = async (siteName, siteUrl, bodyContent, options = {}) => {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align:middle;">
-                    <img src="${logoUrl}" alt="${siteName}" width="36" height="36" style="display:inline-block;vertical-align:middle;margin-right:12px;border-radius:9px;">
-                    <span style="display:inline-block;vertical-align:middle;color:#ffffff;font-size:19px;font-weight:700;letter-spacing:-0.02em;">${siteName}</span>
+                    <img src="${logoUrl}" alt="${displayName}" width="36" height="36" style="display:inline-block;vertical-align:middle;margin-right:12px;border-radius:9px;">
+                    <span style="display:inline-block;vertical-align:middle;color:#ffffff;font-size:19px;font-weight:700;letter-spacing:-0.02em;">${displayName}</span>
                   </td>
                 </tr>
               </table>
@@ -257,7 +289,7 @@ const buildEmailHTML = async (siteName, siteUrl, bodyContent, options = {}) => {
           </tr>
           <tr>
             <td style="padding:16px 32px 28px;background-color:#f8fafc;border-top:1px solid #e2e8f0;">
-              <p style="margin:0 0 4px;color:#64748b;font-size:12px;text-align:center;">&copy; ${year} ${siteName}</p>
+              <p style="margin:0 0 4px;color:#64748b;font-size:12px;text-align:center;">&copy; ${year} ${displayName}</p>
               <p style="margin:0;color:#94a3b8;font-size:11px;text-align:center;">此邮件由系统自动发送，请勿直接回复</p>
               ${footerExtra}
             </td>
