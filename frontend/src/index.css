@@ -4163,27 +4163,12 @@ tr:hover,
    通用增强 — 区块标题、网格、容器、表单细节
    ============================================================ */
 
-/* 区块标题：左侧渐变装饰条 + 渐变文字 */
-.episode-detail h2,
-.user-profile h2,
-.dashboard-card h2,
-.dashboard-card h3,
-.container h2,
-.auth-form h2,
-.modal-header h2,
-.modal-header h3,
-.settings-container h2,
-.profile-header h2 {
+/* 区块标题装饰：仅保留剧集详情页的竖条 */
+.episode-detail h2 {
   position: relative;
   padding-left: 14px;
 }
-.episode-detail h2::before,
-.user-profile h2::before,
-.dashboard-card h2::before,
-.dashboard-card h3::before,
-.container h2::before,
-.settings-container h2::before,
-.profile-header h2::before {
+.episode-detail h2::before {
   content: '';
   position: absolute;
   left: 0;
@@ -4194,31 +4179,6 @@ tr:hover,
   border-radius: var(--radius-full);
   background: var(--primary);
   box-shadow: 0 0 8px var(--primary-bg-strong);
-}
-
-/* 登录/注册标题：竖条距离调近（14px → 10px） */
-.auth-form h2 {
-  padding-left: 10px;
-}
-.auth-form h2::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 70%;
-  border-radius: var(--radius-full);
-  background: var(--primary);
-  box-shadow: 0 0 8px var(--primary-bg-strong);
-}
-
-/* 首页欢迎标题：移除竖条装饰 */
-.bc-welcome-title {
-  padding-left: 0 !important;
-}
-.bc-welcome-title::before {
-  display: none !important;
 }
 
 /* 桌面端"更多"下拉菜单：展开/收起动画 */
