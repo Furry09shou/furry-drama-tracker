@@ -227,7 +227,11 @@ const buildEmailHTML = async (siteName, siteUrl, bodyContent, options = {}) => {
   // 优先使用导航栏设置的站名和 logo，回退到传入参数 / 默认 icon
   const settings = await getSiteSettingsInfo();
   const displayName = settings.siteName || siteName;
-  const logoUrl = settings.navLogo || `${siteUrl}/icon-192x192.png`;
+  // navLogo 可能是相对路径（/uploads/xxx），邮件中需拼接完整 URL
+  let logoUrl = settings.navLogo || `${siteUrl}/icon-192x192.png`;
+  if (logoUrl && !logoUrl.startsWith('http') && !logoUrl.startsWith('data:')) {
+    logoUrl = `${siteUrl}${logoUrl}`;
+  }
   const year = new Date().getFullYear();
   const about = await getSiteAboutInfo();
 
@@ -246,10 +250,13 @@ const buildEmailHTML = async (siteName, siteUrl, bodyContent, options = {}) => {
       `<p style="margin:2px 0;color:#94a3b8;font-size:11px;text-align:center;"><a href="https://beian.mps.gov.cn/#/query/webSearch" target="_blank" rel="noopener noreferrer" style="color:#94a3b8;text-decoration:none;">${about.policeRecord}</a></p>`
     );
   }
-  // 开源项目提示 + 版本号
+  // 开源项目提示 + 版本号（与网站页脚同步，GitHub 开源项目与许可协议分两行）
   const versionPart = about.version ? ` · v${about.version}` : '';
   footerExtraRows.push(
-    `<p style="margin:2px 0;color:#94a3b8;font-size:11px;text-align:center;"><a href="https://github.com/Furry09shou/furry-drama-tracker" target="_blank" rel="noopener noreferrer" style="color:#94a3b8;text-decoration:none;">GitHub 开源项目 / GPL v3.0 / AGPL v3.0 许可协议</a>${versionPart}</p>`
+    `<p style="margin:2px 0;color:#94a3b8;font-size:11px;text-align:center;"><a href="https://github.com/Furry09shou/furry-drama-tracker" target="_blank" rel="noopener noreferrer" style="color:#94a3b8;text-decoration:none;">GitHub 开源项目</a></p>`
+  );
+  footerExtraRows.push(
+    `<p style="margin:2px 0;color:#94a3b8;font-size:11px;text-align:center;"><span style="color:#94a3b8;">GPL v3.0 / AGPL v3.0 许可协议</span>${versionPart}</p>`
   );
 
   const footerExtra = footerExtraRows.join('');

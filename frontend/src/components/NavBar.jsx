@@ -426,14 +426,14 @@ const NavBar = ({ onFeedback }) => {
                 >
                   {t('nav.more')}
                 </button>
-                {showMoreMenu && (
                 <div
+                  className={`more-dropdown${showMoreMenu ? ' more-dropdown--open' : ''}`}
                   role="menu"
                   style={{
                     position: 'absolute', top: '100%', right: 0,
                     background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: '10px', boxShadow: '0 8px 32px var(--shadow-modal)',
-                    minWidth: '160px', zIndex: 10000, overflow: 'hidden',
+                    minWidth: '160px', zIndex: 10000,
                     backdropFilter: 'blur(20px)', padding: 0
                   }}
                 >
@@ -480,7 +480,6 @@ const NavBar = ({ onFeedback }) => {
                     >{t('nav.logout')}</button>
                   </div>
                 </div>
-                )}
               </li>
               <li className="mobile-more-toggle">
                 <button onClick={() => setShowMobileMore(!showMobileMore)} style={{
@@ -526,14 +525,14 @@ const NavBar = ({ onFeedback }) => {
                 >
                   {t('nav.more')}
                 </button>
-                {showMoreMenu && (
                 <div
+                  className={`more-dropdown${showMoreMenu ? ' more-dropdown--open' : ''}`}
                   role="menu"
                   style={{
                     position: 'absolute', top: '100%', right: 0,
                     background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: '10px', boxShadow: '0 8px 32px var(--shadow-modal)',
-                    minWidth: '160px', zIndex: 10000, overflow: 'hidden',
+                    minWidth: '160px', zIndex: 10000,
                     backdropFilter: 'blur(20px)', padding: 0
                   }}
                 >
@@ -558,7 +557,6 @@ const NavBar = ({ onFeedback }) => {
                     >{t('nav.clearCache')}</button>
                   </div>
                 </div>
-                )}
               </li>
               <li className="mobile-more-toggle">
                 <button onClick={() => setShowMobileMore(!showMobileMore)} style={{

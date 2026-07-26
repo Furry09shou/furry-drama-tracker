@@ -4196,6 +4196,48 @@ tr:hover,
   box-shadow: 0 0 8px var(--primary-bg-strong);
 }
 
+/* 登录/注册标题：竖条距离调近（14px → 10px） */
+.auth-form h2 {
+  padding-left: 10px;
+}
+.auth-form h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 70%;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary-bg-strong);
+}
+
+/* 首页欢迎标题：移除竖条装饰 */
+.bc-welcome-title {
+  padding-left: 0 !important;
+}
+.bc-welcome-title::before {
+  display: none !important;
+}
+
+/* 桌面端"更多"下拉菜单：展开/收起动画 */
+.more-dropdown {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: max-height 0.25s var(--ease-out), opacity 0.2s var(--ease-out),
+              transform 0.25s var(--ease-out);
+}
+.more-dropdown--open {
+  max-height: 500px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 /* 剧集网格：间距与响应式 */
 .episode-grid {
   display: grid;

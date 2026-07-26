@@ -181,17 +181,19 @@ const createUserSession = async (userId, refreshToken, deviceInfo, parsed, ua, i
 // refresh cookie 限定 path=/api/auth，缩小泄露面。
 const setAuthCookies = (res, accessToken, refreshToken) => {
   const isProduction = process.env.NODE_ENV === 'production';
+  // sameSite: 'lax' 允许从外部链接/书签进入时携带 Cookie（strict 会阻止），
+  // 同时仍阻止跨站 POST 请求，兼顾安全与用户体验
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
+    sameSite: 'lax',
     maxAge: ACCESS_TOKEN_MAX_AGE_MS,
     path: '/',
   });
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
+    sameSite: 'lax',
     maxAge: REFRESH_TOKEN_MAX_AGE_MS,
     path: '/api/auth',
   });
