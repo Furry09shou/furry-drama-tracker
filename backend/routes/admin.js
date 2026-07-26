@@ -11,6 +11,7 @@ const { createChallenge, verifySolution, sha } = require('altcha/lib');
 const { superAdminProtect, adminProtect, requireEmailChanged } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
 const { parseUserAgent, hashToken, getClientIp, setAuthCookies, clearAuthCookies, createAccessToken, createRefreshToken } = require('../utils/helpers');
+const { sendVerificationEmail } = require('../utils/email');
 const Episode = require('../models/Episode');
 const Report = require('../models/Report');
 const Feedback = require('../models/Feedback');
@@ -236,15 +237,25 @@ router.post('/register', superAdminProtect, requireEmailChanged, async (req, res
       email,
       password,
       role,
-      isEmailVerified: true
+      // 与普通注册一致：不自动验证邮箱，用户须验证邮箱后才能登录
+      isEmailVerified: false
     });
+
+    // 发送邮箱验证邮件，确保邮箱真实有效（与普通注册流程一致）
+    const verifyToken = jwt.sign(
+      { id: user._id, purpose: 'verify-email' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    sendVerificationEmail(email, verifyToken).catch(() => {});
 
     res.json({
       _id: user._id,
       username: user.username,
       accountId: user.accountId,
       email: user.email,
-      role: user.role
+      role: user.role,
+      message: '账号创建成功，验证邮件已发送至用户邮箱，请通知用户验证后登录'
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });

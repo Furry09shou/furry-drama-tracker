@@ -807,7 +807,7 @@ export default {
     current: '当前',
     close: '关闭',
     password: '密码',
-    adminCreated: '管理员创建成功',
+    adminCreated: '账号创建成功，验证邮件已发送至用户邮箱，请通知用户验证后登录',
     createFailed: '创建用户失败',
     deleteUserConfirm: '确定要删除该用户吗？删除后不可恢复！',
     userDeleted: '用户已删除',

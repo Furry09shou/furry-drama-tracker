@@ -807,7 +807,7 @@ export default {
     current: 'Current',
     close: 'Close',
     password: 'Password',
-    adminCreated: 'Admin account created',
+    adminCreated: 'Account created. A verification email has been sent. Please ask the user to verify their email before logging in.',
     createFailed: 'Failed to create user',
     deleteUserConfirm: 'Are you sure to delete this user? This cannot be undone!',
     userDeleted: 'User deleted',
