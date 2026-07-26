@@ -86,11 +86,18 @@ const NavBar = ({ onFeedback }) => {
       if (navRef.current && !navRef.current.contains(e.target)) {
         setShowNotifPanel(false);
         setShowMoreMenu(false);
+        setShowMobileMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // 路由变化时关闭移动菜单（防止浏览器前进/后退时菜单残留）
+  useEffect(() => {
+    setShowMobileMenu(false);
+    setShowMobileMore(false);
+  }, [location.pathname]);
 
   const handleInstallClick = async () => {
     if (!installPrompt) return;
@@ -492,8 +499,8 @@ const NavBar = ({ onFeedback }) => {
             </>
           ) : (
             <>
-              <li><Link to="/login">{t('nav.login')}</Link></li>
-              <li><Link to="/register">{t('nav.register')}</Link></li>
+              <li><Link to="/login" onClick={() => setShowMobileMenu(false)}>{t('nav.login')}</Link></li>
+              <li><Link to="/register" onClick={() => setShowMobileMenu(false)}>{t('nav.register')}</Link></li>
               <li className="desktop-only-theme">
                 <LanguageSwitcher style={{ fontSize: '13px' }} />
               </li>

@@ -1490,7 +1490,7 @@ table tr:last-child td {
   }
 
   nav ul {
-    display: none;
+    display: flex;
     flex-direction: column;
     position: absolute;
     top: 100%;
@@ -1498,14 +1498,26 @@ table tr:last-child td {
     right: 0;
     background: var(--card);
     border-bottom: 1px solid var(--border);
-    padding: 12px;
+    padding: 0 12px;
     gap: 4px;
     z-index: 200;
     box-shadow: 0 8px 24px var(--shadow-modal);
+    /* 关闭状态：max-height + opacity + transform 实现平滑收起动画 */
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: max-height 0.3s var(--ease-out), opacity 0.2s var(--ease-out),
+                padding 0.3s var(--ease-out), transform 0.3s var(--ease-out);
   }
 
   nav ul.mobile-open {
-    display: flex;
+    max-height: 600px;
+    opacity: 1;
+    padding: 12px;
+    pointer-events: auto;
+    transform: translateY(0);
   }
 
   nav ul li {
@@ -2145,9 +2157,15 @@ img {
     font-size: 0.9rem;
   }
 
-  /* 隐藏导航链接，只保留汉堡菜单 */
+  /* 300px 以下：沿用 768px 的动画方案，不强制 display:none 以免阻断 mobile-open */
   nav ul {
-    display: none !important;
+    max-height: 0;
+    padding: 0 8px;
+  }
+
+  nav ul.mobile-open {
+    max-height: 500px;
+    padding: 10px 8px;
   }
 
   .mobile-menu-btn {
