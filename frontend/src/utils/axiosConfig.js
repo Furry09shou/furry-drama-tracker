@@ -133,6 +133,17 @@ const refreshAccessToken = async () => {
     const res = await axios.post('/api/auth/refresh', {}, { skipRedirect: true, _isRetry: true });
     return { ok: true, user: res.data };
   } catch (e) {
+    // CSRF token 可能过期/丢失导致 403，重新获取后重试一次
+    if (e.response?.status === 403) {
+      try {
+        const csrfRes = await axios.get('/api/csrf-token');
+        csrfToken = csrfRes.data.csrfToken;
+        const res = await axios.post('/api/auth/refresh', {}, { skipRedirect: true, _isRetry: true });
+        return { ok: true, user: res.data };
+      } catch (retryErr) {
+        return { ok: false, error: retryErr };
+      }
+    }
     return { ok: false, error: e };
   }
 };
