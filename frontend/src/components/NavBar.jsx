@@ -134,6 +134,12 @@ const NavBar = ({ onFeedback }) => {
           ep = match ? match[1] : '';
         }
         if (n.metadata?.isPreview) {
+          if (n.metadata?.previewUpdateType === 'video') {
+            return t('notification.previewVideoUpdate', { title, ep: ep ?? '' });
+          }
+          if (n.metadata?.previewUpdateType === 'info') {
+            return t('notification.previewInfoUpdate', { title, ep: ep ?? '' });
+          }
           return t('notification.newEpisodePreview', { title, ep: ep ?? '' });
         }
         return t('notification.newEpisode', { title, ep: ep ?? '' });

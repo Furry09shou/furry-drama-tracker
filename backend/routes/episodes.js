@@ -475,6 +475,70 @@ router.put('/single/:id', adminProtect, async (req, res) => {
       }
     }
 
+    // 预告集被编辑（仍为预告）：区分预告视频更新 vs 预告信息更新
+    const stillPreview = oldSingle.isUpcoming === true && !becameAvailable;
+    if (stillPreview) {
+      // 检测 platformLinks（视频/平台链接）是否变更
+      let videoChanged = false;
+      if (updateData.platformLinks !== undefined) {
+        const oldLinks = oldSingle.platformLinks || {};
+        const newLinks = updateData.platformLinks || {};
+        const oldKeys = Object.keys(oldLinks);
+        const newKeys = Object.keys(newLinks);
+        videoChanged = oldKeys.length !== newKeys.length ||
+          newKeys.some(k => String(newLinks[k]) !== String(oldLinks[k]));
+      }
+      // 检测信息字段是否变更
+      const INFO_FIELDS = ['title', 'titleEn', 'titleJa', 'duration', 'scheduledDate', 'isScheduled', 'premiereDate', 'releaseDate', 'episodeNumber'];
+      const infoChanged = INFO_FIELDS.some(f =>
+        updateData[f] !== undefined && String(updateData[f]) !== String(oldSingle[f])
+      );
+
+      if (videoChanged || infoChanged) {
+        // 同时变更时优先发视频通知（对追番用户更有价值）
+        const updateType = videoChanged ? 'video' : 'info';
+        const eventType = videoChanged ? 'preview_video' : 'preview_info';
+        const episode = await Episode.findById(singleEpisode.episodeId);
+        if (episode) {
+          const followers = await Follow.find({ episodeId: singleEpisode.episodeId });
+          if (followers.length > 0) {
+            const epNum = singleEpisode.episodeNumber;
+            const notifMessage = videoChanged
+              ? `《${episode.title}》第${epNum}集预告视频已更新`
+              : `《${episode.title}》第${epNum}集预告信息已更新`;
+            const notifications = followers.map(f => ({
+              userId: f.userId,
+              episodeId: singleEpisode.episodeId,
+              episodeTitle: episode.title,
+              episodeTitleEn: episode.titleEn || '',
+              type: 'new_episode',
+              message: notifMessage,
+              metadata: { episodeNumber: epNum, isPreview: true, previewUpdateType: updateType }
+            }));
+            await Notification.insertMany(notifications);
+            const uniqueUserIds = [...new Set(followers.map(f => String(f.userId)))];
+            uniqueUserIds.forEach(uid => {
+              sendPushToUser(uid, {
+                title: `《${episode.title}》预告${videoChanged ? '视频' : '信息'}更新`,
+                body: `第${epNum}集预告${videoChanged ? '视频' : '信息'}已更新`,
+                icon: '/vite.svg',
+                data: { url: `/episode/${singleEpisode.episodeId}` }
+              });
+            });
+            if (shouldSendEpisodeEmail(singleEpisode.episodeId, epNum, eventType)) {
+              sendBatchNotificationEmails(
+                uniqueUserIds.map(uid => ({
+                  userId: uid,
+                  prefKey: 'episodeUpdate',
+                  args: [episode.title, epNum, eventType],
+                }))
+              );
+            }
+          }
+        }
+      }
+    }
+
     res.json(singleEpisode);
   } catch (error) {
     console.error('Edit single episode error:', error);

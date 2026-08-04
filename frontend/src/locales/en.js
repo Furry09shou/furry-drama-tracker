@@ -106,6 +106,8 @@ export default {
     noNotifications: 'No notifications',
     newEpisode: '"{title}" updated Ep.{ep}',
     newEpisodePreview: '"{title}" released Ep.{ep} preview',
+    previewVideoUpdate: '"{title}" Ep.{ep} preview video updated',
+    previewInfoUpdate: '"{title}" Ep.{ep} preview info updated',
     statusChange: '"{title}" status changed to: {status}',
     feedbackReply: 'Your feedback has been replied: {reply}',
     friendLinkApply: 'New friend link application: {name}',

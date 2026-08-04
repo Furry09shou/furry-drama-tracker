@@ -106,6 +106,8 @@ export default {
     noNotifications: '暂无通知',
     newEpisode: '《{title}》更新了第{ep}集',
     newEpisodePreview: '《{title}》发布了第{ep}集预告',
+    previewVideoUpdate: '《{title}》第{ep}集预告视频已更新',
+    previewInfoUpdate: '《{title}》第{ep}集预告信息已更新',
     statusChange: '《{title}》状态变更为：{status}',
     feedbackReply: '您的反馈已收到回复：{reply}',
     friendLinkApply: '新友链申请：{name}',
