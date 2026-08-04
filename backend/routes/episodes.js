@@ -405,9 +405,12 @@ router.put('/single/:id', adminProtect, async (req, res) => {
     if (req.body.duration !== undefined) updateData.duration = req.body.duration;
     if (req.body.platformLinks !== undefined) updateData.platformLinks = req.body.platformLinks;
     if (req.body.scheduledDate !== undefined) updateData.scheduledDate = req.body.scheduledDate;
-    if (req.body.isScheduled !== undefined) updateData.isScheduled = req.body.isScheduled;
+    if (req.body.isScheduled !== undefined) {
+      updateData.isScheduled = req.body.isScheduled;
+      // isUpcoming 自动同步 isScheduled，避免前端维护两个字段
+      updateData.isUpcoming = req.body.isScheduled;
+    }
     if (req.body.premiereDate !== undefined) updateData.premiereDate = req.body.premiereDate;
-    if (req.body.isUpcoming !== undefined) updateData.isUpcoming = req.body.isUpcoming;
     if (req.body.isScheduled !== undefined && req.body.isScheduled) {
       updateData.releaseDate = null;
     } else if (req.body.releaseDate !== undefined) {
@@ -632,7 +635,7 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
       scheduledDate: req.body.scheduledDate || null,
       isScheduled: req.body.isScheduled || false,
       premiereDate: req.body.premiereDate || null,
-      isUpcoming: req.body.isUpcoming || false,
+      isUpcoming: req.body.isScheduled || false,
       releaseDate: req.body.isScheduled ? null : (req.body.releaseDate || Date.now())
     };
 
