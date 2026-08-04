@@ -646,13 +646,26 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
       const followers = await Follow.find({ episodeId: req.params.id });
       if (followers.length > 0) {
         const isPreview = !!req.body.isUpcoming;
-        const eventType = isPreview ? 'preview' : 'available';
-        const notifMessage = isPreview
-          ? `《${updatedEpisode.title}》发布了第${req.body.episodeNumber}集预告`
-          : `《${updatedEpisode.title}》更新了第${req.body.episodeNumber}集`;
-        const pushBody = isPreview
-          ? `第${req.body.episodeNumber}集预告已发布`
-          : `第${req.body.episodeNumber}集已更新`;
+        // 预告集根据是否含视频链接区分：有视频→新预告，无视频→预告信息更新
+        const links = req.body.platformLinks || {};
+        const hasVideo = Object.entries(links).some(([k, v]) => k && v);
+        let eventType, notifMessage, pushBody, notifMetadata;
+        if (!isPreview) {
+          eventType = 'available';
+          notifMessage = `《${updatedEpisode.title}》更新了第${req.body.episodeNumber}集`;
+          pushBody = `第${req.body.episodeNumber}集已更新`;
+          notifMetadata = { episodeNumber: req.body.episodeNumber, isPreview: false };
+        } else if (hasVideo) {
+          eventType = 'preview';
+          notifMessage = `《${updatedEpisode.title}》发布了第${req.body.episodeNumber}集预告`;
+          pushBody = `第${req.body.episodeNumber}集预告已发布`;
+          notifMetadata = { episodeNumber: req.body.episodeNumber, isPreview: true };
+        } else {
+          eventType = 'preview_info';
+          notifMessage = `《${updatedEpisode.title}》第${req.body.episodeNumber}集预告信息已更新`;
+          pushBody = `第${req.body.episodeNumber}集预告信息已更新`;
+          notifMetadata = { episodeNumber: req.body.episodeNumber, isPreview: true, previewUpdateType: 'info' };
+        }
         const notifications = followers.map(f => ({
           userId: f.userId,
           episodeId: req.params.id,
@@ -660,13 +673,16 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
           episodeTitleEn: updatedEpisode.titleEn || '',
           type: 'new_episode',
           message: notifMessage,
-          metadata: { episodeNumber: req.body.episodeNumber, isPreview }
+          metadata: notifMetadata
         }));
         await Notification.insertMany(notifications);
         const uniqueUserIds = [...new Set(followers.map(f => String(f.userId)))];
+        const pushTitle = !isPreview
+          ? `《${updatedEpisode.title}》更新了`
+          : (hasVideo ? `《${updatedEpisode.title}》新预告` : `《${updatedEpisode.title}》预告信息更新`);
         uniqueUserIds.forEach(uid => {
           sendPushToUser(uid, {
-            title: `《${updatedEpisode.title}》${isPreview ? '新预告' : '更新了'}`,
+            title: pushTitle,
             body: pushBody,
             icon: '/vite.svg',
             data: { url: `/episode/${req.params.id}` }

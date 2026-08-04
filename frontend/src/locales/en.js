@@ -1089,6 +1089,8 @@ export default {
     duration: 'Duration',
     durationPlaceholder: 'e.g., 24min',
     videoUrl: 'Jump Links',
+    isUpcomingEpisode: 'Mark as upcoming preview',
+    isUpcomingHint: 'Preview episode is not watchable yet; followers are notified when it becomes available',
     scheduledPreview: 'Set as preview update',
     scheduledDate: 'Preview Update Date',
     noScheduledDate: 'No preview time yet',

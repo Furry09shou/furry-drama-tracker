@@ -326,7 +326,8 @@ const AdminEpisodes = () => {
       noScheduledDate: singleEpisode.isScheduled && !singleEpisode.scheduledDate,
       releaseDate: singleEpisode.releaseDate
         ? new Date(singleEpisode.releaseDate).toISOString().slice(0, 16)
-        : ''
+        : '',
+      isUpcoming: singleEpisode.isUpcoming || false
     });
     setShowSingleEpisodeForm(true);
   };
@@ -676,7 +677,8 @@ const AdminEpisodes = () => {
                   scheduledDate: '',
                   isScheduled: false,
                   noScheduledDate: false,
-                  releaseDate: ''
+                  releaseDate: '',
+                  isUpcoming: false
                 });
               }
             }}>
@@ -714,6 +716,18 @@ const AdminEpisodes = () => {
                     onChange={(e) => setNewSingleEpisode({...newSingleEpisode, duration: e.target.value})}
                     placeholder={t('adminEpisodes.durationPlaceholder')}
                   />
+                </div>
+                <div className="form-group" style={{ padding: '12px', background: 'var(--hover-bg-strong)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={newSingleEpisode.isUpcoming}
+                      onChange={(e) => setNewSingleEpisode({...newSingleEpisode, isUpcoming: e.target.checked})}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '14px' }}>{t('adminEpisodes.isUpcomingEpisode')}</span>
+                  </label>
+                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminEpisodes.isUpcomingHint')}</p>
                 </div>
                 {editingEpisode && (editingEpisode.status === 'ongoing' || editingEpisode.status === 'completed') && !newSingleEpisode.isScheduled && (
                   <div className="form-group">

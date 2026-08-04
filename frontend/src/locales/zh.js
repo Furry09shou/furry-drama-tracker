@@ -1089,6 +1089,8 @@ export default {
     duration: '时长',
     durationPlaceholder: '例如：24分钟',
     videoUrl: '跳转链接',
+    isUpcomingEpisode: '标记为预告集',
+    isUpcomingHint: '预告集暂不可观看，变为可观看时会通知追番用户',
     scheduledPreview: '设置为预告更新',
     scheduledDate: '预告更新日期',
     noScheduledDate: '暂无预告时间',
