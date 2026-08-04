@@ -133,6 +133,9 @@ const NavBar = ({ onFeedback }) => {
           const match = n.message?.match(/第(\d+)集/);
           ep = match ? match[1] : '';
         }
+        if (n.metadata?.isPreview) {
+          return t('notification.newEpisodePreview', { title, ep: ep ?? '' });
+        }
         return t('notification.newEpisode', { title, ep: ep ?? '' });
       }
       case 'status_change': {

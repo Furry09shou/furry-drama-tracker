@@ -18,12 +18,13 @@ const upload = createUploadConfig('cover', 5 * 1024 * 1024);
 const viewTracker = new Map();
 const VIEW_COOLDOWN = 10 * 60 * 1000;
 
-// 邮件通知去重：同一剧集+集数 1小时内只发一次，防止创作者频繁更新刷爆SMTP配额
+// 邮件通知去重：同一剧集+集数+事件类型 1小时内只发一次，防止创作者频繁更新刷爆SMTP配额
+// eventType 区分 'available'（可观看）与 'preview'（预告），两者独立去重
 const emailNotifyTracker = new Map();
 const EMAIL_NOTIFY_COOLDOWN = 60 * 60 * 1000; // 1小时
 
-const shouldSendEpisodeEmail = (episodeId, episodeNumber) => {
-  const key = `${episodeId}_${episodeNumber}`;
+const shouldSendEpisodeEmail = (episodeId, episodeNumber, eventType = 'available') => {
+  const key = `${episodeId}_${episodeNumber}_${eventType}`;
   const now = Date.now();
   const lastSent = emailNotifyTracker.get(key);
   if (lastSent && (now - lastSent) < EMAIL_NOTIFY_COOLDOWN) {
@@ -413,6 +414,13 @@ router.put('/single/:id', adminProtect, async (req, res) => {
       updateData.releaseDate = req.body.releaseDate;
     }
 
+    // 先取旧记录，用于检测 isUpcoming 从 true → false（预告转可观看）以触发追番通知
+    const oldSingle = await SingleEpisode.findById(req.params.id).lean();
+    if (!oldSingle) {
+      return res.status(404).json({ message: 'Single episode not found' });
+    }
+    const becameAvailable = oldSingle.isUpcoming === true && updateData.isUpcoming === false;
+
     const singleEpisode = await SingleEpisode.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -425,6 +433,47 @@ router.put('/single/:id', adminProtect, async (req, res) => {
 
     clearCache(`episode_${singleEpisode.episodeId}`);
     clearCacheByPrefix('episodes_');
+
+    // 预告集变为可观看集：通知追番用户（站内通知 + Push + 邮件）
+    if (becameAvailable) {
+      const episode = await Episode.findById(singleEpisode.episodeId);
+      if (episode) {
+        const followers = await Follow.find({ episodeId: singleEpisode.episodeId });
+        if (followers.length > 0) {
+          const epNum = singleEpisode.episodeNumber;
+          const notifMessage = `《${episode.title}》更新了第${epNum}集`;
+          const notifications = followers.map(f => ({
+            userId: f.userId,
+            episodeId: singleEpisode.episodeId,
+            episodeTitle: episode.title,
+            episodeTitleEn: episode.titleEn || '',
+            type: 'new_episode',
+            message: notifMessage,
+            metadata: { episodeNumber: epNum, isPreview: false }
+          }));
+          await Notification.insertMany(notifications);
+          const uniqueUserIds = [...new Set(followers.map(f => String(f.userId)))];
+          uniqueUserIds.forEach(uid => {
+            sendPushToUser(uid, {
+              title: `《${episode.title}》更新了`,
+              body: `第${epNum}集已更新`,
+              icon: '/vite.svg',
+              data: { url: `/episode/${singleEpisode.episodeId}` }
+            });
+          });
+          // 邮件去重：同一剧集+集数+事件类型1小时内不重复发送
+          if (shouldSendEpisodeEmail(singleEpisode.episodeId, epNum, 'available')) {
+            sendBatchNotificationEmails(
+              uniqueUserIds.map(uid => ({
+                userId: uid,
+                prefKey: 'episodeUpdate',
+                args: [episode.title, epNum, 'available'],
+              }))
+            );
+          }
+        }
+      }
+    }
 
     res.json(singleEpisode);
   } catch (error) {
@@ -532,32 +581,40 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
     if (updatedEpisode) {
       const followers = await Follow.find({ episodeId: req.params.id });
       if (followers.length > 0) {
+        const isPreview = !!req.body.isUpcoming;
+        const eventType = isPreview ? 'preview' : 'available';
+        const notifMessage = isPreview
+          ? `《${updatedEpisode.title}》发布了第${req.body.episodeNumber}集预告`
+          : `《${updatedEpisode.title}》更新了第${req.body.episodeNumber}集`;
+        const pushBody = isPreview
+          ? `第${req.body.episodeNumber}集预告已发布`
+          : `第${req.body.episodeNumber}集已更新`;
         const notifications = followers.map(f => ({
           userId: f.userId,
           episodeId: req.params.id,
           episodeTitle: updatedEpisode.title,
           episodeTitleEn: updatedEpisode.titleEn || '',
           type: 'new_episode',
-          message: `《${updatedEpisode.title}》更新了第${req.body.episodeNumber}集`,
-          metadata: { episodeNumber: req.body.episodeNumber }
+          message: notifMessage,
+          metadata: { episodeNumber: req.body.episodeNumber, isPreview }
         }));
         await Notification.insertMany(notifications);
         const uniqueUserIds = [...new Set(followers.map(f => String(f.userId)))];
         uniqueUserIds.forEach(uid => {
           sendPushToUser(uid, {
-            title: `《${updatedEpisode.title}》更新了`,
-            body: `第${req.body.episodeNumber}集已更新`,
+            title: `《${updatedEpisode.title}》${isPreview ? '新预告' : '更新了'}`,
+            body: pushBody,
             icon: '/vite.svg',
             data: { url: `/episode/${req.params.id}` }
           });
         });
-        // 发送邮件通知（去重：同一剧集+集数1小时内不重复发送）
-        if (shouldSendEpisodeEmail(req.params.id, req.body.episodeNumber)) {
+        // 发送邮件通知（去重：同一剧集+集数+事件类型1小时内不重复发送）
+        if (shouldSendEpisodeEmail(req.params.id, req.body.episodeNumber, eventType)) {
           sendBatchNotificationEmails(
             uniqueUserIds.map(uid => ({
               userId: uid,
               prefKey: 'episodeUpdate',
-              args: [updatedEpisode.title, req.body.episodeNumber],
+              args: [updatedEpisode.title, req.body.episodeNumber, eventType],
             }))
           );
         }
@@ -663,11 +720,11 @@ router.put('/:id', creatorProtect, async (req, res) => {
           }
           const emailItems = uniqueUserIds.flatMap(uid =>
             epNumbers
-              .filter(epNum => shouldSendEpisodeEmail(req.params.id, epNum))
+              .filter(epNum => shouldSendEpisodeEmail(req.params.id, epNum, 'available'))
               .map(epNum => ({
                 userId: uid,
                 prefKey: 'episodeUpdate',
-                args: [updatedEpisode.title, epNum],
+                args: [updatedEpisode.title, epNum, 'available'],
               }))
           );
           if (emailItems.length > 0) {

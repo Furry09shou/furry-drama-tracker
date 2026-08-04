@@ -399,8 +399,18 @@ const sendNotificationEmail = async (email, subject, htmlContent, preheader) => 
   }
 };
 
-const sendEpisodeUpdateEmail = async (email, episodeTitle, episodeNumber) => {
+// eventType: 'available'（可观看，默认）/ 'preview'（预告）
+const sendEpisodeUpdateEmail = async (email, episodeTitle, episodeNumber, eventType = 'available') => {
   const url = getSiteUrl();
+  if (eventType === 'preview') {
+    return sendNotificationEmail(email, `《${episodeTitle}》发布了第${episodeNumber}集预告`, `
+      <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">追番预告提醒</h2>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px;">您关注的剧集发布了新预告！</p>
+      ${emailInfoBox('<p style="margin:0 0 4px;font-size:16px;font-weight:600;">《' + episodeTitle + '》</p><p style="margin:0;color:#64748b;">发布了第 ' + episodeNumber + ' 集预告</p>', 'info')}
+      <p style="margin:20px 0;">${emailButton('前往查看', url, 'primary')}</p>
+      <p style="margin:0;color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
+    `, '您关注的剧集发布了新预告');
+  }
   return sendNotificationEmail(email, `《${episodeTitle}》更新了第${episodeNumber}集`, `
     <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">追番更新提醒</h2>
     <p style="margin:0 0 16px;color:#475569;font-size:14px;">您关注的剧集有新更新啦！</p>
