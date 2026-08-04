@@ -434,8 +434,9 @@ router.put('/single/:id', adminProtect, async (req, res) => {
     clearCache(`episode_${singleEpisode.episodeId}`);
     clearCacheByPrefix('episodes_');
 
-    // 预告集变为可观看集：通知追番用户（站内通知 + Push + 邮件）
+    // 预告集变为可观看集：currentEpisodes +1 并通知追番用户（站内通知 + Push + 邮件）
     if (becameAvailable) {
+      await Episode.findByIdAndUpdate(singleEpisode.episodeId, { $inc: { currentEpisodes: 1 } });
       const episode = await Episode.findById(singleEpisode.episodeId);
       if (episode) {
         const followers = await Follow.find({ episodeId: singleEpisode.episodeId });
@@ -552,9 +553,12 @@ router.delete('/single/:id', adminProtect, async (req, res) => {
     if (!singleEpisode) {
       return res.status(404).json({ message: 'Single episode not found' });
     }
-    await Episode.findByIdAndUpdate(singleEpisode.episodeId, {
-      $inc: { currentEpisodes: -1 }
-    });
+    // 仅可观看集才扣减 currentEpisodes（预告集添加时未计入）
+    if (!singleEpisode.isUpcoming) {
+      await Episode.findByIdAndUpdate(singleEpisode.episodeId, {
+        $inc: { currentEpisodes: -1 }
+      });
+    }
     clearCache(`episode_${singleEpisode.episodeId}`);
     res.json({ message: 'Single episode deleted' });
   } catch (error) {
@@ -634,10 +638,12 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
 
     const singleEpisode = await SingleEpisode.create(singleEpisodeData);
 
-    await Episode.findByIdAndUpdate(req.params.id, {
-      $inc: { currentEpisodes: 1 },
-      updatedAt: Date.now()
-    });
+    // 预告集不计入 currentEpisodes（不可观看），变可观看时才 +1
+    const episodeUpdateOps = { updatedAt: Date.now() };
+    if (!req.body.isUpcoming) {
+      episodeUpdateOps.$inc = { currentEpisodes: 1 };
+    }
+    await Episode.findByIdAndUpdate(req.params.id, episodeUpdateOps);
 
     clearCache(`episode_${req.params.id}`);
 
