@@ -7,6 +7,9 @@ const SingleEpisode = require('../models/SingleEpisode');
 const Follow = require('../models/Follow');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const Favorite = require('../models/Favorite');
+const History = require('../models/History');
+const Rating = require('../models/Rating');
 const { sendPushToUser } = require('./notifications');
 const { protect, adminProtect, creatorProtect } = require('../middlewares/authFactory');
 const { setCache, getCache, clearCache, clearCacheByPrefix } = require('../middlewares/cache');
@@ -384,13 +387,17 @@ router.put('/:id/view', viewLimiter, async (req, res) => {
     const ip = req.ip || '';
     const viewKey = `${req.params.id}_${ip}`;
     const now = Date.now();
+    // 先查询并校验审核状态：未审核通过的剧集不计浏览量，避免对 pending/rejected 刷量
+    const existing = await Episode.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: 'Episode not found' });
+    }
+    if (existing.reviewStatus && existing.reviewStatus !== 'approved') {
+      return res.status(404).json({ message: 'Episode not found' });
+    }
     const lastView = viewTracker.get(viewKey);
     if (lastView && now - lastView < VIEW_COOLDOWN) {
-      const episode = await Episode.findById(req.params.id);
-      if (!episode) {
-        return res.status(404).json({ message: 'Episode not found' });
-      }
-      return res.json(episode);
+      return res.json(existing);
     }
     viewTracker.set(viewKey, now);
 
@@ -875,8 +882,13 @@ router.delete('/:id', adminProtect, async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
     await Episode.findByIdAndDelete(req.params.id);
+    // 完整清理关联数据，避免残留收藏/历史/评分/版本等孤儿记录
     await SingleEpisode.deleteMany({ episodeId: req.params.id });
+    await EpisodeVersion.deleteMany({ episodeId: req.params.id });
     await Follow.deleteMany({ episodeId: req.params.id });
+    await Favorite.deleteMany({ episodeId: req.params.id });
+    await History.deleteMany({ episodeId: req.params.id });
+    await Rating.deleteMany({ episodeId: req.params.id });
     await Notification.deleteMany({ episodeId: req.params.id });
     clearCache(`episode_${req.params.id}`);
     clearCacheByPrefix('episodes_');

@@ -684,6 +684,8 @@ export default {
     statusLabel: '状态',
     updateBtn: '更新剧集信息',
     addBtn: '添加并管理单集',
+    changeSummaryLabel: '修改说明',
+    changeSummaryPlaceholder: '简述本次修改内容，将记录到版本历史（选填）',
   },
   singleEpisode: {
     title: '单集管理',

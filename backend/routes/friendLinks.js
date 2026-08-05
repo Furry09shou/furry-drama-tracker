@@ -37,23 +37,21 @@ const verifyAltcha = async (payload, req) => {
   }
 };
 
+// 可选鉴权：尝试解析 access token，成功则挂载 req.user，失败则忽略（不阻断）
+// 用于友链申请接口区分"已登录用户/匿名访客"，记录 applicantId 以便追溯申请来源
 const optionalProtect = async (req, res, next) => {
   try {
-    let token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token && req.cookies) {
-      token = req.cookies.token;
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
     }
-    if (token) {
-      const decoded = verifyJwt(token);
-      const User = require('../models/User');
-      const UserSession = require('../models/UserSession');
-      const { hashToken } = require('../utils/helpers');
-      const tokenHash = hashToken(token);
-      const session = await UserSession.findOne({ tokenHash, isActive: true });
-      if (session) {
-        req.user = await User.findById(decoded.id);
-      }
-    }
+    // 新双 Token 系统使用 accessToken cookie（兼容旧 token cookie 过渡期）
+    if (!token && req.cookies) token = req.cookies.accessToken || req.cookies.token;
+    if (!token) return next();
+    const decoded = verifyJwt(token);
+    if (decoded.purpose && decoded.purpose !== 'access') return next();
+    const user = await User.findById(decoded.id).select('-password');
+    if (user) req.user = user;
   } catch (e) {}
   next();
 };

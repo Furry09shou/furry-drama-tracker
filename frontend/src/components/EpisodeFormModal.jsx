@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEpisodeForm } from '../hooks/useEpisodeForm';
 import { useCategories } from '../hooks/useCategories';
 import ImageUploader from './ImageUploader';
@@ -11,6 +11,12 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
   const { formData, errors, updateField, toggleCategory, validate } = useEpisodeForm(episode);
   const { categories } = useCategories();
   const [coverImageMode, setCoverImageMode] = useState('url');
+  // 修改说明：写入剧集版本历史(EpisodeVersion.changeSummary)，编辑时填写以保留版本变更记录
+  const [changeSummary, setChangeSummary] = useState('');
+
+  useEffect(() => {
+    setChangeSummary('');
+  }, [episode, isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -19,6 +25,7 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
         ...formData,
         category: formData.categories,
         totalEpisodes: formData.unknownTotalEpisodes ? null : formData.totalEpisodes,
+        changeSummary,
       };
       delete submitData.unknownTotalEpisodes;
       onSubmit(submitData);
@@ -179,6 +186,29 @@ const EpisodeFormModal = ({ isOpen, onClose, episode, onSubmit }) => {
             onChange={status => updateField('status', status)}
           />
         </div>
+
+        {/* 修改说明：仅编辑时显示，写入 EpisodeVersion.changeSummary 保留版本变更记录 */}
+        {episode && (
+          <div className="form-group" style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>{t('episodeForm.changeSummaryLabel')}</label>
+            <textarea
+              value={changeSummary}
+              onChange={e => setChangeSummary(e.target.value)}
+              placeholder={t('episodeForm.changeSummaryPlaceholder')}
+              rows={2}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                backgroundColor: 'var(--hover-bg-strong)',
+                color: 'var(--text-light)',
+                fontSize: '14px',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+        )}
 
         <div className="form-actions" style={{ display: 'flex', gap: '10px' }}>
           <button

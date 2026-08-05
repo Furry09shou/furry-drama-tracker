@@ -13,6 +13,10 @@ router.post('/add', protect, async (req, res) => {
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
+    // 仅允许追番已审核通过的剧集，防止通过 ID 追番 pending/rejected 内容
+    if (episode.reviewStatus && episode.reviewStatus !== 'approved') {
+      return res.status(403).json({ message: '该剧集暂不可追番' });
+    }
     try {
       const followData = { userId: req.user._id, episodeId, followedAtEpisodes: episode.currentEpisodes };
       if (folderId) {

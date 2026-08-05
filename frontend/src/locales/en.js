@@ -684,6 +684,8 @@ export default {
     statusLabel: 'Status',
     updateBtn: 'Update Drama Info',
     addBtn: 'Add & Manage Episodes',
+    changeSummaryLabel: 'Change Summary',
+    changeSummaryPlaceholder: 'Describe this change for version history (optional)',
   },
   singleEpisode: {
     title: 'Episode Management',

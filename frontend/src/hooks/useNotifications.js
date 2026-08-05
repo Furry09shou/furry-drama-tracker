@@ -53,11 +53,10 @@ const useNotifications = () => {
         eventSource.addEventListener('notification', (event) => {
           try {
             const data = JSON.parse(event.data);
+            // 后端推送的 unreadCount 已是准确值（实时 countDocuments），直接使用即可，
+            // 不再因 type==='new' 重复 +1，否则未读数会虚增 1 直到下次轮询(60s)才修正
             if (data.unreadCount !== undefined) {
               setUnreadCount(data.unreadCount);
-            }
-            if (data.type === 'new') {
-              setUnreadCount(prev => prev + 1);
             }
           } catch (e) {}
         });

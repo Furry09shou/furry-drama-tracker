@@ -111,10 +111,35 @@ router.put('/:id', async (req, res) => {
     });
     updateData.updatedAt = Date.now();
 
+    // 记录更新前状态，用于判断是否需要重新触发推送
+    const oldAnn = await Announcement.findById(req.params.id).lean();
+    if (!oldAnn) return res.status(404).json({ message: 'Announcement not found' });
+
     const announcement = await Announcement.findByIdAndUpdate(
       req.params.id, updateData, { new: true, runValidators: true }
     );
     if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
+
+    // 检测是否需要重新推送：
+    // - active 从 false→true（重新上架）
+    // - sendNotification 从 false→true（开启通知推送）
+    // - sendEmail 从 false→true（开启邮件推送）
+    // 仅在公告已到发布时间且 active 时触发，避免管理员误关后重开用户收不到通知
+    const activeTurnedOn = !oldAnn.active && announcement.active;
+    const notifTurnedOn = !oldAnn.sendNotification && announcement.sendNotification;
+    const emailTurnedOn = !oldAnn.sendEmail && announcement.sendEmail;
+    const isPublished = announcement.active && new Date(announcement.publishAt).getTime() <= Date.now();
+    if (isPublished && (activeTurnedOn || notifTurnedOn || emailTurnedOn)) {
+      // 重置对应标志位以允许重新推送（broadcastAnnouncement 内部会检查标志位防重复）
+      if (activeTurnedOn || notifTurnedOn) announcement.notificationSent = false;
+      if (activeTurnedOn || emailTurnedOn) {
+        announcement.emailSent = false;
+        announcement.emailSentAt = undefined;
+        announcement.emailSentCount = 0;
+      }
+      await announcement.save();
+      await broadcastAnnouncement(announcement);
+    }
 
     res.json(announcement);
   } catch (error) {
@@ -242,14 +267,14 @@ async function sendAnnouncementEmails(announcement) {
       .limit(batchSize)
       .lean();
     if (users.length === 0) break;
-    for (const u of users) {
+    // 用 Promise.all 等待本批次全部完成后再进入下一批，避免异步 then 里修改 sent 的竞态导致计数不准
+    const promises = users.map(u => {
       const htmlContent = buildAnnouncementHtml(announcement);
-      sendNotificationEmail(u.email, `[公告] ${announcement.title}`, htmlContent).then(ok => {
-        if (ok) sent += 1;
-      }).catch(() => {});
-    }
-    // 等待本批次发出，避免瞬时连接过多
-    await new Promise(r => setTimeout(r, 200));
+      return sendNotificationEmail(u.email, `[公告] ${announcement.title}`, htmlContent)
+        .then(ok => { if (ok) sent += 1; })
+        .catch(() => {});
+    });
+    await Promise.all(promises);
     skip += batchSize;
     if (users.length < batchSize) break;
   }

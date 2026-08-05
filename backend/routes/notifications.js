@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const PushSubscription = require('../models/PushSubscription');
+const Follow = require('../models/Follow');
+const Episode = require('../models/Episode');
 const { protect } = require('../middlewares/authFactory');
 const jwt = require('jsonwebtoken');
 const webpush = require('web-push');
@@ -119,19 +121,28 @@ const pushNotificationToUser = async (userId) => {
   } catch (e) {}
 };
 
+// 订阅剧集更新提醒：复用追番(Follow)机制——追番用户会自动收到剧集更新/预告/状态变更通知
+// 不再创建 type:'reminder' 的伪通知（该 type 不在 Notification 枚举内会校验失败，且语义混乱）
 router.post('/subscribe-reminder', protect, async (req, res) => {
   try {
     const { episodeId } = req.body;
     if (!episodeId) {
       return res.status(400).json({ message: '缺少剧集ID' });
     }
-    await Notification.create({
-      userId: req.user._id,
-      type: 'reminder',
-      message: '您已订阅该剧集的更新提醒',
-      episodeId
-    });
-    res.json({ message: '订阅提醒成功' });
+    const episode = await Episode.findById(episodeId);
+    if (!episode) {
+      return res.status(404).json({ message: '剧集不存在' });
+    }
+    // 若未追番则创建追番关系，已追番则视为已订阅，复用追番的通知链路
+    let follow = await Follow.findOne({ userId: req.user._id, episodeId });
+    if (!follow) {
+      follow = await Follow.create({
+        userId: req.user._id,
+        episodeId,
+        followedAtEpisodes: episode.currentEpisodes || 0
+      });
+    }
+    res.json({ message: '订阅提醒成功', subscribed: true });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

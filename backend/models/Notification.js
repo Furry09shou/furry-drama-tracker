@@ -47,5 +47,7 @@ const NotificationSchema = new mongoose.Schema({
 });
 
 NotificationSchema.index({ userId: 1, isRead: 1 });
+// TTL 索引：通知 90 天后自动过期清理，防止 Notification 集合无限增长
+NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 module.exports = mongoose.model('Notification', NotificationSchema);
