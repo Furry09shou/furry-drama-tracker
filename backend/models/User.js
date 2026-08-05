@@ -86,6 +86,7 @@ const UserSchema = new mongoose.Schema({
     friendLinkStatus: { type: Boolean, default: true },
     friendLinkApply: { type: Boolean, default: true },
     announcement: { type: Boolean, default: true },
+    reviewResult: { type: Boolean, default: true },
   },
   backgroundPrefs: {
     image: { type: String, default: '' },

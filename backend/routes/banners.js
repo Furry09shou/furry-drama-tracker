@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Banner = require('../models/Banner');
-const { adminProtect } = require('../middlewares/authFactory');
+const { adminOnlyProtect } = require('../middlewares/authFactory');
 
 const isValidUrl = (str) => {
   if (!str) return true;
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/all', adminProtect, async (req, res) => {
+router.get('/all', adminOnlyProtect, async (req, res) => {
   try {
     const banners = await Banner.find({}).sort({ order: 1, createdAt: -1 });
     res.json(banners);
@@ -31,7 +31,7 @@ router.get('/all', adminProtect, async (req, res) => {
   }
 });
 
-router.post('/', adminProtect, async (req, res) => {
+router.post('/', adminOnlyProtect, async (req, res) => {
   try {
     const { title, titleEn, titleJa, subtitle, subtitleEn, subtitleJa, image, link, order, active } = req.body;
     if (link && !isValidUrl(link)) {
@@ -44,7 +44,7 @@ router.post('/', adminProtect, async (req, res) => {
   }
 });
 
-router.put('/:id', adminProtect, async (req, res) => {
+router.put('/:id', adminOnlyProtect, async (req, res) => {
   try {
     const { title, titleEn, titleJa, subtitle, subtitleEn, subtitleJa, image, link, order, active } = req.body;
     if (link && !isValidUrl(link)) {
@@ -69,7 +69,7 @@ router.put('/:id', adminProtect, async (req, res) => {
   }
 });
 
-router.delete('/:id', adminProtect, async (req, res) => {
+router.delete('/:id', adminOnlyProtect, async (req, res) => {
   try {
     const banner = await Banner.findById(req.params.id);
     if (!banner) return res.status(404).json({ message: '轮播图不存在' });

@@ -157,6 +157,14 @@ const NavBar = ({ onFeedback }) => {
         return t('notification.friendLinkApply', { name: n.metadata?.name || '' });
       case 'friend_link_status':
         return t('notification.friendLinkStatus', { name: n.metadata?.name || '', status: n.metadata?.status || '' });
+      case 'review_result': {
+        const status = n.metadata?.status;
+        const note = n.metadata?.note || '';
+        if (status === 'approved') {
+          return t('notification.reviewApproved', { title });
+        }
+        return t('notification.reviewRejected', { title, note: note ? `：${note}` : '' });
+      }
       case 'reminder':
         return t('notification.reminder');
       default:
@@ -376,10 +384,14 @@ const NavBar = ({ onFeedback }) => {
                             key={n._id}
                             role="menuitem"
                             onClick={() => {
-                              if (!n.episodeId) return;
                               setShowNotifPanel(false);
                               setShowMobileMenu(false);
-                              navigate(`/episode/${n.episodeId}`);
+                              // 优先使用通知自带链接（如审核结果跳后台），否则跳剧集详情
+                              if (n.link) {
+                                navigate(n.link);
+                              } else if (n.episodeId) {
+                                navigate(`/episode/${n.episodeId}`);
+                              }
                             }}
                             style={{
                               display: 'block', padding: '14px 16px',

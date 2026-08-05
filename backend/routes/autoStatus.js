@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Episode = require('../models/Episode');
 const SingleEpisode = require('../models/SingleEpisode');
-const { adminProtect } = require('../middlewares/authFactory');
+const { superAdminProtect } = require('../middlewares/authFactory');
 
-router.post('/auto-complete', adminProtect, async (req, res) => {
+router.post('/auto-complete', superAdminProtect, async (req, res) => {
   try {
     const now = new Date();
     const episodes = await Episode.find({ status: 'ongoing' });
@@ -22,7 +22,7 @@ router.post('/auto-complete', adminProtect, async (req, res) => {
   }
 });
 
-router.post('/check-premieres', adminProtect, async (req, res) => {
+router.post('/check-premieres', superAdminProtect, async (req, res) => {
   try {
     const now = new Date();
     const upcomingSingles = await SingleEpisode.find({

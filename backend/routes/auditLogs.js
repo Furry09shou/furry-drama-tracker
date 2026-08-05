@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const AuditLog = require('../models/AuditLog');
-const { adminProtect } = require('../middlewares/authFactory');
+const { superAdminProtect } = require('../middlewares/authFactory');
 const { escapeRegex } = require('../utils/helpers');
 
-router.get('/', adminProtect, async (req, res) => {
+router.get('/', superAdminProtect, async (req, res) => {
   try {
     const { page = 1, limit = 50, action, admin, user } = req.query;
     const query = {};

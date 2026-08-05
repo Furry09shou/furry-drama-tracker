@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserSession = require('../models/UserSession');
 const User = require('../models/User');
-const { protect, adminProtect, superAdminProtect } = require('../middlewares/authFactory');
+const { protect, superAdminProtect } = require('../middlewares/authFactory');
 const { parseUserAgent, hashToken, getClientIp } = require('../utils/helpers');
 const { asyncHandler } = require('../utils/errorHandler');
 
@@ -133,7 +133,7 @@ router.post('/heartbeat', protect, async (req, res) => {
 // ===== 管理员级会话管理端点 =====
 
 // 列出所有用户的会话（仅管理员）
-router.get('/all', adminProtect, async (req, res) => {
+router.get('/all', superAdminProtect, async (req, res) => {
   try {
     const sessions = await UserSession.find({})
       .populate('userId', 'username accountId email role avatar')

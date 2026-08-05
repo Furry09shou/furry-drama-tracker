@@ -6,6 +6,7 @@ const {
   sendFeedbackReplyEmail,
   sendFriendLinkStatusEmail,
   sendFriendLinkApplyEmail,
+  sendReviewResultEmail,
 } = require('./email');
 
 // 偏好键 -> 邮件函数 映射
@@ -15,6 +16,7 @@ const EMAIL_MAP = {
   feedbackReply: sendFeedbackReplyEmail,
   friendLinkStatus: sendFriendLinkStatusEmail,
   friendLinkApply: sendFriendLinkApplyEmail,
+  reviewResult: sendReviewResultEmail,
 };
 
 /**

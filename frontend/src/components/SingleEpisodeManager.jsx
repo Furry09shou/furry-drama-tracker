@@ -98,6 +98,28 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
     }
   };
 
+  // 一键转正预告集：取消预告标记并设为已发布
+  // 后端 PUT /single/:id 检测 isUpcoming true→false 触发 currentEpisodes+1 与追番通知
+  const handlePublishSingleEpisode = async (singleEpisode) => {
+    if (!window.confirm(t('singleEpisode.publishConfirm'))) return;
+    try {
+      await updateSingleEpisode(singleEpisode._id, {
+        episodeNumber: singleEpisode.episodeNumber,
+        title: singleEpisode.title,
+        titleEn: singleEpisode.titleEn,
+        titleJa: singleEpisode.titleJa,
+        duration: singleEpisode.duration,
+        platformLinks: singleEpisode.platformLinks,
+        isScheduled: false,
+        releaseDate: new Date().toISOString()
+      });
+      await loadSingleEpisodes();
+      setError('');
+    } catch (err) {
+      setError(t('singleEpisode.publishFailed'));
+    }
+  };
+
   const resetForm = () => {
     const nextNum = singleEpisodes.length + 1;
     setNewSingleEpisode({
@@ -468,6 +490,22 @@ const SingleEpisodeManager = ({ episode, onClose }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <h5 style={{ margin: 0 }}>{t('calendar.episodeNum', { num: singleEpisode.episodeNumber })}</h5>
                   <div style={{ display: 'flex', gap: '8px' }}>
+                    {singleEpisode.isUpcoming && (
+                      <button
+                        onClick={() => handlePublishSingleEpisode(singleEpisode)}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--success-border)',
+                          backgroundColor: 'var(--success-bg)',
+                          color: 'var(--success-text)',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        {t('singleEpisode.markPublished')}
+                      </button>
+                    )}
                     <button
                       onClick={() => handleEditSingleEpisode(singleEpisode)}
                       style={{

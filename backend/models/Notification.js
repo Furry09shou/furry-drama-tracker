@@ -21,7 +21,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['new_episode', 'status_change', 'feedback_reply', 'friend_link_apply', 'friend_link_status', 'announcement'],
+    enum: ['new_episode', 'status_change', 'feedback_reply', 'friend_link_apply', 'friend_link_status', 'announcement', 'review_result', 'profile_review'],
     default: 'new_episode'
   },
   link: {

@@ -2,7 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import adminApi from '../utils/adminApi';
 import ImageUploader from './ImageUploader';
+import ReviewStatusBadge from './ReviewStatusBadge';
 import { useI18n } from '../contexts/I18nContext';
+
+const linksToArr = (links) => {
+  if (!links) return [];
+  const obj = (typeof links === 'object' && !(links instanceof Map))
+    ? links
+    : Object.fromEntries(links);
+  return Object.entries(obj).map(([name, url]) => ({ name, url }));
+};
 
 const AdminCreatorProfile = () => {
   const { admin } = useOutletContext();
@@ -27,16 +36,16 @@ const AdminCreatorProfile = () => {
   const fetchProfile = async () => {
     try {
       const res = await adminApi.get('/api/creator-profile/my-profile');
-      setProfile(res.data);
-      setDisplayName(res.data.displayName || '');
-      setAvatar(res.data.avatar || '');
-      setBio(res.data.bio || '');
-      const links = res.data.socialLinks
-        ? (typeof res.data.socialLinks === 'object' && !(res.data.socialLinks instanceof Map)
-          ? res.data.socialLinks
-          : Object.fromEntries(res.data.socialLinks))
-        : {};
-      setSocialLinks(Object.entries(links).map(([name, url]) => ({ name, url })));
+      const data = res.data;
+      setProfile(data);
+      // 若有待审核/被拒的修改，表单展示待审核内容（便于创作者继续编辑重提）
+      const hasPending = (data.reviewStatus === 'pending' || data.reviewStatus === 'rejected')
+        && data.pendingChanges && data.pendingChanges.displayName;
+      const src = hasPending ? data.pendingChanges : data;
+      setDisplayName(src.displayName || '');
+      setAvatar(src.avatar || '');
+      setBio(src.bio || '');
+      setSocialLinks(linksToArr(src.socialLinks));
     } catch (err) {
       console.error('获取创作者主页失败', err);
     }
@@ -63,15 +72,38 @@ const AdminCreatorProfile = () => {
 
   if (!admin) return null;
 
+  const reviewStatus = profile?.reviewStatus;
+  const isPending = reviewStatus === 'pending';
+
   return (
     <div className="admin-panel">
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
           <h2>{t('adminCreatorProfile.title')}</h2>
+          {reviewStatus && <ReviewStatusBadge status={reviewStatus} />}
         </div>
       </div>
 
       <div className="form-container" style={{maxWidth: '700px', margin: '0 auto'}}>
+        {/* 审核状态提示 */}
+        {reviewStatus === 'pending' && (
+          <div style={{
+            padding: '12px 16px', borderRadius: '8px', marginBottom: '16px',
+            background: 'var(--warning-bg)', color: 'var(--warning-text)',
+            border: '1px solid var(--warning-border)', fontSize: '13px'
+          }}>{t('adminCreatorProfile.pendingNotice')}</div>
+        )}
+        {reviewStatus === 'rejected' && (
+          <div style={{
+            padding: '12px 16px', borderRadius: '8px', marginBottom: '16px',
+            background: 'var(--destructive-bg)', color: 'var(--destructive-text)',
+            border: '1px solid var(--destructive-border)', fontSize: '13px'
+          }}>
+            {t('adminCreatorProfile.rejectedNotice')}
+            {profile?.reviewNote ? `：${profile.reviewNote}` : ''}
+          </div>
+        )}
+
         <div className="form-group">
           <label>{t('adminCreatorProfile.displayName')}</label>
           <input
@@ -79,6 +111,7 @@ const AdminCreatorProfile = () => {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder={t('adminCreatorProfile.displayNamePlaceholder')}
+            disabled={isPending}
           />
         </div>
 
@@ -91,6 +124,7 @@ const AdminCreatorProfile = () => {
             aspectRatio={1}
             outputWidth={200}
             outputHeight={200}
+            disabled={isPending}
           />
         </div>
 
@@ -101,6 +135,7 @@ const AdminCreatorProfile = () => {
             onChange={(e) => setBio(e.target.value)}
             placeholder={t('adminCreatorProfile.bioPlaceholder')}
             rows={4}
+            disabled={isPending}
             style={{width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', resize: 'vertical'}}
           />
         </div>
@@ -118,10 +153,12 @@ const AdminCreatorProfile = () => {
                   <button
                     type="button"
                     onClick={() => setSocialLinks(socialLinks.filter((_, i) => i !== index))}
+                    disabled={isPending}
                     style={{
                       background: 'var(--destructive-bg)', border: '1px solid var(--destructive-border)',
                       color: 'var(--destructive-text)', borderRadius: '6px', padding: '4px 10px',
-                      cursor: 'pointer', fontSize: '12px', lineHeight: 1
+                      cursor: isPending ? 'not-allowed' : 'pointer', fontSize: '12px', lineHeight: 1,
+                      opacity: isPending ? 0.5 : 1
                     }}
                   >{t('adminCreatorProfile.delete')}</button>
                 </div>
@@ -136,6 +173,7 @@ const AdminCreatorProfile = () => {
                     }}
                     placeholder={t('adminCreatorProfile.platformNamePlaceholder')}
                     style={{width: '100%'}}
+                    disabled={isPending}
                   />
                   <input
                     type="text"
@@ -147,6 +185,7 @@ const AdminCreatorProfile = () => {
                     }}
                     placeholder={t('adminCreatorProfile.linkUrlPlaceholder')}
                     style={{width: '100%'}}
+                    disabled={isPending}
                   />
                 </div>
               </div>
@@ -154,10 +193,12 @@ const AdminCreatorProfile = () => {
             <button
               type="button"
               onClick={() => setSocialLinks([...socialLinks, { name: '', url: '' }])}
+              disabled={isPending}
               style={{
                 background: 'var(--primary-bg-subtle)', border: '1px dashed var(--primary)',
                 color: 'var(--primary)', borderRadius: '8px', padding: '10px',
-                cursor: 'pointer', fontSize: '14px'
+                cursor: isPending ? 'not-allowed' : 'pointer', fontSize: '14px',
+                opacity: isPending ? 0.5 : 1
               }}
             >{t('adminCreatorProfile.addSocialLink')}</button>
           </div>
@@ -172,7 +213,7 @@ const AdminCreatorProfile = () => {
           }}>{message}</div>
         )}
 
-        <button className="btn" onClick={handleSave} disabled={saving}>
+        <button className="btn" onClick={handleSave} disabled={saving || isPending}>
           {saving ? t('adminCreatorProfile.saving') : t('adminCreatorProfile.saveProfile')}
         </button>
 

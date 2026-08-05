@@ -6,12 +6,31 @@ const EpisodeVersion = require('../models/EpisodeVersion');
 const SingleEpisode = require('../models/SingleEpisode');
 const Follow = require('../models/Follow');
 const Notification = require('../models/Notification');
+const User = require('../models/User');
 const { sendPushToUser } = require('./notifications');
 const { protect, adminProtect, creatorProtect } = require('../middlewares/authFactory');
 const { setCache, getCache, clearCache, clearCacheByPrefix } = require('../middlewares/cache');
-const { escapeRegex } = require('../utils/helpers');
+const { escapeRegex, verifyJwt } = require('../utils/helpers');
 const { createUploadConfig } = require('../utils/upload');
 const { sendBatchNotificationEmails } = require('../utils/notifyHelper');
+
+// 可选鉴权：尝试解析 access token，成功则挂载 req.user，失败则忽略（不阻断）
+// 用于公开接口需要区分"访客/已登录用户/作者/管理员"的场景（如剧集详情的审核态可见性）
+const optionalAuth = async (req, _res, next) => {
+  try {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+    if (!token && req.cookies) token = req.cookies.accessToken || req.cookies.token;
+    if (!token) return next();
+    const decoded = verifyJwt(token);
+    if (decoded.purpose && decoded.purpose !== 'access') return next();
+    const user = await User.findById(decoded.id).select('-password');
+    if (user) req.user = user;
+  } catch (_e) {}
+  next();
+};
 
 const upload = createUploadConfig('cover', 5 * 1024 * 1024);
 
@@ -307,10 +326,11 @@ const { asyncHandler } = require('../utils/errorHandler');
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const cacheKey = `episode_${req.params.id}`;
 
+    // 仅已审核剧集走缓存；未审核剧集按用户身份动态判定，不缓存以免泄露给访客
     const cachedEpisode = getCache(cacheKey);
     if (cachedEpisode) {
       return res.json(cachedEpisode);
@@ -324,10 +344,26 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
 
+    // 审核态可见性：仅"已通过"或"无审核态字段"的剧集对公众可见；
+    // 待审核/未通过仅创作者本人、被授权编辑、管理员可见
+    const isApproved = !episode.reviewStatus || episode.reviewStatus === 'approved';
+    if (!isApproved) {
+      const user = req.user;
+      const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
+      const isOwner = user && episode.createdBy && String(episode.createdBy._id) === String(user._id);
+      const isEditor = user && episode.allowedEditors && episode.allowedEditors.some(e => String(e._id) === String(user._id));
+      if (!isAdmin && !isOwner && !isEditor) {
+        return res.status(404).json({ message: 'Episode not found' });
+      }
+    }
+
     const singleEpisodes = await SingleEpisode.find({ episodeId: req.params.id }).sort({ episodeNumber: 1 });
     const episodeWithEpisodes = { ...episode.toObject(), episodes: singleEpisodes };
 
-    setCache(cacheKey, episodeWithEpisodes);
+    // 仅缓存已审核剧集，避免未审核内容被缓存后泄露给其他访客
+    if (isApproved) {
+      setCache(cacheKey, episodeWithEpisodes);
+    }
 
     res.json(episodeWithEpisodes);
   } catch (error) {
@@ -643,7 +679,7 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
 
     // 预告集不计入 currentEpisodes（不可观看），变可观看时才 +1
     const episodeUpdateOps = { updatedAt: Date.now() };
-    if (!req.body.isUpcoming) {
+    if (!req.body.isScheduled) {
       episodeUpdateOps.$inc = { currentEpisodes: 1 };
     }
     await Episode.findByIdAndUpdate(req.params.id, episodeUpdateOps);
@@ -654,7 +690,7 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
     if (updatedEpisode) {
       const followers = await Follow.find({ episodeId: req.params.id });
       if (followers.length > 0) {
-        const isPreview = !!req.body.isUpcoming;
+        const isPreview = !!req.body.isScheduled;
         // 预告集根据是否含视频链接区分：有视频→新预告，无视频→预告信息更新
         const links = req.body.platformLinks || {};
         const hasVideo = Object.entries(links).some(([k, v]) => k && v);

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const SystemWallpaper = require('../models/SystemWallpaper');
-const { protect, adminProtect } = require('../middlewares/authFactory');
+const { protect, superAdminProtect } = require('../middlewares/authFactory');
 const { createUploadConfig } = require('../utils/upload');
 const fs = require('fs');
 const path = require('path');
@@ -24,7 +24,7 @@ router.get('/system', async (req, res) => {
 });
 
 // 管理员：获取所有系统壁纸（含禁用）
-router.get('/system/all', adminProtect, async (req, res) => {
+router.get('/system/all', superAdminProtect, async (req, res) => {
   try {
     const list = await SystemWallpaper.find()
       .sort({ sortOrder: 1, createdAt: -1 });
@@ -35,7 +35,7 @@ router.get('/system/all', adminProtect, async (req, res) => {
 });
 
 // 管理员：上传系统壁纸
-router.post('/system', adminProtect, wpUpload.single('image'), async (req, res) => {
+router.post('/system', superAdminProtect, wpUpload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: '请选择要上传的图片' });
     const url = `/uploads/${req.file.filename}`;
@@ -54,7 +54,7 @@ router.post('/system', adminProtect, wpUpload.single('image'), async (req, res) 
 });
 
 // 管理员：更新系统壁纸
-router.put('/system/:id', adminProtect, async (req, res) => {
+router.put('/system/:id', superAdminProtect, async (req, res) => {
   try {
     const { name, enabled, sortOrder } = req.body;
     const update = {};
@@ -70,7 +70,7 @@ router.put('/system/:id', adminProtect, async (req, res) => {
 });
 
 // 管理员：删除系统壁纸
-router.delete('/system/:id', adminProtect, async (req, res) => {
+router.delete('/system/:id', superAdminProtect, async (req, res) => {
   try {
     const wp = await SystemWallpaper.findByIdAndDelete(req.params.id);
     if (!wp) return res.status(404).json({ message: '壁纸不存在' });

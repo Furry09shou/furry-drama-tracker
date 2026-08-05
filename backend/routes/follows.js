@@ -31,6 +31,11 @@ router.post('/add', protect, async (req, res) => {
   }
 });
 
+// 取消关注：
+// - 动态(Activity)无须显式清理——动态流基于 Follow 表实时聚合(见 routes/activity.js)，
+//   Follow 记录删除后该剧集自然不再出现在用户的动态列表中。
+// - 通知(Notification)按产品要求保留，由用户在通知中心自行清理
+//   (notifications.js 提供 /clear-read、/:id、/read-all 等接口)。
 router.post('/remove', protect, async (req, res) => {
   const { episodeId } = req.body;
   try {

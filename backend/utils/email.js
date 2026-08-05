@@ -494,6 +494,28 @@ const sendFriendLinkApplyEmail = async (email, applicantName) => {
   `, '收到新的友链申请');
 };
 
+// 剧集审核结果通知邮件（发给创作者）
+// status: 'approved' | 'rejected'
+const sendReviewResultEmail = async (email, episodeTitle, status, note = '') => {
+  const isApproved = status === 'approved';
+  const url = getSiteUrl() + '/admin/episodes';
+  const subject = isApproved ? `您的剧集《${episodeTitle}》已通过审核` : `您的剧集《${episodeTitle}》未通过审核`;
+  const statusLabel = isApproved ? '已通过审核' : '未通过审核';
+  const boxType = isApproved ? 'success' : 'warning';
+  let noteBlock = '';
+  if (note) {
+    noteBlock = `<p style="margin:12px 0 0;color:#475569;font-size:14px;">审核备注：</p>${emailInfoBox('<p style="margin:0;">' + note + '</p>', boxType)}`;
+  }
+  return sendNotificationEmail(email, subject, `
+    <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">剧集审核结果</h2>
+    <p style="margin:0 0 16px;color:#475569;font-size:14px;">您提交的剧集「<strong>${episodeTitle}</strong>」审核结果：</p>
+    ${emailInfoBox('<p style="margin:0;font-size:18px;font-weight:600;">' + statusLabel + '</p>', boxType)}
+    ${noteBlock}
+    <p style="margin:20px 0;">${emailButton('前往管理', url, 'primary')}</p>
+    <p style="margin:0;color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
+  `, subject);
+};
+
 module.exports = {
   sendPasswordResetEmail,
   sendVerificationEmail,
@@ -510,5 +532,6 @@ module.exports = {
   sendFeedbackReplyEmail,
   sendFriendLinkStatusEmail,
   sendFriendLinkApplyEmail,
+  sendReviewResultEmail,
   sendNotificationEmail,
 };

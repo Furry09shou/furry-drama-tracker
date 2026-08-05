@@ -4,7 +4,7 @@ const FriendLink = require('../models/FriendLink');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { sendPushToUser } = require('./notifications');
-const { adminProtect, protect } = require('../middlewares/authFactory');
+const { superAdminProtect, protect } = require('../middlewares/authFactory');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { verifySolution, sha } = require('altcha/lib');
@@ -139,7 +139,7 @@ router.get('/my-applications', protect, async (req, res) => {
   }
 });
 
-router.get('/all', adminProtect, async (req, res) => {
+router.get('/all', superAdminProtect, async (req, res) => {
   try {
     const links = await FriendLink.find().sort({ order: 1, createdAt: 1 });
     res.json(links);
@@ -148,7 +148,7 @@ router.get('/all', adminProtect, async (req, res) => {
   }
 });
 
-router.post('/', adminProtect, async (req, res) => {
+router.post('/', superAdminProtect, async (req, res) => {
   try {
     const { name, nameEn, nameJa, url, logo, description, descriptionEn, descriptionJa, order, isActive } = req.body;
     if (!name || !url) {
@@ -167,7 +167,7 @@ router.post('/', adminProtect, async (req, res) => {
   }
 });
 
-router.put('/:id', adminProtect, async (req, res) => {
+router.put('/:id', superAdminProtect, async (req, res) => {
   try {
     const { name, nameEn, nameJa, url, logo, description, descriptionEn, descriptionJa, order, isActive, status } = req.body;
     if (url && !isValidUrl(url)) {
@@ -220,7 +220,7 @@ router.put('/:id', adminProtect, async (req, res) => {
   }
 });
 
-router.delete('/:id', adminProtect, async (req, res) => {
+router.delete('/:id', superAdminProtect, async (req, res) => {
   try {
     const link = await FriendLink.findByIdAndDelete(req.params.id);
     if (!link) return res.status(404).json({ message: '友链不存在' });

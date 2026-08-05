@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const SiteContent = require('../models/SiteContent');
-const { adminProtect, superAdminProtect } = require('../middlewares/authFactory');
+const { superAdminProtect } = require('../middlewares/authFactory');
 const { asyncHandler } = require('../utils/errorHandler');
 const nodemailer = require('nodemailer');
 const { clearEmailCache, getFromName, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../utils/email');
@@ -10,7 +10,7 @@ const { encryptField, decryptField } = require('../utils/crypto');
 
 const siteUpload = createUploadConfig('site', 5 * 1024 * 1024);
 
-router.post('/upload', adminProtect, siteUpload.single('image'), async (req, res) => {
+router.post('/upload', superAdminProtect, siteUpload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: '请选择要上传的图片' });
@@ -116,7 +116,7 @@ router.get('/pwa-manifest', asyncHandler(async (req, res) => {
 router.get('/:key', (req, res, next) => {
   const sensitiveKeys = ['email'];
   if (sensitiveKeys.includes(req.params.key)) {
-    return adminProtect(req, res, next);
+    return superAdminProtect(req, res, next);
   }
   next();
 }, asyncHandler(async (req, res) => {
