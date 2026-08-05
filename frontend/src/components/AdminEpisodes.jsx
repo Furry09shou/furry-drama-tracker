@@ -66,9 +66,10 @@ const AdminEpisodes = () => {
     try {
       let response;
       if (admin.role === 'creator') {
-        response = await adminApi.get('/api/creator/my-episodes');
+        // 创作者视图：传 limit=100 避免默认只返回 20 条导致剧集遗漏
+        response = await adminApi.get('/api/creator/my-episodes', { params: { limit: 100 } });
       } else {
-        response = await adminApi.get('/api/episodes');
+        response = await adminApi.get('/api/episodes', { params: { limit: 100 } });
       }
       const data = response.data;
       setEpisodes(Array.isArray(data) ? data : (data.episodes || data.list || []));
@@ -258,6 +259,17 @@ const AdminEpisodes = () => {
       fetchEpisodes();
     } catch (error) {
       setError(t('adminEpisodes.deleteFailed'));
+    }
+  };
+
+  // 创作者重新提交审核：将 rejected 状态的剧集重新置为 pending
+  const handleResubmit = async (episodeId) => {
+    try {
+      await adminApi.post(`/api/episodes/${episodeId}/resubmit`);
+      fetchEpisodes();
+    } catch (error) {
+      setError(error.response?.data?.message || t('adminEpisodes.resubmitFailed'));
+      console.error('Resubmit error:', error);
     }
   };
 
@@ -1006,6 +1018,9 @@ const AdminEpisodes = () => {
                   <div className="action-buttons">
                     <button className="btn" onClick={() => { setError(''); handleEditEpisode(episode); }}>{t('adminEpisodes.editBtn')}</button>
                     <button className="btn btn-secondary" onClick={() => setHistoryEpisodeId(episode._id)}>{t('version.history')}</button>
+                    {admin && admin.role === 'creator' && episode.reviewStatus === 'rejected' && (
+                      <button className="btn btn-secondary" onClick={() => handleResubmit(episode._id)}>{t('adminEpisodes.resubmitBtn')}</button>
+                    )}
                     {admin && admin.role !== 'creator' && (
                       <button className="btn btn-secondary" onClick={() => handleDeleteEpisode(episode._id)}>{t('adminEpisodes.deleteBtn')}</button>
                     )}

@@ -167,6 +167,12 @@ const NavBar = ({ onFeedback }) => {
       }
       case 'reminder':
         return t('notification.reminder');
+      case 'report_result': {
+        const result = n.metadata?.status === 'resolved'
+          ? t('notification.reportAccepted')
+          : t('notification.reportDismissed');
+        return t('notification.reportResult', { result });
+      }
       default:
         return null;
     }

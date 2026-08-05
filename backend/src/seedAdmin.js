@@ -13,13 +13,13 @@ const generateSecurePassword = () => {
 // 为指定用户创建初始状态的创作者主页（若不存在）
 const ensureCreatorProfile = async (user) => {
   try {
-    const existing = await CreatorProfile.findOne({ adminId: user._id });
+    const existing = await CreatorProfile.findOne({ creatorId: user._id });
     if (existing) {
       console.log('创作者主页已存在:', existing.displayName);
       return;
     }
     await CreatorProfile.create({
-      adminId: user._id,
+      creatorId: user._id,
       displayName: user.username || '管理员',
       bio: '站点管理员，负责内容审核与平台运营。',
       socialLinks: {}

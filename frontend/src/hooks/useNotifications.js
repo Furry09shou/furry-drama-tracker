@@ -160,15 +160,13 @@ const useNotifications = () => {
 
   const deleteAllRead = useCallback(async () => {
     try {
-      const readNotifications = notifications.filter(n => n.isRead);
-      await Promise.all(readNotifications.map(n =>
-        axios.delete(API.NOTIFICATIONS.DELETE(n._id))
-      ));
+      // 调用后端批量删除接口（DELETE /clear-read），避免逐条 DELETE 产生大量请求
+      await axios.delete('/api/notifications/clear-read');
       setNotifications(prev => prev.filter(n => !n.isRead));
     } catch (err) {
       console.error('Failed to delete read notifications:', err);
     }
-  }, [notifications]);
+  }, []);
 
   // 更新 PWA 图标角标
   useEffect(() => {

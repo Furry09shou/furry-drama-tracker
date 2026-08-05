@@ -1,6 +1,10 @@
 const User = require('../models/User');
 const Episode = require('../models/Episode');
+const Follow = require('../models/Follow');
+const Notification = require('../models/Notification');
 const cleanupUser = require('../utils/userCleanup');
+const { sendPushToUser } = require('../routes/notifications');
+const { sendBatchNotificationEmails } = require('../utils/notifyHelper');
 
 // 过期账号注销：用户申请注销后给 7 天宽限期，到期物理删除
 const checkExpiredAccountDeletion = async () => {
@@ -28,6 +32,41 @@ const checkAutoComplete = async () => {
         ep.status = 'completed';
         await ep.save();
         updated++;
+        // 通知追番用户该剧集已完结：站内通知 + Web Push + 邮件
+        const followers = await Follow.find({ episodeId: ep._id }).select('userId');
+        if (followers.length > 0) {
+          const title = ep.title || '';
+          const titleEn = ep.titleEn || '';
+          const message = `《${title}》已完结`;
+          // 批量创建站内通知
+          const notifications = followers.map(f => ({
+            userId: f.userId,
+            episodeId: ep._id,
+            episodeTitle: title,
+            episodeTitleEn: titleEn,
+            type: 'status_change',
+            message,
+            metadata: { status: 'completed' }
+          }));
+          await Notification.insertMany(notifications).catch(() => {});
+          // Web Push 通知
+          followers.forEach(f => {
+            sendPushToUser(String(f.userId), {
+              title: '剧集已完结',
+              body: message,
+              icon: '/vite.svg',
+              data: { url: `/episode/${ep._id}` }
+            }).catch(() => {});
+          });
+          // 邮件通知（受用户偏好控制）
+          sendBatchNotificationEmails(
+            followers.map(f => ({
+              userId: f.userId,
+              prefKey: 'episodeUpdate',
+              args: [title, ep.currentEpisodes, 'completed']
+            }))
+          ).catch(() => {});
+        }
       }
     }
     if (updated > 0) {

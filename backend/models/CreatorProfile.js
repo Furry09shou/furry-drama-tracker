@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
 const CreatorProfileSchema = new mongoose.Schema({
-  adminId: {
+  // 创作者用户 ID（曾用名 adminId，语义易误解为"管理员 ID"，已重命名为 creatorId）
+  creatorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,

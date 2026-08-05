@@ -429,6 +429,15 @@ const sendEpisodeUpdateEmail = async (email, episodeTitle, episodeNumber, eventT
       <p style="margin:0;color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
     `, '您关注的剧集预告信息已更新');
   }
+  if (eventType === 'completed') {
+    return sendNotificationEmail(email, `《${episodeTitle}》已完结`, `
+      <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">剧集完结提醒</h2>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px;">您追番的剧集已完结！</p>
+      ${emailInfoBox('<p style="margin:0 0 4px;font-size:16px;font-weight:600;">《' + episodeTitle + '》</p><p style="margin:0;color:#64748b;">已完结，共 ' + episodeNumber + ' 集</p>', 'info')}
+      <p style="margin:20px 0;">${emailButton('前往查看', url, 'primary')}</p>
+      <p style="margin:0;color:#94a3b8;font-size:12px;">您可以在账号设置中关闭此类邮件通知。</p>
+    `, '您追番的剧集已完结');
+  }
   return sendNotificationEmail(email, `《${episodeTitle}》更新了第${episodeNumber}集`, `
     <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">追番更新提醒</h2>
     <p style="margin:0 0 16px;color:#475569;font-size:14px;">您关注的剧集有新更新啦！</p>

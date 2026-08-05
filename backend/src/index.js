@@ -127,19 +127,35 @@ connectDB().then(async () => {
 
     // 迁移：为所有 creator/admin/superadmin 角色但没有 CreatorProfile 的用户补建初始状态创作者主页（一次性，幂等）
     const CreatorProfile = require('../models/CreatorProfile');
+    // 一次性字段重命名迁移：CreatorProfile.adminId → creatorId（避免语义误解为"管理员 ID"）
+    // 先删除旧的 adminId_1 唯一索引，避免 $rename 后多个文档 adminId 为 null 违反唯一约束
+    try {
+      await CreatorProfile.collection.dropIndex('adminId_1');
+      console.log('已删除旧的 adminId_1 索引');
+    } catch (e) {
+      // 索引可能不存在，忽略
+    }
+    const oldFieldCount = await CreatorProfile.collection.countDocuments({ adminId: { $exists: true } });
+    if (oldFieldCount > 0) {
+      await CreatorProfile.collection.updateMany(
+        { adminId: { $exists: true } },
+        { $rename: { adminId: 'creatorId' } }
+      );
+      console.log(`已将 ${oldFieldCount} 个 CreatorProfile 的 adminId 字段迁移为 creatorId`);
+    }
     const usersNeedingProfile = await User.find({
       role: { $in: ['creator', 'admin', 'superadmin'] }
     }).select('_id username role');
     let createdProfiles = 0;
     for (const user of usersNeedingProfile) {
-      const existing = await CreatorProfile.findOne({ adminId: user._id });
+      const existing = await CreatorProfile.findOne({ creatorId: user._id });
       if (existing) continue;
       const defaultBio = user.role === 'superadmin'
         ? '站点管理员，负责内容审核与平台运营。'
         : '这位创作者还没有填写个人简介。';
       try {
         await CreatorProfile.create({
-          adminId: user._id,
+          creatorId: user._id,
           displayName: user.username || '创作者',
           bio: defaultBio,
           socialLinks: {}

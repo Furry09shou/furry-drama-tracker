@@ -422,7 +422,7 @@ router.get('/creators', adminProtect, async (req, res) => {
 // ===== 超管管理创作者主页 =====
 router.get('/creator-profiles', superAdminProtect, requireEmailChanged, async (req, res) => {
   try {
-    const profiles = await CreatorProfile.find().populate('adminId', 'accountId username email').sort({ updatedAt: -1 });
+    const profiles = await CreatorProfile.find().populate('creatorId', 'accountId username email').sort({ updatedAt: -1 });
     res.json(profiles);
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -431,7 +431,7 @@ router.get('/creator-profiles', superAdminProtect, requireEmailChanged, async (r
 
 router.get('/creator-profiles/:id', superAdminProtect, requireEmailChanged, async (req, res) => {
   try {
-    const profile = await CreatorProfile.findById(req.params.id).populate('adminId', 'accountId username email');
+    const profile = await CreatorProfile.findById(req.params.id).populate('creatorId', 'accountId username email');
     if (!profile) return res.status(404).json({ message: '创作者主页不存在' });
     res.json(profile);
   } catch (error) {
@@ -511,7 +511,7 @@ router.put('/creator-profiles/:id/reject', superAdminProtect, requireEmailChange
 
 // 创作者主页审核结果通知：站内通知 + Web Push
 function notifyProfileReviewResult(profile, status, note) {
-  const creatorId = profile.adminId;
+  const creatorId = profile.creatorId;
   if (!creatorId) return;
   const isApproved = status === 'approved';
   const message = isApproved

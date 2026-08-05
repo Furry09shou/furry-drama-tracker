@@ -30,7 +30,7 @@ const COLLECTION_FIELDS = {
   reports: ['reporterId', 'targetType', 'targetId', 'reason', 'description', 'status', 'resolveNote', 'resolvedBy', 'createdAt', 'updatedAt'],
   sitecontents: ['key', 'title', 'content', 'createdAt', 'updatedAt'],
   singleepisodes: ['episodeId', 'episodeNumber', 'title', 'titleEn', 'titleJa', 'duration', 'platformLinks', 'views', 'scheduledDate', 'isScheduled', 'releaseDate', 'premiereDate', 'isUpcoming', 'createdAt', 'updatedAt'],
-  creatorprofiles: ['adminId', 'displayName', 'displayNameEn', 'bio', 'bioEn', 'avatar', 'socialLinks', 'createdAt', 'updatedAt'],
+  creatorprofiles: ['creatorId', 'displayName', 'displayNameEn', 'bio', 'bioEn', 'avatar', 'socialLinks', 'createdAt', 'updatedAt'],
   announcements: ['title', 'titleEn', 'content', 'contentEn', 'type', 'showPopup', 'showBanner', 'sendNotification', 'sendEmail', 'dismissible', 'active', 'pinned', 'publishAt', 'expireAt', 'notificationSent', 'emailSent', 'emailSentAt', 'emailSentCount', 'link', 'createdBy', 'createdAt', 'updatedAt']
 };
 

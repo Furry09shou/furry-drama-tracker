@@ -875,6 +875,39 @@ router.put('/:id', creatorProtect, async (req, res) => {
   }
 });
 
+// 创作者重新提交审核：将 rejected 状态的剧集重新置为 pending，等待管理员审核
+// 解决"rejected 剧集创作者无法主动触发重新审核，只能再编辑一次"的问题
+router.post('/:id/resubmit', creatorProtect, async (req, res) => {
+  try {
+    const episode = await Episode.findById(req.params.id);
+    if (!episode) {
+      return res.status(404).json({ message: 'Episode not found' });
+    }
+    // 只有 rejected 状态的剧集可以重新提交
+    if (episode.reviewStatus !== 'rejected') {
+      return res.status(400).json({ message: '只有被拒绝的剧集才能重新提交审核' });
+    }
+    // 权限校验：创建者或允许的编辑者
+    const isOwner = episode.createdBy && episode.createdBy.toString() === req.user._id.toString();
+    const isAllowed = episode.allowedEditors && episode.allowedEditors.some(e => e.toString() === req.user._id.toString());
+    if (!isOwner && !isAllowed) {
+      return res.status(403).json({ message: 'You do not have permission to resubmit this episode' });
+    }
+    episode.reviewStatus = 'pending';
+    episode.reviewNote = '';
+    episode.reviewedBy = null;
+    episode.reviewedAt = null;
+    episode.updatedAt = Date.now();
+    await episode.save();
+    clearCache(`episode_${req.params.id}`);
+    clearCacheByPrefix('episodes_');
+    res.json(episode);
+  } catch (error) {
+    console.error('Resubmit episode error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.delete('/:id', adminProtect, async (req, res) => {
   try {
     const episode = await Episode.findById(req.params.id);

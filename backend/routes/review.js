@@ -90,7 +90,7 @@ router.put('/approve/:id', adminProtect, adminOnly, async (req, res) => {
   try {
     const episode = await Episode.findByIdAndUpdate(
       req.params.id,
-      { reviewStatus: 'approved', reviewNote: req.body.note || '' },
+      { reviewStatus: 'approved', reviewNote: req.body.note || '', reviewedBy: req.user._id, reviewedAt: new Date() },
       { new: true }
     );
     if (!episode) {
@@ -110,7 +110,7 @@ router.put('/reject/:id', adminProtect, adminOnly, async (req, res) => {
   try {
     const episode = await Episode.findByIdAndUpdate(
       req.params.id,
-      { reviewStatus: 'rejected', reviewNote: req.body.note || '' },
+      { reviewStatus: 'rejected', reviewNote: req.body.note || '', reviewedBy: req.user._id, reviewedAt: new Date() },
       { new: true }
     );
     if (!episode) {

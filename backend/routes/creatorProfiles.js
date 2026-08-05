@@ -17,10 +17,10 @@ const toPublicProfile = (profile) => {
 // 创建/获取自己的创作者主页（创作者视角，包含待审核修改）
 router.get('/my-profile', creatorProtect, async (req, res) => {
   try {
-    let profile = await CreatorProfile.findOne({ adminId: req.user._id });
+    let profile = await CreatorProfile.findOne({ creatorId: req.user._id });
     if (!profile) {
       profile = await CreatorProfile.create({
-        adminId: req.user._id,
+        creatorId: req.user._id,
         displayName: req.user.username || '创作者',
         bio: '这位创作者还没有填写个人简介。',
         socialLinks: {}
@@ -44,7 +44,7 @@ router.put('/my-profile', creatorProtect, async (req, res) => {
       socialLinks: req.body.socialLinks || {}
     };
     let profile = await CreatorProfile.findOneAndUpdate(
-      { adminId: req.user._id },
+      { creatorId: req.user._id },
       {
         $set: {
           pendingChanges,
@@ -74,12 +74,12 @@ router.get('/public/:id', async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    const adminId = profile.adminId;
+    const creatorId = profile.creatorId;
     const episodes = await Episode.find({
       $or: [
-        { createdBy: adminId, hideCreator: { $ne: true } },
-        { allowedEditors: adminId },
-        { customAuthors: adminId }
+        { createdBy: creatorId, hideCreator: { $ne: true } },
+        { allowedEditors: creatorId },
+        { customAuthors: creatorId }
       ],
       reviewStatus: 'approved'
     }).sort({ createdAt: -1 });
@@ -90,24 +90,25 @@ router.get('/public/:id', async (req, res) => {
   }
 });
 
-router.get('/by-admin/:adminId', async (req, res) => {
+// 按创作者用户 ID 查询主页（曾用路径 /by-admin/:adminId，已重命名以避免语义误解）
+router.get('/by-creator/:creatorId', async (req, res) => {
   try {
-    const profile = await CreatorProfile.findOne({ adminId: req.params.adminId });
+    const profile = await CreatorProfile.findOne({ creatorId: req.params.creatorId });
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    const adminId = profile.adminId;
+    const creatorId = profile.creatorId;
     const episodes = await Episode.find({
       $or: [
-        { createdBy: adminId, hideCreator: { $ne: true } },
-        { allowedEditors: adminId },
-        { customAuthors: adminId }
+        { createdBy: creatorId, hideCreator: { $ne: true } },
+        { allowedEditors: creatorId },
+        { customAuthors: creatorId }
       ],
       reviewStatus: 'approved'
     }).sort({ createdAt: -1 });
     res.json({ profile: toPublicProfile(profile), episodes });
   } catch (error) {
-    console.error('Get profile by admin error:', error);
+    console.error('Get profile by creator error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

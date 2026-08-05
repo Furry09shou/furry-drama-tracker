@@ -100,6 +100,16 @@ const EpisodeSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // 审核人：记录谁审核的，便于追溯。approved/pending/rejected 状态变更时更新
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  reviewedAt: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

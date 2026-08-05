@@ -271,9 +271,9 @@ const AdminCreatorProfiles = () => {
                         <h3 style={{ margin: 0, fontSize: '16px' }}>{profile.displayName}</h3>
                         <ReviewStatusBadge status={profile.reviewStatus || 'approved'} />
                       </div>
-                      {profile.adminId && (
+                      {profile.creatorId && (
                         <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                          {profile.adminId.username || profile.adminId.accountId} ({profile.adminId.email})
+                          {profile.creatorId.username || profile.creatorId.accountId} ({profile.creatorId.email})
                         </p>
                       )}
                     </div>
@@ -302,9 +302,9 @@ const AdminCreatorProfiles = () => {
                         color: 'var(--primary-light)', fontSize: '13px', fontWeight: 500
                       }}
                     >{t('common.edit')}</button>
-                    {profile.adminId && (
+                    {profile.creatorId && (
                       <Link
-                        to={`/creator/${profile.adminId._id}`}
+                        to={`/creator/${profile.creatorId._id}`}
                         style={{
                           flex: 1, padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
                           background: 'var(--hover-bg)', border: '1px solid var(--border)',
