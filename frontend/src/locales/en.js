@@ -77,6 +77,11 @@ export default {
     chrome: 'Google Chrome',
     edge: 'Microsoft Edge (Chromium-based)',
     firefox: 'Mozilla Firefox',
+    continueAnyway: 'Continue anyway',
+    feedbackTitle: 'Is everything working normally?',
+    feedbackDesc: 'You have been browsing for a while. Is everything working normally? Select "Working fine" to stop showing this warning.',
+    feedbackNormal: 'Working fine',
+    feedbackProblem: 'Having issues',
   },
   nav: {
     home: 'Home',

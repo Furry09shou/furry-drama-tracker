@@ -4344,3 +4344,14 @@ tbody tr:hover {
   transform: translateY(-4px) scale(1.05);
   box-shadow: var(--shadow-xl), var(--glow-primary-strong) !important;
 }
+
+/* 浏览器兼容性反馈弹窗动画 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -77,6 +77,11 @@ export default {
     chrome: 'Google Chrome',
     edge: 'Microsoft Edge（新版，基于 Chromium）',
     firefox: 'Mozilla Firefox',
+    continueAnyway: '继续访问',
+    feedbackTitle: '使用是否正常？',
+    feedbackDesc: '您已继续访问了一段时间，网站使用是否正常？选择"使用正常"后不再提示此警告。',
+    feedbackNormal: '使用正常',
+    feedbackProblem: '有问题',
   },
   nav: {
     home: '首页',

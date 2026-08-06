@@ -5,24 +5,83 @@ import axios from 'axios';
 /**
  * 浏览器兼容性检测组件
  * 自动识别不兼容的浏览器（如 IE、过低版本的 Chrome/Firefox/Safari/Edge）
- * 显示原因和解决办法
+ * 显示原因和解决办法，同时提供"继续访问"入口（主题切换等非核心功能不影响正常浏览）
  */
 const BrowserCompat = ({ children }) => {
   const { t, lang, switchLang } = useI18n();
   const [compatInfo, setCompatInfo] = useState(null);
+  const [bypassed, setBypassed] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
+    // 检查本地是否已标记"使用正常，不再提醒"
+    try {
+      if (localStorage.getItem(getBypassKey()) === 'ok') {
+        setCompatInfo({ compatible: true });
+        return;
+      }
+    } catch (e) {}
     const info = checkCompatibility();
     setCompatInfo(info);
   }, []);
 
-  // 不兼容时显示全屏提示
-  if (compatInfo && !compatInfo.compatible) {
-    return <IncompatibleOverlay reason={compatInfo.reason} browser={compatInfo.browser} t={t} lang={lang} switchLang={switchLang} />;
+  // 继续访问后 1 分钟弹窗询问使用是否正常
+  useEffect(() => {
+    if (bypassed) {
+      const timer = setTimeout(() => setShowFeedback(true), 60 * 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [bypassed]);
+
+  const handleContinue = () => setBypassed(true);
+
+  const handleFeedback = (isNormal) => {
+    if (isNormal) {
+      // 用户确认正常 → 本地记录（按浏览器+设备维度），不再提示
+      try { localStorage.setItem(getBypassKey(), 'ok'); } catch (e) {}
+    }
+    setShowFeedback(false);
+  };
+
+  // 不兼容时显示全屏提示（带"继续访问"按钮）
+  if (compatInfo && !compatInfo.compatible && !bypassed) {
+    return (
+      <IncompatibleOverlay
+        reason={compatInfo.reason}
+        browser={compatInfo.browser}
+        t={t}
+        lang={lang}
+        switchLang={switchLang}
+        onContinue={handleContinue}
+      />
+    );
   }
 
-  return children;
+  return (
+    <>
+      {children}
+      {showFeedback && (
+        <FeedbackDialog
+          onNormal={() => handleFeedback(true)}
+          onProblem={() => handleFeedback(false)}
+          t={t}
+        />
+      )}
+    </>
+  );
 };
+
+/**
+ * 基于浏览器 UA 生成本地存储 key（区分用户/设备/浏览器，同一组合只记一次）
+ */
+function getBypassKey() {
+  const ua = navigator.userAgent;
+  let hash = 0;
+  for (let i = 0; i < ua.length; i++) {
+    hash = ((hash << 5) - hash + ua.charCodeAt(i)) | 0;
+  }
+  return `browserCompat_bypass_${hash}`;
+}
 
 /**
  * 检测浏览器兼容性
@@ -111,10 +170,12 @@ function checkCompatibility() {
   }
 
   // CSS 变量支持检测
-  if (window.CSS && CSS.supports) {
-    if (!CSS.supports('--a', '0')) {
-      return { compatible: false, reason: 'noCssVars', browser: browserName || 'Unknown' };
-    }
+  // 注意：Safari 中 CSS.supports('--a', '0') 两参数形式对自定义属性有 bug 会返回 false，
+  // 即使 Safari 9.1+ 已完整支持 CSS 变量。改用元素属性检测更可靠。
+  const el = document.createElement('div');
+  el.style.setProperty('--test-var', '0');
+  if (el.style.getPropertyValue('--test-var') === '') {
+    return { compatible: false, reason: 'noCssVars', browser: browserName || 'Unknown' };
   }
 
   return { compatible: true };
@@ -144,7 +205,7 @@ function getReasonText(reason, t) {
 /**
  * 不兼容浏览器全屏提示（亮色主题，支持中英双语切换）
  */
-const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
+const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang, onContinue }) => {
   const [icp, setIcp] = useState('');
 
   useEffect(() => {
@@ -274,6 +335,22 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
     boxShadow: '0 2px 8px rgba(99,102,241,0.12)',
   };
 
+  const continueBtnStyle = {
+    display: 'block',
+    width: '100%',
+    textAlign: 'center',
+    padding: '10px',
+    borderRadius: '8px',
+    border: '1px solid #c7d2fe',
+    background: '#fff',
+    color: '#6366f1',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    marginTop: '14px',
+    transition: 'background 0.2s',
+  };
+
   const browsers = [
     { name: t('browserCompat.chrome'), cn: 'https://www.google.cn/chrome/', global: 'https://www.google.com/chrome/' },
     { name: t('browserCompat.edge'), cn: 'https://www.microsoft.com/zh-cn/edge', global: 'https://www.microsoft.com/en-us/edge' },
@@ -336,6 +413,15 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
           }}>
             {t('browserCompat.hint')}
           </p>
+          {/* 继续访问：主题切换等非核心功能不影响正常浏览 */}
+          <button
+            style={continueBtnStyle}
+            onClick={onContinue}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+          >
+            {t('browserCompat.continueAnyway')}
+          </button>
         </div>
       </div>
       {icp && (
@@ -357,6 +443,51 @@ const IncompatibleOverlay = ({ reason, browser, t, lang, switchLang }) => {
           onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
         >{icp}</a>
       )}
+    </div>
+  );
+};
+
+/**
+ * 继续 1 分钟后弹出的反馈弹窗：询问使用是否正常
+ * 用户确认正常 → localStorage 记录，不再提示该浏览器
+ */
+const FeedbackDialog = ({ onNormal, onProblem, t }) => {
+  const overlayStyle = {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.5)', zIndex: 2147483647,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    animation: 'fadeIn 0.2s ease',
+  };
+
+  const cardStyle = {
+    background: '#fff', borderRadius: '12px', padding: '24px 20px',
+    maxWidth: '380px', width: 'calc(100% - 32px)',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+    textAlign: 'center',
+    animation: 'slideUp 0.3s ease',
+  };
+
+  return (
+    <div style={overlayStyle}>
+      <div style={cardStyle}>
+        <div style={{ fontSize: '32px', marginBottom: '8px' }} aria-hidden="true">🤔</div>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
+          {t('browserCompat.feedbackTitle')}
+        </h2>
+        <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '18px', lineHeight: 1.5 }}>
+          {t('browserCompat.feedbackDesc')}
+        </p>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={onNormal} style={{
+            flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+            background: '#6366f1', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+          }}>{t('browserCompat.feedbackNormal')}</button>
+          <button onClick={onProblem} style={{
+            flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #c7d2fe',
+            background: '#fff', color: '#6366f1', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+          }}>{t('browserCompat.feedbackProblem')}</button>
+        </div>
+      </div>
     </div>
   );
 };
