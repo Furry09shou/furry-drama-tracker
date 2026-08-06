@@ -128,6 +128,12 @@ router.post('/reset-password', async (req, res) => {
     user.passwordChangedAt = new Date();
     await user.save();
 
+    // 安全：重置密码后吊销该用户所有活跃会话，防止旧 session（如攻击者已登录）继续有效
+    await UserSession.updateMany(
+      { userId: user._id, isActive: true },
+      { isActive: false, logoutAt: new Date() }
+    );
+
     logManual({
       userId: user._id,
       userName: user.username || user.accountId,

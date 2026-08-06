@@ -16,8 +16,10 @@ const Episode = require('../models/Episode');
 const Report = require('../models/Report');
 const Feedback = require('../models/Feedback');
 const FriendLink = require('../models/FriendLink');
+const Notification = require('../models/Notification');
 const PushSubscription = require('../models/PushSubscription');
 const Folder = require('../models/Folder');
+const { sendPushToUser } = require('./notifications');
 
 // 测试环境跳过验证的邮箱列表（仅非生产环境生效）
 const DEMO_EMAILS = (process.env.NODE_ENV !== 'production' && process.env.DEMO_EMAILS ? process.env.DEMO_EMAILS : '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
@@ -140,7 +142,7 @@ router.get('/verify', adminProtect, async (req, res) => {
 router.get('/pending-counts', adminProtect, async (req, res) => {
   try {
     const [episodes, reports, feedbacks, friendLinks] = await Promise.all([
-      Episode.countDocuments({ status: 'pending' }),
+      Episode.countDocuments({ reviewStatus: 'pending' }),
       Report.countDocuments({ status: 'pending' }),
       Feedback.countDocuments({ status: 'pending' }),
       FriendLink.countDocuments({ status: 'pending' })
@@ -288,7 +290,7 @@ router.delete('/:id', superAdminProtect, requireEmailChanged, async (req, res) =
   }
 });
 
-router.get('/users', adminProtect, async (req, res) => {
+router.get('/users', superAdminProtect, async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;
     const pageNum = parseInt(page);
@@ -420,7 +422,7 @@ router.get('/creators', adminProtect, async (req, res) => {
 // ===== 超管管理创作者主页 =====
 router.get('/creator-profiles', superAdminProtect, requireEmailChanged, async (req, res) => {
   try {
-    const profiles = await CreatorProfile.find().populate('adminId', 'accountId username email').sort({ updatedAt: -1 });
+    const profiles = await CreatorProfile.find().populate('creatorId', 'accountId username email').sort({ updatedAt: -1 });
     res.json(profiles);
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
@@ -429,7 +431,7 @@ router.get('/creator-profiles', superAdminProtect, requireEmailChanged, async (r
 
 router.get('/creator-profiles/:id', superAdminProtect, requireEmailChanged, async (req, res) => {
   try {
-    const profile = await CreatorProfile.findById(req.params.id).populate('adminId', 'accountId username email');
+    const profile = await CreatorProfile.findById(req.params.id).populate('creatorId', 'accountId username email');
     if (!profile) return res.status(404).json({ message: '创作者主页不存在' });
     res.json(profile);
   } catch (error) {
@@ -444,6 +446,10 @@ router.put('/creator-profiles/:id', superAdminProtect, requireEmailChanged, asyn
       avatar: req.body.avatar,
       bio: req.body.bio && req.body.bio.length > 500 ? req.body.bio.slice(0, 500) : req.body.bio,
       socialLinks: req.body.socialLinks || {},
+      // 超管直接编辑视为终态：清空待审核改动并标记为已通过
+      pendingChanges: { displayName: '', avatar: '', bio: '', socialLinks: {} },
+      reviewStatus: 'approved',
+      reviewNote: '',
       updatedAt: Date.now()
     };
     const profile = await CreatorProfile.findByIdAndUpdate(
@@ -457,6 +463,74 @@ router.put('/creator-profiles/:id', superAdminProtect, requireEmailChanged, asyn
     res.status(500).json({ message: '服务器错误' });
   }
 });
+
+// 超管审核创作者主页修改：通过 → 将 pendingChanges 应用到正式字段
+router.put('/creator-profiles/:id/approve', superAdminProtect, requireEmailChanged, async (req, res) => {
+  try {
+    const profile = await CreatorProfile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ message: '创作者主页不存在' });
+    const pc = profile.pendingChanges || {};
+    if (pc.displayName) profile.displayName = pc.displayName;
+    if (pc.avatar !== undefined) profile.avatar = pc.avatar;
+    if (pc.bio !== undefined) profile.bio = pc.bio;
+    if (pc.socialLinks) profile.socialLinks = pc.socialLinks;
+    profile.pendingChanges = { displayName: '', avatar: '', bio: '', socialLinks: {} };
+    profile.reviewStatus = 'approved';
+    profile.reviewNote = '';
+    profile.updatedAt = Date.now();
+    await profile.save();
+
+    // 通知创作者主页修改已通过
+    notifyProfileReviewResult(profile, 'approved', '');
+    res.json(profile);
+  } catch (error) {
+    console.error('Approve creator profile error:', error);
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// 超管审核创作者主页修改：拒绝 → 保留 pendingChanges 供创作者修改重提，正式字段不变
+router.put('/creator-profiles/:id/reject', superAdminProtect, requireEmailChanged, async (req, res) => {
+  try {
+    const profile = await CreatorProfile.findById(req.params.id);
+    if (!profile) return res.status(404).json({ message: '创作者主页不存在' });
+    const note = (req.body.note || '').slice(0, 500);
+    profile.reviewStatus = 'rejected';
+    profile.reviewNote = note;
+    profile.updatedAt = Date.now();
+    await profile.save();
+
+    // 通知创作者主页修改未通过
+    notifyProfileReviewResult(profile, 'rejected', note);
+    res.json(profile);
+  } catch (error) {
+    console.error('Reject creator profile error:', error);
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+// 创作者主页审核结果通知：站内通知 + Web Push
+function notifyProfileReviewResult(profile, status, note) {
+  const creatorId = profile.creatorId;
+  if (!creatorId) return;
+  const isApproved = status === 'approved';
+  const message = isApproved
+    ? '您的创作者主页修改已通过审核'
+    : `您的创作者主页修改未通过审核${note ? `：${note}` : ''}`;
+  Notification.create({
+    userId: creatorId,
+    type: 'profile_review',
+    message,
+    link: '/admin/creator-profile',
+    metadata: { status, note }
+  }).catch(() => {});
+  sendPushToUser(String(creatorId), {
+    title: `创作者主页修改${isApproved ? '已通过' : '未通过'}审核`,
+    body: message,
+    icon: '/vite.svg',
+    data: { url: '/admin/creator-profile' }
+  }).catch(() => {});
+}
 
 router.post('/verify-password', adminProtect, async (req, res) => {
   const { password } = req.body;

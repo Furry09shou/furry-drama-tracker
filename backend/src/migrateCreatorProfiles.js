@@ -16,7 +16,7 @@ const migrateCreatorProfiles = async () => {
     let skipped = 0;
 
     for (const user of users) {
-      const existing = await CreatorProfile.findOne({ adminId: user._id });
+      const existing = await CreatorProfile.findOne({ creatorId: user._id });
       if (existing) {
         skipped += 1;
         continue;
@@ -28,7 +28,7 @@ const migrateCreatorProfiles = async () => {
 
       try {
         await CreatorProfile.create({
-          adminId: user._id,
+          creatorId: user._id,
           displayName: user.username || '创作者',
           bio: defaultBio,
           socialLinks: {}

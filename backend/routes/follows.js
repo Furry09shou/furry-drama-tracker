@@ -13,6 +13,10 @@ router.post('/add', protect, async (req, res) => {
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
+    // 仅允许追番已审核通过的剧集，防止通过 ID 追番 pending/rejected 内容
+    if (episode.reviewStatus && episode.reviewStatus !== 'approved') {
+      return res.status(403).json({ message: '该剧集暂不可追番' });
+    }
     try {
       const followData = { userId: req.user._id, episodeId, followedAtEpisodes: episode.currentEpisodes };
       if (folderId) {
@@ -31,6 +35,11 @@ router.post('/add', protect, async (req, res) => {
   }
 });
 
+// 取消关注：
+// - 动态(Activity)无须显式清理——动态流基于 Follow 表实时聚合(见 routes/activity.js)，
+//   Follow 记录删除后该剧集自然不再出现在用户的动态列表中。
+// - 通知(Notification)按产品要求保留，由用户在通知中心自行清理
+//   (notifications.js 提供 /clear-read、/:id、/read-all 等接口)。
 router.post('/remove', protect, async (req, res) => {
   const { episodeId } = req.body;
   try {

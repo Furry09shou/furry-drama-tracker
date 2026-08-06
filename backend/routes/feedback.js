@@ -4,7 +4,7 @@ const rateLimit = require('express-rate-limit');
 const Feedback = require('../models/Feedback');
 const Notification = require('../models/Notification');
 const { sendPushToUser } = require('./notifications');
-const { protect, adminProtect } = require('../middlewares/authFactory');
+const { protect, adminOnlyProtect } = require('../middlewares/authFactory');
 const { asyncHandler } = require('../utils/errorHandler');
 const { sendNotificationEmailToUser } = require('../utils/notifyHelper');
 
@@ -52,7 +52,7 @@ router.get('/my', protect, async (req, res) => {
   }
 });
 
-router.get('/', adminProtect, async (req, res) => {
+router.get('/', adminOnlyProtect, async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -65,7 +65,7 @@ router.get('/', adminProtect, async (req, res) => {
   }
 });
 
-router.put('/:id', adminProtect, async (req, res) => {
+router.put('/:id', adminOnlyProtect, async (req, res) => {
   try {
     const { status, reply } = req.body;
     const validStatuses = ['pending', 'read', 'replied'];

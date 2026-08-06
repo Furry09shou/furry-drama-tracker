@@ -128,7 +128,10 @@ export const AuthProvider = ({ children }) => {
     const controller = new AbortController();
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
+      // 切回标签页时同步刷新 user 状态与 CSRF token，
+      // 避免长时间挂起后 CSRF cookie 过期导致后续写请求 403
       axios.get(API.AUTH.ME, { skipRedirect: true, signal: controller.signal, params: { _t: Date.now() } }).catch(() => {});
+      fetchCsrfToken().catch(() => {});
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => { controller.abort(); document.removeEventListener('visibilitychange', handleVisibilityChange); };

@@ -53,11 +53,10 @@ const useNotifications = () => {
         eventSource.addEventListener('notification', (event) => {
           try {
             const data = JSON.parse(event.data);
+            // 后端推送的 unreadCount 已是准确值（实时 countDocuments），直接使用即可，
+            // 不再因 type==='new' 重复 +1，否则未读数会虚增 1 直到下次轮询(60s)才修正
             if (data.unreadCount !== undefined) {
               setUnreadCount(data.unreadCount);
-            }
-            if (data.type === 'new') {
-              setUnreadCount(prev => prev + 1);
             }
           } catch (e) {}
         });
@@ -161,15 +160,13 @@ const useNotifications = () => {
 
   const deleteAllRead = useCallback(async () => {
     try {
-      const readNotifications = notifications.filter(n => n.isRead);
-      await Promise.all(readNotifications.map(n =>
-        axios.delete(API.NOTIFICATIONS.DELETE(n._id))
-      ));
+      // 调用后端批量删除接口（DELETE /clear-read），避免逐条 DELETE 产生大量请求
+      await axios.delete('/api/notifications/clear-read');
       setNotifications(prev => prev.filter(n => !n.isRead));
     } catch (err) {
       console.error('Failed to delete read notifications:', err);
     }
-  }, [notifications]);
+  }, []);
 
   // 更新 PWA 图标角标
   useEffect(() => {

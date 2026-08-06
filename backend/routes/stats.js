@@ -8,7 +8,7 @@ const Rating = require('../models/Rating');
 const Report = require('../models/Report');
 const History = require('../models/History');
 const UserSession = require('../models/UserSession');
-const { adminProtect, protect } = require('../middlewares/authFactory');
+const { adminOnlyProtect, protect } = require('../middlewares/authFactory');
 const { setCache, getCache } = require('../middlewares/cache');
 const { asyncHandler } = require('../utils/errorHandler');
 
@@ -28,7 +28,7 @@ const cacheMiddleware = (duration) => {
   };
 };
 
-router.get('/overview', adminProtect, cacheMiddleware(300), async (req, res) => {
+router.get('/overview', adminOnlyProtect, cacheMiddleware(300), async (req, res) => {
   try {
     const period = req.query.period || '7d';
     const days = period === '30d' ? 30 : 7;
@@ -587,7 +587,7 @@ router.get('/recommendations/:episodeId', cacheMiddleware(300), async (req, res)
   }
 });
 
-router.get('/activity-heatmap', adminProtect, cacheMiddleware(300), async (req, res) => {
+router.get('/activity-heatmap', adminOnlyProtect, cacheMiddleware(300), async (req, res) => {
   try {
     const now = new Date();
     const startDate = new Date(now);
@@ -628,7 +628,7 @@ router.get('/activity-heatmap', adminProtect, cacheMiddleware(300), async (req, 
   }
 });
 
-router.get('/episode-lifecycle', adminProtect, cacheMiddleware(300), async (req, res) => {
+router.get('/episode-lifecycle', adminOnlyProtect, cacheMiddleware(300), async (req, res) => {
   try {
     const topEpisodes = await Episode.find({ reviewStatus: 'approved' })
       .sort({ views: -1 })
@@ -657,7 +657,7 @@ router.get('/episode-lifecycle', adminProtect, cacheMiddleware(300), async (req,
   }
 });
 
-router.get('/realtime', adminProtect, async (req, res) => {
+router.get('/realtime', adminOnlyProtect, async (req, res) => {
   try {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
     const todayStart = new Date();

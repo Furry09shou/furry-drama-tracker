@@ -30,6 +30,7 @@ const Settings = ({ user }) => {
     feedbackReply: true,
     friendLinkStatus: true,
     friendLinkApply: true,
+    reviewResult: true,
   });
   const [bgPrefs, setBgPrefs] = useState({
     image: '', enabled: false, opacity: 30, blur: 0,
@@ -201,6 +202,17 @@ const Settings = ({ user }) => {
           value: emailPrefs.friendLinkApply,
           onChange: () => handleToggleEmailPref('friendLinkApply'),
         },
+        // 创作者专属：剧集审核结果邮件通知
+        ...(user && (user.role === 'creator' || user.role === 'admin' || user.role === 'superadmin')
+          ? [{
+              key: 'emailReviewResult',
+              label: t('settings.emailReviewResult'),
+              desc: t('settings.emailReviewResultDesc'),
+              type: 'toggle',
+              value: emailPrefs.reviewResult,
+              onChange: () => handleToggleEmailPref('reviewResult'),
+            }]
+          : []),
       ],
     },
   ];

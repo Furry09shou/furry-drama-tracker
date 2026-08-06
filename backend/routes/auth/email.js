@@ -110,7 +110,7 @@ router.put('/change-email', superAdminProtect, async (req, res) => {
 // 更新邮件通知偏好
 router.put('/email-notification-prefs', protect, async (req, res) => {
   try {
-    const allowedKeys = ['episodeUpdate', 'newDeviceLogin', 'feedbackReply', 'friendLinkStatus', 'friendLinkApply'];
+    const allowedKeys = ['episodeUpdate', 'newDeviceLogin', 'feedbackReply', 'friendLinkStatus', 'friendLinkApply', 'announcement', 'reviewResult'];
     const prefs = {};
     for (const key of allowedKeys) {
       if (typeof req.body[key] === 'boolean') {

@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Report = require('../models/Report');
-const { protect, adminProtect } = require('../middlewares/authFactory');
+const Notification = require('../models/Notification');
+const { protect, adminOnlyProtect } = require('../middlewares/authFactory');
 const { asyncHandler } = require('../utils/errorHandler');
+const { sendPushToUser } = require('./notifications');
 
 router.post('/', protect, async (req, res) => {
   try {
@@ -39,7 +41,7 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-router.get('/list', adminProtect, async (req, res) => {
+router.get('/list', adminOnlyProtect, async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -57,7 +59,7 @@ router.get('/list', adminProtect, async (req, res) => {
   }
 });
 
-router.put('/resolve/:id', adminProtect, async (req, res) => {
+router.put('/resolve/:id', adminOnlyProtect, async (req, res) => {
   try {
     const { status, resolveNote } = req.body;
     if (!['resolved', 'dismissed'].includes(status)) {
@@ -70,6 +72,26 @@ router.put('/resolve/:id', adminProtect, async (req, res) => {
     );
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });
+    }
+    // 通知举报者处理结果：站内通知 + Web Push
+    const isResolved = status === 'resolved';
+    const reporterMessage = isResolved
+      ? '您的举报已处理：已采纳'
+      : '您的举报已处理：未采纳';
+    const reporterId = report.reporterId;
+    if (reporterId) {
+      Notification.create({
+        userId: reporterId,
+        type: 'report_result',
+        message: reporterMessage,
+        metadata: { status, resolveNote: resolveNote || '' }
+      }).catch(() => {});
+      sendPushToUser(String(reporterId), {
+        title: '举报处理结果',
+        body: reporterMessage,
+        icon: '/vite.svg',
+        data: { url: '/' }
+      }).catch(() => {});
     }
     res.json(report);
   } catch (error) {

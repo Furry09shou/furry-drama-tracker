@@ -4,7 +4,7 @@ const Episode = require('../models/Episode');
 const SingleEpisode = require('../models/SingleEpisode');
 const SiteContent = require('../models/SiteContent');
 const ApiUsage = require('../models/ApiUsage');
-const { adminProtect } = require('../middlewares/authFactory');
+const { superAdminProtect } = require('../middlewares/authFactory');
 
 const escapeXml = (str) => {
   if (!str) return '';
@@ -60,7 +60,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/api-usage', adminProtect, async (req, res) => {
+router.get('/api-usage', superAdminProtect, async (req, res) => {
   try {
     const { days = 7 } = req.query;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];

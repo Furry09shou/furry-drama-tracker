@@ -6,24 +6,47 @@ const EpisodeVersion = require('../models/EpisodeVersion');
 const SingleEpisode = require('../models/SingleEpisode');
 const Follow = require('../models/Follow');
 const Notification = require('../models/Notification');
+const User = require('../models/User');
+const Favorite = require('../models/Favorite');
+const History = require('../models/History');
+const Rating = require('../models/Rating');
 const { sendPushToUser } = require('./notifications');
 const { protect, adminProtect, creatorProtect } = require('../middlewares/authFactory');
 const { setCache, getCache, clearCache, clearCacheByPrefix } = require('../middlewares/cache');
-const { escapeRegex } = require('../utils/helpers');
+const { escapeRegex, verifyJwt } = require('../utils/helpers');
 const { createUploadConfig } = require('../utils/upload');
 const { sendBatchNotificationEmails } = require('../utils/notifyHelper');
+
+// 可选鉴权：尝试解析 access token，成功则挂载 req.user，失败则忽略（不阻断）
+// 用于公开接口需要区分"访客/已登录用户/作者/管理员"的场景（如剧集详情的审核态可见性）
+const optionalAuth = async (req, _res, next) => {
+  try {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+    if (!token && req.cookies) token = req.cookies.accessToken || req.cookies.token;
+    if (!token) return next();
+    const decoded = verifyJwt(token);
+    if (decoded.purpose && decoded.purpose !== 'access') return next();
+    const user = await User.findById(decoded.id).select('-password');
+    if (user) req.user = user;
+  } catch (_e) {}
+  next();
+};
 
 const upload = createUploadConfig('cover', 5 * 1024 * 1024);
 
 const viewTracker = new Map();
 const VIEW_COOLDOWN = 10 * 60 * 1000;
 
-// 邮件通知去重：同一剧集+集数 1小时内只发一次，防止创作者频繁更新刷爆SMTP配额
+// 邮件通知去重：同一剧集+集数+事件类型 1小时内只发一次，防止创作者频繁更新刷爆SMTP配额
+// eventType 区分 'available'（可观看）与 'preview'（预告），两者独立去重
 const emailNotifyTracker = new Map();
 const EMAIL_NOTIFY_COOLDOWN = 60 * 60 * 1000; // 1小时
 
-const shouldSendEpisodeEmail = (episodeId, episodeNumber) => {
-  const key = `${episodeId}_${episodeNumber}`;
+const shouldSendEpisodeEmail = (episodeId, episodeNumber, eventType = 'available') => {
+  const key = `${episodeId}_${episodeNumber}_${eventType}`;
   const now = Date.now();
   const lastSent = emailNotifyTracker.get(key);
   if (lastSent && (now - lastSent) < EMAIL_NOTIFY_COOLDOWN) {
@@ -306,10 +329,11 @@ const { asyncHandler } = require('../utils/errorHandler');
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const cacheKey = `episode_${req.params.id}`;
 
+    // 仅已审核剧集走缓存；未审核剧集按用户身份动态判定，不缓存以免泄露给访客
     const cachedEpisode = getCache(cacheKey);
     if (cachedEpisode) {
       return res.json(cachedEpisode);
@@ -323,10 +347,26 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
 
+    // 审核态可见性：仅"已通过"或"无审核态字段"的剧集对公众可见；
+    // 待审核/未通过仅创作者本人、被授权编辑、管理员可见
+    const isApproved = !episode.reviewStatus || episode.reviewStatus === 'approved';
+    if (!isApproved) {
+      const user = req.user;
+      const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
+      const isOwner = user && episode.createdBy && String(episode.createdBy._id) === String(user._id);
+      const isEditor = user && episode.allowedEditors && episode.allowedEditors.some(e => String(e._id) === String(user._id));
+      if (!isAdmin && !isOwner && !isEditor) {
+        return res.status(404).json({ message: 'Episode not found' });
+      }
+    }
+
     const singleEpisodes = await SingleEpisode.find({ episodeId: req.params.id }).sort({ episodeNumber: 1 });
     const episodeWithEpisodes = { ...episode.toObject(), episodes: singleEpisodes };
 
-    setCache(cacheKey, episodeWithEpisodes);
+    // 仅缓存已审核剧集，避免未审核内容被缓存后泄露给其他访客
+    if (isApproved) {
+      setCache(cacheKey, episodeWithEpisodes);
+    }
 
     res.json(episodeWithEpisodes);
   } catch (error) {
@@ -347,13 +387,17 @@ router.put('/:id/view', viewLimiter, async (req, res) => {
     const ip = req.ip || '';
     const viewKey = `${req.params.id}_${ip}`;
     const now = Date.now();
+    // 先查询并校验审核状态：未审核通过的剧集不计浏览量，避免对 pending/rejected 刷量
+    const existing = await Episode.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: 'Episode not found' });
+    }
+    if (existing.reviewStatus && existing.reviewStatus !== 'approved') {
+      return res.status(404).json({ message: 'Episode not found' });
+    }
     const lastView = viewTracker.get(viewKey);
     if (lastView && now - lastView < VIEW_COOLDOWN) {
-      const episode = await Episode.findById(req.params.id);
-      if (!episode) {
-        return res.status(404).json({ message: 'Episode not found' });
-      }
-      return res.json(episode);
+      return res.json(existing);
     }
     viewTracker.set(viewKey, now);
 
@@ -404,14 +448,24 @@ router.put('/single/:id', adminProtect, async (req, res) => {
     if (req.body.duration !== undefined) updateData.duration = req.body.duration;
     if (req.body.platformLinks !== undefined) updateData.platformLinks = req.body.platformLinks;
     if (req.body.scheduledDate !== undefined) updateData.scheduledDate = req.body.scheduledDate;
-    if (req.body.isScheduled !== undefined) updateData.isScheduled = req.body.isScheduled;
+    if (req.body.isScheduled !== undefined) {
+      updateData.isScheduled = req.body.isScheduled;
+      // isUpcoming 自动同步 isScheduled，避免前端维护两个字段
+      updateData.isUpcoming = req.body.isScheduled;
+    }
     if (req.body.premiereDate !== undefined) updateData.premiereDate = req.body.premiereDate;
-    if (req.body.isUpcoming !== undefined) updateData.isUpcoming = req.body.isUpcoming;
     if (req.body.isScheduled !== undefined && req.body.isScheduled) {
       updateData.releaseDate = null;
     } else if (req.body.releaseDate !== undefined) {
       updateData.releaseDate = req.body.releaseDate;
     }
+
+    // 先取旧记录，用于检测 isUpcoming 从 true → false（预告转可观看）以触发追番通知
+    const oldSingle = await SingleEpisode.findById(req.params.id).lean();
+    if (!oldSingle) {
+      return res.status(404).json({ message: 'Single episode not found' });
+    }
+    const becameAvailable = oldSingle.isUpcoming === true && updateData.isUpcoming === false;
 
     const singleEpisode = await SingleEpisode.findByIdAndUpdate(
       req.params.id,
@@ -426,6 +480,112 @@ router.put('/single/:id', adminProtect, async (req, res) => {
     clearCache(`episode_${singleEpisode.episodeId}`);
     clearCacheByPrefix('episodes_');
 
+    // 预告集变为可观看集：currentEpisodes +1 并通知追番用户（站内通知 + Push + 邮件）
+    if (becameAvailable) {
+      await Episode.findByIdAndUpdate(singleEpisode.episodeId, { $inc: { currentEpisodes: 1 } });
+      const episode = await Episode.findById(singleEpisode.episodeId);
+      if (episode) {
+        const followers = await Follow.find({ episodeId: singleEpisode.episodeId });
+        if (followers.length > 0) {
+          const epNum = singleEpisode.episodeNumber;
+          const notifMessage = `《${episode.title}》更新了第${epNum}集`;
+          const notifications = followers.map(f => ({
+            userId: f.userId,
+            episodeId: singleEpisode.episodeId,
+            episodeTitle: episode.title,
+            episodeTitleEn: episode.titleEn || '',
+            type: 'new_episode',
+            message: notifMessage,
+            metadata: { episodeNumber: epNum, isPreview: false }
+          }));
+          await Notification.insertMany(notifications);
+          const uniqueUserIds = [...new Set(followers.map(f => String(f.userId)))];
+          uniqueUserIds.forEach(uid => {
+            sendPushToUser(uid, {
+              title: `《${episode.title}》更新了`,
+              body: `第${epNum}集已更新`,
+              icon: '/vite.svg',
+              data: { url: `/episode/${singleEpisode.episodeId}` }
+            });
+          });
+          // 邮件去重：同一剧集+集数+事件类型1小时内不重复发送
+          if (shouldSendEpisodeEmail(singleEpisode.episodeId, epNum, 'available')) {
+            sendBatchNotificationEmails(
+              uniqueUserIds.map(uid => ({
+                userId: uid,
+                prefKey: 'episodeUpdate',
+                args: [episode.title, epNum, 'available'],
+              }))
+            );
+          }
+        }
+      }
+    }
+
+    // 预告集被编辑（仍为预告）：区分预告视频更新 vs 预告信息更新
+    const stillPreview = oldSingle.isUpcoming === true && !becameAvailable;
+    if (stillPreview) {
+      // 检测 platformLinks（视频/平台链接）是否变更
+      let videoChanged = false;
+      if (updateData.platformLinks !== undefined) {
+        const oldLinks = oldSingle.platformLinks || {};
+        const newLinks = updateData.platformLinks || {};
+        const oldKeys = Object.keys(oldLinks);
+        const newKeys = Object.keys(newLinks);
+        videoChanged = oldKeys.length !== newKeys.length ||
+          newKeys.some(k => String(newLinks[k]) !== String(oldLinks[k]));
+      }
+      // 检测信息字段是否变更
+      const INFO_FIELDS = ['title', 'titleEn', 'titleJa', 'duration', 'scheduledDate', 'isScheduled', 'premiereDate', 'releaseDate', 'episodeNumber'];
+      const infoChanged = INFO_FIELDS.some(f =>
+        updateData[f] !== undefined && String(updateData[f]) !== String(oldSingle[f])
+      );
+
+      if (videoChanged || infoChanged) {
+        // 同时变更时优先发视频通知（对追番用户更有价值）
+        const updateType = videoChanged ? 'video' : 'info';
+        const eventType = videoChanged ? 'preview_video' : 'preview_info';
+        const episode = await Episode.findById(singleEpisode.episodeId);
+        if (episode) {
+          const followers = await Follow.find({ episodeId: singleEpisode.episodeId });
+          if (followers.length > 0) {
+            const epNum = singleEpisode.episodeNumber;
+            const notifMessage = videoChanged
+              ? `《${episode.title}》第${epNum}集预告视频已更新`
+              : `《${episode.title}》第${epNum}集预告信息已更新`;
+            const notifications = followers.map(f => ({
+              userId: f.userId,
+              episodeId: singleEpisode.episodeId,
+              episodeTitle: episode.title,
+              episodeTitleEn: episode.titleEn || '',
+              type: 'new_episode',
+              message: notifMessage,
+              metadata: { episodeNumber: epNum, isPreview: true, previewUpdateType: updateType }
+            }));
+            await Notification.insertMany(notifications);
+            const uniqueUserIds = [...new Set(followers.map(f => String(f.userId)))];
+            uniqueUserIds.forEach(uid => {
+              sendPushToUser(uid, {
+                title: `《${episode.title}》预告${videoChanged ? '视频' : '信息'}更新`,
+                body: `第${epNum}集预告${videoChanged ? '视频' : '信息'}已更新`,
+                icon: '/vite.svg',
+                data: { url: `/episode/${singleEpisode.episodeId}` }
+              });
+            });
+            if (shouldSendEpisodeEmail(singleEpisode.episodeId, epNum, eventType)) {
+              sendBatchNotificationEmails(
+                uniqueUserIds.map(uid => ({
+                  userId: uid,
+                  prefKey: 'episodeUpdate',
+                  args: [episode.title, epNum, eventType],
+                }))
+              );
+            }
+          }
+        }
+      }
+    }
+
     res.json(singleEpisode);
   } catch (error) {
     console.error('Edit single episode error:', error);
@@ -439,9 +599,12 @@ router.delete('/single/:id', adminProtect, async (req, res) => {
     if (!singleEpisode) {
       return res.status(404).json({ message: 'Single episode not found' });
     }
-    await Episode.findByIdAndUpdate(singleEpisode.episodeId, {
-      $inc: { currentEpisodes: -1 }
-    });
+    // 仅可观看集才扣减 currentEpisodes（预告集添加时未计入）
+    if (!singleEpisode.isUpcoming) {
+      await Episode.findByIdAndUpdate(singleEpisode.episodeId, {
+        $inc: { currentEpisodes: -1 }
+      });
+    }
     clearCache(`episode_${singleEpisode.episodeId}`);
     res.json({ message: 'Single episode deleted' });
   } catch (error) {
@@ -515,16 +678,18 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
       scheduledDate: req.body.scheduledDate || null,
       isScheduled: req.body.isScheduled || false,
       premiereDate: req.body.premiereDate || null,
-      isUpcoming: req.body.isUpcoming || false,
+      isUpcoming: req.body.isScheduled || false,
       releaseDate: req.body.isScheduled ? null : (req.body.releaseDate || Date.now())
     };
 
     const singleEpisode = await SingleEpisode.create(singleEpisodeData);
 
-    await Episode.findByIdAndUpdate(req.params.id, {
-      $inc: { currentEpisodes: 1 },
-      updatedAt: Date.now()
-    });
+    // 预告集不计入 currentEpisodes（不可观看），变可观看时才 +1
+    const episodeUpdateOps = { updatedAt: Date.now() };
+    if (!req.body.isScheduled) {
+      episodeUpdateOps.$inc = { currentEpisodes: 1 };
+    }
+    await Episode.findByIdAndUpdate(req.params.id, episodeUpdateOps);
 
     clearCache(`episode_${req.params.id}`);
 
@@ -532,32 +697,56 @@ router.post('/:id/episodes', creatorProtect, async (req, res) => {
     if (updatedEpisode) {
       const followers = await Follow.find({ episodeId: req.params.id });
       if (followers.length > 0) {
+        const isPreview = !!req.body.isScheduled;
+        // 预告集根据是否含视频链接区分：有视频→新预告，无视频→预告信息更新
+        const links = req.body.platformLinks || {};
+        const hasVideo = Object.entries(links).some(([k, v]) => k && v);
+        let eventType, notifMessage, pushBody, notifMetadata;
+        if (!isPreview) {
+          eventType = 'available';
+          notifMessage = `《${updatedEpisode.title}》更新了第${req.body.episodeNumber}集`;
+          pushBody = `第${req.body.episodeNumber}集已更新`;
+          notifMetadata = { episodeNumber: req.body.episodeNumber, isPreview: false };
+        } else if (hasVideo) {
+          eventType = 'preview';
+          notifMessage = `《${updatedEpisode.title}》发布了第${req.body.episodeNumber}集预告`;
+          pushBody = `第${req.body.episodeNumber}集预告已发布`;
+          notifMetadata = { episodeNumber: req.body.episodeNumber, isPreview: true };
+        } else {
+          eventType = 'preview_info';
+          notifMessage = `《${updatedEpisode.title}》第${req.body.episodeNumber}集预告信息已更新`;
+          pushBody = `第${req.body.episodeNumber}集预告信息已更新`;
+          notifMetadata = { episodeNumber: req.body.episodeNumber, isPreview: true, previewUpdateType: 'info' };
+        }
         const notifications = followers.map(f => ({
           userId: f.userId,
           episodeId: req.params.id,
           episodeTitle: updatedEpisode.title,
           episodeTitleEn: updatedEpisode.titleEn || '',
           type: 'new_episode',
-          message: `《${updatedEpisode.title}》更新了第${req.body.episodeNumber}集`,
-          metadata: { episodeNumber: req.body.episodeNumber }
+          message: notifMessage,
+          metadata: notifMetadata
         }));
         await Notification.insertMany(notifications);
         const uniqueUserIds = [...new Set(followers.map(f => String(f.userId)))];
+        const pushTitle = !isPreview
+          ? `《${updatedEpisode.title}》更新了`
+          : (hasVideo ? `《${updatedEpisode.title}》新预告` : `《${updatedEpisode.title}》预告信息更新`);
         uniqueUserIds.forEach(uid => {
           sendPushToUser(uid, {
-            title: `《${updatedEpisode.title}》更新了`,
-            body: `第${req.body.episodeNumber}集已更新`,
+            title: pushTitle,
+            body: pushBody,
             icon: '/vite.svg',
             data: { url: `/episode/${req.params.id}` }
           });
         });
-        // 发送邮件通知（去重：同一剧集+集数1小时内不重复发送）
-        if (shouldSendEpisodeEmail(req.params.id, req.body.episodeNumber)) {
+        // 发送邮件通知（去重：同一剧集+集数+事件类型1小时内不重复发送）
+        if (shouldSendEpisodeEmail(req.params.id, req.body.episodeNumber, eventType)) {
           sendBatchNotificationEmails(
             uniqueUserIds.map(uid => ({
               userId: uid,
               prefKey: 'episodeUpdate',
-              args: [updatedEpisode.title, req.body.episodeNumber],
+              args: [updatedEpisode.title, req.body.episodeNumber, eventType],
             }))
           );
         }
@@ -663,11 +852,11 @@ router.put('/:id', creatorProtect, async (req, res) => {
           }
           const emailItems = uniqueUserIds.flatMap(uid =>
             epNumbers
-              .filter(epNum => shouldSendEpisodeEmail(req.params.id, epNum))
+              .filter(epNum => shouldSendEpisodeEmail(req.params.id, epNum, 'available'))
               .map(epNum => ({
                 userId: uid,
                 prefKey: 'episodeUpdate',
-                args: [updatedEpisode.title, epNum],
+                args: [updatedEpisode.title, epNum, 'available'],
               }))
           );
           if (emailItems.length > 0) {
@@ -686,6 +875,39 @@ router.put('/:id', creatorProtect, async (req, res) => {
   }
 });
 
+// 创作者重新提交审核：将 rejected 状态的剧集重新置为 pending，等待管理员审核
+// 解决"rejected 剧集创作者无法主动触发重新审核，只能再编辑一次"的问题
+router.post('/:id/resubmit', creatorProtect, async (req, res) => {
+  try {
+    const episode = await Episode.findById(req.params.id);
+    if (!episode) {
+      return res.status(404).json({ message: 'Episode not found' });
+    }
+    // 只有 rejected 状态的剧集可以重新提交
+    if (episode.reviewStatus !== 'rejected') {
+      return res.status(400).json({ message: '只有被拒绝的剧集才能重新提交审核' });
+    }
+    // 权限校验：创建者或允许的编辑者
+    const isOwner = episode.createdBy && episode.createdBy.toString() === req.user._id.toString();
+    const isAllowed = episode.allowedEditors && episode.allowedEditors.some(e => e.toString() === req.user._id.toString());
+    if (!isOwner && !isAllowed) {
+      return res.status(403).json({ message: 'You do not have permission to resubmit this episode' });
+    }
+    episode.reviewStatus = 'pending';
+    episode.reviewNote = '';
+    episode.reviewedBy = null;
+    episode.reviewedAt = null;
+    episode.updatedAt = Date.now();
+    await episode.save();
+    clearCache(`episode_${req.params.id}`);
+    clearCacheByPrefix('episodes_');
+    res.json(episode);
+  } catch (error) {
+    console.error('Resubmit episode error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.delete('/:id', adminProtect, async (req, res) => {
   try {
     const episode = await Episode.findById(req.params.id);
@@ -693,8 +915,13 @@ router.delete('/:id', adminProtect, async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
     await Episode.findByIdAndDelete(req.params.id);
+    // 完整清理关联数据，避免残留收藏/历史/评分/版本等孤儿记录
     await SingleEpisode.deleteMany({ episodeId: req.params.id });
+    await EpisodeVersion.deleteMany({ episodeId: req.params.id });
     await Follow.deleteMany({ episodeId: req.params.id });
+    await Favorite.deleteMany({ episodeId: req.params.id });
+    await History.deleteMany({ episodeId: req.params.id });
+    await Rating.deleteMany({ episodeId: req.params.id });
     await Notification.deleteMany({ episodeId: req.params.id });
     clearCache(`episode_${req.params.id}`);
     clearCacheByPrefix('episodes_');

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const History = require('../models/History');
+const Episode = require('../models/Episode');
 const { protect } = require('../middlewares/authFactory');
 
 router.post('/record', protect, async (req, res) => {
@@ -9,6 +10,11 @@ router.post('/record', protect, async (req, res) => {
     const epNum = parseInt(episodeNumber, 10);
     if (isNaN(epNum)) {
       return res.status(400).json({ message: 'Invalid episode number' });
+    }
+    // 校验剧集存在性，避免写入指向不存在剧集的无效历史记录
+    const episode = await Episode.findById(episodeId);
+    if (!episode) {
+      return res.status(404).json({ message: 'Episode not found' });
     }
     let history = await History.findOne({ userId: req.user._id, episodeId });
     if (!history) {

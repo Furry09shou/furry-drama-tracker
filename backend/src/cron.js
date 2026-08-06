@@ -1,8 +1,12 @@
 const User = require('../models/User');
 const Episode = require('../models/Episode');
-const SingleEpisode = require('../models/SingleEpisode');
+const Follow = require('../models/Follow');
+const Notification = require('../models/Notification');
 const cleanupUser = require('../utils/userCleanup');
+const { sendPushToUser } = require('../routes/notifications');
+const { sendBatchNotificationEmails } = require('../utils/notifyHelper');
 
+// 过期账号注销：用户申请注销后给 7 天宽限期，到期物理删除
 const checkExpiredAccountDeletion = async () => {
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -18,6 +22,7 @@ const checkExpiredAccountDeletion = async () => {
   }
 };
 
+// 自动完结：连载剧的 currentEpisodes 已达到 totalEpisodes 时标记为已完结
 const checkAutoComplete = async () => {
   try {
     const episodes = await Episode.find({ status: 'ongoing' });
@@ -27,6 +32,41 @@ const checkAutoComplete = async () => {
         ep.status = 'completed';
         await ep.save();
         updated++;
+        // 通知追番用户该剧集已完结：站内通知 + Web Push + 邮件
+        const followers = await Follow.find({ episodeId: ep._id }).select('userId');
+        if (followers.length > 0) {
+          const title = ep.title || '';
+          const titleEn = ep.titleEn || '';
+          const message = `《${title}》已完结`;
+          // 批量创建站内通知
+          const notifications = followers.map(f => ({
+            userId: f.userId,
+            episodeId: ep._id,
+            episodeTitle: title,
+            episodeTitleEn: titleEn,
+            type: 'status_change',
+            message,
+            metadata: { status: 'completed' }
+          }));
+          await Notification.insertMany(notifications).catch(() => {});
+          // Web Push 通知
+          followers.forEach(f => {
+            sendPushToUser(String(f.userId), {
+              title: '剧集已完结',
+              body: message,
+              icon: '/vite.svg',
+              data: { url: `/episode/${ep._id}` }
+            }).catch(() => {});
+          });
+          // 邮件通知（受用户偏好控制）
+          sendBatchNotificationEmails(
+            followers.map(f => ({
+              userId: f.userId,
+              prefKey: 'episodeUpdate',
+              args: [title, ep.currentEpisodes, 'completed']
+            }))
+          ).catch(() => {});
+        }
       }
     }
     if (updated > 0) {
@@ -37,32 +77,16 @@ const checkAutoComplete = async () => {
   }
 };
 
-const checkPremiereReleases = async () => {
-  try {
-    const now = new Date();
-    const upcomingSingles = await SingleEpisode.find({
-      isUpcoming: true,
-      premiereDate: { $lte: now }
-    });
-    let released = 0;
-    for (const se of upcomingSingles) {
-      se.isUpcoming = false;
-      se.releaseDate = se.premiereDate;
-      await se.save();
-      released++;
-    }
-    if (released > 0) {
-      console.log(`[Cron] Released ${released} premiere singles`);
-    }
-  } catch (error) {
-    console.error('[Cron] checkPremiereReleases error:', error.message);
-  }
-};
+// 注意：首播提醒定时任务(checkPremiereReleases)已移除。
+// 原因：自动按 premiereDate 转正预告集存在风险——若作者未按规定时间更新，
+// 系统仍会自动把预告集转为可观看集，导致进度与通知与实际内容不符。
+// 现改为完全手动：作者在单集管理中编辑预告集、取消"设为预告"勾选即可转正，
+// 转正逻辑见 routes/episodes.js 的 PUT /single/:id（becameAvailable 分支）：
+//   currentEpisodes +1，并向追番用户发送站内通知 + Web Push + 邮件。
 
 const startCronJobs = () => {
   setInterval(checkExpiredAccountDeletion, 6 * 60 * 60 * 1000);
   setInterval(checkAutoComplete, 60 * 60 * 1000);
-  setInterval(checkPremiereReleases, 30 * 60 * 1000);
   console.log('[Cron] Cron jobs started');
 };
 

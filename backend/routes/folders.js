@@ -193,11 +193,12 @@ router.get('/shared/:shareToken', async (req, res) => {
     const Model = folder.type === 'follow' ? Follow : Favorite;
     const filter = isUnclassified ? { userId: folder.userId, folderId: null } : { folderId: folder._id };
     const items = await Model.find(filter)
-      .populate('episodeId', 'title titleEn coverImage currentEpisodes totalEpisodes averageRating ratingCount status')
+      .populate('episodeId', 'title titleEn coverImage currentEpisodes totalEpisodes averageRating ratingCount status reviewStatus')
       .sort({ createdAt: -1 });
 
+    // 过滤掉未审核通过的剧集，防止通过公开分享链接泄露 pending/rejected 内容
     const episodes = items
-      .filter(item => item.episodeId)
+      .filter(item => item.episodeId && (!item.episodeId.reviewStatus || item.episodeId.reviewStatus === 'approved'))
       .map(item => item.episodeId);
 
     // 获取创建者信息

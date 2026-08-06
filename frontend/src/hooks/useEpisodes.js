@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import adminApi from '../utils/adminApi';
 import { useI18n } from '../contexts/I18nContext';
 
@@ -7,12 +7,27 @@ export const useEpisodes = () => {
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
 
-  const fetchEpisodes = async () => {
+  // 用 ref 保存当前分页参数，避免在 addEpisode 等函数中把 pagination 加入依赖数组
+  const paginationRef = useRef(pagination);
+  paginationRef.current = pagination;
+
+  // 支持分页拉取：后端 /api/episodes 在传入 page+limit 时返回分页结果
+  const fetchEpisodes = async (page = paginationRef.current.page, limit = paginationRef.current.limit) => {
     setLoading(true);
     try {
-      const response = await adminApi.get('/api/episodes');
-      setEpisodes(Array.isArray(response.data) ? response.data : (response.data.episodes || []));
+      const response = await adminApi.get('/api/episodes', {
+        params: { page, limit }
+      });
+      const data = response.data;
+      setEpisodes(data.episodes || []);
+      setPagination({
+        page: data.page || page,
+        limit: data.limit || limit,
+        total: data.total || 0,
+        totalPages: data.totalPages || 0
+      });
       setError('');
     } catch (err) {
       setError(t('adminEpisodes.fetchEpisodesFailed'));
@@ -20,6 +35,11 @@ export const useEpisodes = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 翻页：跳转到指定页码（保持当前每页条数）
+  const fetchPage = async (page) => {
+    await fetchEpisodes(page, paginationRef.current.limit);
   };
 
   const addEpisode = async (episodeData) => {
@@ -104,7 +124,9 @@ export const useEpisodes = () => {
     episodes,
     loading,
     error,
+    pagination,
     fetchEpisodes,
+    fetchPage,
     addEpisode,
     updateEpisode,
     deleteEpisode,

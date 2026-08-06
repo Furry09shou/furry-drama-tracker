@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Episode = require('../models/Episode');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
+const { sendPushToUser } = require('./notifications');
+const { sendNotificationEmailToUser } = require('../utils/notifyHelper');
 const { adminProtect } = require('../middlewares/authFactory');
 const { clearCache, clearCacheByPrefix } = require('../middlewares/cache');
 
@@ -11,6 +14,41 @@ const adminOnly = (req, res, next) => {
   } else {
     return res.status(403).json({ message: '需要管理员权限' });
   }
+};
+
+// 审核结果通知创作者：站内通知 + Web Push + 邮件
+// status: 'approved' | 'rejected'
+const notifyCreatorReviewResult = async (episode, status, note = '') => {
+  const creatorId = episode.createdBy;
+  if (!creatorId) return;
+  const isApproved = status === 'approved';
+  const title = episode.title || '';
+  const message = isApproved
+    ? `您的剧集《${title}》已通过审核`
+    : `您的剧集《${title}》未通过审核${note ? `：${note}` : ''}`;
+
+  // 站内通知
+  await Notification.create({
+    userId: creatorId,
+    episodeId: episode._id,
+    episodeTitle: title,
+    episodeTitleEn: episode.titleEn || '',
+    type: 'review_result',
+    message,
+    link: `/admin/episodes`,
+    metadata: { episodeId: episode._id, status, note }
+  }).catch(() => {});
+
+  // Web Push
+  sendPushToUser(String(creatorId), {
+    title: `剧集${isApproved ? '通过' : '未通过'}审核`,
+    body: isApproved ? `《${title}》已通过审核，现已上线` : `《${title}》未通过审核${note ? `：${note}` : ''}`,
+    icon: '/vite.svg',
+    data: { url: `/admin/episodes` }
+  }).catch(() => {});
+
+  // 邮件通知（受用户偏好控制）
+  sendNotificationEmailToUser(creatorId, 'reviewResult', title, status, note).catch(() => {});
 };
 
 router.get('/pending', adminProtect, adminOnly, async (req, res) => {
@@ -52,7 +90,7 @@ router.put('/approve/:id', adminProtect, adminOnly, async (req, res) => {
   try {
     const episode = await Episode.findByIdAndUpdate(
       req.params.id,
-      { reviewStatus: 'approved', reviewNote: req.body.note || '' },
+      { reviewStatus: 'approved', reviewNote: req.body.note || '', reviewedBy: req.user._id, reviewedAt: new Date() },
       { new: true }
     );
     if (!episode) {
@@ -60,6 +98,8 @@ router.put('/approve/:id', adminProtect, adminOnly, async (req, res) => {
     }
     clearCache(`episode_${req.params.id}`);
     clearCacheByPrefix('episodes_');
+    // 通知创作者审核通过
+    notifyCreatorReviewResult(episode, 'approved', req.body.note || '');
     res.json(episode);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -70,7 +110,7 @@ router.put('/reject/:id', adminProtect, adminOnly, async (req, res) => {
   try {
     const episode = await Episode.findByIdAndUpdate(
       req.params.id,
-      { reviewStatus: 'rejected', reviewNote: req.body.note || '' },
+      { reviewStatus: 'rejected', reviewNote: req.body.note || '', reviewedBy: req.user._id, reviewedAt: new Date() },
       { new: true }
     );
     if (!episode) {
@@ -78,6 +118,8 @@ router.put('/reject/:id', adminProtect, adminOnly, async (req, res) => {
     }
     clearCache(`episode_${req.params.id}`);
     clearCacheByPrefix('episodes_');
+    // 通知创作者审核未通过
+    notifyCreatorReviewResult(episode, 'rejected', req.body.note || '');
     res.json(episode);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

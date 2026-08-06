@@ -123,8 +123,12 @@ module.exports = {
   verifyRefreshToken,
   // 普通登录用户
   protect: createAuthMiddleware({ allowedRoles: [] }),
-  // 管理员（creator / admin / superadmin）
+  // 后台访问权限（creator / admin / superadmin）—— 创作者可进入管理后台管理内容，
+  // 但敏感管理操作需叠加 adminOnlyProtect
   adminProtect: createAuthMiddleware({ allowedRoles: ['creator', 'admin', 'superadmin'] }),
+  // 真正管理员（admin / superadmin）—— 用于审核、分类、横幅、统计等敏感管理接口，
+  // 创作者不可越权访问
+  adminOnlyProtect: createAuthMiddleware({ allowedRoles: ['admin', 'superadmin'] }),
   // 创作者及以上（creator / admin / superadmin）
   creatorProtect: createAuthMiddleware({ allowedRoles: ['creator', 'admin', 'superadmin'] }),
   // 超级管理员

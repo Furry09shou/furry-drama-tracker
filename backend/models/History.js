@@ -27,5 +27,7 @@ const HistorySchema = new mongoose.Schema({
 
 HistorySchema.index({ userId: 1, episodeId: 1 }, { unique: true });
 HistorySchema.index({ lastWatched: 1 });
+// TTL 索引：观看历史 365 天后自动过期清理，防止 History 集合无限增长
+HistorySchema.index({ lastWatched: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60 });
 
 module.exports = mongoose.model('History', HistorySchema);

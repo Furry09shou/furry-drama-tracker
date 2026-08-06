@@ -18,7 +18,7 @@ const CreatorPage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get(`/api/creator-profile/by-admin/${id}`);
+        const res = await axios.get(`/api/creator-profile/by-creator/${id}`);
         setProfile(res.data.profile);
         setEpisodes(res.data.episodes);
       } catch (err) {
