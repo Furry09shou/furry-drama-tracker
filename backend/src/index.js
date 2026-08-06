@@ -195,9 +195,6 @@ const normalizedOrigins = allowedOrigins.map(o => o.replace(/\/+$/, ''));
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) {
-      if (isProduction) {
-        return callback(new Error('Not allowed by CORS'));
-      }
       return callback(null, true);
     }
     if (normalizedOrigins.includes(origin.replace(/\/+$/, ''))) {
