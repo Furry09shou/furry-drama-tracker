@@ -41,8 +41,51 @@ axios.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
+      const originalRequest = error.config;
+      // 主因修复：access cookie 可能因 maxAge(15min) 被浏览器丢弃，后端返回 401(noToken) 而非 419。
+      // 收到 401 先用 refresh token 恢复会话，刷新成功重试原请求，失败才真正登出。
+      if (originalRequest && !originalRequest._isRetry && !shouldSkipAutoRefresh(originalRequest)) {
+        originalRequest._isRetry = true;
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            subscribeTokenRefresh((newToken, err) => {
+              if (err) { reject(err); return; }
+              resolve(axios(originalRequest));
+            });
+          });
+        }
+        isRefreshing = true;
+        const result = await refreshAccessToken();
+        isRefreshing = false;
+        if (result.ok) {
+          onTokenRefreshed();
+          if (result.user) {
+            try {
+              const stored = localStorage.getItem('user');
+              if (stored) {
+                const oldUser = JSON.parse(stored);
+                const merged = {
+                  ...oldUser,
+                  _id: result.user._id,
+                  accountId: result.user.accountId,
+                  username: result.user.username,
+                  email: result.user.email,
+                  isEmailVerified: result.user.isEmailVerified,
+                  role: result.user.role,
+                  forceEmailChange: !!result.user.forceEmailChange
+                };
+                localStorage.setItem('user', JSON.stringify(merged));
+                window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { user: merged } }));
+              }
+            } catch {}
+          }
+          return axios(originalRequest);
+        }
+        onRefreshFailed();
+        // 刷新失败：落入下方登出逻辑
+      }
       if (isHandling401) {
         return Promise.reject(error);
       }
@@ -133,6 +176,11 @@ const refreshAccessToken = async () => {
     const res = await axios.post('/api/auth/refresh', {}, { skipRedirect: true, _isRetry: true });
     return { ok: true, user: res.data };
   } catch (e) {
+    // 409 = 并发刷新冲突：另一标签页刚轮换了同一 refresh token，同浏览器 cookie 已更新为新值，
+    // 无需再刷新，返回成功让调用方重试原请求（会自动带上新 access cookie）
+    if (e.response?.status === 409) {
+      return { ok: true, user: null };
+    }
     // CSRF token 可能过期/丢失导致 403，重新获取后重试一次
     if (e.response?.status === 403) {
       try {

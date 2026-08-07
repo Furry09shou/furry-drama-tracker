@@ -528,6 +528,10 @@ router.post('/refresh', async (req, res) => {
   try {
     const result = await verifyRefreshToken(req);
     if (!result.ok) {
+      // 并发刷新（409）：另一标签页/设备已轮换并更新了 cookie，不清除 cookie，让前端直接重试
+      if (result.code === 409) {
+        return res.status(409).json({ message: result.message, messageKey: result.messageKey });
+      }
       clearAuthCookies(res);
       return res.status(result.code).json({
         message: result.message,
@@ -537,12 +541,7 @@ router.post('/refresh', async (req, res) => {
 
     const { user, session } = result;
 
-    // 旧 refresh token 立即失效（轮换）
-    session.isActive = false;
-    session.logoutAt = new Date();
-    await session.save();
-
-    // 生成新双 Token
+    // 生成新双 Token（旧 refresh token 已在 verifyRefreshToken 中被原子作废，完成轮换）
     const accessToken = createAccessToken(user._id);
     const { token: newRefreshToken } = createRefreshToken(user._id);
 

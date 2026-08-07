@@ -2,6 +2,10 @@ const User = require('../models/User');
 const UserSession = require('../models/UserSession');
 const { hashToken, verifyJwt } = require('../utils/helpers');
 
+// 并发刷新宽限期：refresh token 轮换后 30s 内再次出现视为同一用户多标签页/多设备并发刷新，
+// 不判为重放攻击（避免误吊销所有会话）；超期仍按真实重用处理
+const CONCURRENT_REFRESH_GRACE_MS = 30 * 1000;
+
 // 双 Token 机制下的统一鉴权工厂：
 // - Access Token: 15min, 存于 httpOnly cookie 'accessToken' 或 Authorization: Bearer
 //   短命令牌不查 UserSession，仅校验 JWT + User 状态，性能高
@@ -66,9 +70,9 @@ const createAuthMiddleware = ({ allowedRoles = [] }) => {
 // 校验流程：
 // 1. 从 refreshToken cookie 取 token
 // 2. JWT verify (含 purpose=refresh)
-// 3. 查 UserSession by refreshTokenHash
-// 4. 若 session.isActive=false → refresh token 已被吊销，疑似重用，吊销该用户所有 session
-// 5. 若 session 存在且 active → 校验通过
+// 3. 原子"取用并作废"：findOneAndUpdate 抢到 active session 即完成轮换
+// 4. 未抢到：若 session 在并发宽限期内刚被轮换 → 并发刷新(409, 不吊销)；否则判重用 → 吊销该用户所有 session
+// 5. 抢到且用户存在 → 校验通过
 const verifyRefreshToken = async (req) => {
   const token = req.cookies?.refreshToken;
   if (!token) return { ok: false, code: 401, message: 'No refresh token', messageKey: 'auth.noRefreshToken' };
@@ -88,25 +92,33 @@ const verifyRefreshToken = async (req) => {
   }
 
   const refreshTokenHash = hashToken(token);
-  const session = await UserSession.findOne({ refreshTokenHash });
+  // 原子"取用并作废"：并发刷新时只有一个请求能抢到 active session，
+  // 另一个 findOneAndUpdate 返回 null，进入下方并发宽限期判定。
+  // 轮换作废需设置 rotatedAt，供并发宽限期判断区分"轮换"与"吊销"
+  const session = await UserSession.findOneAndUpdate(
+    { refreshTokenHash, isActive: true },
+    { isActive: false, logoutAt: new Date(), rotatedAt: new Date() },
+    { new: true }
+  );
 
   if (!session) {
-    // 未知 refresh token：可能是被盗的已轮换 token，安全起见吊销该用户所有 session
-    if (decoded.id) {
+    const existing = await UserSession.findOne({ refreshTokenHash });
+    // 仅"轮换"作废（rotatedAt）计入并发宽限期；吊销/登出作废（无 rotatedAt）一律按真实重用处理
+    const recentlyRotated = existing?.rotatedAt
+      && (Date.now() - new Date(existing.rotatedAt).getTime()) < CONCURRENT_REFRESH_GRACE_MS;
+    if (recentlyRotated) {
+      // 并发刷新：同一 refresh token 刚被另一个请求轮换（宽限期内），非重用攻击。
+      // 返回 409，前端重试原请求（同浏览器 cookie 已被并发方更新为新值），不吊销任何 session
+      return { ok: false, code: 409, message: 'Concurrent refresh', messageKey: 'auth.concurrentRefresh' };
+    }
+    // 真实重用：未知或已吊销的 refresh token 被再次使用，安全起见吊销该用户所有 session
+    const userId = existing?.userId || decoded.id;
+    if (userId) {
       await UserSession.updateMany(
-        { userId: decoded.id, isActive: true },
+        { userId, isActive: true },
         { isActive: false, logoutAt: new Date() }
       ).catch(() => {});
     }
-    return { ok: false, code: 401, message: 'Refresh token reuse detected', messageKey: 'auth.refreshTokenReuse' };
-  }
-
-  if (!session.isActive) {
-    // 已被吊销的 refresh token 被再次使用：重用攻击，全部吊销
-    await UserSession.updateMany(
-      { userId: session.userId, isActive: true },
-      { isActive: false, logoutAt: new Date() }
-    ).catch(() => {});
     return { ok: false, code: 401, message: 'Refresh token reuse detected', messageKey: 'auth.refreshTokenReuse' };
   }
 

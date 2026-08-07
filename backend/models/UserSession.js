@@ -55,6 +55,13 @@ const UserSessionSchema = new mongoose.Schema({
   logoutAt: {
     type: Date,
     default: null
+  },
+  // 仅当 session 因【刷新轮换】而作废时设置；吊销/登出/强制下线不设置。
+  // 用于区分"并发刷新"(rotatedAt 在宽限期内→409)与"真实重用"(无 rotatedAt→401 吊销)，
+  // 避免被吊销的 session 在 30s 内被误判为并发刷新
+  rotatedAt: {
+    type: Date,
+    default: null
   }
 });
 
