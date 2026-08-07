@@ -365,8 +365,6 @@ const sendVerificationCodeEmail = async (email, code, scene = 'register') => {
     changeEmail: { subject: '新邮箱验证码 - 兽剧聚合平台', title: '验证新邮箱', desc: '您正在修改账号绑定邮箱，请使用下方验证码验证新邮箱地址：' },
   };
   const cfg = sceneMap[scene] || sceneMap.register;
-  // 验证页面链接（携带 email 参数，便于用户在独立页面输入验证码）
-  const verifyUrl = `${siteUrl}/verify-email?email=${encodeURIComponent(email)}`;
   try {
     await transporter.sendMail({
       from: `"${fromName}" <${fromUser}>`,
@@ -379,7 +377,6 @@ const sendVerificationCodeEmail = async (email, code, scene = 'register') => {
           <div style="display:inline-block;background-color:#6366f1;color:#ffffff;padding:16px 40px;border-radius:12px;font-size:32px;font-weight:700;letter-spacing:8px;font-family:'Courier New',monospace;">${code}</div>
         </div>
         <p style="margin:0 0 16px;color:#94a3b8;font-size:12px;text-align:center;">此验证码 10 分钟内有效</p>
-        <p style="margin:20px 0;text-align:center;">${emailButton('前往验证', verifyUrl, 'primary')}</p>
         ${emailInfoBox('如果您没有发起此操作，请忽略此邮件，您的账号不会被影响。', 'info')}
       `, { preheader: '您的验证码：' + code })
     });
