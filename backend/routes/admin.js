@@ -10,8 +10,8 @@ const crypto = require('crypto');
 const { createChallenge, verifySolution, sha } = require('altcha/lib');
 const { superAdminProtect, adminProtect, requireEmailChanged } = require('../middlewares/authFactory');
 const { validatePassword } = require('../middlewares/security');
-const { parseUserAgent, hashToken, getClientIp, setAuthCookies, clearAuthCookies, createAccessToken, createRefreshToken } = require('../utils/helpers');
-const { sendVerificationEmail } = require('../utils/email');
+const { parseUserAgent, hashToken, getClientIp, setAuthCookies, clearAuthCookies, createAccessToken, createRefreshToken, escapeHtml } = require('../utils/helpers');
+const { createTransporter, getFromName, getFromUser, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../utils/email');
 const Episode = require('../models/Episode');
 const Report = require('../models/Report');
 const Feedback = require('../models/Feedback');
@@ -239,17 +239,38 @@ router.post('/register', superAdminProtect, requireEmailChanged, async (req, res
       email,
       password,
       role,
-      // 与普通注册一致：不自动验证邮箱，用户须验证邮箱后才能登录
-      isEmailVerified: false
+      // 管理后台创建的账号直接标记为已验证，无需邮箱验证
+      isEmailVerified: true
     });
 
-    // 发送邮箱验证邮件，确保邮箱真实有效（与普通注册流程一致）
-    const verifyToken = jwt.sign(
-      { id: user._id, purpose: 'verify-email' },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    sendVerificationEmail(email, verifyToken).catch(() => {});
+    // 发送"账号已创建"通知邮件（非验证链接邮件）
+    try {
+      const siteUrl = getSiteUrl();
+      const fromName = await getFromName();
+      const roleLabel = role === 'admin' ? '管理员' : '创作者';
+      const mailOptions = {
+        from: `"${fromName}" <${await getFromUser()}>`,
+        to: email,
+        subject: '您的账号已创建',
+        html: await buildEmailHTML(fromName, siteUrl, `
+          <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">账号创建通知</h2>
+          <p style="margin:0 0 16px;color:#475569;font-size:14px;">管理员已为您创建了账号，您可以使用以下信息登录：</p>
+          ${emailInfoBox(
+            '<p style="margin:4px 0;"><strong>账号ID：</strong>' + escapeHtml(finalAccountId) + '</p>' +
+            '<p style="margin:4px 0;"><strong>邮箱：</strong>' + escapeHtml(email) + '</p>' +
+            '<p style="margin:4px 0;"><strong>角色：</strong>' + escapeHtml(roleLabel) + '</p>',
+            'info'
+          )}
+          <p style="margin:16px 0;color:#475569;font-size:14px;">请使用管理员告知的密码登录。登录后请尽快在个人设置中修改密码。</p>
+          <p style="margin:20px 0;">${emailButton('前往登录', siteUrl + '/login', 'primary')}</p>
+          <p style="margin:0;color:#94a3b8;font-size:12px;">如果您没有预期收到此邮件，请忽略。</p>
+        `)
+      };
+      const transporter = await createTransporter();
+      if (transporter) {
+        transporter.sendMail(mailOptions).catch(() => {});
+      }
+    } catch (e) {}
 
     res.json({
       _id: user._id,
@@ -257,7 +278,7 @@ router.post('/register', superAdminProtect, requireEmailChanged, async (req, res
       accountId: user.accountId,
       email: user.email,
       role: user.role,
-      message: '账号创建成功，验证邮件已发送至用户邮箱，请通知用户验证后登录'
+      message: '账号创建成功，通知邮件已发送至用户邮箱'
     });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });

@@ -342,6 +342,55 @@ const sendPasswordResetEmail = async (email, resetToken) => {
   }
 };
 
+// 邮箱验证码邮件（取代旧的验证链接邮件）
+// 场景：注册后验证、登录时邮箱未验证、超管修改邮箱后验证
+// code 为 6 位数字验证码，10 分钟有效
+const sendVerificationCodeEmail = async (email, code, scene = 'register') => {
+  if (!checkEmailTargetLimit(email)) {
+    console.log(`[Email] Rate limit exceeded for target ${email}`);
+    return false;
+  }
+  const transporter = await createTransporter();
+  if (!transporter) {
+    console.log(`[Email] Verification code requested for ${email} (email service not configured)`);
+    return false;
+  }
+  const siteUrl = getSiteUrl();
+  const fromName = await getFromName();
+  const fromUser = await getFromUser();
+  // 不同场景的标题与引导文案
+  const sceneMap = {
+    register: { subject: '邮箱验证码 - 兽剧聚合平台', title: '欢迎注册，请验证邮箱', desc: `感谢您注册${fromName}！请使用下方验证码完成邮箱验证：` },
+    login: { subject: '登录邮箱验证码 - 兽剧聚合平台', title: '登录邮箱验证', desc: '检测到您的账号尚未验证邮箱，请使用下方验证码完成验证后继续登录：' },
+    changeEmail: { subject: '新邮箱验证码 - 兽剧聚合平台', title: '验证新邮箱', desc: '您正在修改账号绑定邮箱，请使用下方验证码验证新邮箱地址：' },
+  };
+  const cfg = sceneMap[scene] || sceneMap.register;
+  // 验证页面链接（携带 email 参数，便于用户在独立页面输入验证码）
+  const verifyUrl = `${siteUrl}/verify-email?email=${encodeURIComponent(email)}`;
+  try {
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromUser}>`,
+      to: email,
+      subject: cfg.subject,
+      html: await buildEmailHTML(fromName, siteUrl, `
+        <h2 style="margin:0 0 16px;color:#1e293b;font-size:22px;font-weight:700;">${cfg.title}</h2>
+        <p style="margin:0 0 16px;color:#475569;font-size:14px;">${cfg.desc}</p>
+        <div style="text-align:center;margin:24px 0;">
+          <div style="display:inline-block;background-color:#6366f1;color:#ffffff;padding:16px 40px;border-radius:12px;font-size:32px;font-weight:700;letter-spacing:8px;font-family:'Courier New',monospace;">${code}</div>
+        </div>
+        <p style="margin:0 0 16px;color:#94a3b8;font-size:12px;text-align:center;">此验证码 10 分钟内有效</p>
+        <p style="margin:20px 0;text-align:center;">${emailButton('前往验证', verifyUrl, 'primary')}</p>
+        ${emailInfoBox('如果您没有发起此操作，请忽略此邮件，您的账号不会被影响。', 'info')}
+      `, { preheader: '您的验证码：' + code })
+    });
+    return true;
+  } catch (error) {
+    console.error('Send verification code email error:', error);
+    return false;
+  }
+};
+
+// 旧版验证链接邮件（已废弃，保留导出以兼容历史调用点；新代码请使用 sendVerificationCodeEmail）
 const sendVerificationEmail = async (email, verifyToken) => {
   if (!checkEmailTargetLimit(email)) {
     console.log(`[Email] Rate limit exceeded for target ${email}`);
@@ -528,6 +577,7 @@ const sendReviewResultEmail = async (email, episodeTitle, status, note = '') => 
 module.exports = {
   sendPasswordResetEmail,
   sendVerificationEmail,
+  sendVerificationCodeEmail,
   clearEmailCache,
   createTransporter,
   getFromName,

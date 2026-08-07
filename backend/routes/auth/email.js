@@ -17,7 +17,7 @@ const { createChallenge, sha } = require('altcha/lib');
 const { protect, adminProtect, superAdminProtect, verifyRefreshToken } = require('../../middlewares/authFactory');
 const { validatePassword } = require('../../middlewares/security');
 const { logManual } = require('../../middlewares/auditLog');
-const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../../utils/email');
+const { sendPasswordResetEmail, sendVerificationCodeEmail, createTransporter, getFromName, getFromUser, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../../utils/email');
 const { sendNotificationEmailToUser } = require('../../utils/notifyHelper');
 const {
   parseUserAgent,
@@ -40,6 +40,8 @@ const { asyncHandler } = require('../../utils/errorHandler');
 const { DEMO_EMAILS, skipVerification } = require('../../utils/authHelpers');
 const { getCachedIpRegion } = require('../../utils/ipRegion');
 const { ALTCHA_HMAC_KEY, DEV_API_TOKEN, verifyAltcha } = require('../../utils/altcha');
+// 邮箱验证一次性验证码（内存存储，10分钟过期）
+const emailVerifyCodes = require('../../utils/emailVerifyCodes');
 
 
 // 超管强制修改邮箱（从默认 admin@furry09.com 改为自己的邮箱）
@@ -70,12 +72,18 @@ router.put('/change-email', superAdminProtect, async (req, res) => {
     user.isEmailVerified = false;
     await user.save();
 
-    // 发送验证邮件
-    const verifyToken = jwt.sign({ id: user._id, purpose: 'verify-email' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // 发送验证码邮件（取代旧的验证链接）
     try {
-      sendVerificationEmail(user.email, verifyToken).catch(() => {});
+      const verifyCode = String(crypto.randomInt(100000, 1000000));
+      emailVerifyCodes.set(verifyCode, {
+        userId: user._id.toString(),
+        email: user.email,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0
+      });
+      sendVerificationCodeEmail(user.email, verifyCode, 'changeEmail').catch(() => {});
     } catch (e) {
-      console.error('验证邮件发送失败:', e.message);
+      console.error('验证码邮件发送失败:', e.message);
     }
 
     logManual({
@@ -132,38 +140,55 @@ router.put('/email-notification-prefs', protect, async (req, res) => {
 });
 
 
+// 邮箱验证：使用 6 位验证码（取代旧的链接验证）
+// 前端提交 { code, email? }，code 必填，email 可选用于二次校验
 router.post('/verify-email', async (req, res) => {
-  const { token } = req.body;
+  const { code, email } = req.body;
   try {
-    const decoded = verifyJwt(token);
-    if (decoded.purpose !== 'verify-email') {
-      return res.status(400).json({ message: '无效的验证令牌' });
+    if (!code) {
+      return res.status(400).json({ message: '请输入验证码' });
     }
-    // 一次性使用：基于令牌哈希防止重放
-    const tokenHash = hashToken(token);
-    if (await isTokenUsed(tokenHash)) {
-      return res.status(400).json({ message: '该验证链接已被使用，请勿重复使用' });
+    const entry = emailVerifyCodes.get(String(code));
+    if (!entry || entry.expiresAt < Date.now()) {
+      if (entry) emailVerifyCodes.delete(String(code));
+      return res.status(400).json({ message: '验证码无效或已过期，请重新获取' });
     }
-    const user = await User.findById(decoded.id);
+    // 防暴力：单码尝试上限 5 次
+    entry.attempts = (entry.attempts || 0) + 1;
+    if (entry.attempts > 5) {
+      emailVerifyCodes.delete(String(code));
+      return res.status(400).json({ message: '尝试次数过多，验证码已作废，请重新获取' });
+    }
+    // 可选的邮箱二次校验（前端登录/注册场景会带上 email）
+    if (email && entry.email && entry.email.toLowerCase() !== String(email).trim().toLowerCase()) {
+      return res.status(400).json({ message: '验证码与邮箱不匹配' });
+    }
+    const user = await User.findById(entry.userId);
     if (!user) {
+      emailVerifyCodes.delete(String(code));
       return res.status(404).json({ message: '用户不存在' });
     }
     if (user.isEmailVerified) {
+      emailVerifyCodes.delete(String(code));
       return res.json({ message: '邮箱已验证' });
+    }
+    // 校验邮箱一致性（防止用户改邮箱后用旧码）
+    if (user.email.toLowerCase() !== entry.email.toLowerCase()) {
+      emailVerifyCodes.delete(String(code));
+      return res.status(400).json({ message: '验证码已失效，请重新获取' });
     }
     user.isEmailVerified = true;
     await user.save();
-    await markTokenUsed(tokenHash, 'verify-email', 25 * 60 * 60 * 1000);
+    // 一次性使用：验证成功后立即删除
+    emailVerifyCodes.delete(String(code));
     res.json({ message: '邮箱验证成功' });
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(400).json({ message: '验证链接已过期，请重新获取' });
-    }
-    res.status(400).json({ message: '无效的验证令牌' });
+    res.status(500).json({ message: '服务器错误' });
   }
 });
 
 
+// 重新发送邮箱验证码（需登录，用于已登录但邮箱未验证的场景）
 router.post('/resend-verification', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -173,22 +198,27 @@ router.post('/resend-verification', protect, async (req, res) => {
     if (user.isEmailVerified) {
       return res.status(400).json({ message: '邮箱已验证' });
     }
-    const verifyToken = jwt.sign(
-      { id: user._id, purpose: 'verify-email' },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    const sent = await sendVerificationEmail(user.email, verifyToken);
+    // 生成 6 位验证码并存储（10 分钟有效）
+    const verifyCode = String(crypto.randomInt(100000, 1000000));
+    emailVerifyCodes.set(verifyCode, {
+      userId: user._id.toString(),
+      email: user.email,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      attempts: 0
+    });
+    const sent = await sendVerificationCodeEmail(user.email, verifyCode, 'register');
     if (!sent) {
       return res.json({ message: '邮件服务未配置，请联系管理员' });
     }
-    res.json({ message: '验证邮件已发送' });
+    res.json({ message: '验证码已发送至您的邮箱' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }
 });
 
 
+// 通过邮箱地址重新发送验证码（无需登录，用于登录页邮箱未验证场景）
+// 保留 altcha PoW 防滥用 + 模糊响应（不泄露邮箱是否已注册）
 router.post('/resend-verification-by-email', async (req, res) => {
   const { email } = req.body;
   const altchaPayload = req.body.altcha;
@@ -205,18 +235,21 @@ router.post('/resend-verification-by-email', async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (!user) {
-      return res.json({ message: '如果该邮箱已注册且未验证，验证邮件已发送' });
+      return res.json({ message: '如果该邮箱已注册且未验证，验证码已发送' });
     }
     if (user.isEmailVerified) {
-      return res.json({ message: '如果该邮箱已注册且未验证，验证邮件已发送' });
+      return res.json({ message: '如果该邮箱已注册且未验证，验证码已发送' });
     }
-    const verifyToken = jwt.sign(
-      { id: user._id, purpose: 'verify-email' },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    sendVerificationEmail(user.email, verifyToken).catch(() => {});
-    res.json({ message: '如果该邮箱已注册且未验证，验证邮件已发送' });
+    // 生成 6 位验证码并存储（10 分钟有效）
+    const verifyCode = String(crypto.randomInt(100000, 1000000));
+    emailVerifyCodes.set(verifyCode, {
+      userId: user._id.toString(),
+      email: user.email,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      attempts: 0
+    });
+    sendVerificationCodeEmail(user.email, verifyCode, 'login').catch(() => {});
+    res.json({ message: '如果该邮箱已注册且未验证，验证码已发送' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }

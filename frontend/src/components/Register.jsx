@@ -18,6 +18,14 @@ const Register = () => {
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  // 邮箱验证码输入相关
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyCodeSubmitting, setVerifyCodeSubmitting] = useState(false);
+  const [verifyCodeError, setVerifyCodeError] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [codeResendLoading, setCodeResendLoading] = useState(false);
+  const [codeResendMsg, setCodeResendMsg] = useState('');
+  const [codeResendSuccess, setCodeResendSuccess] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [altchaPayload, setAltchaPayload] = useState(null);
@@ -96,31 +104,94 @@ const Register = () => {
     }
     setSubmitting(false);
   };
-  
+
+  // 验证邮箱验证码
+  const handleVerifyEmailCode = async (e) => {
+    e.preventDefault();
+    if (verifyCodeSubmitting) return;
+    setVerifyCodeError('');
+    setVerifyCodeSubmitting(true);
+    try {
+      await axios.post('/api/auth/verify-email', { code: verifyCode.trim(), email: registeredEmail });
+      setEmailVerified(true);
+    } catch (err) {
+      setVerifyCodeError(err.response?.data?.message || t('auth.emailVerifyCodeInvalid'));
+    }
+    setVerifyCodeSubmitting(false);
+  };
+
   if (registered) {
     return (
       <div className="auth-form" style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }} aria-hidden="true">📧</div>
-        <h2>{t('auth.needVerify')}</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.7 }}>
-          {t('auth.verifySent')} <strong style={{ color: 'var(--foreground)' }}>{registeredEmail}</strong>
-        </p>
-        <div style={{
-          padding: '14px', marginBottom: '20px', borderRadius: '8px',
-          background: 'var(--warning-bg)', border: '1px solid var(--warning-border)',
-          color: 'var(--warning-text)', fontSize: '13px', lineHeight: 1.7, textAlign: 'left'
-        }}>
-          <p style={{margin: '0 0 6px 0', fontWeight: 600}}>{t('auth.mustVerifyEmailToLogin')}</p>
-          <ul style={{margin: 0, paddingLeft: '16px'}}>
-            <li>{t('auth.checkEmailForVerificationLink')}</li>
-            <li>{t('auth.loginAfterVerification')}</li>
-            <li>{t('auth.checkSpamIfNotReceived')}</li>
-          </ul>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button className="btn" onClick={() => navigate('/login')}>{t('auth.goToLogin')}</button>
-          <Link to="/" className="btn btn-secondary">{t('common.backToHome')}</Link>
-        </div>
+        {emailVerified ? (
+          <>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }} aria-hidden="true">✅</div>
+            <h2>{t('auth.emailVerifyCodeVerified')}</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: 1.7 }}>
+              {t('auth.emailVerifyCodeVerifySuccessDesc')}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="btn" onClick={() => navigate('/login')}>{t('auth.goToLogin')}</button>
+              <Link to="/" className="btn btn-secondary">{t('common.backToHome')}</Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }} aria-hidden="true">📧</div>
+            <h2>{t('auth.emailVerifyCodeTitle')}</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.7 }}>
+              {t('auth.verifySent')} <strong style={{ color: 'var(--foreground)' }}>{registeredEmail}</strong>
+            </p>
+            <div style={{
+              background: 'var(--primary-bg)', border: '1px solid var(--primary-border)',
+              borderRadius: '10px', padding: '16px', margin: '20px 0',
+            }}>
+              <p style={{color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 12px', lineHeight: 1.6}}>
+                {t('auth.enterEmailVerifyCode')}
+              </p>
+              <form onSubmit={handleVerifyEmailCode} style={{display: 'flex', gap: '8px', flexDirection: 'column'}}>
+                <input
+                  type="text"
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder={t('auth.emailVerifyCodePlaceholder')}
+                  inputMode="numeric"
+                  maxLength="6"
+                  autoFocus
+                  style={{
+                    width: '100%', padding: '10px 12px', fontSize: '20px',
+                    textAlign: 'center', letterSpacing: '6px', fontFamily: 'monospace',
+                    borderRadius: '8px', border: '1px solid var(--border)',
+                    background: 'var(--input)', color: 'var(--foreground)',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+                {verifyCodeError && (
+                  <div className="error-message" style={{margin: 0, fontSize: '13px'}}>{verifyCodeError}</div>
+                )}
+                <button
+                  type="submit"
+                  disabled={verifyCode.length !== 6 || verifyCodeSubmitting}
+                  style={{
+                    padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
+                    background: 'var(--btn-gradient)', color: 'var(--btn-text)',
+                    border: 'none', cursor: verifyCodeSubmitting ? 'wait' : 'pointer',
+                    opacity: (verifyCode.length !== 6 || verifyCodeSubmitting) ? 0.6 : 1,
+                  }}
+                >
+                  {verifyCodeSubmitting ? t('common.pleaseWait') : t('auth.verifyEmailCode')}
+                </button>
+              </form>
+            </div>
+            <p style={{color: 'var(--text-secondary)', fontSize: '13px', marginTop: '8px'}}>
+              {t('auth.verifyCodeExpiry')}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
+              <button className="btn btn-secondary" onClick={() => navigate('/login')}>{t('auth.goToLogin')}</button>
+              <Link to="/" className="btn btn-secondary">{t('common.backToHome')}</Link>
+            </div>
+          </>
+        )}
       </div>
     );
   }

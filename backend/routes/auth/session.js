@@ -17,7 +17,7 @@ const { createChallenge, sha } = require('altcha/lib');
 const { protect, adminProtect, superAdminProtect, verifyRefreshToken } = require('../../middlewares/authFactory');
 const { validatePassword } = require('../../middlewares/security');
 const { logManual } = require('../../middlewares/auditLog');
-const { sendPasswordResetEmail, sendVerificationEmail, createTransporter, getFromName, getFromUser, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../../utils/email');
+const { sendPasswordResetEmail, sendVerificationCodeEmail, createTransporter, getFromName, getFromUser, getSiteUrl, buildEmailHTML, emailButton, emailInfoBox } = require('../../utils/email');
 const { sendNotificationEmailToUser } = require('../../utils/notifyHelper');
 const {
   parseUserAgent,
@@ -41,6 +41,8 @@ const { DEMO_EMAILS, skipVerification } = require('../../utils/authHelpers');
 const { getCachedIpRegion } = require('../../utils/ipRegion');
 const { ALTCHA_HMAC_KEY, DEV_API_TOKEN, verifyAltcha } = require('../../utils/altcha');
 const deviceLoginCodes = require('../../utils/deviceLoginCodes');
+// 邮箱验证一次性验证码（内存存储，10分钟过期）
+const emailVerifyCodes = require('../../utils/emailVerifyCodes');
 
 
 /**
@@ -221,15 +223,18 @@ router.post('/register', async (req, res) => {
       throw err;
     });
 
-    const verifyToken = jwt.sign(
-      { id: user._id, purpose: 'verify-email' },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    sendVerificationEmail(email, verifyToken).catch(() => {});
+    // 生成 6 位邮箱验证码并存储（10 分钟有效），发送验证码邮件
+    const verifyCode = String(crypto.randomInt(100000, 1000000));
+    emailVerifyCodes.set(verifyCode, {
+      userId: user._id.toString(),
+      email: user.email,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      attempts: 0
+    });
+    sendVerificationCodeEmail(user.email, verifyCode, 'register').catch(() => {});
 
     res.json({
-      message: '注册成功，请验证邮箱后登录',
+      message: '注册成功，验证码已发送至您的邮箱',
       email: user.email,
       needVerification: true
     });
@@ -325,13 +330,16 @@ router.post('/login', async (req, res) => {
     await user.resetLoginAttempts();
 
     if (!user.isEmailVerified && !skipVerification(user) && !(DEV_API_TOKEN && req.headers['x-dev-token'] === DEV_API_TOKEN)) {
-      const verifyToken = jwt.sign(
-        { id: user._id, purpose: 'verify-email' },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-      sendVerificationEmail(user.email, verifyToken).catch(() => {});
-      return res.status(403).json({ message: '请先验证邮箱后再登录，验证邮件已重新发送至您的邮箱', needVerification: true, email: user.email });
+      // 邮箱未验证：生成 6 位验证码并发送（取代旧的验证链接）
+      const verifyCode = String(crypto.randomInt(100000, 1000000));
+      emailVerifyCodes.set(verifyCode, {
+        userId: user._id.toString(),
+        email: user.email,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0
+      });
+      sendVerificationCodeEmail(user.email, verifyCode, 'login').catch(() => {});
+      return res.status(403).json({ message: '请先验证邮箱后再登录，验证码已发送至您的邮箱', needVerification: true, email: user.email });
     }
 
     if (skipVerification(user) && !user.isEmailVerified) {

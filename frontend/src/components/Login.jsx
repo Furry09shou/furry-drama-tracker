@@ -23,9 +23,10 @@ const Login = ({ login }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [needVerification, setNeedVerification] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState('');
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendMsg, setResendMsg] = useState('');
-  const [resendSuccess, setResendSuccess] = useState(false);
+  // 邮箱验证码输入相关（登录时邮箱未验证场景）
+  const [emailVerifyCode, setEmailVerifyCode] = useState('');
+  const [emailVerifyCodeSubmitting, setEmailVerifyCodeSubmitting] = useState(false);
+  const [emailVerifyCodeError, setEmailVerifyCodeError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [needDeviceVerify, setNeedDeviceVerify] = useState(false);
   const [deviceVerifyEmail, setDeviceVerifyEmail] = useState('');
@@ -104,6 +105,8 @@ const Login = ({ login }) => {
     setNeedVerification(false);
     setNeedDeviceVerify(false);
     setNeed2FA(false);
+    setEmailVerifyCode('');
+    setEmailVerifyCodeError('');
     setSubmitting(true);
     try {
       const response = await axios.post(API.AUTH.LOGIN, {
@@ -136,6 +139,25 @@ const Login = ({ login }) => {
       }
     }
     setSubmitting(false);
+  };
+
+  // 验证邮箱验证码（登录时邮箱未验证场景）
+  const handleVerifyEmailCode = async (e) => {
+    e.preventDefault();
+    if (emailVerifyCodeSubmitting) return;
+    setEmailVerifyCodeError('');
+    setEmailVerifyCodeSubmitting(true);
+    try {
+      await axios.post('/api/auth/verify-email', { code: emailVerifyCode.trim(), email: verifyEmail });
+      // 验证成功：回到登录表单，提示用户重新登录
+      setSuccessMsg(t('auth.emailVerifySuccess'));
+      setNeedVerification(false);
+      setEmailVerifyCode('');
+      setEmailVerifyCodeError('');
+    } catch (err) {
+      setEmailVerifyCodeError(err.response?.data?.message || t('auth.emailVerifyCodeInvalid'));
+    }
+    setEmailVerifyCodeSubmitting(false);
   };
 
   // 用户在原浏览器输入验证码完成设备登录
@@ -385,6 +407,69 @@ const Login = ({ login }) => {
     );
   }
 
+  // 邮箱未验证：显示验证码输入界面（取代旧的重发验证邮件提示）
+  if (needVerification) {
+    return (
+      <div className="auth-form" style={{textAlign: 'center', padding: '40px 20px'}}>
+        <div aria-hidden="true" style={{fontSize: '48px', marginBottom: '16px'}}>📧</div>
+        <h2>{t('auth.emailVerifyCodeTitle')}</h2>
+        <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: '12px'}}>
+          {t('auth.verifySent')}<br/>
+          <strong>{verifyEmail}</strong>
+        </p>
+        <div style={{
+          background: 'var(--primary-bg)', border: '1px solid var(--primary-border)',
+          borderRadius: '10px', padding: '16px', margin: '20px 0 0',
+        }}>
+          <p style={{color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 12px', lineHeight: 1.6}}>
+            {t('auth.enterEmailVerifyCode')}
+          </p>
+          <form onSubmit={handleVerifyEmailCode} style={{display: 'flex', gap: '8px', flexDirection: 'column'}}>
+            <input
+              type="text"
+              value={emailVerifyCode}
+              onChange={(e) => setEmailVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder={t('auth.emailVerifyCodePlaceholder')}
+              inputMode="numeric"
+              maxLength="6"
+              autoFocus
+              style={{
+                width: '100%', padding: '10px 12px', fontSize: '20px',
+                textAlign: 'center', letterSpacing: '6px', fontFamily: 'monospace',
+                borderRadius: '8px', border: '1px solid var(--border)',
+                background: 'var(--input)', color: 'var(--foreground)',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+            {emailVerifyCodeError && (
+              <div className="error-message" style={{margin: 0, fontSize: '13px'}}>{emailVerifyCodeError}</div>
+            )}
+            <button
+              type="submit"
+              disabled={emailVerifyCode.length !== 6 || emailVerifyCodeSubmitting}
+              style={{
+                padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
+                background: 'var(--btn-gradient)', color: 'var(--btn-text)',
+                border: 'none', cursor: emailVerifyCodeSubmitting ? 'wait' : 'pointer',
+                opacity: (emailVerifyCode.length !== 6 || emailVerifyCodeSubmitting) ? 0.6 : 1,
+              }}
+            >
+              {emailVerifyCodeSubmitting ? t('common.pleaseWait') : t('auth.verifyEmailCode')}
+            </button>
+          </form>
+        </div>
+        <p style={{color: 'var(--text-secondary)', fontSize: '13px', marginTop: '16px'}}>
+          {t('auth.verifyCodeExpiry')}
+        </p>
+        <button onClick={() => { setNeedVerification(false); setError(''); setEmailVerifyCode(''); setEmailVerifyCodeError(''); }} style={{
+          marginTop: '16px', padding: '10px 24px', borderRadius: '8px',
+          background: 'var(--hover-bg)', border: '1px solid var(--border)',
+          color: 'var(--foreground)', cursor: 'pointer', fontSize: '14px'
+        }}>{t('auth.backToLogin')}</button>
+      </div>
+    );
+  }
+
   if (showReset) {
     return (
       <div className="auth-form">
@@ -456,44 +541,6 @@ const Login = ({ login }) => {
     <div className="auth-form">
       <h2>{t('auth.loginTitle')}</h2>
       {error && <div className="error-message">{error}</div>}
-      {needVerification && (
-        <div style={{
-          padding: '16px', marginBottom: '16px', borderRadius: '8px',
-          background: 'var(--warning-bg)', border: '1px solid var(--warning-border)',
-          color: 'var(--warning-text)', fontSize: '14px', lineHeight: 1.7
-        }}>
-          <p style={{margin: '0 0 10px 0'}}>{t('auth.email')} <strong>{verifyEmail}</strong> {t('auth.verifyEmailFirst')}</p>
-          <button
-            onClick={async () => {
-              setResendLoading(true);
-              setResendMsg('');
-              setResendSuccess(false);
-              try {
-                const res = await axios.post('/api/auth/resend-verification-by-email', { email: verifyEmail });
-                setResendMsg(res.data.message);
-                setResendSuccess(true);
-              } catch (err) {
-                setResendMsg(err.response?.data?.message || t('common.sendFailed'));
-                setResendSuccess(false);
-              }
-              setResendLoading(false);
-            }}
-            disabled={resendLoading}
-            style={{
-              padding: '6px 16px', borderRadius: '6px', fontSize: '13px',
-              background: 'var(--btn-gradient)', color: 'var(--btn-text)',
-              border: 'none', cursor: 'pointer', fontWeight: 500
-            }}
-          >
-            {resendLoading ? t('auth.sending') : t('auth.resendVerification')}
-          </button>
-          {resendMsg && (
-            <p style={{margin: '8px 0 0 0', fontSize: '13px',
-              color: resendSuccess ? 'var(--success-text)' : 'var(--destructive-text)'
-            }}>{resendMsg}</p>
-          )}
-        </div>
-      )}
       {successMsg && <div className="success-message" style={{padding: '10px', background: 'var(--success-bg-strong)', border: '1px solid var(--success-border)', borderRadius: '6px', color: 'var(--success-text)'}}>{successMsg}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
