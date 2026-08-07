@@ -7,6 +7,7 @@ import SearchInput from './SearchInput';
 import ImageUploader from './ImageUploader';
 import { useI18n } from '../contexts/I18nContext';
 import EpisodeVersionHistory from './EpisodeVersionHistory';
+import ReviewStatusBadge from './ReviewStatusBadge';
 
 const AdminEpisodes = () => {
   const { locale, t } = useI18n();
