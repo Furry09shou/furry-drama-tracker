@@ -16,14 +16,15 @@ const linksToArr = (links) => {
 
 const hasPending = (profile) => {
   const pc = profile?.pendingChanges;
-  return !!(pc && pc.displayName);
+  if (!pc) return false;
+  return !!(pc.displayName || pc.avatar || pc.bio || (pc.socialLinks && Object.keys(pc.socialLinks).length > 0) || pc.qqGroupLink);
 };
 
 const AdminCreatorProfiles = () => {
   const { admin } = useOutletContext();
   const [profiles, setProfiles] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ displayName: '', avatar: '', bio: '', socialLinks: [] });
+  const [editForm, setEditForm] = useState({ displayName: '', avatar: '', bio: '', socialLinks: [], qqGroupLink: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -63,7 +64,8 @@ const AdminCreatorProfiles = () => {
       displayName: profile.displayName || '',
       avatar: profile.avatar || '',
       bio: profile.bio || '',
-      socialLinks: Object.entries(links).map(([name, url]) => ({ name, url }))
+      socialLinks: Object.entries(links).map(([name, url]) => ({ name, url })),
+      qqGroupLink: profile.qqGroupLink || ''
     });
     setMessage('');
   };
@@ -80,7 +82,8 @@ const AdminCreatorProfiles = () => {
         displayName: editForm.displayName,
         avatar: editForm.avatar,
         bio: editForm.bio,
-        socialLinks: linksObj
+        socialLinks: linksObj,
+        qqGroupLink: editForm.qqGroupLink
       });
       setMessage(t('adminCreatorProfiles.saveSuccess'));
       fetchProfiles();
@@ -227,6 +230,17 @@ const AdminCreatorProfiles = () => {
             </div>
           </div>
 
+          <div className="form-group">
+            <label>{t('adminCreatorProfiles.qqGroupLink')}</label>
+            <input
+              type="text"
+              value={editForm.qqGroupLink}
+              onChange={(e) => setEditForm({...editForm, qqGroupLink: e.target.value})}
+              placeholder={t('adminCreatorProfiles.qqGroupLinkPlaceholder')}
+            />
+            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminCreatorProfiles.qqGroupLinkHint')}</p>
+          </div>
+
           {message && (
             <div style={{
               padding: '10px 16px', borderRadius: '8px', marginBottom: '16px',
@@ -348,6 +362,9 @@ const AdminCreatorProfiles = () => {
                           <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'var(--text-tertiary)' }}>
                             {curLinks.length > 0 ? curLinks.map(l => l.name).join('、') : t('adminCreatorProfiles.linkEmpty')}
                           </p>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'var(--text-tertiary)', wordBreak: 'break-all' }}>
+                            {t('adminCreatorProfiles.qqGroupLink')}：{profile.qqGroupLink ? profile.qqGroupLink : t('adminCreatorProfiles.noQqGroup')}
+                          </p>
                         </div>
                         {/* 待审核版本 */}
                         <div style={{ borderLeft: '2px solid var(--warning-border)', paddingLeft: '12px' }}>
@@ -361,6 +378,9 @@ const AdminCreatorProfiles = () => {
                           <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: 'var(--text-secondary)', maxHeight: '60px', overflow: 'hidden' }}>{pc.bio || t('adminCreatorProfiles.bioEmpty')}</p>
                           <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'var(--text-tertiary)' }}>
                             {pcLinks.length > 0 ? pcLinks.map(l => l.name).join('、') : t('adminCreatorProfiles.linkEmpty')}
+                          </p>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'var(--text-tertiary)', wordBreak: 'break-all' }}>
+                            {t('adminCreatorProfiles.qqGroupLink')}：{pc.qqGroupLink ? pc.qqGroupLink : t('adminCreatorProfiles.noQqGroup')}
                           </p>
                         </div>
                       </div>

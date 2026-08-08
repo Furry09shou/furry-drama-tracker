@@ -41,7 +41,8 @@ router.put('/my-profile', creatorProtect, async (req, res) => {
       displayName: req.body.displayName,
       avatar: req.body.avatar,
       bio: req.body.bio && req.body.bio.length > 500 ? req.body.bio.slice(0, 500) : req.body.bio,
-      socialLinks: req.body.socialLinks || {}
+      socialLinks: req.body.socialLinks || {},
+      qqGroupLink: req.body.qqGroupLink || ''
     };
     let profile = await CreatorProfile.findOneAndUpdate(
       { creatorId: req.user._id },

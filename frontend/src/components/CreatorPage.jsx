@@ -113,6 +113,26 @@ const CreatorPage = () => {
               ))}
             </div>
           )}
+          {profile.qqGroupLink && (
+            <div style={{marginTop: '12px'}}>
+              <a
+                href={profile.qqGroupLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500,
+                  background: 'var(--primary)', color: 'var(--btn-text)',
+                  border: '1px solid var(--primary)', textDecoration: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px var(--shadow-modal)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                {t('creator.contactQQGroup')}
+              </a>
+            </div>
+          )}
         </div>
       </div>
 

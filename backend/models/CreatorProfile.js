@@ -25,6 +25,11 @@ const CreatorProfileSchema = new mongoose.Schema({
     of: String,
     default: {}
   },
+  // QQ 群链接：创作者可配置自己的 QQ 群，剧集详情页和创作者主页展示「联系QQ群」跳转入口
+  qqGroupLink: {
+    type: String,
+    default: ''
+  },
   // 审核状态：创作者修改主页后变为 pending，管理员审核通过后才对外生效
   reviewStatus: {
     type: String,
@@ -40,7 +45,8 @@ const CreatorProfileSchema = new mongoose.Schema({
     displayName: { type: String, default: '' },
     avatar: { type: String, default: '' },
     bio: { type: String, default: '' },
-    socialLinks: { type: Map, of: String, default: {} }
+    socialLinks: { type: Map, of: String, default: {} },
+    qqGroupLink: { type: String, default: '' }
   },
   createdAt: {
     type: Date,

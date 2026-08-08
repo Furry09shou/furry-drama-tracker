@@ -41,7 +41,8 @@ const AdminEpisodes = () => {
     premiereDate: '',
     noPremiereDate: false,
     hideCreator: false,
-    customAuthors: []
+    customAuthors: [],
+    qqGroupLink: ''
   });
   const [newSingleEpisode, setNewSingleEpisode] = useState({
     episodeNumber: 1,
@@ -146,7 +147,8 @@ const AdminEpisodes = () => {
           ? new Date(newEpisode.premiereDate).toISOString()
           : null,
         hideCreator: !!newEpisode.hideCreator,
-        customAuthors: newEpisode.customAuthors || []
+        customAuthors: newEpisode.customAuthors || [],
+        qqGroupLink: newEpisode.qqGroupLink || ''
       };
 
       const response = await adminApi.post('/api/episodes', episodeData);
@@ -172,7 +174,8 @@ const AdminEpisodes = () => {
           premiereDate: '',
           noPremiereDate: false,
           hideCreator: !!response.data.hideCreator,
-          customAuthors: (response.data.customAuthors || []).map(a => a._id || a)
+          customAuthors: (response.data.customAuthors || []).map(a => a._id || a),
+          qqGroupLink: response.data.qqGroupLink || ''
         });
         setShowEditForm(true);
         fetchSingleEpisodes(response.data._id);
@@ -212,7 +215,8 @@ const AdminEpisodes = () => {
         : '',
       noPremiereDate: episode.status === 'upcoming' && !episode.premiereDate,
       hideCreator: !!episode.hideCreator,
-      customAuthors: (episode.customAuthors || []).map(a => a._id || a)
+      customAuthors: (episode.customAuthors || []).map(a => a._id || a),
+      qqGroupLink: episode.qqGroupLink || ''
     });
     setShowEditForm(true);
     fetchSingleEpisodes(episode._id);
@@ -241,7 +245,8 @@ const AdminEpisodes = () => {
           ? new Date(newEpisode.premiereDate).toISOString()
           : null,
         hideCreator: !!newEpisode.hideCreator,
-        customAuthors: newEpisode.customAuthors || []
+        customAuthors: newEpisode.customAuthors || [],
+        qqGroupLink: newEpisode.qqGroupLink || ''
       };
 
       await adminApi.put(`/api/episodes/${editingEpisode._id}`, episodeData);
@@ -378,7 +383,8 @@ const AdminEpisodes = () => {
       premiereDate: '',
       noPremiereDate: false,
       hideCreator: false,
-      customAuthors: []
+      customAuthors: [],
+      qqGroupLink: ''
     });
   };
 
@@ -646,6 +652,16 @@ const AdminEpisodes = () => {
           )}
         </div>
       )}
+      <div className="form-group">
+        <label>{t('adminEpisodes.qqGroupLink')}</label>
+        <input
+          type="text"
+          value={newEpisode.qqGroupLink}
+          onChange={(e) => setNewEpisode({...newEpisode, qqGroupLink: e.target.value})}
+          placeholder={t('adminEpisodes.qqGroupLinkPlaceholder')}
+        />
+        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminEpisodes.qqGroupLinkHint')}</p>
+      </div>
       <div className="form-group">
         <button type="submit">{isEdit ? t('adminEpisodes.updateEpisode') : t('adminEpisodes.addAndManage')}</button>
       </div>

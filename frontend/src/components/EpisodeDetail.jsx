@@ -393,41 +393,30 @@ const EpisodeDetail = ({ user }) => {
               const showCreatedBy = !episode.hideCreator && episode.createdBy;
               const editors = (episode.allowedEditors && episode.allowedEditors.length > 0) ? episode.allowedEditors : [];
               const customAuthors = (episode.customAuthors && episode.customAuthors.length > 0) ? episode.customAuthors : [];
-              const hasAnyAuthor = showCreatedBy || editors.length > 0 || customAuthors.length > 0;
-              if (!hasAnyAuthor) return null;
-              let authorIdx = 0;
+              // 合并三种来源，按 _id 去重，避免同一用户重复显示
+              const allAuthors = [];
+              const seenIds = new Set();
+              if (showCreatedBy && !seenIds.has(episode.createdBy._id)) {
+                allAuthors.push(episode.createdBy);
+                seenIds.add(episode.createdBy._id);
+              }
+              for (const editor of editors) {
+                if (!seenIds.has(editor._id)) { allAuthors.push(editor); seenIds.add(editor._id); }
+              }
+              for (const author of customAuthors) {
+                if (!seenIds.has(author._id)) { allAuthors.push(author); seenIds.add(author._id); }
+              }
+              if (allAuthors.length === 0) return null;
               return (
                 <p><strong>{t('episode.author')}</strong>
-                  {showCreatedBy && (
-                    <Link
-                      to={`/creator/${episode.createdBy._id}`}
-                      style={{color: 'var(--primary)', textDecoration: 'none', marginRight: '8px'}}
-                      onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                      onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                    >{episode.createdBy.username}</Link>
-                  )}
-                  {editors.map((editor) => {
-                    const sep = authorIdx++ > 0 ? '、' : '';
-                    return (
-                      <span key={`editor-${editor._id}`}>
-                        {sep}
-                        <Link
-                          to={`/creator/${editor._id}`}
-                          style={{color: 'var(--primary)', textDecoration: 'none'}}
-                          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                        >{editor.username}</Link>
-                      </span>
-                    );
-                  })}
-                  {customAuthors.map((author) => {
-                    const sep = authorIdx++ > 0 ? '、' : '';
+                  {allAuthors.map((author, idx) => {
+                    const sep = idx > 0 ? '、' : '';
                     return (
                       <span key={`author-${author._id}`}>
                         {sep}
                         <Link
                           to={`/creator/${author._id}`}
-                          style={{color: 'var(--primary)', textDecoration: 'none'}}
+                          style={{color: 'var(--primary)', textDecoration: 'none', marginRight: '8px'}}
                           onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
                           onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
                         >{author.username}</Link>
@@ -437,6 +426,26 @@ const EpisodeDetail = ({ user }) => {
                 </p>
               );
             })()}
+            {episode.qqGroupLink && (
+              <p style={{marginTop: '6px'}}>
+                <a
+                  href={episode.qqGroupLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '5px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500,
+                    background: 'var(--primary)', color: 'var(--btn-text)',
+                    border: '1px solid var(--primary)', textDecoration: 'none',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px var(--shadow-modal)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  {t('episode.contactQQGroup')}
+                </a>
+              </p>
+            )}
             {user && isFollowing && (
               <p><strong>{t('episode.watchProgress')}</strong>{t('episode.watchedLabel')} {watchedEpisodes.length}{episode.totalEpisodes ? `/${episode.totalEpisodes}` : ''} {t('episode.epSuffix')}</p>
             )}

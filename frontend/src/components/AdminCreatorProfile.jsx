@@ -20,6 +20,7 @@ const AdminCreatorProfile = () => {
   const [avatar, setAvatar] = useState('');
   const [bio, setBio] = useState('');
   const [socialLinks, setSocialLinks] = useState([]);
+  const [qqGroupLink, setQqGroupLink] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ const AdminCreatorProfile = () => {
       setAvatar(src.avatar || '');
       setBio(src.bio || '');
       setSocialLinks(linksToArr(src.socialLinks));
+      setQqGroupLink(src.qqGroupLink || '');
     } catch (err) {
       console.error('获取创作者主页失败', err);
     }
@@ -60,7 +62,7 @@ const AdminCreatorProfile = () => {
         if (item.name.trim()) linksObj[item.name.trim()] = item.url.trim();
       });
       const res = await adminApi.put('/api/creator-profile/my-profile', {
-        displayName, avatar, bio, socialLinks: linksObj
+        displayName, avatar, bio, socialLinks: linksObj, qqGroupLink
       });
       setProfile(res.data);
       setMessage(t('adminCreatorProfile.saveSuccess'));
@@ -202,6 +204,18 @@ const AdminCreatorProfile = () => {
               }}
             >{t('adminCreatorProfile.addSocialLink')}</button>
           </div>
+        </div>
+
+        <div className="form-group">
+          <label>{t('adminCreatorProfile.qqGroupLink')}</label>
+          <input
+            type="text"
+            value={qqGroupLink}
+            onChange={(e) => setQqGroupLink(e.target.value)}
+            placeholder={t('adminCreatorProfile.qqGroupLinkPlaceholder')}
+            disabled={isPending}
+          />
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>{t('adminCreatorProfile.qqGroupLinkHint')}</p>
         </div>
 
         {message && (

@@ -361,7 +361,10 @@ router.get('/:id', optionalAuth, async (req, res) => {
     }
 
     const singleEpisodes = await SingleEpisode.find({ episodeId: req.params.id }).sort({ episodeNumber: 1 });
-    const episodeWithEpisodes = { ...episode.toObject(), episodes: singleEpisodes };
+
+    const episodeObj = episode.toObject();
+
+    const episodeWithEpisodes = { ...episodeObj, episodes: singleEpisodes };
 
     // 仅缓存已审核剧集，避免未审核内容被缓存后泄露给其他访客
     if (isApproved) {
@@ -635,6 +638,7 @@ router.post('/', creatorProtect, async (req, res) => {
       createdBy: req.user._id,
       hideCreator: !!req.body.hideCreator,
       customAuthors: Array.isArray(req.body.customAuthors) ? req.body.customAuthors : [],
+      qqGroupLink: req.body.qqGroupLink || '',
       reviewStatus: isCreator ? 'pending' : 'approved'
     };
 
@@ -799,7 +803,7 @@ router.put('/:id', creatorProtect, async (req, res) => {
       await EpisodeVersion.deleteMany({ _id: { $in: oldestVersions.map(v => v._id) } });
     }
 
-    const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks', 'hideCreator', 'customAuthors'];
+    const allowedFields = ['title', 'titleEn', 'titleJa', 'description', 'descriptionEn', 'descriptionJa', 'coverImage', 'totalEpisodes', 'currentEpisodes', 'status', 'category', 'tags', 'updateDay', 'premiereDate', 'platformLinks', 'hideCreator', 'customAuthors', 'qqGroupLink'];
     const updateData = { updatedAt: Date.now() };
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {

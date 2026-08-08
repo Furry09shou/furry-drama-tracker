@@ -91,6 +91,11 @@ const EpisodeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  // 剧集独立的 QQ 群链接（非必填）：填写后剧集详情页展示「联系QQ群」跳转入口
+  qqGroupLink: {
+    type: String,
+    default: ''
+  },
   reviewStatus: {
     type: String,
     enum: ['approved', 'pending', 'rejected'],

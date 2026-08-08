@@ -502,8 +502,9 @@ router.put('/creator-profiles/:id', superAdminProtect, requireEmailChanged, asyn
       avatar: req.body.avatar,
       bio: req.body.bio && req.body.bio.length > 500 ? req.body.bio.slice(0, 500) : req.body.bio,
       socialLinks: req.body.socialLinks || {},
+      qqGroupLink: req.body.qqGroupLink || '',
       // 超管直接编辑视为终态：清空待审核改动并标记为已通过
-      pendingChanges: { displayName: '', avatar: '', bio: '', socialLinks: {} },
+      pendingChanges: { displayName: '', avatar: '', bio: '', socialLinks: {}, qqGroupLink: '' },
       reviewStatus: 'approved',
       reviewNote: '',
       updatedAt: Date.now()
@@ -530,7 +531,8 @@ router.put('/creator-profiles/:id/approve', superAdminProtect, requireEmailChang
     if (pc.avatar !== undefined) profile.avatar = pc.avatar;
     if (pc.bio !== undefined) profile.bio = pc.bio;
     if (pc.socialLinks) profile.socialLinks = pc.socialLinks;
-    profile.pendingChanges = { displayName: '', avatar: '', bio: '', socialLinks: {} };
+    if (pc.qqGroupLink !== undefined) profile.qqGroupLink = pc.qqGroupLink;
+    profile.pendingChanges = { displayName: '', avatar: '', bio: '', socialLinks: {}, qqGroupLink: '' };
     profile.reviewStatus = 'approved';
     profile.reviewNote = '';
     profile.updatedAt = Date.now();

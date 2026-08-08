@@ -479,6 +479,7 @@ export default {
     statusCompleted: 'Completed',
     statusUpcoming: 'Upcoming',
     starRating: '{star} star',
+    contactQQGroup: '💬 Contact QQ Group',
   },
   devices: {
     manageDevices: 'Manage Devices',
@@ -688,6 +689,7 @@ export default {
     noWorks: 'No works yet',
     episodeProgress: 'Updated to Ep {current}, Total {total} eps',
     episodeProgressUnknown: 'Updated to Ep {current}',
+    contactQQGroup: '💬 Contact QQ Group',
   },
   episodeForm: {
     editTitle: 'Edit Drama',
@@ -1107,6 +1109,9 @@ export default {
     customAuthors: 'Custom Authors',
     customAuthorsHint: 'Select existing creators on the site as displayed authors for the episode (multi-select), suitable for proxy creation by admins',
     customAuthorsSelected: '{count} creator(s) selected',
+    qqGroupLink: 'QQ Group Link',
+    qqGroupLinkPlaceholder: 'QQ group join link (e.g., https://qm.qq.com/q/xxx)',
+    qqGroupLinkHint: 'When filled, the episode detail page shows a "Contact QQ Group" entry (optional, per-episode config)',
     addNewEpisode: 'Add New Episode',
     close: 'Close',
     addEpisodeHint: 'After adding, single episode management will open automatically. You can set independent jump links for each episode.',
@@ -1399,6 +1404,10 @@ export default {
     statusLabel: 'Status',
     linkEmpty: 'No social links',
     bioEmpty: 'No bio',
+    qqGroupLink: 'QQ Group Link',
+    noQqGroup: 'Not set',
+    qqGroupLinkPlaceholder: 'QQ group join link (e.g., https://qm.qq.com/q/xxx)',
+    qqGroupLinkHint: 'When filled, episode detail and creator page will show a "Contact QQ Group" entry',
   },
   announcement: {
     viewDetails: 'View Details',

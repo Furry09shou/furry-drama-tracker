@@ -479,6 +479,7 @@ export default {
     statusCompleted: '已完结',
     statusUpcoming: '即将上映',
     starRating: '{star} 星',
+    contactQQGroup: '💬 联系QQ群',
   },
   devices: {
     manageDevices: '管理设备',
@@ -688,6 +689,7 @@ export default {
     noWorks: '暂无作品',
     episodeProgress: '更新至第{current}集，共{total}集',
     episodeProgressUnknown: '更新至第{current}集',
+    contactQQGroup: '💬 联系QQ群',
   },
   episodeForm: {
     editTitle: '编辑剧集',
@@ -1107,6 +1109,9 @@ export default {
     customAuthors: '自定义作者',
     customAuthorsHint: '可选择网站上已有的创作者作为剧集展示作者（可多选），适用于管理员代建场景',
     customAuthorsSelected: '已选 {count} 位创作者',
+    qqGroupLink: 'QQ群链接',
+    qqGroupLinkPlaceholder: 'QQ群加群链接（如 https://qm.qq.com/q/xxx）',
+    qqGroupLinkHint: '填写后剧集详情页将展示「联系QQ群」跳转入口（非必填，每个剧集独立配置）',
     addNewEpisode: '添加新剧集',
     close: '关闭',
     addEpisodeHint: '添加剧集后将自动打开单集管理，您可以为每一集设置独立的跳转链接',
@@ -1351,6 +1356,9 @@ export default {
     profileLinkLabel: '主页链接：',
     viewMyProfile: '点击查看我的主页',
     successKeyword: '成功',
+    qqGroupLink: 'QQ群链接',
+    qqGroupLinkPlaceholder: 'QQ群加群链接（如 https://qm.qq.com/q/xxx）',
+    qqGroupLinkHint: '填写后，剧集详情页和创作者主页将展示「联系QQ群」跳转入口',
   },
   adminCreatorProfiles: {
     title: '创作者主页管理',
@@ -1399,6 +1407,10 @@ export default {
     statusLabel: '状态',
     linkEmpty: '无社交链接',
     bioEmpty: '未填写简介',
+    qqGroupLink: 'QQ群链接',
+    noQqGroup: '未设置',
+    qqGroupLinkPlaceholder: 'QQ群加群链接（如 https://qm.qq.com/q/xxx）',
+    qqGroupLinkHint: '填写后，剧集详情页和创作者主页将展示「联系QQ群」跳转入口',
   },
   announcement: {
     viewDetails: '查看详情',
