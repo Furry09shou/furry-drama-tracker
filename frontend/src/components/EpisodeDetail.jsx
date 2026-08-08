@@ -116,7 +116,7 @@ const EpisodeDetail = ({ user }) => {
     try {
       await axios.put(`/api/episodes/single/${singleEpisode._id}/view`);
     } catch (error) {}
-    recordWatchProgress(singleEpisode.episodeNumber);
+    // 不在此处标记已看：只有用户点击平台链接跳转出去观看后才标记（见 Modal 内链接 onClick）
     setIframeReady(false);
     setWatchModal(singleEpisode);
     setWatchModalOpen(true);

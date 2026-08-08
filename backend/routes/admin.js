@@ -243,6 +243,23 @@ router.post('/register', superAdminProtect, requireEmailChanged, async (req, res
       isEmailVerified: true
     });
 
+    // 创作者角色账号自动创建 CreatorProfile（默认预填基础信息）
+    if (role === 'creator') {
+      try {
+        const existingProfile = await CreatorProfile.findOne({ creatorId: user._id });
+        if (!existingProfile) {
+          await CreatorProfile.create({
+            creatorId: user._id,
+            displayName: user.username || '创作者',
+            bio: '这位创作者还没有填写个人简介。',
+            socialLinks: {}
+          });
+        }
+      } catch (e) {
+        console.error('创建创作者主页失败:', e.message);
+      }
+    }
+
     // 发送"账号已创建"通知邮件（非验证链接邮件）
     try {
       const siteUrl = getSiteUrl();
@@ -425,6 +442,24 @@ router.put('/role/:id', superAdminProtect, requireEmailChanged, async (req, res)
       { role },
       { new: true }
     ).select('-password');
+
+    // 角色改为 creator 时自动创建 CreatorProfile（若尚不存在）
+    if (role === 'creator' && target.role !== 'creator') {
+      try {
+        const existingProfile = await CreatorProfile.findOne({ creatorId: req.params.id });
+        if (!existingProfile) {
+          await CreatorProfile.create({
+            creatorId: req.params.id,
+            displayName: updated.username || '创作者',
+            bio: '这位创作者还没有填写个人简介。',
+            socialLinks: {}
+          });
+        }
+      } catch (e) {
+        console.error('创建创作者主页失败:', e.message);
+      }
+    }
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
